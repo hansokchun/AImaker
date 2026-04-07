@@ -3,7 +3,7 @@
  * Implements a Web Component for Expert Cards and handles dynamic listing.
  */
 
-// 1. Define the Web Component
+// 1. Define the Web Component with improved styles
 class ExpertCard extends HTMLElement {
     constructor() {
         super();
@@ -24,20 +24,80 @@ class ExpertCard extends HTMLElement {
         this.shadowRoot.innerHTML = `
             <style>
                 :host { display: block; cursor: pointer; }
-                .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; transition: 0.2s; height: 100%; display: flex; flex-direction: column; }
-                .card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #2563eb; }
-                .img { width: 100%; height: 200px; object-fit: cover; }
-                .content { padding: 1.25rem; flex: 1; display: flex; flex-direction: column; }
-                .prof { font-size: 0.75rem; color: #2563eb; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
-                .name { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem 0; line-height: 1.4; }
-                .rating-row { display: flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
-                .star { color: #fbbf24; }
-                .price-row { margin-top: auto; padding-top: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-                .price-label { font-size: 0.75rem; color: #64748b; }
-                .price-value { font-size: 1.1rem; font-weight: 800; color: #0f172a; }
+                .card { 
+                    background: white; 
+                    border: 1px solid #e2e8f0; 
+                    border-radius: 24px; 
+                    overflow: hidden; 
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                    height: 100%; 
+                    display: flex; 
+                    flex-direction: column; 
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                }
+                .card:hover { 
+                    transform: translateY(-10px); 
+                    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); 
+                    border-color: #2563eb; 
+                }
+                .img-container {
+                    width: 100%;
+                    padding-top: 65%;
+                    position: relative;
+                    background: #f1f5f9;
+                    overflow: hidden;
+                }
+                .img { 
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%; 
+                    height: 100%; 
+                    object-fit: cover; 
+                    transition: transform 0.5s ease;
+                }
+                .card:hover .img { transform: scale(1.1); }
+                .content { padding: 1.75rem; flex: 1; display: flex; flex-direction: column; }
+                .prof { 
+                    font-size: 0.8rem; 
+                    color: #2563eb; 
+                    font-weight: 800; 
+                    text-transform: uppercase; 
+                    margin-bottom: 0.75rem; 
+                    letter-spacing: 0.05em;
+                }
+                .name { 
+                    font-size: 1.25rem; 
+                    font-weight: 800; 
+                    color: #0f172a; 
+                    margin: 0 0 0.75rem 0; 
+                    line-height: 1.3; 
+                }
+                .rating-row { 
+                    display: flex; 
+                    align-items: center; 
+                    gap: 0.4rem; 
+                    font-size: 1rem; 
+                    font-weight: 700; 
+                    color: #0f172a; 
+                    margin-bottom: 1.5rem; 
+                }
+                .star { color: #fbbf24; font-size: 1.1rem; }
+                .price-row { 
+                    margin-top: auto; 
+                    padding-top: 1.25rem; 
+                    border-top: 1px solid #f1f5f9; 
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                }
+                .price-label { font-size: 0.85rem; color: #64748b; font-weight: 500; }
+                .price-value { font-size: 1.25rem; font-weight: 900; color: #0f172a; }
             </style>
             <div class="card" onclick="window.location.href='expert.html'">
-                <img src="${image}" class="img" loading="lazy">
+                <div class="img-container">
+                    <img src="${image}" class="img" loading="lazy">
+                </div>
                 <div class="content">
                     <div class="prof">${profession}</div>
                     <div class="name">${name}</div>
@@ -57,12 +117,12 @@ customElements.define('expert-card', ExpertCard);
 
 // 2. Mock Data
 const EXPERTS = [
-    { name: "김디자인 전문가", prof: "UI/UX 디자이너", rate: 4.9, price: 150000, img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400" },
-    { name: "이코딩 전문가", prof: "프론트엔드 개발자", rate: 4.8, price: 300000, img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400" },
-    { name: "박마켓 전문가", prof: "퍼포먼스 마케터", rate: 5.0, price: 100000, img: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400" },
-    { name: "최편집 전문가", prof: "영상 편집자", rate: 4.7, price: 80000, img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400" },
-    { name: "정개발 전문가", prof: "백엔드 개발자", rate: 4.9, price: 500000, img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400" },
-    { name: "한로고 전문가", prof: "로고 디자이너", rate: 4.6, price: 50000, img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400" }
+    { name: "김디자인 전문가", prof: "UI/UX 디자이너", rate: 4.9, price: 150000, img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600" },
+    { name: "이코딩 전문가", prof: "프론트엔드 개발자", rate: 4.8, price: 300000, img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600" },
+    { name: "박마켓 전문가", prof: "퍼포먼스 마케터", rate: 5.0, price: 100000, img: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600" },
+    { name: "최편집 전문가", prof: "영상 편집자", rate: 4.7, price: 80000, img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600" },
+    { name: "정개발 전문가", prof: "백엔드 개발자", rate: 4.9, price: 500000, img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600" },
+    { name: "한로고 전문가", prof: "로고 디자이너", rate: 4.6, price: 50000, img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600" }
 ];
 
 // 3. Initialization
