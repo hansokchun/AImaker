@@ -13,22 +13,19 @@
 <body>
     <header class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="#" class="logo">
+            <a href="index.html" class="logo">
                 <span class="material-symbols-outlined logo-icon">handshake</span>
                 AIConnect
             </a>
             <nav class="nav-links">
-                <a href="#">전문가 찾기</a>
-                <a href="#">서비스 요청</a>
-                <a href="#">커뮤니티</a>
+                <a href="category.html">전문가 찾기</a>
+                <a href="request.html">서비스 요청</a>
+                <a href="community.html">커뮤니티</a>
             </nav>
             <div class="nav-actions">
                 <a href="#" class="btn-text">로그인</a>
                 <a href="#" class="btn-primary">전문가 가입</a>
             </div>
-            <button class="mobile-menu-btn" aria-label="메뉴 열기">
-                <span class="material-symbols-outlined">menu</span>
-            </button>
         </div>
     </header>
 
@@ -77,80 +74,85 @@
 
         <!-- Categories Section -->
         <section class="categories container">
-            <div class="section-header">
+            <div class="section-header" style="text-align: left;">
                 <h2 class="section-title">인기 서비스 카테고리</h2>
-                <a href="#" class="view-all">전체보기 <span class="material-symbols-outlined">arrow_forward</span></a>
+                <a href="category.html" class="view-all">전체보기 <span class="material-symbols-outlined">arrow_forward</span></a>
             </div>
             <div class="category-grid">
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-blue"><span class="material-symbols-outlined">code</span></div>
                     <h3 class="category-name">IT·프로그래밍</h3>
-                    <p class="category-desc">웹/앱 개발, 데이터 분석</p>
                 </a>
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-purple"><span class="material-symbols-outlined">design_services</span></div>
                     <h3 class="category-name">디자인</h3>
-                    <p class="category-desc">로고, 웹, 상세페이지</p>
                 </a>
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-green"><span class="material-symbols-outlined">campaign</span></div>
                     <h3 class="category-name">마케팅</h3>
-                    <p class="category-desc">SNS, 블로그, SEO</p>
                 </a>
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-indigo"><span class="material-symbols-outlined">movie</span></div>
                     <h3 class="category-name">영상·미디어</h3>
-                    <p class="category-desc">영상 편집, 유튜브, 촬영</p>
                 </a>
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-orange"><span class="material-symbols-outlined">translate</span></div>
                     <h3 class="category-name">번역·통역</h3>
-                    <p class="category-desc">영어, 일본어, 중국어</p>
                 </a>
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-red"><span class="material-symbols-outlined">edit_document</span></div>
                     <h3 class="category-name">문서·글쓰기</h3>
-                    <p class="category-desc">카피라이팅, 자소서</p>
                 </a>
-                <a href="#" class="category-card">
+                <a href="category.html" class="category-card">
                     <div class="category-icon bg-teal"><span class="material-symbols-outlined">school</span></div>
                     <h3 class="category-name">레슨·과외</h3>
-                    <p class="category-desc">외국어, 실무, 취미</p>
                 </a>
             </div>
         </section>
 
         <!-- Featured Experts Section -->
         <section class="featured-experts container">
-            <div class="section-header">
+            <div class="section-header" style="text-align: left;">
                 <h2 class="section-title">추천 전문가</h2>
                 <p class="section-subtitle">검증된 리뷰와 포트폴리오를 확인하고 선택하세요.</p>
             </div>
             <div class="expert-grid" id="expert-grid"></div>
         </section>
 
-        <!-- How it works -->
+        <!-- How it works (Improved UI) -->
         <section class="how-it-works bg-light">
             <div class="container">
-                <div class="section-header text-center">
+                <div class="section-header">
                     <h2 class="section-title">이용 방법</h2>
-                    <p class="section-subtitle">단 3단계로 전문가와 연결됩니다.</p>
+                    <p class="section-subtitle">AIConnect를 통해 전문가와 협업하는 가장 스마트한 방법</p>
                 </div>
-                <div class="steps-grid">
+                
+                <div class="steps-container">
                     <div class="step-card">
-                        <div class="step-number">1</div>
-                        <h3 class="step-title">서비스 검색</h3>
-                        <p class="step-desc">필요한 서비스를 검색하거나 카테고리에서 찾아보세요.</p>
+                        <div class="step-number-badge">1</div>
+                        <div class="step-icon-wrapper">
+                            <span class="material-symbols-outlined">search_check</span>
+                        </div>
+                        <h3>서비스 탐색 및 비교</h3>
+                        <p>필요한 서비스를 검색하고 전문가의 포트폴리오와 리뷰를 꼼꼼히 비교해보세요.</p>
                     </div>
+                    
                     <div class="step-card">
-                        <div class="step-number">2</div>
-                        <h3 class="step-title">전문가 비교 및 선택</h3>
-                        <p class="step-desc">프로필, 리뷰, 가격을 비교하고 전문가에게 문의하세요.</p>
+                        <div class="step-number-badge">2</div>
+                        <div class="step-icon-wrapper">
+                            <span class="material-symbols-outlined">chat_bubble</span>
+                        </div>
+                        <h3>전문가 상담 및 매칭</h3>
+                        <p>전문가와 실시간으로 상담하여 상세 견적을 확인하고 프로젝트를 조율하세요.</p>
                     </div>
+                    
                     <div class="step-card">
-                        <div class="step-number">3</div>
-                        <h3 class="step-title">안전한 거래</h3>
-                        <p class="step-desc">결제 대금이 안전하게 보호되며, 작업 완료 후 전달됩니다.</p>
+                        <div class="step-number-badge">3</div>
+                        <div class="step-icon-wrapper">
+                            <span class="material-symbols-outlined">task_alt</span>
+                        </div>
+                        <h3>안전한 거래와 결과물</h3>
+                        <p>작업이 완료될 때까지 결제 대금이 안전하게 보호되며, 최종 확인 후 프로젝트를 마칩니다.</p>
                     </div>
                 </div>
             </div>
@@ -160,10 +162,7 @@
     <footer class="footer">
         <div class="container footer-content">
             <div class="footer-brand">
-                <a href="#" class="logo">
-                    <span class="material-symbols-outlined logo-icon">handshake</span>
-                    AIConnect
-                </a>
+                <a href="#" class="logo">AIConnect</a>
                 <p class="footer-desc">당신의 아이디어를 현실로 만들어줄 최고의 전문가들을 만나보세요.</p>
             </div>
             <div class="footer-links">

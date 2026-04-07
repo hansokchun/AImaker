@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 요청 - AIConnect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+    </style>
+</head>
+<body>
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="material-symbols-outlined logo-icon">handshake</span>
+                AIConnect
+            </a>
+            <nav class="nav-links">
+                <a href="category.html">전문가 찾기</a>
+                <a href="request.html" style="color: var(--primary);">서비스 요청</a>
+                <a href="community.html">커뮤니티</a>
+            </nav>
+            <div class="nav-actions">
+                <a href="#" class="btn-text">로그인</a>
+                <a href="#" class="btn-primary">전문가 가입</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-hero">
+        <div class="container">
+            <h1 class="page-title">무료 서비스 요청</h1>
+            <p style="color: var(--text-secondary);">필요한 내용을 공고로 올리고, 전문가들에게 견적을 받아보세요.</p>
+        </div>
+    </div>
+
+    <main class="container" style="margin-top: -3rem; position: relative; z-index: 10;">
+        <div class="content-card" style="max-width: 800px; margin: 0 auto;">
+            <form>
+                <div class="form-group">
+                    <label>어떤 서비스가 필요하신가요?</label>
+                    <input type="text" class="form-control" placeholder="예: 로고 디자인, 파이썬 웹 크롤러 개발">
+                </div>
+                <div class="form-group">
+                    <label>상세 내용</label>
+                    <textarea class="form-control" rows="6" placeholder="전문가가 파악할 수 있도록 구체적으로 작성해주세요."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>희망 예산 (원)</label>
+                    <input type="number" class="form-control" placeholder="예: 500,000">
+                </div>
+                <div class="form-group">
+                    <label>마감 기한</label>
+                    <input type="date" class="form-control">
+                </div>
+                <button type="button" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; margin-top: 1rem;">요청서 올리기</button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <a href="#" class="logo">AIConnect</a>
+                <p>당신의 아이디어를 현실로 만들어줄 전문가를 만나보세요.</p>
+            </div>
+            <div class="footer-links">
+                <div class="link-column">
+                    <h4>서비스</h4>
+                    <a href="category.html">전문가 찾기</a>
+                    <a href="request.html">서비스 요청</a>
+                </div>
+                <div class="link-column">
+                    <h4>지원</h4>
+                    <a href="#">고객센터</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 AIConnect. All rights reserved.
+        </div>
+    </footer>
+</body>
+</html>
