@@ -1,14 +1,180 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpertConnect - 전문가를 만나보세요</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <span class="material-symbols-outlined logo-icon">handshake</span>
+                ExpertConnect
+            </a>
+            <nav class="nav-links">
+                <a href="#">전문가 찾기</a>
+                <a href="#">서비스 요청</a>
+                <a href="#">커뮤니티</a>
+            </nav>
+            <div class="nav-actions">
+                <a href="#" class="btn-text">로그인</a>
+                <a href="#" class="btn-primary">전문가 가입</a>
+            </div>
+            <button class="mobile-menu-btn" aria-label="메뉴 열기">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">딱 맞는 전문가를<br><span class="highlight">가장 쉽게</span> 찾아보세요</h1>
+                <p class="hero-subtitle">디자인, 개발, 마케팅, 과외 등 1,000+개 분야의 검증된 전문가가 대기 중입니다.</p>
+                <div class="search-bar-container">
+                    <form class="search-form" onsubmit="event.preventDefault();">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input type="text" class="search-input" placeholder="어떤 서비스가 필요하신가요? (예: 로고 디자인, 파이썬 레슨)">
+                        <button type="submit" class="btn-search">검색</button>
+                    </form>
+                </div>
+                <div class="popular-searches">
+                    <span>인기 검색어:</span>
+                    <a href="#" class="tag">웹사이트 제작</a>
+                    <a href="#" class="tag">블로그 마케팅</a>
+                    <a href="#" class="tag">영어 회화</a>
+                    <a href="#" class="tag">영상 편집</a>
+                </div>
+            </div>
+            <div class="hero-image-container">
+                <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Collaboration" class="hero-image">
+                <div class="floating-badge badge-1">
+                    <div class="badge-icon"><span class="material-symbols-outlined">star</span></div>
+                    <div class="badge-text">
+                        <strong>4.9/5</strong>
+                        <span>평균 만족도</span>
+                    </div>
+                </div>
+                <div class="floating-badge badge-2">
+                    <div class="badge-icon"><span class="material-symbols-outlined">task_alt</span></div>
+                    <div class="badge-text">
+                        <strong>10만+</strong>
+                        <span>누적 거래수</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="categories container">
+            <div class="section-header">
+                <h2 class="section-title">인기 서비스 카테고리</h2>
+                <a href="#" class="view-all">전체보기 <span class="material-symbols-outlined">arrow_forward</span></a>
+            </div>
+            <div class="category-grid">
+                <a href="#" class="category-card">
+                    <div class="category-icon bg-blue"><span class="material-symbols-outlined">code</span></div>
+                    <h3 class="category-name">IT·프로그래밍</h3>
+                    <p class="category-desc">웹/앱 개발, 데이터 분석</p>
+                </a>
+                <a href="#" class="category-card">
+                    <div class="category-icon bg-purple"><span class="material-symbols-outlined">design_services</span></div>
+                    <h3 class="category-name">디자인</h3>
+                    <p class="category-desc">로고, 웹, 상세페이지</p>
+                </a>
+                <a href="#" class="category-card">
+                    <div class="category-icon bg-green"><span class="material-symbols-outlined">campaign</span></div>
+                    <h3 class="category-name">마케팅</h3>
+                    <p class="category-desc">SNS, 블로그, SEO</p>
+                </a>
+                <a href="#" class="category-card">
+                    <div class="category-icon bg-orange"><span class="material-symbols-outlined">translate</span></div>
+                    <h3 class="category-name">번역·통역</h3>
+                    <p class="category-desc">영어, 일본어, 중국어</p>
+                </a>
+                <a href="#" class="category-card">
+                    <div class="category-icon bg-red"><span class="material-symbols-outlined">edit_document</span></div>
+                    <h3 class="category-name">문서·글쓰기</h3>
+                    <p class="category-desc">카피라이팅, 자소서</p>
+                </a>
+                <a href="#" class="category-card">
+                    <div class="category-icon bg-teal"><span class="material-symbols-outlined">school</span></div>
+                    <h3 class="category-name">레슨·과외</h3>
+                    <p class="category-desc">외국어, 실무, 취미</p>
+                </a>
+            </div>
+        </section>
+
+        <section class="featured-experts container">
+            <div class="section-header">
+                <h2 class="section-title">추천 전문가</h2>
+                <p class="section-subtitle">검증된 리뷰와 포트폴리오를 확인하고 선택하세요.</p>
+            </div>
+            <div class="expert-grid" id="expert-grid"></div>
+        </section>
+
+        <section class="how-it-works bg-light">
+            <div class="container">
+                <div class="section-header text-center">
+                    <h2 class="section-title">이용 방법</h2>
+                    <p class="section-subtitle">단 3단계로 전문가와 연결됩니다.</p>
+                </div>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h3 class="step-title">서비스 검색</h3>
+                        <p class="step-desc">필요한 서비스를 검색하거나 카테고리에서 찾아보세요.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h3 class="step-title">전문가 비교 및 선택</h3>
+                        <p class="step-desc">프로필, 리뷰, 가격을 비교하고 전문가에게 문의하세요.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h3 class="step-title">안전한 거래</h3>
+                        <p class="step-desc">결제 대금이 안전하게 보호되며, 작업 완료 후 전달됩니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <a href="#" class="logo">
+                    <span class="material-symbols-outlined logo-icon">handshake</span>
+                    ExpertConnect
+                </a>
+                <p class="footer-desc">당신의 아이디어를 현실로 만들어줄 최고의 전문가들을 만나보세요.</p>
+            </div>
+            <div class="footer-links">
+                <div class="link-column">
+                    <h4>서비스 소개</h4>
+                    <a href="#">회사 소개</a>
+                    <a href="#">이용약관</a>
+                </div>
+                <div class="link-column">
+                    <h4>고객 지원</h4>
+                    <a href="#">고객센터</a>
+                </div>
+                <div class="link-column">
+                    <h4>전문가</h4>
+                    <a href="#">전문가 등록</a>
+                </div>
+            </div>
+        </div>
+        <div class="container footer-bottom">
+            <p>&copy; 2026 ExpertConnect. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="main.js"></script>
 </body>
 </html>
