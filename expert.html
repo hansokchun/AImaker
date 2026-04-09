@@ -80,8 +80,31 @@
                         <li><span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--primary);">check</span> 소스파일 제공</li>
                     </ul>
                     <button class="btn-primary" style="width: 100%; padding: 1rem;">구매하기</button>
-                    <button class="btn-text" style="width: 100%; margin-top: 1rem; border: 1px solid var(--border-color); border-radius: 8px;">문의하기</button>
+                    <button id="btn-inquiry" class="btn-text" style="width: 100%; margin-top: 1rem; border: 1px solid var(--border-color); border-radius: 8px;">문의하기</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Chat Window UI -->
+        <div id="chat-window" class="chat-window hidden">
+            <div class="chat-header">
+                <div class="chat-expert-info">
+                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Expert" class="chat-avatar">
+                    <div>
+                        <div class="chat-name">김디자인 전문가</div>
+                        <div class="chat-status">● 온라인</div>
+                    </div>
+                </div>
+                <button id="btn-chat-close" class="material-symbols-outlined">close</button>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="message system">
+                    안녕하세요! 김디자인 전문가님께 문의를 시작합니다.
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="메시지를 입력하세요..." autocomplete="off">
+                <button id="btn-chat-send" class="material-symbols-outlined">send</button>
             </div>
         </div>
     </main>

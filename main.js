@@ -162,4 +162,77 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'category.html';
         });
     });
+
+    // --- Chat System Implementation ---
+    const chatWindow = document.getElementById('chat-window');
+    const btnInquiry = document.getElementById('btn-inquiry');
+    const btnChatClose = document.getElementById('btn-chat-close');
+    const btnChatSend = document.getElementById('btn-chat-send');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (btnInquiry && chatWindow) {
+        // Open Chat
+        btnInquiry.addEventListener('click', () => {
+            chatWindow.classList.remove('hidden');
+            chatInput.focus();
+
+            // Initial Expert Message if empty
+            if (chatMessages.children.length === 1) {
+                setTimeout(() => {
+                    addMessage('expert', '안녕하세요! 무엇을 도와드릴까요? 원하시는 프로젝트에 대해 말씀해 주시면 자세히 안내해 드리겠습니다.');
+                }, 800);
+            }
+        });
+
+        // Close Chat
+        btnChatClose.addEventListener('click', () => {
+            chatWindow.classList.add('hidden');
+        });
+
+        // Send Message
+        const sendMessage = () => {
+            const text = chatInput.value.trim();
+            if (text) {
+                addMessage('user', text);
+                chatInput.value = '';
+
+                // Simulate Expert Reply
+                simulateReply(text);
+            }
+        };
+
+        btnChatSend.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Add Message to UI
+        function addMessage(type, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            msgDiv.textContent = text;
+            chatMessages.appendChild(msgDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Simulate Expert Reply Logic
+        function simulateReply(userText) {
+            setTimeout(() => {
+                let reply = '상세한 내용을 확인했습니다. 잠시만 기다려 주시면 검토 후 답변 드리겠습니다.';
+
+                if (userText.includes('가격') || userText.includes('얼마')) {
+                    reply = '가격은 프로젝트의 규모와 복잡도에 따라 달라질 수 있습니다. Standard 패키지 외에도 맞춤 견적 가능하니 참고해 주세요!';
+                } else if (userText.includes('기간') || userText.includes('언제')) {
+                    reply = '보통 Standard 기준 3일 정도 소요되지만, 급하신 건이라면 일정을 최대한 맞춰드릴 수 있습니다.';
+                } else if (userText.includes('포트폴리오')) {
+                    reply = '현재 페이지에 게시된 포트폴리오 외에도 유사한 성격의 다양한 작업물이 있습니다. 원하시면 링크를 보내드릴게요!';
+                }
+
+                addMessage('expert', reply);
+            }, 1000 + Math.random() * 1000);
+        }
+    }
 });
