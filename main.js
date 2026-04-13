@@ -1,9 +1,9 @@
 /**
  * AIConnect - Main Application Logic
- * Implements a Web Component for Expert Cards and handles dynamic listing.
+ * Implements Web Components for Expert Cards and Category Selection.
  */
 
-// 1. Define the Web Component with improved styles
+// 1. Expert Card Web Component
 class ExpertCard extends HTMLElement {
     constructor() {
         super();
@@ -115,7 +115,80 @@ class ExpertCard extends HTMLElement {
 }
 customElements.define('expert-card', ExpertCard);
 
-// 2. Mock Data
+// 2. Category Selector Web Component (Multi-select)
+class CategorySelector extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.categories = [
+            'IT·프로그래밍', '디자인', '마케팅', '영상·미디어', 
+            '번역·통역', '문서·글쓰기', '레슨·과외', '비즈니스 컨설팅'
+        ];
+        this.selected = new Set();
+    }
+
+    connectedCallback() {
+        this.render();
+    }
+
+    toggleCategory(cat) {
+        if (this.selected.has(cat)) {
+            this.selected.delete(cat);
+        } else {
+            this.selected.add(cat);
+        }
+        this.render();
+        // Dispatch event for form integration
+        this.dispatchEvent(new CustomEvent('change', { 
+            detail: { selected: Array.from(this.selected) },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    render() {
+        this.shadowRoot.innerHTML = `
+            <style>
+                :host { display: block; width: 100%; }
+                .container { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+                .chip {
+                    padding: 0.6rem 1.2rem;
+                    border-radius: 99px;
+                    background: #f1f5f9;
+                    border: 1px solid #e2e8f0;
+                    color: #475569;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    user-select: none;
+                }
+                .chip:hover {
+                    border-color: #2563eb;
+                    color: #2563eb;
+                    background: #eff6ff;
+                }
+                .chip.active {
+                    background: #2563eb;
+                    border-color: #2563eb;
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+                }
+            </style>
+            <div class="container">
+                ${this.categories.map(cat => `
+                    <div class="chip ${this.selected.has(cat) ? 'active' : ''}" 
+                         onclick="this.getRootNode().host.toggleCategory('${cat}')">
+                        ${cat}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+}
+customElements.define('category-selector', CategorySelector);
+
+// 3. Mock Data
 const EXPERTS = [
     { name: "김디자인 전문가", prof: "UI/UX 디자이너", rate: 4.9, price: 150000, img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600" },
     { name: "이코딩 전문가", prof: "프론트엔드 개발자", rate: 4.8, price: 300000, img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600" },
@@ -125,7 +198,7 @@ const EXPERTS = [
     { name: "한로고 전문가", prof: "로고 디자이너", rate: 4.6, price: 50000, img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600" }
 ];
 
-// 3. Initialization
+// 4. Initialization
 document.addEventListener('DOMContentLoaded', () => {
     // Populate Main Page Grid
     const mainGrid = document.getElementById('expert-grid');

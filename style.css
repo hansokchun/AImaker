@@ -113,6 +113,25 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
     padding: 8rem 0; 
     align-items: center; 
 }
+.page-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    padding: 6rem 0 8rem;
+    text-align: center;
+}
+.page-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+}
+.content-card {
+    background: white;
+    padding: 3rem;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-color);
+}
 .hero-content { position: relative; z-index: 5; }
 .hero-title { 
     font-size: clamp(2.5rem, 5vw, 4rem); 
