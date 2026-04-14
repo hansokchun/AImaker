@@ -3,119 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIConnect - 최고의 AI 전문가를 만나보세요</title>
+    <title>AIConnect - 전문가를 만나보세요</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Homepage specific premium adjustments - Balanced Version */
-        .hero {
-            position: relative;
-            background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
-                        radial-gradient(circle at 10% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
-            padding: 8rem 0;
-        }
-        
-        .hero::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: radial-gradient(var(--border-strong) 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: 0.2;
-            z-index: -1;
-        }
-
-        .category-card {
-            background: white;
-            border: 1px solid var(--border-color);
-            padding: 2.5rem 1.5rem;
-            border-radius: var(--radius-xl);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.25rem;
-            transition: var(--transition);
-            box-shadow: var(--shadow-sm);
-        }
-        .category-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--primary);
-        }
-        .category-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            transition: var(--transition);
-        }
-        .category-card:hover .category-icon {
-            transform: scale(1.1);
-        }
-
-        .recent-requests-section {
-            padding: 8rem 0;
-            background: #f8fafc;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-        .request-mini-card {
-            background: white;
-            padding: 2rem;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--border-color);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            height: 100%;
-        }
-        .request-mini-card:hover {
-            border-color: var(--primary);
-            box-shadow: var(--shadow-md);
-            transform: translateY(-4px);
-        }
-        .mini-tag {
-            font-size: 0.75rem;
-            padding: 0.3rem 0.75rem;
-            background: rgba(37, 99, 235, 0.08);
-            color: var(--primary);
-            border-radius: var(--radius-full);
-            font-weight: 800;
-        }
-        .mini-card-title {
-            font-weight: 800;
-            font-size: 1.1rem;
-            line-height: 1.5;
-            color: var(--text-primary);
-            margin: 0.5rem 0;
-        }
-        .mini-card-footer {
-            margin-top: auto;
-            padding-top: 1.25rem;
-            border-top: 1px dotted var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-    </style>
 </head>
 <body>
     <header class="navbar" id="navbar">
         <div class="nav-container container">
             <a href="index.html" class="logo">
-                <span class="material-symbols-outlined logo-icon">handshake</span>
+                <span class="material-symbols-outlined">handshake</span>
                 AIConnect
             </a>
             <nav class="nav-links">
@@ -135,94 +34,88 @@
         <!-- Hero Section -->
         <section class="hero container">
             <div class="hero-content">
-                <h1 class="hero-title">상상을 현실로,<br>최고의 <span class="highlight">AI 전문가</span>를 만나보세요</h1>
-                <p class="hero-subtitle">검증된 AI 아티스트, 개발자, 마케터가 당신의 비즈니스에 혁신을 더해드립니다.</p>
+                <h1 class="hero-title">상상을 현실로 만드는<br><span class="highlight">최고의 AI 전문가</span></h1>
+                <p class="hero-subtitle">검증된 AI 아티스트, 개발자, 마케터와 함께 비즈니스의 새로운 가능성을 열어보세요.</p>
                 <div class="search-bar-container">
                     <form class="search-form" onsubmit="event.preventDefault();">
-                        <span class="material-symbols-outlined search-icon" style="color: var(--text-muted); margin-left: 0.5rem;">search</span>
-                        <input type="text" class="search-input" placeholder="어떤 서비스가 필요하신가요?">
+                        <span class="material-symbols-outlined" style="color: var(--text-muted);">search</span>
+                        <input type="text" class="search-input" placeholder="어떤 전문가를 찾고 계신가요?">
                         <button type="submit" class="btn-search">검색</button>
                     </form>
                 </div>
                 <div class="popular-searches">
-                    <span class="popular-label"><span class="material-symbols-outlined" style="font-size: 1.2rem;">trending_up</span>추천 키워드</span>
+                    <span class="popular-label">인기 키워드</span>
                     <div class="tag-group">
                         <a href="#" class="tag">#AI 영상 제작</a>
                         <a href="#" class="tag">#미드저니</a>
                         <a href="#" class="tag">#챗봇 개발</a>
-                        <a href="#" class="tag">#로고 디자인</a>
+                        <a href="#" class="tag">#캐릭터 디자인</a>
                     </div>
                 </div>
             </div>
             <div class="hero-image-container">
-                <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80" alt="AI Creation" class="hero-image" style="border-radius: var(--radius-2xl);">
+                <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80" alt="AI Collaboration" class="hero-image">
                 <div class="floating-badge badge-1">
-                    <div class="badge-icon" style="background: #fffbeb; color: #d97706;"><span class="material-symbols-outlined">auto_awesome</span></div>
-                    <div class="badge-text">
-                        <strong>Premium Quality</strong>
-                        <span>검증된 결과물</span>
-                    </div>
+                    <div class="badge-icon" style="color: #f59e0b;"><span class="material-symbols-outlined">star</span></div>
+                    <div class="badge-text"><strong>4.9</strong><span>평균 평점</span></div>
                 </div>
                 <div class="floating-badge badge-2">
-                    <div class="badge-icon" style="background: #ecfdf5; color: #059669;"><span class="material-symbols-outlined">bolt</span></div>
-                    <div class="badge-text">
-                        <strong>Fast Delivery</strong>
-                        <span>평균 48시간 내 완료</span>
-                    </div>
+                    <div class="badge-icon" style="color: #10b981;"><span class="material-symbols-outlined">bolt</span></div>
+                    <div class="badge-text"><strong>Fast</strong><span>빠른 마감</span></div>
                 </div>
             </div>
         </section>
 
         <!-- Categories Section -->
         <section class="categories container">
-            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
                 <div>
                     <h2 class="section-title">서비스 카테고리</h2>
-                    <p class="section-subtitle">다양한 분야의 AI 전문가가 여러분을 기다리고 있습니다.</p>
+                    <p style="color: var(--text-secondary);">원하시는 분야의 전문 AI 서비스를 탐색해보세요.</p>
                 </div>
-                <a href="category.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800;">
+                <a href="category.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
                     전체보기 <span class="material-symbols-outlined">arrow_forward</span>
                 </a>
             </div>
-            <div class="category-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+            <div class="category-grid">
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #eff6ff; color: #2563eb;"><span class="material-symbols-outlined">movie</span></div>
+                    <div class="category-icon">🎬</div>
                     <h3 class="category-name">AI 영화 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #f5f3ff; color: #7c3aed;"><span class="material-symbols-outlined">animation</span></div>
-                    <h3 class="category-name">AI 애니메이션 제작</h3>
+                    <div class="category-icon">✨</div>
+                    <h3 class="category-name">AI 애니메이션</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #f0fdf4; color: #16a34a;"><span class="material-symbols-outlined">campaign</span></div>
-                    <h3 class="category-name">AI 광고 제작 (숏폼)</h3>
+                    <div class="category-icon">📱</div>
+                    <h3 class="category-name">AI 광고 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #eef2ff; color: #4f46e5;"><span class="material-symbols-outlined">image</span></div>
+                    <div class="category-icon">🎨</div>
                     <h3 class="category-name">AI 이미지 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #fff7ed; color: #ea580c;"><span class="material-symbols-outlined">face</span></div>
+                    <div class="category-icon">👤</div>
                     <h3 class="category-name">AI 캐릭터 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #fef2f2; color: #dc2626;"><span class="material-symbols-outlined">music_note</span></div>
+                    <div class="category-icon">🎵</div>
                     <h3 class="category-name">AI 음원 만들기</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #fdf2f8; color: #db2777;"><span class="material-symbols-outlined">record_voice_over</span></div>
+                    <div class="category-icon">🎙️</div>
                     <h3 class="category-name">AI 성우 입히기</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #f0fdfa; color: #0d9488;"><span class="material-symbols-outlined">draw</span></div>
+                    <div class="category-icon">🖌️</div>
                     <h3 class="category-name">AI 그래픽 디자인</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #f8fafc; color: #475569;"><span class="material-symbols-outlined">video_library</span></div>
+                    <div class="category-icon">📹</div>
                     <h3 class="category-name">AI 클립 구매</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #fffbeb; color: #d97706;"><span class="material-symbols-outlined">bolt</span></div>
+                    <div class="category-icon">⚡</div>
                     <h3 class="category-name">AI 프롬프트 구매</h3>
                 </a>
             </div>
@@ -231,37 +124,37 @@
         <!-- Recent Requests Section -->
         <section class="recent-requests-section">
             <div class="container">
-                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
                     <div>
-                        <h2 class="section-title">실시간 서비스 요청</h2>
-                        <p class="section-subtitle">지금 바로 지원 가능한 최신 프로젝트입니다.</p>
+                        <h2 class="section-title">실시간 프로젝트 요청</h2>
+                        <p style="color: var(--text-secondary);">지금 바로 지원 가능한 최신 의뢰 건들입니다.</p>
                     </div>
-                    <a href="requests.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800;">
-                        게시판 보기 <span class="material-symbols-outlined">arrow_right_alt</span>
+                    <a href="requests.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                        게시판 가기 <span class="material-symbols-outlined">arrow_forward</span>
                     </a>
                 </div>
-                <div class="expert-grid" id="recent-requests-grid">
+                <div class="request-mini-grid">
                     <div class="request-mini-card" onclick="location.href='requests.html'">
-                        <div class="mini-card-tags"><span class="mini-tag">AI 영상</span></div>
-                        <h3 class="mini-card-title">브랜드 홍보용 시네마틱 AI 영상 제작</h3>
-                        <div class="mini-card-footer">
-                            <span style="color: var(--primary);">₩800,000~</span>
+                        <div style="font-size: 0.8rem; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem;">AI 영상</div>
+                        <h3 style="font-weight: 700; font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.4;">브랜드 홍보용 시네마틱 영상 제작 요청</h3>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">
+                            <span>₩800,000~</span>
                             <span>오늘 등록</span>
                         </div>
                     </div>
                     <div class="request-mini-card" onclick="location.href='requests.html'">
-                        <div class="mini-card-tags"><span class="mini-tag">AI 개발</span></div>
-                        <h3 class="mini-card-title">사내 데이터 기반 맞춤형 챗봇 구축</h3>
-                        <div class="mini-card-footer">
-                            <span style="color: var(--primary);">₩2,500,000~</span>
+                        <div style="font-size: 0.8rem; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem;">AI 개발</div>
+                        <h3 style="font-weight: 700; font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.4;">사내 데이터 기반 맞춤형 챗봇 구축 전문가</h3>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">
+                            <span>₩2,500,000~</span>
                             <span>2시간 전</span>
                         </div>
                     </div>
                     <div class="request-mini-card" onclick="location.href='requests.html'">
-                        <div class="mini-card-tags"><span class="mini-tag">AI 디자인</span></div>
-                        <h3 class="mini-card-title">웹툰 배경 생성 모델 튜닝 요청</h3>
-                        <div class="mini-card-footer">
-                            <span style="color: var(--primary);">₩450,000~</span>
+                        <div style="font-size: 0.8rem; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem;">AI 디자인</div>
+                        <h3 style="font-weight: 700; font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.4;">웹툰 배경 생성 모델 튜닝 및 가이드 제작</h3>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">
+                            <span>₩450,000~</span>
                             <span>5시간 전</span>
                         </div>
                     </div>
@@ -269,12 +162,10 @@
             </div>
         </section>
 
-        <!-- Featured Experts -->
-        <section class="featured-experts container" style="padding: 8rem 0;">
-            <div class="section-header">
-                <h2 class="section-title">이달의 우수 전문가</h2>
-                <p class="section-subtitle">검증된 실력과 리뷰를 보유한 최고의 파트너를 만나보세요.</p>
-            </div>
+        <!-- Featured Experts Section -->
+        <section class="featured-experts container">
+            <h2 class="section-title">이달의 추천 전문가</h2>
+            <p class="section-subtitle">검증된 실력과 뛰어난 평점을 보유한 파트너입니다.</p>
             <div class="expert-grid" id="expert-grid"></div>
         </section>
     </main>
@@ -282,28 +173,30 @@
     <footer class="footer">
         <div class="container footer-content">
             <div class="footer-brand">
-                <a href="#" class="logo" style="color: white;">AIConnect</a>
-                <p class="footer-desc">당신의 아이디어를 현실로 만들어줄 최고의 전문가들을 만나보세요.</p>
+                <a href="#" class="logo" style="color: white; margin-bottom: 1.5rem;">AIConnect</a>
+                <p class="footer-desc">상상을 현실로 만드는 가장 스마트한 방법. 최고의 전문가들과 함께하세요.</p>
             </div>
-            <div class="footer-links">
-                <div class="link-column">
-                    <h4>서비스</h4>
-                    <a href="category.html">전문가 찾기</a>
-                    <a href="request.html">서비스 요청</a>
-                    <a href="requests.html">요청 게시판</a>
-                    <a href="community.html">커뮤니티</a>
-                </div>
-                <div class="link-column">
-                    <h4>지원</h4>
-                    <a href="#">고객센터</a>
-                    <a href="#">자주 묻는 질문</a>
-                    <a href="#">이용약관</a>
-                    <a href="#">개인정보처리방침</a>
-                </div>
+            <div class="link-column">
+                <h4>서비스</h4>
+                <a href="category.html">전문가 찾기</a>
+                <a href="request.html">서비스 요청</a>
+                <a href="requests.html">요청 게시판</a>
+            </div>
+            <div class="link-column">
+                <h4>고객지원</h4>
+                <a href="#">자주 묻는 질문</a>
+                <a href="#">고객센터</a>
+                <a href="#">이용약관</a>
+            </div>
+            <div class="link-column">
+                <h4>비즈니스</h4>
+                <a href="#">전문가 등록</a>
+                <a href="#">광고 안내</a>
+                <a href="#">제휴 문의</a>
             </div>
         </div>
-        <div class="footer-bottom container">
-            &copy; 2026 AIConnect. All rights reserved. Built with passion for AI creators.
+        <div class="container footer-bottom">
+            <p>&copy; 2026 AIConnect. All rights reserved.</p>
         </div>
     </footer>
 
