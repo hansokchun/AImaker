@@ -3,24 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>전문가 목록 - AIConnect</title>
+    <title>전문가 탐색 - AIConnect</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="style.css">
+    <style>
+        .category-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 6rem 0;
+            margin-bottom: 4rem;
+        }
+        .category-page-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 3rem;
+            margin-bottom: 8rem;
+        }
+        .filter-sidebar {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+        .filter-group {
+            margin-bottom: 2.5rem;
+        }
+        .filter-group h4 {
+            font-size: 1rem;
+            font-weight: 800;
+            margin-bottom: 1.25rem;
+            color: var(--text-primary);
+        }
+        .filter-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .filter-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+        .expert-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .expert-list-header span {
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .sort-select {
+            padding: 0.6rem 1rem;
+            border-radius: var(--radius-md);
+            border: 1.5px solid var(--border-color);
+            font-weight: 700;
+            outline: none;
+            color: var(--text-primary);
+        }
+        .sort-select:focus {
+            border-color: var(--primary);
+        }
+    </style>
 </head>
 <body>
     <header class="navbar" id="navbar">
-        <div class="nav-container">
+        <div class="nav-container container">
             <a href="index.html" class="logo">
                 <span class="material-symbols-outlined logo-icon">handshake</span>
                 AIConnect
             </a>
             <nav class="nav-links">
                 <a href="category.html">전문가 찾기</a>
-                <a href="#">서비스 요청</a>
-                <a href="#">커뮤니티</a>
+                <a href="request.html">서비스 요청</a>
+                <a href="requests.html">요청 게시판</a>
+                <a href="community.html">커뮤니티</a>
             </nav>
             <div class="nav-actions">
                 <a href="#" class="btn-text">로그인</a>
@@ -31,8 +102,8 @@
 
     <div class="category-hero">
         <div class="container">
-            <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">디자인 전문가</h1>
-            <p style="color: var(--text-secondary);">로고, 브랜딩, 웹/앱 디자인까지 검증된 전문가를 만나보세요.</p>
+            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 1.25rem; letter-spacing: -0.02em;">전문가 탐색</h1>
+            <p style="font-size: 1.15rem; opacity: 0.9; max-width: 600px; line-height: 1.6;">AIConnect가 엄선한 분야별 최고의 전문가들과 함께 비즈니스의 새로운 가능성을 열어보세요.</p>
         </div>
     </div>
 
@@ -40,37 +111,46 @@
         <div class="category-page-layout">
             <aside class="filter-sidebar">
                 <div class="filter-group">
-                    <h4>서비스 종류</h4>
-                    <label style="display: block; margin-bottom: 0.5rem;"><input type="checkbox" checked> 로고 디자인</label>
-                    <label style="display: block; margin-bottom: 0.5rem;"><input type="checkbox"> UI/UX 디자인</label>
-                    <label style="display: block; margin-bottom: 0.5rem;"><input type="checkbox"> 일러스트</label>
+                    <h4>서비스 분야</h4>
+                    <label><input type="checkbox" checked> AI 영화 제작</label>
+                    <label><input type="checkbox"> AI 애니메이션 제작</label>
+                    <label><input type="checkbox"> AI 광고 제작 (숏폼)</label>
+                    <label><input type="checkbox"> AI 이미지 제작</label>
+                    <label><input type="checkbox"> AI 캐릭터 제작</label>
+                    <label><input type="checkbox"> AI 음원 만들기</label>
+                    <label><input type="checkbox"> AI 성우 입히기</label>
+                    <label><input type="checkbox"> AI 그래픽 디자인</label>
+                    <label><input type="checkbox"> AI 클립 구매</label>
+                    <label><input type="checkbox"> AI 프롬프트 구매</label>
                 </div>
                 <div class="filter-group">
                     <h4>가격 범위</h4>
-                    <input type="range" min="0" max="1000000" style="width: 100%;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 0.5rem;">
+                    <input type="range" min="0" max="1000000" style="width: 100%; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">
                         <span>0원</span>
                         <span>100만원+</span>
                     </div>
                 </div>
                 <div class="filter-group">
                     <h4>전문가 등급</h4>
-                    <label style="display: block; margin-bottom: 0.5rem;"><input type="checkbox"> TOP 전문가</label>
-                    <label style="display: block; margin-bottom: 0.5rem;"><input type="checkbox"> 신규 전문가</label>
+                    <label><input type="checkbox"> <span style="color: #f59e0b;">★</span> TOP 전문가</label>
+                    <label><input type="checkbox"> 신규 전문가</label>
                 </div>
+                <button class="btn-primary" style="width: 100%; padding: 0.75rem;">필터 적용</button>
             </aside>
 
             <div class="expert-list-main">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                    <span style="font-weight: 600;">총 1,245명의 전문가</span>
-                    <select style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color);">
+                <div class="expert-list-header">
+                    <span>총 1,245명의 전문가</span>
+                    <select class="sort-select">
                         <option>추천순</option>
                         <option>평점 높은순</option>
                         <option>가격 낮은순</option>
+                        <option>최신순</option>
                     </select>
                 </div>
                 <div class="expert-grid" id="category-expert-grid">
-                    <!-- Experts will be injected here -->
+                    <!-- Experts will be injected here via main.js -->
                 </div>
             </div>
         </div>
@@ -79,24 +159,28 @@
     <footer class="footer">
         <div class="container footer-content">
             <div class="footer-brand">
-                <a href="#" class="logo">AIConnect</a>
-                <p>당신의 아이디어를 현실로 만들어줄 전문가를 만나보세요.</p>
+                <a href="#" class="logo" style="color: white;">AIConnect</a>
+                <p>당신의 아이디어를 현실로 만들어줄 최고의 전문가들을 만나보세요. 24시간 언제 어디서나 최고의 결과물을 보장합니다.</p>
             </div>
             <div class="footer-links">
                 <div class="link-column">
-                    <h4>회사</h4>
-                    <a href="#">소개</a>
-                    <a href="#">채용</a>
+                    <h4>서비스</h4>
+                    <a href="category.html">전문가 찾기</a>
+                    <a href="request.html">서비스 요청</a>
+                    <a href="requests.html">요청 게시판</a>
+                    <a href="community.html">커뮤니티</a>
                 </div>
                 <div class="link-column">
                     <h4>지원</h4>
                     <a href="#">고객센터</a>
-                    <a href="#">FAQ</a>
+                    <a href="#">자주 묻는 질문</a>
+                    <a href="#">이용약관</a>
+                    <a href="#">개인정보처리방침</a>
                 </div>
             </div>
         </div>
-        <div class="footer-bottom">
-            &copy; 2026 AIConnect. All rights reserved.
+        <div class="footer-bottom container">
+            &copy; 2026 AIConnect. All rights reserved. Built with passion for AI creators.
         </div>
     </footer>
 

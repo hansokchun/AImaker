@@ -3,73 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIConnect - 전문가를 만나보세요</title>
+    <title>AIConnect - 최고의 AI 전문가를 만나보세요</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Homepage specific UI adjustments */
+        /* Homepage specific premium adjustments */
         .hero {
-            background: radial-gradient(circle at 70% 30%, rgba(37, 99, 235, 0.05) 0%, transparent 50%),
-                        radial-gradient(circle at 10% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 40%);
+            position: relative;
+            padding: 10rem 0;
+            overflow: hidden;
         }
+        .hero-bg-blobs {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            filter: blur(80px);
+            opacity: 0.4;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+        }
+        .blob-1 { width: 400px; height: 400px; background: var(--primary); top: -100px; right: -50px; }
+        .blob-2 { width: 300px; height: 300px; background: var(--secondary); bottom: -50px; left: -50px; }
+
+        .category-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 2.5rem 1.5rem;
+            border-radius: var(--radius-xl);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        .category-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--primary);
+        }
+        .category-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            transition: var(--transition);
+        }
+        .category-card:hover .category-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
         .recent-requests-section {
-            padding: 6rem 0;
-            background: #f8fafc;
+            padding: 8rem 0;
+            background: linear-gradient(to bottom, #f8fafc, white);
         }
         .request-mini-card {
             background: white;
-            padding: 1.5rem;
+            padding: 2rem;
             border-radius: var(--radius-xl);
-            border: 1px solid var(--border-color);
+            border: 1.5px solid var(--border-color);
             transition: var(--transition);
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
+            height: 100%;
         }
         .request-mini-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
             border-color: var(--primary);
-        }
-        .mini-card-tags {
-            display: flex;
-            gap: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
         }
         .mini-tag {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.6rem;
-            background: #eff6ff;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.75rem;
+            background: var(--primary-light);
             color: var(--primary);
-            border-radius: 99px;
-            font-weight: 700;
+            border-radius: var(--radius-full);
+            font-weight: 800;
         }
         .mini-card-title {
-            font-weight: 700;
-            font-size: 1.05rem;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            height: 2.8em;
+            font-weight: 800;
+            font-size: 1.15rem;
+            line-height: 1.5;
+            color: var(--text-primary);
         }
         .mini-card-footer {
             margin-top: auto;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
+            font-weight: 700;
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <header class="navbar" id="navbar">
-        <div class="nav-container">
+        <div class="nav-container container">
             <a href="index.html" class="logo">
                 <span class="material-symbols-outlined logo-icon">handshake</span>
                 AIConnect
@@ -90,41 +133,44 @@
     <main>
         <!-- Hero Section -->
         <section class="hero container">
+            <div class="hero-bg-blobs">
+                <div class="blob blob-1"></div>
+                <div class="blob blob-2"></div>
+            </div>
             <div class="hero-content">
-                <h1 class="hero-title">딱 맞는 전문가를<br><span class="highlight">가장 쉽게</span> 찾아보세요</h1>
-                <p class="hero-subtitle">디자인, 개발, 마케팅, 과외 등 1,000+개 분야의 검증된 전문가가 대기 중입니다.</p>
+                <h1 class="hero-title">상상을 현실로,<br>최고의 <span class="highlight">AI 전문가</span>를 만나보세요</h1>
+                <p class="hero-subtitle">검증된 AI 아티스트, 개발자, 마케터가 당신의 비즈니스에 혁신을 더해드립니다.</p>
                 <div class="search-bar-container">
                     <form class="search-form" onsubmit="event.preventDefault();">
                         <span class="material-symbols-outlined search-icon" style="color: var(--text-muted); margin-left: 0.5rem;">search</span>
-                        <input type="text" class="search-input" placeholder="어떤 서비스가 필요하신가요? (예: 로고 디자인, 파이썬 레슨)">
+                        <input type="text" class="search-input" placeholder="어떤 서비스가 필요하신가요?">
                         <button type="submit" class="btn-search">검색</button>
                     </form>
                 </div>
                 <div class="popular-searches">
-                    <span class="popular-label">추천 키워드</span>
+                    <span class="popular-label"><span class="material-symbols-outlined" style="font-size: 1.2rem;">trending_up</span>인기 검색어</span>
                     <div class="tag-group">
-                        <a href="#" class="tag">#웹사이트 제작</a>
-                        <a href="#" class="tag">#블로그 마케팅</a>
-                        <a href="#" class="tag">#영어 회화</a>
-                        <a href="#" class="tag">#영상 편집</a>
-                        <a href="#" class="tag">#로고 디자인</a>
+                        <a href="#" class="tag">#AI 영상 제작</a>
+                        <a href="#" class="tag">#미드저니 프롬프트</a>
+                        <a href="#" class="tag">#챗봇 개발</a>
+                        <a href="#" class="tag">#AI 캐릭터 디자인</a>
                     </div>
                 </div>
             </div>
             <div class="hero-image-container">
-                <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Collaboration" class="hero-image">
+                <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80" alt="AI Creation" class="hero-image">
                 <div class="floating-badge badge-1">
-                    <div class="badge-icon"><span class="material-symbols-outlined">star</span></div>
+                    <div class="badge-icon" style="background: #fffbeb; color: #d97706;"><span class="material-symbols-outlined">auto_awesome</span></div>
                     <div class="badge-text">
-                        <strong>4.9/5</strong>
-                        <span>평균 만족도</span>
+                        <strong>Premium Quality</strong>
+                        <span>검증된 결과물</span>
                     </div>
                 </div>
                 <div class="floating-badge badge-2">
-                    <div class="badge-icon"><span class="material-symbols-outlined">task_alt</span></div>
+                    <div class="badge-icon" style="background: #ecfdf5; color: #059669;"><span class="material-symbols-outlined">bolt</span></div>
                     <div class="badge-text">
-                        <strong>10만+</strong>
-                        <span>누적 거래수</span>
+                        <strong>Fast Delivery</strong>
+                        <span>평균 48시간 내 완료</span>
                     </div>
                 </div>
             </div>
@@ -132,132 +178,107 @@
 
         <!-- Categories Section -->
         <section class="categories container">
-            <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4rem;">
                 <div>
-                    <h2 class="section-title">인기 서비스 카테고리</h2>
-                    <p class="section-subtitle">다양한 분야의 전문가를 만나보세요.</p>
+                    <h2 class="section-title">카테고리별 전문가</h2>
+                    <p class="section-subtitle">원하시는 분야의 전문 지식을 갖춘 파트너를 찾아보세요.</p>
                 </div>
-                <a href="category.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                <a href="category.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800;">
                     전체보기 <span class="material-symbols-outlined">arrow_forward</span>
                 </a>
             </div>
-            <div class="category-grid">
+            <div class="category-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #eff6ff; color: #2563eb;"><span class="material-symbols-outlined">code</span></div>
-                    <h3 class="category-name">IT·프로그래밍</h3>
+                    <div class="category-icon" style="background: #eff6ff; color: #2563eb;"><span class="material-symbols-outlined">movie</span></div>
+                    <h3 class="category-name">AI 영화 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #f5f3ff; color: #7c3aed;"><span class="material-symbols-outlined">design_services</span></div>
-                    <h3 class="category-name">디자인</h3>
+                    <div class="category-icon" style="background: #f5f3ff; color: #7c3aed;"><span class="material-symbols-outlined">animation</span></div>
+                    <h3 class="category-name">AI 애니메이션 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
                     <div class="category-icon" style="background: #f0fdf4; color: #16a34a;"><span class="material-symbols-outlined">campaign</span></div>
-                    <h3 class="category-name">마케팅</h3>
+                    <h3 class="category-name">AI 광고 제작 (숏폼)</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #eef2ff; color: #4f46e5;"><span class="material-symbols-outlined">movie</span></div>
-                    <h3 class="category-name">영상·미디어</h3>
+                    <div class="category-icon" style="background: #eef2ff; color: #4f46e5;"><span class="material-symbols-outlined">image</span></div>
+                    <h3 class="category-name">AI 이미지 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #fff7ed; color: #ea580c;"><span class="material-symbols-outlined">translate</span></div>
-                    <h3 class="category-name">번역·통역</h3>
+                    <div class="category-icon" style="background: #fff7ed; color: #ea580c;"><span class="material-symbols-outlined">face</span></div>
+                    <h3 class="category-name">AI 캐릭터 제작</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #fef2f2; color: #dc2626;"><span class="material-symbols-outlined">edit_document</span></div>
-                    <h3 class="category-name">문서·글쓰기</h3>
+                    <div class="category-icon" style="background: #fef2f2; color: #dc2626;"><span class="material-symbols-outlined">music_note</span></div>
+                    <h3 class="category-name">AI 음원 만들기</h3>
                 </a>
                 <a href="category.html" class="category-card">
-                    <div class="category-icon" style="background: #f0fdfa; color: #0d9488;"><span class="material-symbols-outlined">school</span></div>
-                    <h3 class="category-name">레슨·과외</h3>
+                    <div class="category-icon" style="background: #fdf2f8; color: #db2777;"><span class="material-symbols-outlined">record_voice_over</span></div>
+                    <h3 class="category-name">AI 성우 입히기</h3>
+                </a>
+                <a href="category.html" class="category-card">
+                    <div class="category-icon" style="background: #f0fdfa; color: #0d9488;"><span class="material-symbols-outlined">draw</span></div>
+                    <h3 class="category-name">AI 그래픽 디자인</h3>
+                </a>
+                <a href="category.html" class="category-card">
+                    <div class="category-icon" style="background: #f8fafc; color: #475569;"><span class="material-symbols-outlined">video_library</span></div>
+                    <h3 class="category-name">AI 클립 구매</h3>
+                </a>
+                <a href="category.html" class="category-card">
+                    <div class="category-icon" style="background: #fffbeb; color: #d97706;"><span class="material-symbols-outlined">bolt</span></div>
+                    <h3 class="category-name">AI 프롬프트 구매</h3>
                 </a>
             </div>
         </section>
 
-        <!-- Recent Requests (New Section) -->
+        <!-- Recent Requests Section -->
         <section class="recent-requests-section">
             <div class="container">
-                <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4rem;">
                     <div>
-                        <h2 class="section-title">실시간 서비스 요청</h2>
-                        <p class="section-subtitle">지금 바로 제안 가능한 새로운 프로젝트들입니다.</p>
+                        <h2 class="section-title">실시간 프로젝트 요청</h2>
+                        <p class="section-subtitle">지금 바로 지원 가능한 최신 의뢰 건입니다.</p>
                     </div>
-                    <a href="requests.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
-                        게시판 가기 <span class="material-symbols-outlined">arrow_forward</span>
+                    <a href="requests.html" class="btn-text" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800;">
+                        전체 게시판 <span class="material-symbols-outlined">arrow_right_alt</span>
                     </a>
                 </div>
                 <div class="expert-grid" id="recent-requests-grid">
-                    <!-- Static placeholders or dynamic content via JS -->
-                    <div class="request-mini-card">
-                        <div class="mini-card-tags"><span class="mini-tag">IT·프로그래밍</span></div>
-                        <h3 class="mini-card-title">반응형 웹사이트 제작 및 관리자 페이지 개발 요청</h3>
+                    <div class="request-mini-card" onclick="location.href='requests.html'">
+                        <div class="mini-card-tags"><span class="mini-tag">AI 영상</span></div>
+                        <h3 class="mini-card-title">브랜드 런칭 홍보용 시네마틱 AI 영상 제작 요청</h3>
                         <div class="mini-card-footer">
-                            <span>500,000원~</span>
-                            <span>오늘 등록</span>
+                            <span style="color: var(--primary);">₩800,000~</span>
+                            <span>오늘</span>
                         </div>
                     </div>
-                    <div class="request-mini-card">
-                        <div class="mini-card-tags"><span class="mini-tag">디자인</span></div>
-                        <h3 class="mini-card-title">신규 런칭 브랜드 로고 및 패키지 디자인</h3>
+                    <div class="request-mini-card" onclick="location.href='requests.html'">
+                        <div class="mini-card-tags"><span class="mini-tag">AI 개발</span></div>
+                        <h3 class="mini-card-title">사내 데이터 기반 맞춤형 챗봇 구축 전문가 구함</h3>
                         <div class="mini-card-footer">
-                            <span>300,000원~</span>
-                            <span>2시간 전</span>
+                            <span style="color: var(--primary);">₩2,500,000~</span>
+                            <span>1시간 전</span>
                         </div>
                     </div>
-                    <div class="request-mini-card">
-                        <div class="mini-card-tags"><span class="mini-tag">영상·미디어</span></div>
-                        <h3 class="mini-card-title">유튜브 채널 정기 영상 편집 전문가 구합니다</h3>
+                    <div class="request-mini-card" onclick="location.href='requests.html'">
+                        <div class="mini-card-tags"><span class="mini-tag">AI 디자인</span></div>
+                        <h3 class="mini-card-title">웹툰 배경 생성용 스테이블 디퓨전 모델 튜닝</h3>
                         <div class="mini-card-footer">
-                            <span>150,000원~</span>
-                            <span>5시간 전</span>
+                            <span style="color: var(--primary);">₩450,000~</span>
+                            <span>3시간 전</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Featured Experts Section -->
-        <section class="featured-experts container">
-            <div class="section-header" style="text-align: left;">
-                <h2 class="section-title">추천 전문가</h2>
-                <p class="section-subtitle">검증된 리뷰와 포트폴리오를 확인하고 선택하세요.</p>
+        <!-- Featured Experts -->
+        <section class="featured-experts container" style="padding: 8rem 0;">
+            <div class="section-header">
+                <h2 class="section-title">이달의 우수 전문가</h2>
+                <p class="section-subtitle">가장 높은 평점과 만족도를 기록한 전문가들을 소개합니다.</p>
             </div>
             <div class="expert-grid" id="expert-grid"></div>
-        </section>
-
-        <!-- How it works -->
-        <section class="how-it-works" style="background: white; border-top: 1px solid var(--border-color);">
-            <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">이용 방법</h2>
-                    <p class="section-subtitle">AIConnect를 통해 전문가와 협업하는 가장 스마트한 방법</p>
-                </div>
-                
-                <div class="steps-container">
-                    <div class="step-card">
-                        <div class="step-icon-wrapper">
-                            <span class="material-symbols-outlined">search_check</span>
-                        </div>
-                        <h3>서비스 탐색 및 비교</h3>
-                        <p>필요한 서비스를 검색하고 전문가의 포트폴리오와 리뷰를 꼼꼼히 비교해보세요.</p>
-                    </div>
-                    
-                    <div class="step-card">
-                        <div class="step-icon-wrapper">
-                            <span class="material-symbols-outlined">chat_bubble</span>
-                        </div>
-                        <h3>전문가 상담 및 매칭</h3>
-                        <p>전문가와 실시간으로 상담하여 상세 견적을 확인하고 프로젝트를 조율하세요.</p>
-                    </div>
-                    
-                    <div class="step-card">
-                        <div class="step-icon-wrapper">
-                            <span class="material-symbols-outlined">task_alt</span>
-                        </div>
-                        <h3>안전한 거래와 결과물</h3>
-                        <p>작업이 완료될 때까지 결제 대금이 안전하게 보호되며, 최종 확인 후 프로젝트를 마칩니다.</p>
-                    </div>
-                </div>
-            </div>
         </section>
     </main>
 
@@ -265,56 +286,30 @@
         <div class="container footer-content">
             <div class="footer-brand">
                 <a href="#" class="logo" style="color: white;">AIConnect</a>
-                <p class="footer-desc">당신의 아이디어를 현실로 만들어줄 최고의 전문가들을 만나보세요.</p>
+                <p>당신의 아이디어를 현실로 만들어줄 최고의 전문가들을 만나보세요. 24시간 언제 어디서나 최고의 결과물을 보장합니다.</p>
             </div>
             <div class="footer-links">
                 <div class="link-column">
-                    <h4>서비스 소개</h4>
-                    <a href="#">회사 소개</a>
-                    <a href="#">이용약관</a>
+                    <h4>서비스</h4>
+                    <a href="category.html">전문가 찾기</a>
+                    <a href="request.html">서비스 요청</a>
                     <a href="requests.html">요청 게시판</a>
+                    <a href="community.html">커뮤니티</a>
                 </div>
                 <div class="link-column">
-                    <h4>고객 지원</h4>
+                    <h4>지원</h4>
                     <a href="#">고객센터</a>
-                    <a href="request.html">무료 요청하기</a>
-                </div>
-                <div class="link-column">
-                    <h4>전문가</h4>
-                    <a href="#">전문가 등록</a>
-                    <a href="category.html">전문가 탐색</a>
+                    <a href="#">자주 묻는 질문</a>
+                    <a href="#">이용약관</a>
+                    <a href="#">개인정보처리방침</a>
                 </div>
             </div>
         </div>
-        <div class="container footer-bottom">
-            <p>&copy; 2026 AIConnect. All rights reserved.</p>
+        <div class="footer-bottom container">
+            &copy; 2026 AIConnect. All rights reserved. Built with passion for AI creators.
         </div>
     </footer>
 
     <script type="module" src="main.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Load some real data from localStorage for the homepage if available
-            const grid = document.getElementById('recent-requests-grid');
-            const requests = JSON.parse(localStorage.getItem('ai_requests') || '[]');
-            
-            if (requests.length > 0) {
-                // Show latest 3 requests
-                const latest = requests.reverse().slice(0, 3);
-                grid.innerHTML = latest.map(req => `
-                    <div class="request-mini-card" onclick="location.href='requests.html'">
-                        <div class="mini-card-tags">
-                            ${req.categories.slice(0, 1).map(c => `<span class="mini-tag">${c}</span>`).join('')}
-                        </div>
-                        <h3 class="mini-card-title">${req.title}</h3>
-                        <div class="mini-card-footer">
-                            <span>${Number(req.budget).toLocaleString()}원~</span>
-                            <span>${req.createdAt}</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        });
-    </script>
 </body>
 </html>

@@ -121,8 +121,8 @@ class CategorySelector extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this.categories = [
-            'IT·프로그래밍', '디자인', '마케팅', '영상·미디어', 
-            '번역·통역', '문서·글쓰기', '레슨·과외', '비즈니스 컨설팅'
+            'AI 영화 제작', 'AI 애니메이션 제작', 'AI 광고 제작 (숏폼)', 'AI 이미지 제작', 
+            'AI 캐릭터 제작', 'AI 음원 만들기', 'AI 성우 입히기', 'AI 그래픽 디자인'
         ];
         this.selected = new Set();
     }
@@ -235,6 +235,33 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'category.html';
         });
     });
+
+    // --- Expert Package Tabs ---
+    const packageTabs = document.querySelectorAll('.package-tab');
+    const packageContents = {
+        standard: document.getElementById('package-standard'),
+        deluxe: document.getElementById('package-deluxe'),
+        premium: document.getElementById('package-premium')
+    };
+
+    if (packageTabs.length > 0) {
+        packageTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tier = tab.getAttribute('data-tier');
+                
+                // Update Tabs
+                packageTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update Content
+                Object.keys(packageContents).forEach(key => {
+                    if (packageContents[key]) {
+                        packageContents[key].style.display = (key === tier) ? 'block' : 'none';
+                    }
+                });
+            });
+        });
+    }
 
     // --- Chat System Implementation ---
     const chatWindow = document.getElementById('chat-window');
