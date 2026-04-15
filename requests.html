@@ -10,6 +10,36 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="style.css">
     <style>
+        .filter-container {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        .filter-chip {
+            padding: 0.5rem 1.25rem;
+            border-radius: 99px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+        .filter-chip:hover {
+            background: #e2e8f0;
+            color: var(--text-primary);
+        }
+        .filter-chip.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
         .request-item {
             display: grid;
             grid-template-columns: 1fr auto;
@@ -73,6 +103,10 @@
     </div>
 
     <main class="container" style="margin-top: -3rem; padding-bottom: 8rem; position: relative; z-index: 10;">
+        <div id="filter-bar" class="filter-container">
+            <!-- Filter chips will be loaded here -->
+        </div>
+
         <div class="content-card" style="padding: 0; overflow: hidden;">
             <div id="request-list">
                 <!-- Requests will be loaded here via JS -->
@@ -116,28 +150,72 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const listContainer = document.getElementById('request-list');
+            const filterBar = document.getElementById('filter-bar');
             const requests = JSON.parse(localStorage.getItem('ai_requests') || '[]');
+            
+            const categories = [
+                '전체', 'AI 영화 제작', 'AI 애니메이션 제작', 'AI 광고 제작 (숏폼)', 'AI 이미지 제작', 
+                'AI 캐릭터 제작', 'AI 음원 만들기', 'AI 성우 입히기', 'AI 그래픽 디자인'
+            ];
+            
+            let currentFilter = '전체';
 
-            if (requests.length > 0) {
-                listContainer.innerHTML = requests.reverse().map(req => `
-                    <div class="request-item">
-                        <div class="request-info">
-                            <div class="request-tags">
-                                ${req.categories.map(cat => `<span class="request-tag">${cat}</span>`).join('')}
+            function renderRequests() {
+                const filtered = currentFilter === '전체' 
+                    ? requests 
+                    : requests.filter(req => req.categories.includes(currentFilter));
+
+                if (filtered.length > 0) {
+                    listContainer.innerHTML = [...filtered].reverse().map(req => `
+                        <div class="request-item">
+                            <div class="request-info">
+                                <div class="request-tags">
+                                    ${req.categories.map(cat => `<span class="request-tag">${cat}</span>`).join('')}
+                                </div>
+                                <h3>${req.title}</h3>
+                                <div class="request-meta">
+                                    <span><span class="material-symbols-outlined" style="font-size: 1.1rem;">payments</span> ${Number(req.budget).toLocaleString()}원</span>
+                                    <span><span class="material-symbols-outlined" style="font-size: 1.1rem;">calendar_month</span> 마감: ${req.deadline}</span>
+                                    <span><span class="material-symbols-outlined" style="font-size: 1.1rem;">schedule</span> ${req.createdAt}</span>
+                                </div>
                             </div>
-                            <h3>${req.title}</h3>
-                            <div class="request-meta">
-                                <span><span class="material-symbols-outlined" style="font-size: 1.1rem;">payments</span> ${Number(req.budget).toLocaleString()}원</span>
-                                <span><span class="material-symbols-outlined" style="font-size: 1.1rem;">calendar_month</span> 마감: ${req.deadline}</span>
-                                <span><span class="material-symbols-outlined" style="font-size: 1.1rem;">schedule</span> ${req.createdAt}</span>
+                            <div class="request-status">
+                                <span class="status-badge">제안 대기 중</span>
+                                <button class="btn-text" style="font-size: 0.9rem; padding: 0.5rem;">상세보기</button>
                             </div>
                         </div>
-                        <div class="request-status">
-                            <span class="status-badge">제안 대기 중</span>
-                            <button class="btn-text" style="font-size: 0.9rem; padding: 0.5rem;">상세보기</button>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = \`
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">search_off</span>
+                            <p>선택하신 카테고리의 요청서가 없습니다.</p>
                         </div>
+                    \`;
+                }
+            }
+
+            function renderFilters() {
+                filterBar.innerHTML = categories.map(cat => `
+                    <div class="filter-chip ${currentFilter === cat ? 'active' : ''}" data-cat="${cat}">
+                        ${cat}
                     </div>
                 `).join('');
+
+                filterBar.querySelectorAll('.filter-chip').forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        currentFilter = chip.getAttribute('data-cat');
+                        renderFilters();
+                        renderRequests();
+                    });
+                });
+            }
+
+            if (requests.length > 0) {
+                renderFilters();
+                renderRequests();
+            } else {
+                filterBar.style.display = 'none';
             }
         });
     </script>
