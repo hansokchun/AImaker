@@ -1,3 +1,8 @@
+/**
+ * Category 페이지 — 전문가 탐색
+ * - 좌측 필터 사이드바 + 우측 전문가 카드 리스트 구조
+ * - 카테고리, 가격, 등급으로 필터링 가능 (현재 UI만 구현, 실제 필터링은 향후 구현)
+ */
 import { useState } from 'react';
 import ExpertCard from '../components/ExpertCard';
 import { EXPERTS, CATEGORIES } from '../data/mockData';
@@ -6,16 +11,17 @@ import './Category.css';
 export default function Category() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>(CATEGORIES);
 
-    const toggleCategory = (cat: string) => {
-        if (selectedCategories.includes(cat)) {
-            setSelectedCategories(selectedCategories.filter(c => c !== cat));
+    const toggleCategory = (category: string) => {
+        if (selectedCategories.includes(category)) {
+            setSelectedCategories(selectedCategories.filter((item) => item !== category));
         } else {
-            setSelectedCategories([...selectedCategories, cat]);
+            setSelectedCategories([...selectedCategories, category]);
         }
     };
 
     return (
         <>
+            {/* 페이지 헤더 */}
             <div className="category-hero">
                 <div className="container">
                     <h1 style={{ fontSize: '2.75rem', fontWeight: 800, marginBottom: '1.25rem', letterSpacing: '-0.02em' }}>전문가 탐색</h1>
@@ -25,17 +31,18 @@ export default function Category() {
 
             <main className="container">
                 <div className="category-page-layout">
+                    {/* 필터 사이드바 */}
                     <aside className="filter-sidebar">
                         <div className="filter-group">
                             <h4>서비스 분야</h4>
-                            {CATEGORIES.map(cat => (
-                                <label key={cat}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={selectedCategories.includes(cat)} 
-                                        onChange={() => toggleCategory(cat)} 
-                                    /> 
-                                    {cat}
+                            {CATEGORIES.map((category) => (
+                                <label key={category}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCategories.includes(category)}
+                                        onChange={() => toggleCategory(category)}
+                                    />
+                                    {category}
                                 </label>
                             ))}
                         </div>
@@ -55,6 +62,7 @@ export default function Category() {
                         <button className="btn-primary" style={{ width: '100%', padding: '0.8rem' }}>필터 적용</button>
                     </aside>
 
+                    {/* 전문가 리스트 */}
                     <div className="expert-list-main">
                         <div className="expert-list-header">
                             <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>총 {EXPERTS.length}명의 전문가</span>
@@ -66,7 +74,7 @@ export default function Category() {
                             </select>
                         </div>
                         <div className="expert-grid">
-                            {EXPERTS.map(expert => (
+                            {EXPERTS.map((expert) => (
                                 <ExpertCard key={expert.id} expert={expert} />
                             ))}
                         </div>

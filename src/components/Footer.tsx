@@ -1,18 +1,24 @@
+/**
+ * Footer 컴포넌트
+ * - 모든 페이지 하단에 표시되는 공통 푸터
+ * - 서비스 링크, 고객지원, 비즈니스 안내 제공
+ */
 import { Link } from 'react-router-dom';
+import { ROUTES } from '../constants/routes';
 
 export default function Footer() {
     return (
         <footer className="footer">
             <div className="container footer-content">
                 <div className="footer-brand">
-                    <Link to="/" className="logo" style={{ color: 'white', marginBottom: '1.5rem', display: 'block' }}>AIConnect</Link>
+                    <Link to={ROUTES.HOME} className="logo" style={{ color: 'white', marginBottom: '1.5rem', display: 'block' }}>AIConnect</Link>
                     <p className="footer-desc">상상을 현실로 만드는 가장 스마트한 방법. 최고의 전문가들과 함께하세요.</p>
                 </div>
                 <div className="link-column">
                     <h4>서비스</h4>
-                    <Link to="/category">전문가 찾기</Link>
-                    <Link to="/request">서비스 요청</Link>
-                    <Link to="/requests">요청 게시판</Link>
+                    <Link to={ROUTES.CATEGORY}>전문가 찾기</Link>
+                    <Link to={ROUTES.SERVICE_REQUEST}>서비스 요청</Link>
+                    <Link to={ROUTES.REQUEST_BOARD}>요청 게시판</Link>
                 </div>
                 <div className="link-column">
                     <h4>고객지원</h4>

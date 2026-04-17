@@ -1,3 +1,10 @@
+/**
+ * Community 페이지 — 전문가 커뮤니티
+ * - 게시판 형태의 커뮤니티 UI (현재 하드코딩된 목업 데이터)
+ * - 좌측: 게시글 리스트 (투표 수, 카테고리, 댓글 수)
+ * - 우측: 글쓰기 버튼 + 인기 태그 사이드바
+ * - 향후: Supabase 테이블 연동 예정
+ */
 import './Community.css';
 
 export default function Community() {
@@ -12,6 +19,7 @@ export default function Community() {
 
             <main className="container" style={{ marginTop: '2rem', paddingBottom: '4rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
+                    {/* 게시글 리스트 */}
                     <div className="posts-list">
                         <div className="content-card" style={{ padding: 0 }}>
                             <div className="post-card">
@@ -50,15 +58,17 @@ export default function Community() {
                         </div>
                     </div>
 
+                    {/* 사이드바 */}
                     <aside className="sidebar">
                         <button className="btn-primary" style={{ width: '100%', padding: '1rem', marginBottom: '1.5rem' }}>글쓰기</button>
                         <div className="content-card" style={{ padding: '1.5rem' }}>
                             <h4 style={{ marginBottom: '1rem' }}>인기 태그</h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                <span className="tag" style={{ padding: '0.4rem 1rem', background: '#f1f5f9', borderRadius: '99px', fontSize: '0.85rem' }}>#세금</span>
-                                <span className="tag" style={{ padding: '0.4rem 1rem', background: '#f1f5f9', borderRadius: '99px', fontSize: '0.85rem' }}>#계약서</span>
-                                <span className="tag" style={{ padding: '0.4rem 1rem', background: '#f1f5f9', borderRadius: '99px', fontSize: '0.85rem' }}>#포트폴리오</span>
-                                <span className="tag" style={{ padding: '0.4rem 1rem', background: '#f1f5f9', borderRadius: '99px', fontSize: '0.85rem' }}>#Figma</span>
+                                {['#세금', '#계약서', '#포트폴리오', '#Figma'].map((tag) => (
+                                    <span key={tag} className="tag" style={{ padding: '0.4rem 1rem', background: '#f1f5f9', borderRadius: '99px', fontSize: '0.85rem' }}>
+                                        {tag}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     </aside>

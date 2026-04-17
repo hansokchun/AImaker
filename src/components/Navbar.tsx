@@ -1,5 +1,20 @@
+/**
+ * Navbar 컴포넌트
+ * - 최상단 네비게이션 바 — 로고, 페이지 링크, 로그인/로그아웃 표시
+ * - sticky 포지션으로 스크롤 시에도 항상 화면 상단에 고정
+ * - 현재 경로에 따라 활성 링크 색상을 변경하여 사용자의 위치를 시각적으로 안내
+ */
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ROUTES } from '../constants/routes';
+
+/** 네비게이션 링크 정의 — 추가/변경 시 여기만 수정하면 됨 */
+const NAV_LINKS = [
+    { path: ROUTES.CATEGORY, label: '전문가 찾기' },
+    { path: ROUTES.SERVICE_REQUEST, label: '서비스 요청' },
+    { path: ROUTES.REQUEST_BOARD, label: '요청 게시판' },
+    { path: ROUTES.COMMUNITY, label: '커뮤니티' },
+] as const;
 
 export default function Navbar() {
     const location = useLocation();
@@ -7,35 +22,53 @@ export default function Navbar() {
     const { user, signOut } = useAuth();
 
     const handleSignOut = async () => {
-        await signOut();
-        navigate('/');
+        try {
+            await signOut();
+            navigate(ROUTES.HOME);
+        } catch (error) {
+            // 로그아웃 실패 시에도 사용자에게 불편을 주지 않기 위해 콘솔에만 기록
+            console.error('로그아웃 중 오류 발생:', error);
+        }
     };
 
     return (
         <header className="navbar" id="navbar">
             <div className="nav-container container">
-                <Link to="/" className="logo">
+                <Link to={ROUTES.HOME} className="logo">
                     <span className="material-symbols-outlined logo-icon">handshake</span>
                     AIConnect
                 </Link>
+
                 <nav className="nav-links">
-                    <Link to="/category" style={{ color: location.pathname === '/category' ? 'var(--primary)' : undefined }}>전문가 찾기</Link>
-                    <Link to="/request" style={{ color: location.pathname === '/request' ? 'var(--primary)' : undefined }}>서비스 요청</Link>
-                    <Link to="/requests" style={{ color: location.pathname === '/requests' ? 'var(--primary)' : undefined }}>요청 게시판</Link>
-                    <Link to="/community" style={{ color: location.pathname === '/community' ? 'var(--primary)' : undefined }}>커뮤니티</Link>
+                    {NAV_LINKS.map(({ path, label }) => (
+                        <Link
+                            key={path}
+                            to={path}
+                            style={{ color: location.pathname === path ? 'var(--primary)' : undefined }}
+                        >
+                            {label}
+                        </Link>
+                    ))}
                 </nav>
+
                 <div className="nav-actions">
                     {user ? (
                         <>
                             <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                 {user.user_metadata?.display_name || user.email}
                             </span>
-                            <button onClick={handleSignOut} className="btn-text" style={{ cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'inherit' }}>로그아웃</button>
+                            <button
+                                onClick={handleSignOut}
+                                className="btn-text"
+                                style={{ cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'inherit' }}
+                            >
+                                로그아웃
+                            </button>
                         </>
                     ) : (
                         <>
-                            <Link to="/login" className="btn-text">로그인</Link>
-                            <Link to="/login" className="btn-primary" onClick={() => {}}>전문가 가입</Link>
+                            <Link to={ROUTES.LOGIN} className="btn-text">로그인</Link>
+                            <Link to={ROUTES.LOGIN} className="btn-primary">전문가 가입</Link>
                         </>
                     )}
                 </div>

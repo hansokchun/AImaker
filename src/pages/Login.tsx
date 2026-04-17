@@ -1,6 +1,13 @@
+/**
+ * Login 페이지 — 로그인 / 회원가입
+ * - 이메일/비밀번호 인증 + OAuth(Google, Kakao) 지원
+ * - Supabase Auth를 사용하며, 환경변수 미설정 시 안내 메시지 표시
+ * - isSignUp 상태로 로그인/회원가입 폼을 토글
+ */
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { ROUTES } from '../constants/routes';
 import type { Provider } from '@supabase/supabase-js';
 import './Login.css';
 
@@ -14,12 +21,14 @@ export default function Login() {
     const [loading, setLoading] = useState<boolean>(false);
     const [successMsg, setSuccessMsg] = useState<string>('');
 
+    /** 이메일/비밀번호 폼 제출 핸들러 */
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
         setSuccessMsg('');
         setLoading(true);
 
+        // Supabase 미설정 환경 방어
         if (!supabase) {
             setError('인증 서비스가 설정되지 않았습니다.');
             setLoading(false);
@@ -31,21 +40,17 @@ export default function Login() {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
-                    options: {
-                        data: { display_name: name }
-                    }
+                    options: { data: { display_name: name } },
                 });
                 if (error) throw error;
                 setSuccessMsg('가입 확인 이메일을 발송했습니다. 이메일을 확인해주세요!');
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
-                });
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                navigate('/');
+                navigate(ROUTES.HOME);
             }
         } catch (err) {
+            // Supabase 에러는 Error 인스턴스, 그 외 예외 상황도 방어
             if (err instanceof Error) {
                 setError(err.message);
             } else {
@@ -56,6 +61,7 @@ export default function Login() {
         }
     };
 
+    /** OAuth 로그인 핸들러 */
     const handleOAuthLogin = async (provider: Provider) => {
         if (!supabase) {
             setError('인증 서비스가 설정되지 않았습니다.');
@@ -63,16 +69,23 @@ export default function Login() {
         }
         const { error } = await supabase.auth.signInWithOAuth({
             provider,
-            options: { redirectTo: window.location.origin }
+            options: { redirectTo: window.location.origin },
         });
         if (error) setError(error.message);
+    };
+
+    /** 로그인 ↔ 회원가입 전환 시 에러/성공 메시지 초기화 */
+    const toggleMode = (signUp: boolean) => {
+        setIsSignUp(signUp);
+        setError('');
+        setSuccessMsg('');
     };
 
     return (
         <div className="login-page">
             <div className="login-card">
                 <div className="login-header">
-                    <Link to="/" className="logo" style={{ justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    <Link to={ROUTES.HOME} className="logo" style={{ justifyContent: 'center', marginBottom: '1.5rem' }}>
                         <span className="material-symbols-outlined">handshake</span>
                         AIConnect
                     </Link>
@@ -140,9 +153,9 @@ export default function Login() {
 
                 <div className="login-footer">
                     {isSignUp ? (
-                        <p>이미 계정이 있으신가요? <button className="switch-btn" onClick={() => { setIsSignUp(false); setError(''); setSuccessMsg(''); }}>로그인</button></p>
+                        <p>이미 계정이 있으신가요? <button className="switch-btn" onClick={() => toggleMode(false)}>로그인</button></p>
                     ) : (
-                        <p>계정이 없으신가요? <button className="switch-btn" onClick={() => { setIsSignUp(true); setError(''); setSuccessMsg(''); }}>회원가입</button></p>
+                        <p>계정이 없으신가요? <button className="switch-btn" onClick={() => toggleMode(true)}>회원가입</button></p>
                     )}
                 </div>
             </div>

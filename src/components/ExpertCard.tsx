@@ -1,8 +1,16 @@
+/**
+ * ExpertCard 컴포넌트
+ * - 전문가 리스트에서 각 전문가를 카드 형태로 보여주는 재사용 컴포넌트
+ * - 클릭 시 전문가 상세 페이지로 이동
+ * - Home, Category 페이지에서 공통으로 사용
+ */
 import { useNavigate } from 'react-router-dom';
 import type { Expert } from '../types';
+import { ROUTES } from '../constants/routes';
 import './ExpertCard.css';
 
 interface ExpertCardProps {
+    /** 표시할 전문가 데이터 */
     expert: Expert;
 }
 
@@ -10,15 +18,15 @@ export default function ExpertCard({ expert }: ExpertCardProps) {
     const navigate = useNavigate();
 
     return (
-        <div className="expert-card" onClick={() => navigate('/expert')}>
+        <div className="expert-card" onClick={() => navigate(ROUTES.EXPERT_DETAIL)}>
             <div className="img-container">
-                <img src={expert.img} className="img" loading="lazy" alt={expert.name} />
+                <img src={expert.imageUrl} className="img" loading="lazy" alt={expert.name} />
             </div>
             <div className="expert-content">
-                <div className="prof">{expert.prof}</div>
+                <div className="prof">{expert.profession}</div>
                 <div className="name">{expert.name}</div>
                 <div className="rating-row">
-                    <span className="star">★</span> {expert.rate.toFixed(1)}
+                    <span className="star">★</span> {expert.rating.toFixed(1)}
                 </div>
                 <div className="price-row">
                     <span className="price-label">기본 금액</span>
