@@ -7,6 +7,7 @@ import ExpertDetail from './pages/ExpertDetail';
 import ServiceRequest from './pages/ServiceRequest';
 import RequestBoard from './pages/RequestBoard';
 import Community from './pages/Community';
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/request" element={<ServiceRequest />} />
         <Route path="/requests" element={<RequestBoard />} />
         <Route path="/community" element={<Community />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
       <Footer />
     </Router>

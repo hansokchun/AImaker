@@ -1,8 +1,16 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
     const location = useLocation();
-    
+    const navigate = useNavigate();
+    const { user, signOut } = useAuth();
+
+    const handleSignOut = async () => {
+        await signOut();
+        navigate('/');
+    };
+
     return (
         <header className="navbar" id="navbar">
             <div className="nav-container container">
@@ -17,8 +25,19 @@ export default function Navbar() {
                     <Link to="/community" style={{ color: location.pathname === '/community' ? 'var(--primary)' : undefined }}>커뮤니티</Link>
                 </nav>
                 <div className="nav-actions">
-                    <a href="#" className="btn-text">로그인</a>
-                    <a href="#" className="btn-primary">전문가 가입</a>
+                    {user ? (
+                        <>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                {user.user_metadata?.display_name || user.email}
+                            </span>
+                            <button onClick={handleSignOut} className="btn-text" style={{ cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'inherit' }}>로그아웃</button>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login" className="btn-text">로그인</Link>
+                            <Link to="/login" className="btn-primary" onClick={() => {}}>전문가 가입</Link>
+                        </>
+                    )}
                 </div>
             </div>
         </header>
