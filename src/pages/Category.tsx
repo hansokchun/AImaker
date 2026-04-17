@@ -4,9 +4,9 @@ import { EXPERTS, CATEGORIES } from '../data/mockData';
 import './Category.css';
 
 export default function Category() {
-    const [selectedCategories, setSelectedCategories] = useState(CATEGORIES);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(CATEGORIES);
 
-    const toggleCategory = (cat) => {
+    const toggleCategory = (cat: string) => {
         if (selectedCategories.includes(cat)) {
             setSelectedCategories(selectedCategories.filter(c => c !== cat));
         } else {

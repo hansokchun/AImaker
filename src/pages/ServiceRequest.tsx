@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategorySelector from '../components/CategorySelector';
+import type { ServiceRequestData } from '../types';
 import './ServiceRequest.css';
 
 export default function ServiceRequest() {
     const navigate = useNavigate();
-    const [selectedCategories, setSelectedCategories] = useState([]);
-    const [title, setTitle] = useState('');
-    const [desc, setDesc] = useState('');
-    const [budget, setBudget] = useState('');
-    const [deadline, setDeadline] = useState('');
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [title, setTitle] = useState<string>('');
+    const [desc, setDesc] = useState<string>('');
+    const [budget, setBudget] = useState<string>('');
+    const [deadline, setDeadline] = useState<string>('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
         if (selectedCategories.length === 0) {
@@ -19,7 +20,7 @@ export default function ServiceRequest() {
             return;
         }
 
-        const newRequest = {
+        const newRequest: ServiceRequestData = {
             id: Date.now(),
             title,
             desc,
@@ -30,7 +31,7 @@ export default function ServiceRequest() {
             status: 'pending'
         };
 
-        const existingRequests = JSON.parse(localStorage.getItem('ai_requests') || '[]');
+        const existingRequests: ServiceRequestData[] = JSON.parse(localStorage.getItem('ai_requests') || '[]');
         existingRequests.push(newRequest);
         localStorage.setItem('ai_requests', JSON.stringify(existingRequests));
 
@@ -62,7 +63,7 @@ export default function ServiceRequest() {
                                 placeholder="예: 로고 디자인, 파이썬 웹 크롤러 개발" 
                                 required 
                                 value={title}
-                                onChange={e => setTitle(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                             />
                         </div>
 
@@ -70,11 +71,11 @@ export default function ServiceRequest() {
                             <label><span className="material-symbols-outlined">description</span> 상세 내용</label>
                             <textarea 
                                 className="form-control" 
-                                rows="8" 
+                                rows={8} 
                                 placeholder="전문가가 파악할 수 있도록 프로젝트의 목적, 요구사항, 참고 자료 등을 구체적으로 작성해주세요." 
                                 required
                                 value={desc}
-                                onChange={e => setDesc(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDesc(e.target.value)}
                             ></textarea>
                         </div>
 
@@ -87,7 +88,7 @@ export default function ServiceRequest() {
                                     placeholder="예: 500000" 
                                     required 
                                     value={budget}
-                                    onChange={e => setBudget(e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setBudget(e.target.value)}
                                 />
                             </div>
                             <div className="form-group">
@@ -97,7 +98,7 @@ export default function ServiceRequest() {
                                     className="form-control" 
                                     required 
                                     value={deadline}
-                                    onChange={e => setDeadline(e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setDeadline(e.target.value)}
                                 />
                             </div>
                         </div>

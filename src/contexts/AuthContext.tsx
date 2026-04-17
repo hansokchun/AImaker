@@ -1,12 +1,23 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import type { AuthContextType } from '../types';
 
-const AuthContext = createContext({ session: null, user: null, loading: false });
+const AuthContext = createContext<AuthContextType>({
+    session: null,
+    user: null,
+    loading: false,
+    signOut: async () => {},
+});
 
-export function AuthProvider({ children }) {
-    const [session, setSession] = useState(null);
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+interface AuthProviderProps {
+    children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+    const [session, setSession] = useState<Session | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         // Supabase가 초기화되지 않은 경우 스킵

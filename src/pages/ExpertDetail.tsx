@@ -1,14 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
+import type { ChatMessage } from '../types';
 import './ExpertDetail.css';
 
+type PackageTab = 'standard' | 'deluxe' | 'premium';
+
 export default function ExpertDetail() {
-    const [activeTab, setActiveTab] = useState('standard');
-    const [chatOpen, setChatOpen] = useState(false);
-    const [messages, setMessages] = useState([
+    const [activeTab, setActiveTab] = useState<PackageTab>('standard');
+    const [chatOpen, setChatOpen] = useState<boolean>(false);
+    const [messages, setMessages] = useState<ChatMessage[]>([
         { type: 'system', text: '김디자인 전문가님께 문의를 시작합니다.' }
     ]);
-    const [inputText, setInputText] = useState('');
-    const chatMessagesRef = useRef(null);
+    const [inputText, setInputText] = useState<string>('');
+    const chatMessagesRef = useRef<HTMLDivElement>(null);
 
     // Initial message from expert when chat opens
     useEffect(() => {
@@ -217,8 +220,8 @@ export default function ExpertDetail() {
                         <input 
                             type="text" 
                             value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
+                            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && sendMessage()}
                             placeholder="메시지를 입력하세요..." 
                         />
                         <button onClick={sendMessage}>전송</button>

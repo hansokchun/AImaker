@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CATEGORIES } from '../data/mockData';
+import type { ServiceRequestData } from '../types';
 import './RequestBoard.css';
 
 export default function RequestBoard() {
-    const [requests, setRequests] = useState([]);
-    const [currentFilter, setCurrentFilter] = useState('전체');
+    const [requests, setRequests] = useState<ServiceRequestData[]>([]);
+    const [currentFilter, setCurrentFilter] = useState<string>('전체');
 
-    const filters = ['전체', ...CATEGORIES];
+    const filters: string[] = ['전체', ...CATEGORIES];
 
     useEffect(() => {
-        const stored = JSON.parse(localStorage.getItem('ai_requests') || '[]');
+        const stored: ServiceRequestData[] = JSON.parse(localStorage.getItem('ai_requests') || '[]');
         setRequests(stored);
     }, []);
 

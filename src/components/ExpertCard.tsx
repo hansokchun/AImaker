@@ -1,7 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import type { Expert } from '../types';
 import './ExpertCard.css';
 
-export default function ExpertCard({ expert }) {
+interface ExpertCardProps {
+    expert: Expert;
+}
+
+export default function ExpertCard({ expert }: ExpertCardProps) {
     const navigate = useNavigate();
 
     return (

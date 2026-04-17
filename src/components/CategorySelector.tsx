@@ -1,9 +1,14 @@
 import { CATEGORIES } from '../data/mockData';
 import './CategorySelector.css';
 
-export default function CategorySelector({ selected, onChange }) {
-    const toggleCategory = (cat) => {
-        let newSelected;
+interface CategorySelectorProps {
+    selected: string[];
+    onChange: (categories: string[]) => void;
+}
+
+export default function CategorySelector({ selected, onChange }: CategorySelectorProps) {
+    const toggleCategory = (cat: string) => {
+        let newSelected: string[];
         if (selected.includes(cat)) {
             newSelected = selected.filter(sc => sc !== cat);
         } else {
