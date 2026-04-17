@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-const AuthContext = createContext({ session: null, user: null, loading: true });
+const AuthContext = createContext({ session: null, user: null, loading: false });
 
 export function AuthProvider({ children }) {
     const [session, setSession] = useState(null);
@@ -9,6 +9,12 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Supabase가 초기화되지 않은 경우 스킵
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
+
         // 초기 세션 가져오기
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
@@ -27,7 +33,9 @@ export function AuthProvider({ children }) {
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
     };
 
     return (

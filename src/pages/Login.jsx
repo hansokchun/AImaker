@@ -19,6 +19,12 @@ export default function Login() {
         setSuccessMsg('');
         setLoading(true);
 
+        if (!supabase) {
+            setError('인증 서비스가 설정되지 않았습니다.');
+            setLoading(false);
+            return;
+        }
+
         try {
             if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
@@ -46,6 +52,10 @@ export default function Login() {
     };
 
     const handleOAuthLogin = async (provider) => {
+        if (!supabase) {
+            setError('인증 서비스가 설정되지 않았습니다.');
+            return;
+        }
         const { error } = await supabase.auth.signInWithOAuth({
             provider,
             options: { redirectTo: window.location.origin }
