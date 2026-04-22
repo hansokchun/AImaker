@@ -12,6 +12,8 @@ export interface Expert {
     profession: string;
     /** 평균 평점 (0.0 ~ 5.0) */
     rating: number;
+    /** 리뷰 갯수 */
+    reviews: number;
     /** 기본 서비스 가격 (원 단위) */
     price: number;
     /** 프로필 이미지 URL */
@@ -38,6 +40,8 @@ export interface ServiceRequestData {
     categories: string[];
     /** 작성일 (toLocaleDateString 형식) */
     createdAt: string;
+    /** 주문자 연락용 이메일 */
+    ordererEmail?: string;
     /** 요청 상태 */
     status: 'pending' | 'in_progress' | 'completed';
 }

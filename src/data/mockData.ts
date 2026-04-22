@@ -7,12 +7,12 @@ import type { Expert } from '../types';
 
 /** 전문가 샘플 데이터 */
 export const EXPERTS: Expert[] = [
-    { id: 1, name: "김디자인 전문가", profession: "UI/UX 디자이너", rating: 4.9, price: 150000, imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600" },
-    { id: 2, name: "이코딩 전문가", profession: "프론트엔드 개발자", rating: 4.8, price: 300000, imageUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600" },
-    { id: 3, name: "박마켓 전문가", profession: "퍼포먼스 마케터", rating: 5.0, price: 100000, imageUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600" },
-    { id: 4, name: "최편집 전문가", profession: "영상 편집자", rating: 4.7, price: 80000, imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600" },
-    { id: 5, name: "정개발 전문가", profession: "백엔드 개발자", rating: 4.9, price: 500000, imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600" },
-    { id: 6, name: "한로고 전문가", profession: "로고 디자이너", rating: 4.6, price: 50000, imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600" },
+    { id: 1, name: "김디자인 전문가", profession: "UI/UX 디자이너", rating: 4.9, reviews: 124, price: 150000, imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600" },
+    { id: 2, name: "이코딩 전문가", profession: "프론트엔드 개발자", rating: 4.8, reviews: 88, price: 300000, imageUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600" },
+    { id: 3, name: "박마켓 전문가", profession: "퍼포먼스 마케터", rating: 5.0, reviews: 205, price: 100000, imageUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600" },
+    { id: 4, name: "최편집 전문가", profession: "영상 편집자", rating: 4.7, reviews: 45, price: 80000, imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600" },
+    { id: 5, name: "정개발 전문가", profession: "백엔드 개발자", rating: 4.9, reviews: 160, price: 500000, imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600" },
+    { id: 6, name: "한로고 전문가", profession: "로고 디자이너", rating: 4.6, reviews: 32, price: 50000, imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600" },
 ];
 
 /**

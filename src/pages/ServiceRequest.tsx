@@ -10,17 +10,20 @@ import CategorySelector from '../components/CategorySelector';
 import { saveRequest } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
 import type { ServiceRequestData } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import './ServiceRequest.css';
 
 export default function ServiceRequest() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [title, setTitle] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [budget, setBudget] = useState<string>('');
+    const [ordererEmail, setOrdererEmail] = useState<string>('');
     const [deadline, setDeadline] = useState<string>('');
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         // 카테고리 미선택 방어
@@ -30,18 +33,19 @@ export default function ServiceRequest() {
         }
 
         const newRequest: ServiceRequestData = {
-            id: Date.now(),
+            id: Date.now(), // 로컬 폴백용 아이디 (DB에선 직렬 id 사용)
             title,
             description,
             budget,
             deadline,
             categories: selectedCategories,
             createdAt: new Date().toLocaleDateString(),
+            ordererEmail,
             status: 'pending',
         };
 
         try {
-            saveRequest(newRequest);
+            await saveRequest(newRequest, user?.id);
             alert('요청서가 성공적으로 등록되었습니다!');
             navigate(ROUTES.REQUEST_BOARD);
         } catch (error) {
@@ -90,16 +94,32 @@ export default function ServiceRequest() {
                             ></textarea>
                         </div>
 
+                        <div className="form-group">
+                            <label><span className="material-symbols-outlined">mail</span> 주문자 이메일</label>
+                            <input
+                                type="email"
+                                className="form-control"
+                                placeholder="예: user@example.com (필수)"
+                                required
+                                value={ordererEmail}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setOrdererEmail(e.target.value)}
+                            />
+                        </div>
+
                         <div className="form-row">
                             <div className="form-group">
                                 <label><span className="material-symbols-outlined">payments</span> 희망 예산 (원)</label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     className="form-control"
-                                    placeholder="예: 500000"
+                                    placeholder="예: 500,000"
                                     required
-                                    value={budget}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setBudget(e.target.value)}
+                                    value={budget ? Number(budget).toLocaleString() : ''}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                        // 쉼표와 숫자가 아닌 모든 문자 제거
+                                        const rawValue = e.target.value.replace(/[^\d]/g, '');
+                                        setBudget(rawValue);
+                                    }}
                                 />
                             </div>
                             <div className="form-group">

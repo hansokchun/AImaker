@@ -11,6 +11,7 @@ export const ROUTES = {
     REQUEST_BOARD: '/requests',
     COMMUNITY: '/community',
     LOGIN: '/login',
+    MY_PAGE: '/mypage',
 } as const;
 
 /** ROUTES 값들의 유니온 타입 (타입 가드에 활용 가능) */

@@ -10,6 +10,7 @@ import './Category.css';
 
 export default function Category() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>(CATEGORIES);
+    const [sortBy, setSortBy] = useState<string>('최신순');
 
     const toggleCategory = (category: string) => {
         if (selectedCategories.includes(category)) {
@@ -18,6 +19,25 @@ export default function Category() {
             setSelectedCategories([...selectedCategories, category]);
         }
     };
+
+    // 정렬 로직 적용
+    const sortedExperts = [...EXPERTS].sort((a, b) => {
+        switch (sortBy) {
+            case '최신순':
+                return b.id - a.id; // ID 역순을 최신으로 간주
+            case '평점 높은순':
+                return b.rating - a.rating;
+            case '리뷰순':
+                return b.reviews - a.reviews;
+            case '가격 높은순':
+                return b.price - a.price;
+            case '가격 낮은순':
+                return a.price - b.price;
+            case '추천순':
+            default:
+                return a.id - b.id; // ID 정순
+        }
+    });
 
     return (
         <>
@@ -66,15 +86,17 @@ export default function Category() {
                     <div className="expert-list-main">
                         <div className="expert-list-header">
                             <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>총 {EXPERTS.length}명의 전문가</span>
-                            <select className="sort-select">
-                                <option>추천순</option>
-                                <option>평점 높은순</option>
-                                <option>가격 낮은순</option>
-                                <option>최신순</option>
+                            <select className="sort-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                                <option value="최신순">최신순</option>
+                                <option value="추천순">추천순</option>
+                                <option value="평점 높은순">평점 높은순</option>
+                                <option value="리뷰순">리뷰순</option>
+                                <option value="가격 높은순">가격 높은순</option>
+                                <option value="가격 낮은순">가격 낮은순</option>
                             </select>
                         </div>
                         <div className="expert-grid">
-                            {EXPERTS.map((expert) => (
+                            {sortedExperts.map((expert) => (
                                 <ExpertCard key={expert.id} expert={expert} />
                             ))}
                         </div>

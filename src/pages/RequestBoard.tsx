@@ -14,12 +14,13 @@ import './RequestBoard.css';
 export default function RequestBoard() {
     const [requests, setRequests] = useState<ServiceRequestData[]>([]);
     const [currentFilter, setCurrentFilter] = useState<string>('전체');
+    const [selectedRequest, setSelectedRequest] = useState<ServiceRequestData | null>(null);
 
     const filters: string[] = ['전체', ...CATEGORIES];
 
-    // 컴포넌트 마운트 시 저장된 요청 목록을 안전하게 로딩
+    // 컴포넌트 마운트 시 저장된 요청 목록을 비동기로 렌더링
     useEffect(() => {
-        setRequests(getStoredRequests());
+        getStoredRequests().then(data => setRequests(data));
     }, []);
 
     // 필터링된 요청 목록 — '전체'이면 모든 요청, 아니면 해당 카테고리만
@@ -72,7 +73,7 @@ export default function RequestBoard() {
                                 </div>
                                 <div className="request-status">
                                     <span className="status-badge">제안 대기 중</span>
-                                    <button className="btn-text" style={{ fontSize: '0.9rem', padding: '0.5rem' }}>상세보기</button>
+                                    <button className="btn-text" style={{ fontSize: '0.9rem', padding: '0.5rem' }} onClick={() => setSelectedRequest(request)}>상세보기</button>
                                 </div>
                             </div>
                         ))
@@ -84,6 +85,61 @@ export default function RequestBoard() {
                         </div>
                     )}
                 </div>
+
+                {/* ===== 상세보기 모달 ===== */}
+                {selectedRequest && (
+                    <div className="modal-overlay" onClick={() => setSelectedRequest(null)}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>{selectedRequest.title}</h2>
+                                <button className="close-btn" onClick={() => setSelectedRequest(null)}>
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div>
+                                    <h4 style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>상세 내용</h4>
+                                    <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{selectedRequest.description}</p>
+                                </div>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', backgroundColor: 'var(--background)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
+                                    <div>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>희망 예산</span>
+                                        <div style={{ fontWeight: 700, marginTop: '0.25rem' }}>{Number(selectedRequest.budget).toLocaleString()}원</div>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>마감 기한</span>
+                                        <div style={{ fontWeight: 700, marginTop: '0.25rem' }}>{selectedRequest.deadline}</div>
+                                    </div>
+                                    <div style={{ gridColumn: '1 / -1' }}>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>카테고리</span>
+                                        <div style={{ fontWeight: 500, marginTop: '0.25rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            {selectedRequest.categories.map((cat, i) => (
+                                                <span key={i} className="request-tag">{cat}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div style={{ gridColumn: '1 / -1' }}>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>주문자 연락처</span>
+                                        <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>{selectedRequest.ordererEmail || '이메일 미기재'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', marginTop: '1.25rem' }}>
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', borderRadius: 'var(--radius-lg)' }}
+                                    onClick={() => {
+                                        alert('전문가님, 이 프로젝트의 작업 의뢰 수락이 완료되었습니다!');
+                                        setSelectedRequest(null);
+                                    }}
+                                >
+                                    전문가로서 수락하기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </>
     );
