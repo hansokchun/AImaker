@@ -6,7 +6,7 @@
 export const ROUTES = {
     HOME: '/',
     CATEGORY: '/category',
-    EXPERT_DETAIL: '/expert',
+    EXPERT_DETAIL: '/expert/:id',
     SERVICE_REQUEST: '/request',
     REQUEST_BOARD: '/requests',
     COMMUNITY: '/community',

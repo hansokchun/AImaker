@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getStoredProfile, saveProfile, createDefaultProfile } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
+import { supabase } from '../lib/supabase';
 import type { ExpertProfile, PackageInfo } from '../types';
 import './Profile.css';
 
@@ -31,6 +32,7 @@ export default function Profile() {
     const [profile, setProfile] = useState<ExpertProfile>(createDefaultProfile());
     const [activePackageTab, setActivePackageTab] = useState<PackageTab>('standard');
     const [saving, setSaving] = useState<boolean>(false);
+    const [uploading, setUploading] = useState<boolean>(false);
     const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
@@ -92,6 +94,41 @@ export default function Profile() {
     /** 단순 텍스트 필드 변경 */
     const handleChange = (field: keyof ExpertProfile, value: string) => {
         setProfile((prev) => ({ ...prev, [field]: value }));
+    };
+
+    /** 로컬 이미지 업로드 (Supabase Storage) */
+    const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0 || !user) return;
+        const file = e.target.files[0];
+        
+        if (!supabase) {
+            alert('Supabase 연동이 필요합니다. 외부 이미지 URL을 직접 입력해 주세요.');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            // 고유한 파일명 생성 (캐싱 문제 방지 위해 시간값 추가)
+            const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+                .from('profiles')
+                .upload(fileName, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('profiles')
+                .getPublicUrl(fileName);
+
+            setProfile((prev) => ({ ...prev, imageUrl: data.publicUrl }));
+        } catch (error) {
+            alert('이미지 업로드에 실패했습니다. (Supabase Storage에 profiles 버킷이 있는지 확인해 주세요)');
+            console.error('업로드 에러:', error);
+        } finally {
+            setUploading(false);
+        }
     };
 
     // ===== 동적 리스트 핸들러 (경력, 수상 이력) =====
@@ -364,8 +401,21 @@ export default function Profile() {
                             <div className="avatar-url-input">
                                 <div className="profile-form-group">
                                     <label>
-                                        프로필 이미지 URL
-                                        <span className="label-hint">(외부 이미지 링크를 붙여넣으세요)</span>
+                                        프로필 이미지 업로드
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        disabled={uploading}
+                                        className="profile-input"
+                                        style={{ padding: '0.6rem 1rem' }}
+                                    />
+                                    {uploading && <div style={{ fontSize: '0.85rem', color: 'var(--primary)', marginTop: '0.5rem' }}>업로드 중...</div>}
+                                </div>
+                                <div className="profile-form-group">
+                                    <label>
+                                        <span className="label-hint" style={{ marginLeft: 0 }}>또는 외부 이미지 링크 입력:</span>
                                     </label>
                                     <input
                                         type="url"
@@ -589,6 +639,18 @@ export default function Profile() {
 
                     {/* ===== 저장 버튼 ===== */}
                     <div className="profile-actions">
+                        <button
+                            type="button"
+                            className="btn-text"
+                            onClick={() => {
+                                if (!user) return;
+                                window.open(`/expert/${user.id}`, '_blank');
+                            }}
+                            style={{ padding: '1rem 2rem', fontWeight: 700, color: 'var(--text-secondary)' }}
+                        >
+                            <span className="material-symbols-outlined" style={{ verticalAlign: 'middle', marginRight: '0.5rem', fontSize: '1.2rem' }}>visibility</span>
+                            내 프로필 미리보기
+                        </button>
                         <button
                             type="submit"
                             className="btn-primary btn-save-profile"

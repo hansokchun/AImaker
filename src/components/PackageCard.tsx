@@ -10,15 +10,9 @@ import { useState } from 'react';
 type PackageTab = 'standard' | 'deluxe' | 'premium';
 
 /** 각 패키지의 상세 정보 */
-interface PackageInfo {
-    price: string;
-    description: string;
-    workDays: string;
-    revisions: string;
-    features: string[];
-}
+import type { PackageInfo } from '../types';
 
-/** 패키지 데이터 — 향후 API에서 가져올 수 있도록 데이터와 UI를 분리 */
+/** 패키지 데이터 — 프로필에서 설정한 데이터를 우선으로 하되, 없으면 기본값 사용 */
 const PACKAGES: Record<PackageTab, PackageInfo> = {
     standard: {
         price: '₩50,000',
@@ -44,19 +38,21 @@ const PACKAGES: Record<PackageTab, PackageInfo> = {
 };
 
 interface PackageCardProps {
+    /** 전문가가 등록한 패키지 데이터 (선택적) */
+    packages?: Record<PackageTab, PackageInfo>;
     /** 채팅 모달을 여는 콜백 — 문의하기 버튼에 연결 */
     onOpenChat: () => void;
 }
 
-export default function PackageCard({ onOpenChat }: PackageCardProps) {
+export default function PackageCard({ packages = PACKAGES, onOpenChat }: PackageCardProps) {
     const [activeTab, setActiveTab] = useState<PackageTab>('standard');
-    const currentPackage = PACKAGES[activeTab];
+    const currentPackage = packages[activeTab];
 
     return (
         <div className="package-card">
             {/* 패키지 탭 — 3개 등급 전환 */}
             <div className="package-tabs">
-                {(Object.keys(PACKAGES) as PackageTab[]).map((tab) => (
+                {(Object.keys(packages) as PackageTab[]).map((tab) => (
                     <div
                         key={tab}
                         className={`package-tab ${activeTab === tab ? 'active' : ''}`}
