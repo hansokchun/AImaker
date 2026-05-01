@@ -41,22 +41,26 @@ export default function Profile() {
     useEffect(() => {
         if (!user) return;
 
-        const stored = getStoredProfile(user.id);
-        if (stored) {
-            // 저장된 프로필에 빈 배열이 있을 수 있으므로 기본값과 병합
-            setProfile({
-                ...createDefaultProfile(),
-                ...stored,
-                // 배열 필드가 비어있으면 편집 UI를 위해 빈 항목 하나 유지
-                activities: stored.activities?.length ? stored.activities : [''],
-                awards: stored.awards?.length ? stored.awards : [''],
-                packages: {
-                    standard: { ...createDefaultProfile().packages.standard, ...stored.packages?.standard },
-                    deluxe: { ...createDefaultProfile().packages.deluxe, ...stored.packages?.deluxe },
-                    premium: { ...createDefaultProfile().packages.premium, ...stored.packages?.premium },
-                },
-            });
-        }
+        const loadProfile = async () => {
+            const stored = await getStoredProfile(user.id);
+            if (stored) {
+                // 저장된 프로필에 빈 배열이 있을 수 있으므로 기본값과 병합
+                setProfile({
+                    ...createDefaultProfile(),
+                    ...stored,
+                    // 배열 필드가 비어있으면 편집 UI를 위해 빈 항목 하나 유지
+                    activities: stored.activities?.length ? stored.activities : [''],
+                    awards: stored.awards?.length ? stored.awards : [''],
+                    packages: {
+                        standard: { ...createDefaultProfile().packages.standard, ...stored.packages?.standard },
+                        deluxe: { ...createDefaultProfile().packages.deluxe, ...stored.packages?.deluxe },
+                        premium: { ...createDefaultProfile().packages.premium, ...stored.packages?.premium },
+                    },
+                });
+            }
+        };
+        
+        loadProfile();
     }, [user]);
 
     // ===== 인증 상태 체크 =====
@@ -211,7 +215,7 @@ export default function Profile() {
 
     // ===== 저장 =====
 
-    const handleSave = (e: FormEvent<HTMLFormElement>) => {
+    const handleSave = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         // 필수 필드 검증
@@ -233,7 +237,7 @@ export default function Profile() {
                 awards: profile.awards.filter((a) => a.trim()),
             };
 
-            saveProfile(user.id, cleanedProfile);
+            await saveProfile(user.id, cleanedProfile);
             setShowSuccess(true);
             // 3초 후 성공 메시지 자동 숨김
             setTimeout(() => setShowSuccess(false), 3000);

@@ -100,41 +100,97 @@ export function createDefaultProfile(): ExpertProfile {
  * - userId별로 키를 분리하여 다중 사용자 지원
  * - 데이터 손상 시 null을 반환하여 앱 크래시 방지
  */
-export function getStoredProfile(userId: string): ExpertProfile | null {
-    try {
-        const raw = localStorage.getItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
-        if (!raw) return null;
-
-        const parsed = JSON.parse(raw);
-
-        // 최소한의 구조 검증 — name 필드가 있는지 확인
-        if (typeof parsed !== 'object' || parsed === null) {
-            console.warn('프로필 데이터 형식이 올바르지 않습니다.');
+/**
+ * 특정 사용자의 프로필을 Supabase(또는 localStorage)에서 불러온다.
+ */
+export async function getStoredProfile(userId: string): Promise<ExpertProfile | null> {
+    if (!supabase) {
+        // 폴백: localStorage
+        try {
+            const raw = localStorage.getItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return typeof parsed === 'object' && parsed !== null ? parsed as ExpertProfile : null;
+        } catch (error) {
             return null;
         }
+    }
 
-        return parsed as ExpertProfile;
-    } catch (error) {
-        console.error('프로필 데이터 로딩 실패:', error);
+    // Supabase 연동
+    const { data, error } = await supabase
+        .from('expert_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+    if (error) {
+        // 아직 프로필이 없으면(PGRST116) null 반환 (정상)
+        if (error.code === 'PGRST116') return null;
+        console.error('Supabase 프로필 로딩 실패:', error);
         return null;
     }
+
+    if (!data) return null;
+
+    // DB 스키마(snake_case)를 앱 타입(camelCase)으로 매핑
+    return {
+        id: data.user_id,
+        imageUrl: data.image_url || '',
+        profession: data.profession || '',
+        name: data.name || '',
+        oneLiner: data.one_liner || '',
+        greeting: data.greeting || '',
+        activities: Array.isArray(data.activities) && data.activities.length ? data.activities : [''],
+        awards: Array.isArray(data.awards) && data.awards.length ? data.awards : [''],
+        aiTools: Array.isArray(data.ai_tools) ? data.ai_tools : [],
+        editTools: Array.isArray(data.edit_tools) ? data.edit_tools : [],
+        packages: data.packages || {
+            standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+        },
+        updatedAt: data.updated_at,
+    };
 }
 
 /**
- * 프로필 데이터를 localStorage에 저장한다.
- * - 저장 시 updatedAt 타임스탬프를 자동으로 갱신
+ * 프로필 데이터를 Supabase(또는 localStorage)에 저장(Upsert)한다.
  */
-export function saveProfile(userId: string, profile: ExpertProfile): void {
-    try {
-        const toSave: ExpertProfile = {
-            ...profile,
-            id: userId,
-            updatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(`${STORAGE_KEYS.PROFILE}_${userId}`, JSON.stringify(toSave));
-    } catch (error) {
-        console.error('프로필 저장 실패:', error);
-        throw new Error('프로필 저장에 실패했습니다. 다시 시도해 주세요.');
+export async function saveProfile(userId: string, profile: ExpertProfile): Promise<void> {
+    if (!supabase) {
+        // 폴백: localStorage
+        try {
+            const toSave: ExpertProfile = {
+                ...profile,
+                id: userId,
+                updatedAt: new Date().toISOString(),
+            };
+            localStorage.setItem(`${STORAGE_KEYS.PROFILE}_${userId}`, JSON.stringify(toSave));
+            return;
+        } catch (error) {
+            throw new Error('프로필 로컬 저장에 실패했습니다.');
+        }
+    }
+
+    // Supabase Upsert (존재하면 수정, 없으면 삽입)
+    const { error } = await supabase.from('expert_profiles').upsert({
+        user_id: userId,
+        image_url: profile.imageUrl,
+        profession: profile.profession,
+        name: profile.name,
+        one_liner: profile.oneLiner,
+        greeting: profile.greeting,
+        activities: profile.activities,
+        awards: profile.awards,
+        ai_tools: profile.aiTools,
+        edit_tools: profile.editTools,
+        packages: profile.packages,
+        updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+        console.error('Supabase 프로필 저장 실패:', error);
+        throw new Error(`데이터베이스 통신 오류: 프로필 저장 실패 (${error.message})`);
     }
 }
 
