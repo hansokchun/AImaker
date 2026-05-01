@@ -1,0 +1,347 @@
+/**
+ * Profile 페이지 전용 스타일
+ * - ExpertDetail과 동일한 레이아웃을 편집 모드로 변환
+ * - 기존 디자인 시스템(detail-section, form-control 등)을 최대한 재활용
+ */
+
+/* ===== 페이지 헤더 ===== */
+.profile-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+    padding: 4rem 0 5rem;
+    color: white;
+}
+
+/* ===== 메인 레이아웃 ===== */
+.profile-layout {
+    max-width: 900px;
+    margin: -2rem auto 0;
+    padding-bottom: 6rem;
+    position: relative;
+    z-index: 10;
+}
+
+/* ===== 편집 섹션 카드 ===== */
+.profile-section {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 24px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+.profile-section:hover {
+    box-shadow: var(--shadow-md);
+}
+.profile-section h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+.profile-section h2 .material-symbols-outlined {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+/* ===== 프로필 이미지 업로드 영역 ===== */
+.avatar-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+    background: var(--background);
+}
+.avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    border: 2px dashed var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: var(--background);
+    gap: 0.25rem;
+    font-size: 0.8rem;
+}
+.avatar-placeholder .material-symbols-outlined {
+    font-size: 2rem;
+}
+.avatar-url-input {
+    flex: 1;
+}
+
+/* ===== 폼 요소 ===== */
+.profile-form-group {
+    margin-bottom: 1.5rem;
+}
+.profile-form-group:last-child {
+    margin-bottom: 0;
+}
+.profile-form-group label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+.profile-form-group label .label-hint {
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+}
+.profile-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    font-size: 1rem;
+    font-family: var(--font-family);
+    outline: none;
+    transition: border-color 0.2s ease;
+    background: white;
+}
+.profile-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.profile-input::placeholder {
+    color: var(--text-muted);
+}
+textarea.profile-input {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+}
+
+/* ===== 동적 리스트 (경력, 수상) ===== */
+.dynamic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.dynamic-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.dynamic-list-item .profile-input {
+    flex: 1;
+}
+.btn-remove-item {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #fecaca;
+    background: #fff5f5;
+    color: #ef4444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+.btn-remove-item:hover {
+    background: #fecaca;
+    border-color: #ef4444;
+}
+.btn-remove-item .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+.btn-add-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--background);
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: var(--font-family);
+    width: fit-content;
+}
+.btn-add-item:hover {
+    border-color: var(--primary);
+    background: #f0f7ff;
+}
+.btn-add-item .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+
+/* ===== 태그 입력 (도구) ===== */
+.tag-input-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    min-height: 48px;
+    align-items: center;
+    cursor: text;
+    transition: border-color 0.2s ease;
+}
+.tag-input-container:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.tool-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.75rem;
+    background: #f0f7ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+.tool-tag button {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+.tool-tag button:hover {
+    opacity: 1;
+}
+.tool-tag button .material-symbols-outlined {
+    font-size: 1rem;
+}
+.tag-text-input {
+    border: none;
+    outline: none;
+    font-size: 0.95rem;
+    font-family: var(--font-family);
+    min-width: 120px;
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+}
+
+/* ===== 패키지 편집 ===== */
+.package-edit-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+.package-edit-tab {
+    padding: 1rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: var(--background);
+    border: none;
+    font-family: var(--font-family);
+    transition: var(--transition);
+}
+.package-edit-tab:not(:last-child) {
+    border-right: 1px solid var(--border-color);
+}
+.package-edit-tab.active {
+    color: var(--primary);
+    background: #f0f7ff;
+    font-weight: 800;
+}
+.package-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.package-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* ===== 저장 버튼 영역 ===== */
+.profile-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 2rem 0;
+}
+.btn-save-profile {
+    padding: 1rem 3rem;
+    font-size: 1.1rem;
+    border-radius: var(--radius-xl);
+    font-family: var(--font-family);
+}
+
+/* ===== 성공 메시지 ===== */
+.save-success {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: var(--radius-lg);
+    color: #166534;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+.save-success .material-symbols-outlined {
+    color: #22c55e;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 로그인 요구 화면 ===== */
+.login-required {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+    text-align: center;
+}
+.login-required .material-symbols-outlined {
+    font-size: 4rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+.login-required h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+}
+.login-required p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    max-width: 400px;
+}

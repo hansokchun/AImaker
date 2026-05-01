@@ -57,6 +57,13 @@ export default function Navbar() {
                             <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                 {user.user_metadata?.display_name || user.email}
                             </span>
+                            <Link
+                                to={ROUTES.PROFILE}
+                                className="btn-text"
+                                style={{ color: location.pathname === ROUTES.PROFILE ? 'var(--primary)' : undefined }}
+                            >
+                                프로필 관리
+                            </Link>
                             <button
                                 onClick={handleSignOut}
                                 className="btn-text"

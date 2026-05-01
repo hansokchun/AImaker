@@ -16,6 +16,7 @@ import RequestBoard from './pages/RequestBoard';
 import Community from './pages/Community';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
                     <Route path={ROUTES.COMMUNITY} element={<Community />} />
                     <Route path={ROUTES.LOGIN} element={<Login />} />
                     <Route path={ROUTES.MY_PAGE} element={<MyPage />} />
+                    <Route path={ROUTES.PROFILE} element={<Profile />} />
                     {/* 정의되지 않은 경로 → 404 페이지 */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>

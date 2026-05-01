@@ -12,6 +12,7 @@ export const ROUTES = {
     COMMUNITY: '/community',
     LOGIN: '/login',
     MY_PAGE: '/mypage',
+    PROFILE: '/profile',
 } as const;
 
 /** ROUTES 값들의 유니온 타입 (타입 가드에 활용 가능) */

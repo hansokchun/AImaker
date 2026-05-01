@@ -67,3 +67,57 @@ export interface AuthContextType {
     loading: boolean;
     signOut: () => Promise<void>;
 }
+
+/**
+ * 요금 패키지 정보 타입
+ * - Standard / Deluxe / Premium 각 단계의 상세 정보
+ * - PackageCard, Profile 페이지에서 공통으로 사용
+ */
+export interface PackageInfo {
+    /** 표시 가격 (예: "₩50,000") */
+    price: string;
+    /** 패키지 설명 */
+    description: string;
+    /** 작업 소요일 (예: "⏲️ 작업일 2일") */
+    workDays: string;
+    /** 수정 횟수 (예: "🔄 수정 1회") */
+    revisions: string;
+    /** 포함 항목 목록 */
+    features: string[];
+}
+
+/**
+ * 전문가 프로필 데이터 타입
+ * - ExpertDetail 페이지의 모든 섹션을 편집 가능한 데이터로 정의
+ * - localStorage에 저장 → 향후 Supabase expert_profiles 테이블로 마이그레이션 예정
+ */
+export interface ExpertProfile {
+    /** Supabase 사용자 ID (auth.uid와 매핑) */
+    id?: string;
+    /** 프로필 이미지 URL */
+    imageUrl: string;
+    /** 전문 분야 (예: "AI 영상 및 이미지 생성 전문가") */
+    profession: string;
+    /** 전문가 이름 */
+    name: string;
+    /** 한 줄 소개 (프로필 상단에 표시) */
+    oneLiner: string;
+    /** 상세 인사말 */
+    greeting: string;
+    /** 주요 활동 목록 */
+    activities: string[];
+    /** 수상 이력 목록 */
+    awards: string[];
+    /** AI 도구 목록 (예: ["Midjourney", "Stable Diffusion"]) */
+    aiTools: string[];
+    /** 편집/후반 작업 도구 목록 */
+    editTools: string[];
+    /** 3단계 요금 패키지 */
+    packages: {
+        standard: PackageInfo;
+        deluxe: PackageInfo;
+        premium: PackageInfo;
+    };
+    /** 마지막 수정 시각 */
+    updatedAt?: string;
+}

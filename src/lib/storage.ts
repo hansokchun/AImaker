@@ -3,10 +3,14 @@
  * - 로컬 환경에선 localStorage를 fallback으로 사용하고,
  *   실제 운영/연동 시 연결된 Supabase Table을 가리키도록 진화 (Step 2 적용)
  */
-import type { ServiceRequestData } from '../types';
+import type { ServiceRequestData, ExpertProfile } from '../types';
 import { supabase } from './supabase';
 
-const STORAGE_KEYS = { REQUESTS: 'ai_requests' } as const;
+/** localStorage 키 — 오타 방지를 위해 상수로 관리 */
+const STORAGE_KEYS = {
+    REQUESTS: 'ai_requests',
+    PROFILE: 'ai_profile',
+} as const;
 
 export async function getStoredRequests(): Promise<ServiceRequestData[]> {
     if (!supabase) {
@@ -61,3 +65,76 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
         throw new Error('데이터베이스 통신 오류: 의뢰 저장 실패');
     }
 }
+
+// ==========================================
+// 전문가 프로필 저장/로드
+// - 향후 Supabase expert_profiles 테이블로 마이그레이션 예정
+// ==========================================
+
+/**
+ * 빈 프로필 템플릿을 생성한다.
+ * - 새 사용자가 프로필 편집 페이지에 처음 진입할 때 사용
+ * - 왜 함수로 분리: 매번 새 객체를 반환해야 참조 공유 버그를 방지
+ */
+export function createDefaultProfile(): ExpertProfile {
+    return {
+        imageUrl: '',
+        profession: '',
+        name: '',
+        oneLiner: '',
+        greeting: '',
+        activities: [''],
+        awards: [''],
+        aiTools: [],
+        editTools: [],
+        packages: {
+            standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+        },
+    };
+}
+
+/**
+ * 특정 사용자의 프로필을 localStorage에서 안전하게 불러온다.
+ * - userId별로 키를 분리하여 다중 사용자 지원
+ * - 데이터 손상 시 null을 반환하여 앱 크래시 방지
+ */
+export function getStoredProfile(userId: string): ExpertProfile | null {
+    try {
+        const raw = localStorage.getItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
+        if (!raw) return null;
+
+        const parsed = JSON.parse(raw);
+
+        // 최소한의 구조 검증 — name 필드가 있는지 확인
+        if (typeof parsed !== 'object' || parsed === null) {
+            console.warn('프로필 데이터 형식이 올바르지 않습니다.');
+            return null;
+        }
+
+        return parsed as ExpertProfile;
+    } catch (error) {
+        console.error('프로필 데이터 로딩 실패:', error);
+        return null;
+    }
+}
+
+/**
+ * 프로필 데이터를 localStorage에 저장한다.
+ * - 저장 시 updatedAt 타임스탬프를 자동으로 갱신
+ */
+export function saveProfile(userId: string, profile: ExpertProfile): void {
+    try {
+        const toSave: ExpertProfile = {
+            ...profile,
+            id: userId,
+            updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`${STORAGE_KEYS.PROFILE}_${userId}`, JSON.stringify(toSave));
+    } catch (error) {
+        console.error('프로필 저장 실패:', error);
+        throw new Error('프로필 저장에 실패했습니다. 다시 시도해 주세요.');
+    }
+}
+
