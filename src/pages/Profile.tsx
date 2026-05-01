@@ -633,18 +633,7 @@ export default function Profile() {
 
                     {/* ===== 저장 버튼 ===== */}
                     <div className="profile-actions">
-                        <button
-                            type="button"
-                            className="btn-text"
-                            onClick={() => {
-                                if (!user) return;
-                                window.open(`/expert/${user.id}`, '_blank');
-                            }}
-                            style={{ padding: '1rem 2rem', fontWeight: 700, color: 'var(--text-secondary)' }}
-                        >
-                            <span className="material-symbols-outlined" style={{ verticalAlign: 'middle', marginRight: '0.5rem', fontSize: '1.2rem' }}>visibility</span>
-                            내 프로필 미리보기
-                        </button>
+
                         <button
                             type="submit"
                             className="btn-primary btn-save-profile"
