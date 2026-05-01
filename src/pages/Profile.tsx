@@ -7,7 +7,7 @@
  *   (향후 Supabase expert_profiles 테이블로 마이그레이션 예정)
  */
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getStoredProfile, saveProfile, createDefaultProfile } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
@@ -27,6 +27,7 @@ const PACKAGE_LABELS: Record<PackageTab, string> = {
 
 export default function Profile() {
     const { user, loading: authLoading } = useAuth();
+    const navigate = useNavigate();
 
     // 프로필 폼 상태 — createDefaultProfile()로 초기화하여 빈 폼 제공
     const [profile, setProfile] = useState<ExpertProfile>(createDefaultProfile());
@@ -275,9 +276,10 @@ export default function Profile() {
             };
 
             await saveProfile(user.id, cleanedProfile);
-            setShowSuccess(true);
-            // 3초 후 성공 메시지 자동 숨김
-            setTimeout(() => setShowSuccess(false), 3000);
+            
+            // 성공 알림 후 내 프로필 페이지로 이동
+            alert('프로필이 성공적으로 저장되었습니다!');
+            navigate(`/expert/${user.id}`);
         } catch (error) {
             alert(error instanceof Error ? error.message : '저장에 실패했습니다.');
         } finally {
@@ -372,14 +374,6 @@ export default function Profile() {
 
             <main className="container">
                 <form className="profile-layout" onSubmit={handleSave}>
-
-                    {/* 저장 성공 메시지 */}
-                    {showSuccess && (
-                        <div className="save-success">
-                            <span className="material-symbols-outlined">check_circle</span>
-                            프로필이 성공적으로 저장되었습니다!
-                        </div>
-                    )}
 
                     {/* ===== 1. 프로필 기본 정보 ===== */}
                     <div className="profile-section">

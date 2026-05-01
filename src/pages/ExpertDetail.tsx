@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PackageCard from '../components/PackageCard';
 import ChatModal from '../components/ChatModal';
+import { useAuth } from '../contexts/AuthContext';
 import { getStoredProfile } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
 import type { ExpertProfile } from '../types';
@@ -15,6 +16,7 @@ import './ExpertDetail.css';
 
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>();
+    const { user } = useAuth();
     const [profile, setProfile] = useState<ExpertProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [chatOpen, setChatOpen] = useState<boolean>(false);
@@ -61,6 +63,16 @@ export default function ExpertDetail() {
 
     return (
         <main className="container">
+            {/* 내 프로필일 경우 수정 버튼 표시 */}
+            {user?.id === id && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                    <Link to={ROUTES.PROFILE} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="material-symbols-outlined">edit</span>
+                        프로필 수정하기
+                    </Link>
+                </div>
+            )}
+            
             <div className="detail-layout">
                 {/* ===== 좌측: 전문가 프로필 정보 ===== */}
                 <div className="content-left">
