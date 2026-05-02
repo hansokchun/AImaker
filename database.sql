@@ -45,3 +45,40 @@ CREATE POLICY "Anyone can insert requests"
 
 CREATE POLICY "Users can update own requests"
   ON service_requests FOR UPDATE USING (auth.uid() = user_id);
+
+-- 3. 전문가 상세 프로필 테이블
+-- storage.ts의 getStoredProfile / saveProfile 함수가 참조하는 테이블
+-- 배열 필드는 jsonb로 저장 (Supabase JS 클라이언트가 자동으로 JS 배열로 변환)
+CREATE TABLE IF NOT EXISTS public.expert_profiles (
+    user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    image_url text,
+    profession text,
+    name text,
+    one_liner text,
+    greeting text,
+    activities jsonb DEFAULT '[]'::jsonb,
+    awards jsonb DEFAULT '[]'::jsonb,
+    ai_tools jsonb DEFAULT '[]'::jsonb,
+    edit_tools jsonb DEFAULT '[]'::jsonb,
+    packages jsonb DEFAULT '{}'::jsonb,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- 전문가 프로필 RLS 설정
+ALTER TABLE public.expert_profiles ENABLE ROW LEVEL SECURITY;
+
+-- 본인 프로필만 조회 가능 (⚠️ 향후 공개 프로필 전환 시 USING(true)로 변경 필요)
+CREATE POLICY "Users can view own profile"
+    ON public.expert_profiles FOR SELECT
+    USING (auth.uid() = user_id);
+
+-- 본인 프로필만 생성 가능
+CREATE POLICY "Users can insert own profile"
+    ON public.expert_profiles FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+-- 본인 프로필만 수정 가능
+CREATE POLICY "Users can update own profile"
+    ON public.expert_profiles FOR UPDATE
+    USING (auth.uid() = user_id);
+

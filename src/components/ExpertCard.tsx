@@ -18,7 +18,8 @@ export default function ExpertCard({ expert }: ExpertCardProps) {
     const navigate = useNavigate();
 
     return (
-        <div className="expert-card" onClick={() => navigate(ROUTES.EXPERT_DETAIL)}>
+        // expert.id를 경로에 직접 삽입 — ROUTES.EXPERT_DETAIL은 ':id' 플레이스홀더라 사용 불가
+        <div className="expert-card" onClick={() => navigate(`/expert/${expert.id}`)}>
             <div className="img-container">
                 <img src={expert.imageUrl} className="img" loading="lazy" alt={expert.name} />
             </div>

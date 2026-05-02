@@ -2,15 +2,28 @@
  * Home 페이지 (메인 랜딩)
  * - Hero 섹션: 검색바 + 인기 키워드
  * - 카테고리 그리드: 10대 핵심 서비스 카테고리
- * - 실시간 요청: 최신 프로젝트 요청 미니 카드
+ * - 실시간 요청: DB에서 최신 3건 동적 로딩
  * - 추천 전문가: EXPERTS 데이터에서 상위 3명 표시
  */
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ExpertCard from '../components/ExpertCard';
 import { EXPERTS } from '../data/mockData';
+import { getStoredRequests } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
+import type { ServiceRequestData } from '../types';
 
 export default function Home() {
+    // 실시간 요청 데이터 — DB에서 최신 3건을 비동기 로딩
+    const [recentRequests, setRecentRequests] = useState<ServiceRequestData[]>([]);
+
+    useEffect(() => {
+        getStoredRequests().then(data => {
+            // 최신 3건만 사용 (이미 최신순 정렬되어 있음)
+            setRecentRequests(data.slice(0, 3));
+        });
+    }, []);
+
     return (
         <main>
             {/* ===== Hero 섹션 — 사용자의 첫 인상을 결정하는 영역 ===== */}
@@ -73,7 +86,7 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* ===== 실시간 프로젝트 요청 — 하드코딩 미니카드 (향후 DB 연동 예정) ===== */}
+            {/* ===== 실시간 프로젝트 요청 — DB에서 최신 3건 동적 로딩 ===== */}
             <section className="recent-requests-section">
                 <div className="container">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
@@ -86,27 +99,33 @@ export default function Home() {
                         </Link>
                     </div>
                     <div className="request-mini-grid">
-                        <Link to={ROUTES.REQUEST_BOARD} className="request-mini-card">
-                            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '700', marginBottom: '0.5rem' }}>AI 영상</div>
-                            <h3 style={{ fontWeight: '700', fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>브랜드 홍보용 시네마틱 영상 제작 요청</h3>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                                <span>₩800,000~</span><span>오늘 등록</span>
-                            </div>
-                        </Link>
-                        <Link to={ROUTES.REQUEST_BOARD} className="request-mini-card">
-                            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '700', marginBottom: '0.5rem' }}>AI 개발</div>
-                            <h3 style={{ fontWeight: '700', fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>사내 데이터 기반 맞춤형 챗봇 구축 전문가</h3>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                                <span>₩2,500,000~</span><span>2시간 전</span>
-                            </div>
-                        </Link>
-                        <Link to={ROUTES.REQUEST_BOARD} className="request-mini-card">
-                            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '700', marginBottom: '0.5rem' }}>AI 디자인</div>
-                            <h3 style={{ fontWeight: '700', fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>웹툰 배경 생성 모델 튜닝 및 가이드 제작</h3>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                                <span>₩450,000~</span><span>5시간 전</span>
-                            </div>
-                        </Link>
+                        {recentRequests.length > 0 ? (
+                            recentRequests.map((req) => (
+                                <Link to={ROUTES.REQUEST_BOARD} className="request-mini-card" key={req.id}>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '700', marginBottom: '0.5rem' }}>
+                                        {req.categories?.[0] || '기타'}
+                                    </div>
+                                    <h3 style={{ fontWeight: '700', fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+                                        {req.title}
+                                    </h3>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                        <span>₩{Number(req.budget).toLocaleString()}~</span>
+                                        <span>{req.createdAt}</span>
+                                    </div>
+                                </Link>
+                            ))
+                        ) : (
+                            /* 요청이 없을 때 — 작성 유도 CTA */
+                            <Link to={ROUTES.SERVICE_REQUEST} className="request-mini-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '0.75rem' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', color: 'var(--primary)' }}>add_circle</span>
+                                <h3 style={{ fontWeight: '700', fontSize: '1.1rem', lineHeight: '1.4' }}>
+                                    첫 번째 요청서를 작성해보세요!
+                                </h3>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                    전문가들이 기다리고 있습니다
+                                </span>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </section>
