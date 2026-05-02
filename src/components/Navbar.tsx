@@ -58,11 +58,11 @@ export default function Navbar() {
                                 {user.user_metadata?.display_name || user.email}
                             </span>
                             <Link
-                                to={`/expert/${user.id}`}
+                                to={ROUTES.MY_PAGE}
                                 className="btn-text"
-                                style={{ color: location.pathname.startsWith('/expert') ? 'var(--primary)' : undefined }}
+                                style={{ color: location.pathname === ROUTES.MY_PAGE ? 'var(--primary)' : undefined }}
                             >
-                                내 프로필
+                                마이페이지
                             </Link>
                             <button
                                 onClick={handleSignOut}
