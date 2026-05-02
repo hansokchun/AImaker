@@ -390,46 +390,32 @@ export default function Profile() {
 
     const currentPkg = profile.packages[activePackageTab];
 
-    // 의뢰자(Client)용 간소화된 프로필 폼
-    if (!isExpert) {
-        return (
-            <>
-                <div className="profile-hero">
-                    <div className="container">
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>프로필 관리</h1>
-                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem' }}>기본 프로필 정보를 관리합니다.</p>
-                    </div>
-                </div>
-                <main className="container">
-                    <form className="profile-layout" onSubmit={handleSave}>
-                        <div className="profile-section">
-                            <h2><span className="material-symbols-outlined">person</span>기본 정보</h2>
-                            <div className="profile-form-group">
-                                <label>이름 <span className="label-hint">(필수)</span></label>
-                                <input type="text" className="profile-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="닉네임을 입력하세요" required />
-                            </div>
-                        </div>
-                        <div className="profile-actions">
-                            <button type="submit" className="btn-primary btn-save-profile" disabled={saving}>
-                                {saving ? '저장 중...' : '프로필 저장하기'}
-                            </button>
-                        </div>
-                    </form>
-                </main>
-            </>
-        );
-    }
+    // 회원 유형 변경 핸들러 — DB 즉시 반영
+    const handleRoleChange = async (newRole: boolean) => {
+        if (!supabase || !user) return;
+        const { error } = await supabase.from('profiles').update({ is_expert: newRole }).eq('id', user.id);
+        if (!error) {
+            setIsExpert(newRole);
+            // 전문가로 전환 시 expert_profiles 빈 레코드 생성
+            if (newRole) {
+                await supabase.from('expert_profiles').upsert({
+                    user_id: user.id,
+                    name: clientName || profile.name,
+                    profession: '',
+                });
+            }
+        }
+    };
 
     return (
         <>
-            {/* 전문가(Expert)용 상세 프로필 폼 */}
             <div className="profile-hero">
                 <div className="container">
                     <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
-                        프로필 관리
+                        프로필 수정
                     </h1>
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem' }}>
-                        전문가 프로필을 작성하여 고객에게 나를 어필하세요.
+                        {isExpert ? '전문가 프로필을 작성하여 고객에게 나를 어필하세요.' : '기본 프로필 정보를 관리합니다.'}
                     </p>
                 </div>
             </div>
@@ -437,6 +423,58 @@ export default function Profile() {
             <main className="container">
                 <form className="profile-layout" onSubmit={handleSave}>
 
+                    {/* ===== 0. 회원 유형 선택 (공통) ===== */}
+                    <div className="profile-section">
+                        <h2>
+                            <span className="material-symbols-outlined">badge</span>
+                            회원 유형
+                        </h2>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => handleRoleChange(false)}
+                                style={{
+                                    flex: 1, padding: '1.2rem', borderRadius: '12px', cursor: 'pointer',
+                                    border: `2px solid ${!isExpert ? 'var(--primary)' : 'var(--border)'}`,
+                                    background: !isExpert ? 'rgba(59,130,246,0.08)' : 'transparent',
+                                    textAlign: 'center', transition: 'all 0.2s',
+                                }}
+                            >
+                                <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '0.3rem' }}>🔍</span>
+                                <strong style={{ color: 'var(--text)' }}>의뢰자</strong>
+                                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>전문가를 찾고 싶어요</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleRoleChange(true)}
+                                style={{
+                                    flex: 1, padding: '1.2rem', borderRadius: '12px', cursor: 'pointer',
+                                    border: `2px solid ${isExpert ? 'var(--primary)' : 'var(--border)'}`,
+                                    background: isExpert ? 'rgba(59,130,246,0.08)' : 'transparent',
+                                    textAlign: 'center', transition: 'all 0.2s',
+                                }}
+                            >
+                                <span style={{ fontSize: '1.5rem', display: 'block', marginBottom: '0.3rem' }}>🏆</span>
+                                <strong style={{ color: 'var(--text)' }}>전문가</strong>
+                                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>내 기술로 수익을 내고 싶어요</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ===== 의뢰자 모드: 이름만 ===== */}
+                    {!isExpert && (
+                        <div className="profile-section">
+                            <h2><span className="material-symbols-outlined">person</span>기본 정보</h2>
+                            <div className="profile-form-group">
+                                <label>이름 <span className="label-hint">(필수)</span></label>
+                                <input type="text" className="profile-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="닉네임을 입력하세요" required />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ===== 전문가 모드: 전체 상세 폼 ===== */}
+                    {isExpert && (
+                        <>
                     {/* ===== 1. 프로필 기본 정보 ===== */}
                     <div className="profile-section">
                         <h2>
@@ -692,6 +730,8 @@ export default function Profile() {
                             </div>
                         </div>
                     </div>
+                        </>
+                    )}
 
                     {/* ===== 저장 버튼 ===== */}
                     <div className="profile-actions">
