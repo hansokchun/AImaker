@@ -74,8 +74,7 @@ export default function Navbar() {
                         </>
                     ) : (
                         <>
-                            <Link to={ROUTES.LOGIN} className="btn-text">로그인</Link>
-                            <Link to={ROUTES.LOGIN} className="btn-primary">전문가 가입</Link>
+                            <Link to={ROUTES.LOGIN} className="btn-primary">로그인</Link>
                         </>
                     )}
                 </div>
