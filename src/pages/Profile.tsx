@@ -29,6 +29,11 @@ export default function Profile() {
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
 
+    // 권한(전문가 여부) — profiles.is_expert에서 읽어옴
+    const [isExpert, setIsExpert] = useState<boolean>(true);
+    // 의뢰자용 간단 프로필 상태
+    const [clientName, setClientName] = useState<string>('');
+
     // 프로필 폼 상태 — createDefaultProfile()로 초기화하여 빈 폼 제공
     const [profile, setProfile] = useState<ExpertProfile>(createDefaultProfile());
     const [activePackageTab, setActivePackageTab] = useState<PackageTab>('standard');
@@ -40,18 +45,31 @@ export default function Profile() {
     const [aiToolInput, setAiToolInput] = useState<string>('');
     const [editToolInput, setEditToolInput] = useState<string>('');
 
-    // 로그인된 사용자의 저장된 프로필을 불러온다
+    // 로그인된 사용자의 권한 확인 + 프로필 로드
     useEffect(() => {
         if (!user) return;
 
         const loadProfile = async () => {
+            // 1. profiles 테이블에서 권한 확인
+            if (supabase) {
+                const { data: userProfile } = await supabase
+                    .from('profiles')
+                    .select('is_expert, name')
+                    .eq('id', user.id)
+                    .single();
+
+                if (userProfile) {
+                    setIsExpert(userProfile.is_expert);
+                    setClientName(userProfile.name || '');
+                }
+            }
+
+            // 2. 전문가 프로필 상세 로드 (전문가든 의뢰자든 일단 시도)
             const stored = await getStoredProfile(user.id);
             if (stored) {
-                // 저장된 프로필에 빈 배열이 있을 수 있으므로 기본값과 병합
                 setProfile({
                     ...createDefaultProfile(),
                     ...stored,
-                    // 배열 필드가 비어있으면 편집 UI를 위해 빈 항목 하나 유지
                     activities: stored.activities?.length ? stored.activities : [''],
                     awards: stored.awards?.length ? stored.awards : [''],
                     packages: {
@@ -256,19 +274,29 @@ export default function Profile() {
     const handleSave = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        // 필수 필드 검증
-        if (!profile.name.trim()) {
-            alert('이름을 입력해 주세요.');
-            return;
-        }
-        if (!profile.profession.trim()) {
-            alert('전문 분야를 입력해 주세요.');
+        // 의뢰자 모드: 이름만 저장
+        if (!isExpert) {
+            const trimmedName = clientName.trim();
+            if (!trimmedName) { alert('이름을 입력해 주세요.'); return; }
+
+            setSaving(true);
+            try {
+                if (supabase) {
+                    await supabase.from('profiles').update({ name: trimmedName }).eq('id', user.id);
+                }
+                alert('프로필이 저장되었습니다!');
+                navigate(ROUTES.MY_PAGE);
+            } catch { alert('저장에 실패했습니다.'); }
+            finally { setSaving(false); }
             return;
         }
 
+        // 전문가 모드: 전체 프로필 저장
+        if (!profile.name.trim()) { alert('이름을 입력해 주세요.'); return; }
+        if (!profile.profession.trim()) { alert('전문 분야를 입력해 주세요.'); return; }
+
         setSaving(true);
         try {
-            // 빈 문자열 항목 제거 후 저장 (경력, 수상 이력에서 빈 줄 정리)
             const cleanedProfile: ExpertProfile = {
                 ...profile,
                 activities: profile.activities.filter((a) => a.trim()),
@@ -277,7 +305,11 @@ export default function Profile() {
 
             await saveProfile(user.id, cleanedProfile);
             
-            // 성공 알림 후 내 프로필 페이지로 이동
+            // profiles 테이블 이름도 동기화
+            if (supabase) {
+                await supabase.from('profiles').update({ name: profile.name }).eq('id', user.id);
+            }
+
             alert('프로필이 성공적으로 저장되었습니다!');
             navigate(`/expert/${user.id}`);
         } catch (error) {
@@ -358,9 +390,39 @@ export default function Profile() {
 
     const currentPkg = profile.packages[activePackageTab];
 
+    // 의뢰자(Client)용 간소화된 프로필 폼
+    if (!isExpert) {
+        return (
+            <>
+                <div className="profile-hero">
+                    <div className="container">
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>프로필 관리</h1>
+                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem' }}>기본 프로필 정보를 관리합니다.</p>
+                    </div>
+                </div>
+                <main className="container">
+                    <form className="profile-layout" onSubmit={handleSave}>
+                        <div className="profile-section">
+                            <h2><span className="material-symbols-outlined">person</span>기본 정보</h2>
+                            <div className="profile-form-group">
+                                <label>이름 <span className="label-hint">(필수)</span></label>
+                                <input type="text" className="profile-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="닉네임을 입력하세요" required />
+                            </div>
+                        </div>
+                        <div className="profile-actions">
+                            <button type="submit" className="btn-primary btn-save-profile" disabled={saving}>
+                                {saving ? '저장 중...' : '프로필 저장하기'}
+                            </button>
+                        </div>
+                    </form>
+                </main>
+            </>
+        );
+    }
+
     return (
         <>
-            {/* 페이지 헤더 */}
+            {/* 전문가(Expert)용 상세 프로필 폼 */}
             <div className="profile-hero">
                 <div className="container">
                     <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>

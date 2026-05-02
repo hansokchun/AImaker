@@ -27,17 +27,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        // Supabase가 초기화되지 않은 경우 스킵 (환경변수 미설정 시)
         if (!supabase) {
             setLoading(false);
             return;
         }
 
-        // 초기 세션 가져오기 — catch로 네트워크 에러 등 예외 대비
+        /** 프로필 존재 여부를 확인하고 없으면 온보딩으로 리다이렉트 */
+        const checkProfileAndRedirect = async (currentUser: User | null) => {
+            if (!currentUser) return;
+
+            // 온보딩/로그인 페이지에 이미 있으면 무한 루프 방지
+            const path = window.location.pathname;
+            if (path === '/onboarding' || path === '/login') return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, name')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                // 프로필이 없거나 이름이 비어있으면 → 온보딩으로 이동
+                if (error || !data || !data.name) {
+                    window.location.href = '/onboarding';
+                }
+            } catch (err) {
+                console.error('프로필 체크 에러:', err);
+            }
+        };
+
+        // 초기 세션 가져오기
         supabase.auth.getSession()
             .then(({ data: { session } }) => {
                 setSession(session);
                 setUser(session?.user ?? null);
+                checkProfileAndRedirect(session?.user ?? null);
             })
             .catch((error) => {
                 console.error('세션 로딩 실패:', error);
@@ -46,14 +70,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 setLoading(false);
             });
 
-        // 인증 상태 변경 리스너 — 로그인/로그아웃/토큰 갱신 시 자동 반영
+        // 인증 상태 변경 리스너
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
+            checkProfileAndRedirect(session?.user ?? null);
         });
 
-        // 컴포넌트 언마운트 시 리스너 정리 — 메모리 누수 방지
         return () => subscription.unsubscribe();
     }, []);
 

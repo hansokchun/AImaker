@@ -73,11 +73,28 @@ export default function MyPage() {
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '2rem' }}>
-                        <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.5rem' }}>회원 유형 (권한 분리)</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '1rem', background: '#eff6ff', borderRadius: '0.5rem', border: '1px solid #bfdbfe' }}>
-                            <input type="checkbox" checked={isExpert} onChange={(e) => setIsExpert(e.target.checked)} style={{ width: '1.2rem', height: '1.2rem' }} />
-                            <span style={{ fontSize: '1.1rem', color: '#1e3a8a', fontWeight: 600 }}>나는 전문가입니다 (작업 제안 및 수락 가능)</span>
-                        </label>
+                        <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.5rem' }}>회원 유형</label>
+                        <div style={{ padding: '1rem', background: isExpert ? '#eff6ff' : '#f0fdf4', borderRadius: '0.5rem', border: `1px solid ${isExpert ? '#bfdbfe' : '#bbf7d0'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '1.1rem', color: isExpert ? '#1e3a8a' : '#166534', fontWeight: 600 }}>
+                                {isExpert ? '🏆 전문가' : '🔍 의뢰자'}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (!supabase || !user) return;
+                                    const newValue = !isExpert;
+                                    const { error } = await supabase.from('profiles').update({ is_expert: newValue }).eq('id', user.id);
+                                    if (!error) {
+                                        setIsExpert(newValue);
+                                        alert(newValue ? '전문가로 전환되었습니다! 프로필을 작성해주세요.' : '의뢰자로 전환되었습니다.');
+                                        if (newValue) navigate(ROUTES.PROFILE);
+                                    }
+                                }}
+                                style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                            >
+                                {isExpert ? '의뢰자로 전환' : '전문가로 전환'}
+                            </button>
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem' }}>

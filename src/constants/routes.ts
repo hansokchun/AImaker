@@ -11,6 +11,7 @@ export const ROUTES = {
     REQUEST_BOARD: '/requests',
     COMMUNITY: '/community',
     LOGIN: '/login',
+    ONBOARDING: '/onboarding',
     MY_PAGE: '/mypage',
     PROFILE: '/profile',
 } as const;

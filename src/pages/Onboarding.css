@@ -1,0 +1,262 @@
+/* ===== Onboarding 페이지 — 최초 가입자 역할 선택 + 닉네임 설정 ===== */
+
+.onboarding-page {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    padding: 2rem 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 배경 장식 */
+.onboarding-page::before {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+    top: -100px;
+    right: -100px;
+    border-radius: 50%;
+}
+
+.onboarding-card {
+    background: var(--surface);
+    width: 100%;
+    max-width: 520px;
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+/* 헤더 */
+.onboarding-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.onboarding-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+}
+
+.onboarding-logo .material-symbols-outlined {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.onboarding-header h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.onboarding-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* 에러 */
+.onboarding-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    color: #dc2626;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 섹션 */
+.onboarding-section {
+    margin-bottom: 1.8rem;
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+}
+
+.optional-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--background-alt);
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+}
+
+/* 역할 선택 버튼 */
+.role-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.role-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.role-btn:hover {
+    border-color: var(--primary-light, #93c5fd);
+    background: rgba(59, 130, 246, 0.04);
+}
+
+.role-btn.active {
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.08);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.role-icon {
+    font-size: 1.8rem;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.role-btn.active .role-icon {
+    color: var(--primary);
+}
+
+.role-text strong {
+    display: block;
+    font-size: 1.05rem;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+}
+
+.role-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* 입력 필드 */
+.onboarding-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 1rem;
+    background: var(--background);
+    color: var(--text);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.onboarding-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 이미지 업로드 */
+.image-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.image-preview {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary);
+}
+
+.image-placeholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--background-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--border);
+}
+
+.image-placeholder .material-symbols-outlined {
+    font-size: 1.8rem;
+    color: var(--text-muted);
+}
+
+.image-upload-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.file-input {
+    display: none;
+}
+
+.file-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: var(--background-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.file-label:hover {
+    background: var(--border);
+}
+
+.image-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* 제출 버튼 */
+.onboarding-submit {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+    .onboarding-card {
+        padding: 2rem 1.5rem;
+    }
+    .onboarding-header h1 {
+        font-size: 1.5rem;
+    }
+}

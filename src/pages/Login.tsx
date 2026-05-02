@@ -37,10 +37,10 @@ export default function Login() {
 
         try {
             if (isSignUp) {
+                // 이름은 온보딩에서 별도로 받으므로 여기서는 이메일/비밀번호만 전달
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
-                    options: { data: { display_name: name } },
                 });
                 if (error) throw error;
                 setSuccessMsg('가입 확인 이메일을 발송했습니다. 이메일을 확인해주세요!');
@@ -97,19 +97,7 @@ export default function Login() {
                 {successMsg && <div className="auth-success"><span className="material-symbols-outlined">check_circle</span>{successMsg}</div>}
 
                 <form onSubmit={handleSubmit}>
-                    {isSignUp && (
-                        <div className="form-group">
-                            <label>이름</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="이름을 입력하세요"
-                                value={name}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                                required
-                            />
-                        </div>
-                    )}
+                    {/* 이름 입력은 온보딩(/onboarding)에서 처리됨 */}
                     <div className="form-group">
                         <label>이메일</label>
                         <input
