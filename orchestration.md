@@ -1,6 +1,6 @@
 # AIConnect — 프로젝트 오케스트레이션 문서
 
-> **최종 업데이트**: 2026-05-04  
+> **최종 업데이트**: 2026-05-05  
 > **목적**: 어떤 AI 어시스턴트든 이 문서를 읽으면 프로젝트의 구조, 현재 상태, 코딩 규칙을 즉시 파악하고 작업을 이어받을 수 있도록 작성됨.
 
 > **⚠️ 자동 업데이트 규칙 (필수)**  
@@ -338,6 +338,9 @@ AuthContextType { session, user, loading, signOut() }
 | — | ExpertDetail 동적 라우팅 (DB에서 프로필 로드) | ✅ |
 | — | 프로필 이미지 Supabase Storage 업로드 | ✅ |
 | — | Navbar 정리 (마이페이지 링크, 전문가 가입 버튼 제거) | ✅ |
+| Step 3 | 전문가 탐색 & 검색 시스템 (mockData 제거 및 DB 연동) | ✅ |
+| — | Home/Category 전문가 DB 기반 표시 및 카테고리/가격 필터 연동 | ✅ |
+| — | 전문가 프로필 전문분야 다중 선택 및 기타 직접 입력 UI 적용 | ✅ |
 
 ---
 
@@ -519,9 +522,9 @@ CREATE TABLE public.posts (
 ### 🎯 작업 우선순위 요약
 
 ```
-[즉시] Step 3: expert_profiles RLS 공개 → Home/Category DB 전환 → mockData 제거
+[완료] Step 3: expert_profiles RLS 공개 → Home/Category DB 전환 → mockData 제거
   ↓
-[다음] Step 4: 리뷰/평점 시스템
+[즉시] Step 4: 리뷰/평점 시스템
   ↓
 [이후] Step 5: 직접 주문(Direct Order) 및 마이페이지 대시보드화
   ↓
@@ -539,11 +542,8 @@ CREATE TABLE public.posts (
 ## 12. 알려진 이슈 & 주의사항
 
 ### ⚠️ 중요
-1. **expert_profiles RLS**: 현재 본인만 SELECT 가능 → 다른 유저의 공개 프로필이 안 보임. Step 3에서 `USING(true)`로 변경 필요.
-2. **mockData 의존**: Home, Category 페이지의 전문가 목록은 아직 `mockData.ts`의 하드코딩 데이터를 사용 중. DB 기반으로 전환 필요.
-3. **ExpertDetail 폴백**: UUID가 아닌 숫자 id(1~6)로 접근 시 mockData에서 폴백 렌더링됨 (ExpertCard가 mockData의 숫자 id로 이동하므로).
-4. **ChatModal**: 현재 목업 수준. 실제 채팅 기능 없음.
-5. **Community**: 현재 목업 수준. 실제 게시판 기능 없음.
+1. **ChatModal**: 현재 목업 수준. 실제 채팅 기능 없음.
+2. **Community**: 현재 목업 수준. 실제 게시판 기능 없음.
 
 ### 코딩 규칙
 - **언어**: 모든 주석, 설명은 **한국어**
