@@ -3,7 +3,7 @@
  * - 로컬 환경에선 localStorage를 fallback으로 사용하고,
  *   실제 운영/연동 시 연결된 Supabase Table을 가리키도록 진화 (Step 2 적용)
  */
-import type { ServiceRequestData, ExpertProfile } from '../types';
+import type { ServiceRequestData, ExpertProfile, Expert } from '../types';
 import { supabase } from './supabase';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
@@ -194,3 +194,46 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
     }
 }
 
+/**
+ * DB에서 전문가 목록을 가져온다 (Home, Category 페이지용)
+ * - expert_profiles에서 모든 프로필을 가져와 Expert 타입으로 매핑
+ * - 리뷰 및 평점 시스템 연동 전이므로 임시로 0 처리
+ */
+export async function getExpertList(): Promise<Expert[]> {
+    if (!supabase) {
+        return [];
+    }
+
+    const { data, error } = await supabase
+        .from('expert_profiles')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+    if (error) {
+        console.error('전문가 목록 로딩 실패:', error);
+        return [];
+    }
+
+    if (!data) return [];
+
+    return data.map((item) => {
+        // 패키지에서 기본 가격 추출 (문자열 -> 숫자 변환 시도)
+        let basePrice = 0;
+        if (item.packages?.standard?.price) {
+            const priceStr = String(item.packages.standard.price).replace(/[^0-9]/g, '');
+            basePrice = parseInt(priceStr, 10) || 0;
+        }
+
+        return {
+            id: item.user_id,
+            name: item.name || '이름 없음',
+            profession: item.profession || '분야 미지정',
+            rating: 0, // 리뷰 시스템 연동 후 수정 (Step 4)
+            reviews: 0, // 리뷰 시스템 연동 후 수정 (Step 4)
+            price: basePrice,
+            imageUrl: item.image_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600', // 기본 이미지
+            // 필요한 경우 one_liner도 포함시킬 수 있음
+            oneLiner: item.one_liner || '',
+        } as Expert & { oneLiner?: string }; // Category.tsx 검색을 위해 oneLiner 속성 임시 허용
+    });
+}

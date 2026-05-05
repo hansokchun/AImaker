@@ -10,7 +10,6 @@ import PackageCard from '../components/PackageCard';
 import ChatModal from '../components/ChatModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getStoredProfile, createDefaultProfile } from '../lib/storage';
-import { EXPERTS } from '../data/mockData';
 import { ROUTES } from '../constants/routes';
 import type { ExpertProfile } from '../types';
 import './ExpertDetail.css';
@@ -31,26 +30,10 @@ export default function ExpertDetail() {
         const loadProfile = async () => {
             setLoading(true);
             try {
-                // 1차: Supabase(또는 localStorage)에서 프로필 조회
+                // Supabase(또는 localStorage)에서 프로필 조회
                 const data = await getStoredProfile(id);
-
                 if (data) {
                     setProfile(data);
-                } else {
-                    // 2차 폴백: mockData에서 숫자 id로 매칭되는 전문가 검색
-                    // ExpertCard가 mockData의 숫자 id(1~6)로 이동하므로 이 경로가 필요
-                    const mockExpert = EXPERTS.find(e => e.id === Number(id));
-                    if (mockExpert) {
-                        const fallback: ExpertProfile = {
-                            ...createDefaultProfile(),
-                            name: mockExpert.name,
-                            profession: mockExpert.profession,
-                            imageUrl: mockExpert.imageUrl,
-                            oneLiner: `${mockExpert.profession} 분야의 검증된 전문가입니다.`,
-                            greeting: `안녕하세요, ${mockExpert.name}입니다.\n평점 ${mockExpert.rating}점, ${mockExpert.reviews}건의 리뷰를 보유한 전문가로서 최선의 결과물을 약속드립니다.`,
-                        };
-                        setProfile(fallback);
-                    }
                 }
             } catch (error) {
                 console.error('프로필 로딩 에러:', error);

@@ -8,19 +8,23 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ExpertCard from '../components/ExpertCard';
-import { EXPERTS } from '../data/mockData';
-import { getStoredRequests } from '../lib/storage';
+import { getStoredRequests, getExpertList } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
-import type { ServiceRequestData } from '../types';
+import type { ServiceRequestData, Expert } from '../types';
 
 export default function Home() {
     // 실시간 요청 데이터 — DB에서 최신 3건을 비동기 로딩
     const [recentRequests, setRecentRequests] = useState<ServiceRequestData[]>([]);
+    const [experts, setExperts] = useState<Expert[]>([]);
 
     useEffect(() => {
         getStoredRequests().then(data => {
             // 최신 3건만 사용 (이미 최신순 정렬되어 있음)
             setRecentRequests(data.slice(0, 3));
+        });
+        getExpertList().then(data => {
+            // 전문가 상위 3명
+            setExperts(data.slice(0, 3));
         });
     }, []);
 
@@ -135,7 +139,7 @@ export default function Home() {
                 <h2 className="section-title">이달의 추천 전문가</h2>
                 <p className="section-subtitle">검증된 실력과 뛰어난 평점을 보유한 파트너입니다.</p>
                 <div className="expert-grid">
-                    {EXPERTS.slice(0, 3).map((expert) => (
+                    {experts.map((expert) => (
                         <ExpertCard key={expert.id} expert={expert} />
                     ))}
                 </div>

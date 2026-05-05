@@ -5,7 +5,7 @@
  */
 export interface Expert {
     /** 고유 식별자 */
-    id: number;
+    id: string | number;
     /** 전문가 이름 */
     name: string;
     /** 전문 분야 (예: "UI/UX 디자이너") */
