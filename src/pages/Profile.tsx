@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getStoredProfile, saveProfile, createDefaultProfile } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
 import { supabase } from '../lib/supabase';
+import { CATEGORIES } from '../data/mockData';
 import type { ExpertProfile, PackageInfo } from '../types';
 import './Profile.css';
 
@@ -44,6 +45,10 @@ export default function Profile() {
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
     const [aiToolInput, setAiToolInput] = useState<string>('');
     const [editToolInput, setEditToolInput] = useState<string>('');
+
+    // 전문분야 '기타' 상태 관리
+    const [showCustomProfession, setShowCustomProfession] = useState<boolean>(false);
+    const [customProfessionInput, setCustomProfessionInput] = useState<string>('');
 
     // 로그인된 사용자의 권한 확인 + 프로필 로드
     useEffect(() => {
@@ -113,6 +118,30 @@ export default function Profile() {
     /** 단순 텍스트 필드 변경 */
     const handleChange = (field: keyof ExpertProfile, value: string) => {
         setProfile((prev) => ({ ...prev, [field]: value }));
+    };
+
+    /** 전문분야 다중 선택 토글 핸들러 */
+    const handleProfessionToggle = (cat: string) => {
+        const currentSelected = profile.profession.split(',').map(s => s.trim()).filter(s => s);
+        let newSelected;
+        if (currentSelected.includes(cat)) {
+            newSelected = currentSelected.filter(c => c !== cat);
+        } else {
+            newSelected = [...currentSelected, cat];
+        }
+        handleChange('profession', newSelected.join(', '));
+    };
+
+    /** 전문분야 커스텀 텍스트 추가 핸들러 */
+    const handleAddCustomProfession = () => {
+        const trimmed = customProfessionInput.trim();
+        if (!trimmed) return;
+        
+        const currentSelected = profile.profession.split(',').map(s => s.trim()).filter(s => s);
+        if (!currentSelected.includes(trimmed)) {
+            handleChange('profession', [...currentSelected, trimmed].join(', '));
+        }
+        setCustomProfessionInput('');
     };
 
     /** 로컬 이미지 업로드 (Supabase Storage) */
@@ -535,13 +564,96 @@ export default function Profile() {
                             />
                         </div>
                         <div className="profile-form-group">
-                            <label>전문 분야 <span className="label-hint">(필수)</span></label>
+                            <label>전문 분야 <span className="label-hint">(필수, 다중 선택 가능)</span></label>
+                            
+                            <div className="tag-group" style={{ flexWrap: 'wrap', marginBottom: '1rem' }}>
+                                {CATEGORIES.map((cat) => {
+                                    const isSelected = profile.profession.split(',').map(s => s.trim()).includes(cat);
+                                    return (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => handleProfessionToggle(cat)}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '20px',
+                                                border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                                                background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                                color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                fontWeight: isSelected ? 600 : 400
+                                            }}
+                                        >
+                                            {cat}
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCustomProfession(!showCustomProfession)}
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '20px',
+                                        border: `1px solid ${showCustomProfession ? 'var(--primary)' : 'var(--border)'}`,
+                                        background: showCustomProfession ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                        color: showCustomProfession ? 'var(--primary)' : 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    + 기타 직접 입력
+                                </button>
+                            </div>
+
+                            {showCustomProfession && (
+                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    <input
+                                        type="text"
+                                        className="profile-input"
+                                        value={customProfessionInput}
+                                        onChange={(e) => setCustomProfessionInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddCustomProfession();
+                                            }
+                                        }}
+                                        placeholder="직접 입력 후 Enter키 또는 추가 버튼 클릭"
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="btn-primary"
+                                        onClick={handleAddCustomProfession}
+                                    >
+                                        추가
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 선택된 커스텀/기타 직업 노출 (카테고리에 없는 항목들) */}
+                            {profile.profession && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                    {profile.profession.split(',').map(s => s.trim()).filter(s => s && !CATEGORIES.includes(s)).map((customCat, idx) => (
+                                        <div key={idx} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                            {customCat}
+                                            <span 
+                                                className="material-symbols-outlined" 
+                                                style={{ fontSize: '1rem', cursor: 'pointer' }}
+                                                onClick={() => handleProfessionToggle(customCat)}
+                                            >
+                                                close
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {/* 숨겨진 실제 input (HTML5 required validation을 위해 유지) */}
                             <input
                                 type="text"
-                                className="profile-input"
+                                style={{ opacity: 0, position: 'absolute', height: 0, width: 0 }}
                                 value={profile.profession}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('profession', e.target.value)}
-                                placeholder="예: AI 영상 및 이미지 생성 전문가"
+                                onChange={() => {}}
                                 required
                             />
                         </div>
