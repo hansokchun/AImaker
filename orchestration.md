@@ -1,6 +1,6 @@
 # AIConnect — 프로젝트 오케스트레이션 문서
 
-> **최종 업데이트**: 2026-05-05  
+> **최종 업데이트**: 2026-05-11  
 > **목적**: 어떤 AI 어시스턴트든 이 문서를 읽으면 프로젝트의 구조, 현재 상태, 코딩 규칙을 즉시 파악하고 작업을 이어받을 수 있도록 작성됨.
 
 > **⚠️ 자동 업데이트 규칙 (필수)**  
@@ -344,44 +344,7 @@ AuthContextType { session, user, loading, signOut() }
 
 ---
 
-### 🔧 Step 3: 전문가 탐색 & 검색 시스템 (최우선)
-
-> **목표**: mockData를 제거하고, 실제 DB에 등록된 전문가가 Home/Category에 표시되도록 한다.
-
-#### 3-1. expert_profiles RLS 공개 전환
-- **파일**: `database.sql`
-- **작업**: `expert_profiles` SELECT 정책을 `USING(auth.uid() = user_id)` → `USING(true)` 변경
-- **이유**: 다른 유저의 공개 프로필을 볼 수 있어야 전문가 탐색이 가능
-- **⚠️ Supabase SQL Editor에서 직접 실행 필요**
-
-#### 3-2. Home 페이지 — DB 기반 전문가 표시
-- **파일**: `Home.tsx`, `storage.ts`
-- **현재**: `EXPERTS` mockData에서 상위 3명 하드코딩
-- **변경**: `storage.ts`에 `getExpertList()` 함수 추가 → `expert_profiles` + `profiles` 조인 쿼리 → Home에서 호출
-- **ExpertCard 타입 수정**: `Expert` 타입에 `id`를 `string | number`로 변경하거나, DB 전문가용 별도 타입 추가 (UUID 지원)
-
-#### 3-3. Category 페이지 — DB 기반 전문가 검색
-- **파일**: `Category.tsx`
-- **현재**: `EXPERTS` mockData 6명 전체 표시, 카테고리 필터 UI만 존재 (실제 필터링 안 됨)
-- **변경**:
-  - `expert_profiles`에서 profession 기반 필터링 쿼리
-  - 가격 범위 슬라이더 실제 동작 연결 (packages.standard.price 기준)
-  - 정렬 기능: DB 쿼리 ORDER BY 반영
-  - 키워드 검색: name, profession, one_liner 텍스트 검색
-
-#### 3-4. ExpertCard 컴포넌트 DB 대응
-- **파일**: `ExpertCard.tsx`, `types/index.ts`
-- **현재**: `Expert` 타입 (숫자 id, rating, reviews 등 mockData 전용)
-- **변경**: DB에서 가져온 전문가 데이터도 렌더링할 수 있도록 타입 통합 또는 별도 카드 컴포넌트
-
-#### 3-5. mockData 제거
-- **파일**: `data/mockData.ts`
-- **변경**: `EXPERTS` 배열 삭제 (CATEGORIES 배열은 유지)
-- **영향 범위**: Home.tsx, Category.tsx, ExpertDetail.tsx에서 EXPERTS 참조 모두 제거
-
----
-
-### 📋 Step 4: 리뷰 & 평점 시스템
+### 🔧 Step 4: 리뷰 & 평점 시스템 (최우선)
 
 > **목표**: 의뢰 완료 후 의뢰자가 전문가에게 리뷰를 남기고, 평점이 프로필에 표시되도록 한다.
 
@@ -524,7 +487,7 @@ CREATE TABLE public.posts (
 ```
 [완료] Step 3: expert_profiles RLS 공개 → Home/Category DB 전환 → mockData 제거
   ↓
-[즉시] Step 4: 리뷰/평점 시스템
+[현재(최우선)] Step 4: 리뷰/평점 시스템
   ↓
 [이후] Step 5: 직접 주문(Direct Order) 및 마이페이지 대시보드화
   ↓

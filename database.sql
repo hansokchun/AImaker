@@ -67,10 +67,10 @@ CREATE TABLE IF NOT EXISTS public.expert_profiles (
 -- 전문가 프로필 RLS 설정
 ALTER TABLE public.expert_profiles ENABLE ROW LEVEL SECURITY;
 
--- 본인 프로필만 조회 가능 (⚠️ 향후 공개 프로필 전환 시 USING(true)로 변경 필요)
-CREATE POLICY "Users can view own profile"
+-- 모든 사용자가 전문가 프로필을 조회 가능 (공개 프로필)
+CREATE POLICY "Users can view expert profiles"
     ON public.expert_profiles FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (true);
 
 -- 본인 프로필만 생성 가능
 CREATE POLICY "Users can insert own profile"
