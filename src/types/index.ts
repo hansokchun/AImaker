@@ -20,6 +20,133 @@ export interface Expert {
     imageUrl: string;
 }
 
+export type AiCategoryId =
+    | 'ai-video-shortform'
+    | 'ai-image-character'
+    | 'ai-development-automation';
+
+export interface AiCategory {
+    id: AiCategoryId;
+    name: string;
+    description: string;
+    examples: string[];
+}
+
+export type PackageTier = 'standard' | 'deluxe' | 'premium';
+
+export interface ProductPackage {
+    name: 'Standard' | 'Deluxe' | 'Premium';
+    price: number;
+    deliveryDays: number;
+    revisionCount: number;
+    included: string[];
+}
+
+export interface ExpertProduct {
+    id: string;
+    expertId: string;
+    expertName: string;
+    title: string;
+    category: AiCategoryId;
+    summary: string;
+    description: string;
+    aiTools: string[];
+    sampleLinks: string[];
+    sampleImageUrl: string;
+    startingPrice: number;
+    deliveryDays: number;
+    revisionCount: number;
+    packages: Record<PackageTier, ProductPackage | null> & {
+        standard: ProductPackage;
+    };
+    status: 'draft' | 'published' | 'hidden';
+}
+
+export interface AiServiceRequest {
+    id: string;
+    clientId: string;
+    expertId: string;
+    productId: string;
+    selectedPackage: PackageTier;
+    desiredResult: string;
+    purpose: string;
+    referenceText: string;
+    referenceLinks: string[];
+    deadline: string;
+    progressType: 'single' | 'milestone';
+    checklist: {
+        commercialUseNeeded: boolean;
+        sourceFileNeeded: boolean;
+        revisionNeeded: boolean;
+        preferredAiTool?: string;
+        usageContext: string;
+    };
+    additionalRequest?: string;
+    status: 'submitted' | 'proposal_sent' | 'cancelled';
+}
+
+export interface Proposal {
+    id: string;
+    requestId: string;
+    clientId: string;
+    expertId: string;
+    title: string;
+    scope: string;
+    deliverables: string[];
+    totalPrice: number;
+    deliveryDays: number;
+    revisionCount: number;
+    progressType: 'single' | 'milestone';
+    milestones: string[];
+    commercialUseAllowed: boolean;
+    sourceFileIncluded: boolean;
+    status: 'sent' | 'revision_requested' | 'accepted' | 'cancelled' | 'expired';
+    expiresAt: string;
+}
+
+export interface Work {
+    id: string;
+    proposalId: string;
+    requestId: string;
+    clientId: string;
+    expertId: string;
+    title: string;
+    progressType: 'single' | 'milestone';
+    status: 'in_progress' | 'submitted' | 'revision_requested' | 'completed' | 'cancelled';
+    stepIds: string[];
+}
+
+export interface WorkStep {
+    id: string;
+    workId: string;
+    stepOrder: number;
+    title: string;
+    description: string;
+    status: 'waiting' | 'in_progress' | 'submitted' | 'revision_requested' | 'approved';
+}
+
+export interface Deliverable {
+    id: string;
+    workId: string;
+    stepId: string;
+    expertId: string;
+    description: string;
+    externalUrl?: string;
+    fileUrl?: string;
+    status: 'submitted' | 'approved' | 'revision_requested';
+    submittedAt: string;
+}
+
+export interface Review {
+    id: string;
+    workId: string;
+    clientId: string;
+    expertId: string;
+    rating: 1 | 2 | 3 | 4 | 5;
+    content: string;
+    createdAt: string;
+}
+
 /**
  * 서비스 요청 데이터 타입
  * - localStorage에 JSON으로 저장되므로, 직렬화 가능한 타입만 사용
