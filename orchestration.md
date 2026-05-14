@@ -1,6 +1,6 @@
 # AIConnect — 프로젝트 오케스트레이션 문서
 
-> **최종 업데이트**: 2026-05-11  
+> **최종 업데이트**: 2026-05-13
 > **목적**: 어떤 AI 어시스턴트든 이 문서를 읽으면 프로젝트의 구조, 현재 상태, 코딩 규칙을 즉시 파악하고 작업을 이어받을 수 있도록 작성됨.
 
 > **⚠️ 자동 업데이트 규칙 (필수)**  
@@ -76,7 +76,8 @@ AIconnect/
 ├── vite.config.ts
 ├── tsconfig*.json
 │
-├── public/                 # 정적 파일
+├── .vscode/                # 로컬 에디터 설정
+├── public/                 # 정적 파일 (현재 저장소에는 없음, 필요 시 생성)
 │
 └── src/
     ├── main.tsx            # React 진입점 (AuthProvider 래핑)
@@ -122,7 +123,7 @@ AIconnect/
     │   └── routes.ts           # 라우트 경로 상수
     │
     ├── data/
-    │   └── mockData.ts         # 목업 전문가 데이터 + 카테고리 목록
+    │   └── mockData.ts         # 서비스 카테고리 상수 (전문가 목업 데이터는 제거됨)
     │
     ├── lib/
     │   ├── supabase.ts         # Supabase 클라이언트 초기화
@@ -180,7 +181,7 @@ packages    jsonb        -- {standard, deluxe, premium} 요금 패키지
 updated_at  timestamptz
 ```
 - RLS: SELECT/INSERT/UPDATE 모두 본인(auth.uid() = user_id)만
-- ⚠️ **향후 공개 프로필 전환 시 SELECT USING(true)로 변경 필요**
+- 현재 `database.sql` 기준 RLS: SELECT는 `USING (true)`로 공개 조회 가능, INSERT/UPDATE는 본인만 가능
 
 ### 5.3. `service_requests` 테이블 (서비스 요청서)
 ```sql
@@ -281,7 +282,7 @@ user_id         uuid → auth.users(id)
 ## 9. 주요 데이터 타입 (types/index.ts)
 
 ```typescript
-// 전문가 카드 (mockData용)
+// 전문가 카드 (Home/Category 전문가 목록 표시용)
 Expert { id, name, profession, rating, reviews, price, imageUrl }
 
 // 전문가 상세 프로필 (Supabase expert_profiles)
@@ -311,6 +312,7 @@ AuthContextType { session, user, loading, signOut() }
 - `getStoredProfile(userId)` → expert_profiles SELECT (snake_case → camelCase 매핑)
 - `saveProfile(userId, profile)` → expert_profiles UPSERT (camelCase → snake_case 매핑)
 - `createDefaultProfile()` → 빈 ExpertProfile 객체 생성
+- `getExpertList()` → expert_profiles SELECT 후 Expert 카드 타입으로 매핑 (현재 리뷰/평점은 0으로 임시 처리)
 
 ### 필드명 매핑 규칙
 | 앱 (camelCase) | DB (snake_case) |
@@ -338,7 +340,7 @@ AuthContextType { session, user, loading, signOut() }
 | — | ExpertDetail 동적 라우팅 (DB에서 프로필 로드) | ✅ |
 | — | 프로필 이미지 Supabase Storage 업로드 | ✅ |
 | — | Navbar 정리 (마이페이지 링크, 전문가 가입 버튼 제거) | ✅ |
-| Step 3 | 전문가 탐색 & 검색 시스템 (mockData 제거 및 DB 연동) | ✅ |
+| Step 3 | 전문가 탐색 & 검색 시스템 (전문가 목업 데이터 제거 및 DB 연동) | ✅ |
 | — | Home/Category 전문가 DB 기반 표시 및 카테고리/가격 필터 연동 | ✅ |
 | — | 전문가 프로필 전문분야 다중 선택 및 기타 직접 입력 UI 적용 | ✅ |
 
@@ -485,7 +487,7 @@ CREATE TABLE public.posts (
 ### 🎯 작업 우선순위 요약
 
 ```
-[완료] Step 3: expert_profiles RLS 공개 → Home/Category DB 전환 → mockData 제거
+[완료] Step 3: expert_profiles RLS 공개 → Home/Category DB 전환 → 전문가 목업 데이터 제거
   ↓
 [현재(최우선)] Step 4: 리뷰/평점 시스템
   ↓
@@ -507,6 +509,10 @@ CREATE TABLE public.posts (
 ### ⚠️ 중요
 1. **ChatModal**: 현재 목업 수준. 실제 채팅 기능 없음.
 2. **Community**: 현재 목업 수준. 실제 게시판 기능 없음.
+3. **리뷰/평점**: `ExpertDetail`의 평점/리뷰 수는 하드코딩, `ExpertCard`의 평점/리뷰 수는 `getExpertList()`에서 0으로 임시 처리.
+4. **카테고리 데이터**: `src/data/mockData.ts`는 이름과 달리 현재 전문가 목업이 아니라 서비스 카테고리 상수만 제공.
+5. **환경변수 미설정 시**: 요청/프로필 일부는 localStorage 폴백이 있지만, 인증 기능은 비활성화되고 Home/Category 전문가 목록은 빈 배열이 될 수 있음.
+6. **반응형 상태**: `body { min-width: 1200px; }`로 PC 우선 레이아웃을 강제한다. 1024px 이하 CSS 일부는 있으나 모바일 실사용 최적화는 Step 8 작업 범위.
 
 ### 코딩 규칙
 - **언어**: 모든 주석, 설명은 **한국어**

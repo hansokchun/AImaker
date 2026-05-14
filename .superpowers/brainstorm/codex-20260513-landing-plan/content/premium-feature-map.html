@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AIConnect 프리미엄 런칭 기능 맵</title>
+<style>
+  body{margin:0;background:#f8fafc;color:#0f172a;font-family:'Noto Sans KR',Inter,system-ui,sans-serif;line-height:1.6}
+  .shell{max-width:1240px;margin:0 auto;padding:42px 28px 80px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:28px}
+  h1{font-size:36px;line-height:1.2;margin:0 0 10px;font-weight:850;letter-spacing:0}
+  .subtitle{color:#475569;font-size:17px;margin:0;max-width:760px}
+  .badge{background:#2563eb;color:white;border-radius:999px;padding:8px 14px;font-weight:800;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .domain{background:white;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 4px 10px rgb(15 23 42 / .06);padding:20px}
+  .domain h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .domain p{margin:0 0 14px;color:#64748b;font-size:14px}
+  .items{display:grid;gap:8px}
+  .item{border:1px solid #e2e8f0;border-radius:9px;padding:10px 11px;background:#f8fafc}
+  .must{border-color:#93c5fd;background:#eff6ff}.later{border-color:#e2e8f0;background:#fff}.risk{border-color:#fbbf24;background:#fffbeb}
+  .label{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.04em;color:#2563eb;margin-bottom:2px}
+  .risk .label{color:#b45309}.later .label{color:#64748b}
+  .item strong{display:block;font-size:14px}.item span{display:block;color:#64748b;font-size:13px}
+  .footer{margin-top:24px;background:#0f172a;color:white;border-radius:14px;padding:22px}
+  .footer strong{color:#bfdbfe}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr}.top{display:block}.badge{display:inline-block;margin-top:16px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="top">
+    <div>
+      <h1>신뢰 중심 프리미엄 런칭 기능 맵</h1>
+      <p class="subtitle">처음 공개 버전은 “멋진 기능 수”보다 “의뢰자가 맡겨도 되겠다, 전문가가 활동해도 되겠다”는 신뢰를 만드는 데 집중합니다.</p>
+    </div>
+    <div class="badge">Launch Target C</div>
+  </div>
+
+  <section class="grid">
+    <div class="domain">
+      <h2>1. 탐색/발견</h2>
+      <p>의뢰자가 좋은 전문가를 빠르게 찾는 영역</p>
+      <div class="items">
+        <div class="item must"><div class="label">런칭 필수</div><strong>전문가 목록/필터/정렬</strong><span>분야, 가격, 평점, 최신순</span></div>
+        <div class="item must"><div class="label">런칭 필수</div><strong>전문가 상세 프로필</strong><span>소개, 도구, 패키지, 포트폴리오</span></div>
+        <div class="item later"><div class="label">런칭 후</div><strong>검색 자동완성</strong><span>키워드 추천과 인기 검색어</span></div>
+      </div>
+    </div>
+
+    <div class="domain">
+      <h2>2. 신뢰/검증</h2>
+      <p>프리미엄 런칭의 핵심 차별점</p>
+      <div class="items">
+        <div class="item must"><div class="label">런칭 필수</div><strong>전문가 승인 상태</strong><span>검수 대기/승인/반려</span></div>
+        <div class="item must"><div class="label">런칭 필수</div><strong>리뷰/평점</strong><span>의뢰 완료 후 작성 가능</span></div>
+        <div class="item risk"><div class="label">주의</div><strong>뱃지/랭킹</strong><span>운영 기준 없이 넣으면 신뢰를 깎을 수 있음</span></div>
+      </div>
+    </div>
+
+    <div class="domain">
+      <h2>3. 의뢰/거래</h2>
+      <p>실제 프로젝트가 시작되는 흐름</p>
+      <div class="items">
+        <div class="item must"><div class="label">런칭 필수</div><strong>요청서 작성/게시판</strong><span>의뢰자가 공개 모집</span></div>
+        <div class="item must"><div class="label">런칭 필수</div><strong>패키지 기반 직접 문의</strong><span>초기 결제는 수동/문의 기반</span></div>
+        <div class="item later"><div class="label">런칭 후</div><strong>자동 결제/에스크로</strong><span>법무/정산 설계 이후</span></div>
+      </div>
+    </div>
+
+    <div class="domain">
+      <h2>4. 소통/진행</h2>
+      <p>의뢰자와 전문가가 일을 진행하는 공간</p>
+      <div class="items">
+        <div class="item must"><div class="label">런칭 필수</div><strong>문의/메시지</strong><span>실시간이 아니어도 기록형으로 시작 가능</span></div>
+        <div class="item must"><div class="label">런칭 필수</div><strong>프로젝트 상태</strong><span>대기/진행/전달/완료</span></div>
+        <div class="item later"><div class="label">런칭 후</div><strong>실시간 채팅</strong><span>알림과 읽음 처리 포함</span></div>
+      </div>
+    </div>
+
+    <div class="domain">
+      <h2>5. 회원/대시보드</h2>
+      <p>각 사용자가 자기 일을 관리하는 영역</p>
+      <div class="items">
+        <div class="item must"><div class="label">런칭 필수</div><strong>마이페이지 탭 구조</strong><span>프로필, 프로젝트, 알림</span></div>
+        <div class="item must"><div class="label">런칭 필수</div><strong>전문가 프로필 편집</strong><span>포트폴리오와 승인 상태 표시</span></div>
+        <div class="item later"><div class="label">런칭 후</div><strong>정산 관리</strong><span>결제 도입 후 확장</span></div>
+      </div>
+    </div>
+
+    <div class="domain">
+      <h2>6. 운영/법적 안전</h2>
+      <p>프리미엄 런칭에서 빠지면 위험한 영역</p>
+      <div class="items">
+        <div class="item must"><div class="label">런칭 필수</div><strong>관리자 기본 화면</strong><span>회원/전문가/요청/신고 관리</span></div>
+        <div class="item must"><div class="label">런칭 필수</div><strong>약관/개인정보/신고</strong><span>온보딩 동의 포함</span></div>
+        <div class="item later"><div class="label">런칭 후</div><strong>운영 지표 대시보드</strong><span>전환율, 거래액, 활성 사용자</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <strong>추천 진행 방식:</strong> 먼저 6개 분야를 확정한 뒤, 각 분야를 페이지 단위로 풀어냅니다. 그 다음 “런칭 필수 / 베타 이후 / 과감히 제외”로 쪼개면 개발 계획이 선명해집니다.
+  </div>
+</main>
+</body>
+</html>
