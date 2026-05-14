@@ -11,7 +11,7 @@ describe('Home', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: /AI 외주를 더 쉽고 저렴하게/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /AI 외주를 더 쉽고\s*저렴하게/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /AI 작업 맡기기/ })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /AI 전문가로 시작하기/ }).length).toBeGreaterThan(0)
 
