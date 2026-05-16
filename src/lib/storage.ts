@@ -649,6 +649,27 @@ export async function getWorkroomData(workId: string): Promise<{
     };
 }
 
+export async function getUserWorks(userId: string): Promise<Work[]> {
+    if (!supabase) {
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        return works.filter((work) => work.clientId === userId || work.expertId === userId);
+    }
+
+    const { data, error } = await supabase
+        .from('works')
+        .select('*')
+        .or(`client_id.eq.${userId},expert_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('사용자 작업 목록 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toWork);
+}
+
 export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);

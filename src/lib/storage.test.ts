@@ -376,6 +376,36 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('loads works where the user is a client or expert', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: work.id,
+                    proposal_id: work.proposalId,
+                    request_id: work.requestId,
+                    client_id: work.clientId,
+                    expert_id: work.expertId,
+                    title: work.title,
+                    progress_type: work.progressType,
+                    status: work.status,
+                },
+            ],
+            error: null,
+        })
+        const or = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ or }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getUserWorks } = await import('./storage')
+
+        await expect(getUserWorks(request.clientId)).resolves.toEqual([{ ...work, stepIds: [] }])
+        expect(from).toHaveBeenCalledWith('works')
+        expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
+        expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+    })
+
     it('saves reviews to Supabase', async () => {
         vi.resetModules()
         const insert = vi.fn().mockResolvedValue({ error: null })

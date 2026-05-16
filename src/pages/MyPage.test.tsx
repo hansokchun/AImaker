@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -17,12 +17,42 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 const saveReview = vi.fn(async () => undefined)
+const getUserWorks = vi.fn(async () => [
+    {
+        id: 'work-real-active',
+        proposalId: 'proposal-active',
+        requestId: 'request-active',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-01',
+        title: '진행 중인 실제 작업',
+        progressType: 'single',
+        status: 'in_progress',
+        stepIds: [],
+    },
+    {
+        id: 'work-real-completed',
+        proposalId: 'proposal-completed',
+        requestId: 'request-completed',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-02',
+        title: '완료된 실제 작업',
+        progressType: 'single',
+        status: 'completed',
+        stepIds: [],
+    },
+])
 
 vi.mock('../lib/storage', () => ({
+    getUserWorks: (...args: unknown[]) => getUserWorks(...args),
     saveReview: (...args: unknown[]) => saveReview(...args),
 }))
 
 describe('MyPage', () => {
+    beforeEach(() => {
+        saveReview.mockClear()
+        getUserWorks.mockClear()
+    })
+
     it('shows client and expert sections with transaction links', () => {
         render(
             <MemoryRouter>
@@ -50,15 +80,15 @@ describe('MyPage', () => {
         )
     })
 
-    it('shows review button only on completed work', () => {
+    it('shows review button only on completed work', async () => {
         render(
             <MemoryRouter>
                 <MyPage />
             </MemoryRouter>,
         )
 
-        const completedWork = screen.getByTestId('completed-work')
-        const activeWork = screen.getByTestId('active-work')
+        const completedWork = await screen.findByTestId('completed-work')
+        const activeWork = await screen.findByTestId('active-work')
 
         expect(within(completedWork).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
         expect(within(activeWork).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
@@ -71,7 +101,7 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        fireEvent.click(within(screen.getByTestId('completed-work')).getByRole('button', { name: '리뷰 작성' }))
+        fireEvent.click(within(await screen.findByTestId('completed-work')).getByRole('button', { name: '리뷰 작성' }))
 
         expect(screen.getByRole('heading', { name: '리뷰 작성하기' })).toBeInTheDocument()
         fireEvent.change(screen.getByLabelText('별점'), { target: { value: '5' } })
@@ -83,8 +113,9 @@ describe('MyPage', () => {
         await waitFor(() =>
             expect(saveReview).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    workId: 'work-completed-01',
+                    workId: 'work-real-completed',
                     clientId: 'user-demo-01',
+                    expertId: 'expert-real-02',
                     rating: 5,
                     content: '결과물이 목적에 잘 맞고 일정 안내도 명확했습니다.',
                 }),

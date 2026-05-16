@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { saveReview } from '../lib/storage'
+import { getUserWorks, saveReview } from '../lib/storage'
+import type { Work } from '../types'
 
 export default function MyPage() {
     const { session, user, loading, signOut } = useAuth()
@@ -14,6 +15,8 @@ export default function MyPage() {
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
+    const [works, setWorks] = useState<Work[]>([])
+    const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
 
     useEffect(() => {
         if (!loading && !session) {
@@ -24,6 +27,12 @@ export default function MyPage() {
     useEffect(() => {
         if (user && supabase) {
             fetchProfile()
+        }
+        if (user) {
+            getUserWorks(user.id).then(setWorks).catch((error) => {
+                console.error('작업 목록 로딩 오류:', error)
+                setWorks([])
+            })
         }
     }, [user])
 
@@ -36,6 +45,29 @@ export default function MyPage() {
         } else if (error && error.code !== 'PGRST116') {
             console.error('프로필 로딩 오류:', error)
         }
+    }
+
+    const activeWork = works.find((work) => work.status !== 'completed') || {
+        id: 'work-demo-01',
+        proposalId: 'proposal-demo-01',
+        requestId: 'request-demo-01',
+        clientId: user?.id || '',
+        expertId: 'expert-demo-01',
+        title: 'AI 숏폼 영상 제작',
+        progressType: 'single' as const,
+        status: 'in_progress' as const,
+        stepIds: [],
+    }
+    const completedWork = works.find((work) => work.status === 'completed') || {
+        id: 'work-completed-01',
+        proposalId: 'proposal-completed-01',
+        requestId: 'request-completed-01',
+        clientId: user?.id || '',
+        expertId: 'expert-demo-01',
+        title: 'AI 캐릭터 이미지 제작',
+        progressType: 'single' as const,
+        status: 'completed' as const,
+        stepIds: [],
     }
 
     if (loading) {
@@ -88,21 +120,22 @@ export default function MyPage() {
                         <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
                             <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>내 의뢰 요청</Link>
                             <Link className="btn-text" to="/proposal/proposal-demo-01">받은 제안서</Link>
-                            <Link className="btn-text" to="/workroom/work-demo-01">진행 중인 작업</Link>
+                            <Link className="btn-text" to={`/workroom/${activeWork.id}`}>진행 중인 작업</Link>
                         </div>
 
                         <div data-testid="active-work" style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', marginBottom: '0.75rem' }}>
-                            <strong>AI 숏폼 영상 제작</strong>
+                            <strong>{activeWork.title}</strong>
                             <p style={{ color: 'var(--text-secondary)', margin: '0.4rem 0 0' }}>진행 중</p>
                         </div>
                         <div data-testid="completed-work" style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f0fdf4' }}>
-                            <strong>AI 캐릭터 이미지 제작</strong>
+                            <strong>{completedWork.title}</strong>
                             <p style={{ color: 'var(--text-secondary)', margin: '0.4rem 0 0.8rem' }}>완료</p>
                             <button
                                 type="button"
                                 className="btn-primary"
                                 style={{ padding: '0.65rem 0.9rem' }}
                                 onClick={() => {
+                                    setSelectedReviewWork(completedWork)
                                     setReviewOpen(true)
                                     setReviewSubmitted(false)
                                 }}
@@ -143,17 +176,19 @@ export default function MyPage() {
                         <form
                             onSubmit={async (event) => {
                                 event.preventDefault()
+                                const reviewWork = selectedReviewWork || completedWork
                                 await saveReview({
                                     id: `review-${Date.now()}`,
-                                    workId: 'work-completed-01',
-                                    clientId: user?.id || '',
-                                    expertId: 'expert-demo-01',
+                                    workId: reviewWork.id,
+                                    clientId: reviewWork.clientId || user?.id || '',
+                                    expertId: reviewWork.expertId,
                                     rating: Number(reviewRating) as 1 | 2 | 3 | 4 | 5,
                                     content: reviewContent,
                                     createdAt: new Date().toISOString(),
                                 })
                                 setReviewSubmitted(true)
                                 setReviewOpen(false)
+                                setSelectedReviewWork(null)
                                 setReviewRating('5')
                                 setReviewContent('')
                             }}
