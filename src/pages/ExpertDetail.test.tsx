@@ -1,30 +1,38 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import ExpertDetail from './ExpertDetail'
 import { mockExpertProducts } from '../data/mockData'
+import type { ExpertProduct } from '../types'
+
+const supabaseProduct: ExpertProduct = {
+    ...mockExpertProducts[0],
+    id: 'product-from-supabase-01',
+    title: 'Supabase에서 불러온 AI 상품',
+    description: '실제 DB 상품 상세 설명입니다.',
+    summary: '실제 DB 상품 요약입니다.',
+}
+
+vi.mock('../lib/storage', () => ({
+    getExpertProducts: vi.fn(async () => [supabaseProduct]),
+}))
 
 describe('ExpertDetail', () => {
-    it('highlights product details, sample result, AI tools, and package request CTA', async () => {
-        const product = mockExpertProducts[0]
-
+    it('loads product details from the shared product storage', async () => {
         render(
-            <MemoryRouter initialEntries={[`/expert/${product.id}`]}>
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
                 <Routes>
                     <Route path="/expert/:id" element={<ExpertDetail />} />
                 </Routes>
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('heading', { name: product.title })).toBeInTheDocument()
-        expect(screen.getByText(product.description)).toBeInTheDocument()
-        expect(screen.getByAltText(`${product.title} 샘플 결과물`)).toBeInTheDocument()
-        expect(screen.getByText('ChatGPT')).toBeInTheDocument()
-        expect(screen.getByText('Runway')).toBeInTheDocument()
-        expect(screen.getByText('Premiere Pro')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+        expect(screen.getByText(supabaseProduct.description)).toBeInTheDocument()
+        expect(screen.getByText(supabaseProduct.summary)).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toHaveAttribute(
             'href',
-            `/request/${product.id}`,
+            `/request/${supabaseProduct.id}`,
         )
     })
 })

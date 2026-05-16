@@ -3,18 +3,41 @@ import ChatModal from '../components/ChatModal'
 import PackageCard from '../components/PackageCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
-import { mockExpertProducts } from '../data/mockData'
 import { useAuth } from '../contexts/AuthContext'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getExpertProducts } from '../lib/storage'
+import type { ExpertProduct } from '../types'
 import './ExpertDetail.css'
 
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
     const { user } = useAuth()
     const [chatOpen, setChatOpen] = useState<boolean>(false)
+    const [product, setProduct] = useState<ExpertProduct | null>(null)
+    const [loading, setLoading] = useState(true)
 
-    const product = mockExpertProducts.find((item) => item.id === id || item.expertId === id)
+    useEffect(() => {
+        let active = true
+        setLoading(true)
+        getExpertProducts().then((products) => {
+            if (!active) return
+            setProduct(products.find((item) => item.id === id || item.expertId === id) ?? null)
+            setLoading(false)
+        })
+        return () => {
+            active = false
+        }
+    }, [id])
+
     const category = AI_CATEGORIES.find((item) => item.id === product?.category)
+
+    if (loading) {
+        return (
+            <main className="container detail-empty-state">
+                <h2>상품 정보를 불러오는 중입니다</h2>
+            </main>
+        )
+    }
 
     if (!product) {
         return (
