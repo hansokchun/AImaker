@@ -171,6 +171,20 @@ export interface ServiceRequestData {
     ordererEmail?: string;
     /** 요청 상태 */
     status: 'pending' | 'in_progress' | 'completed';
+    /** 선택 상품 ID */
+    productId?: string;
+    /** 선택 패키지 */
+    selectedPackage?: PackageTier;
+    /** 원하는 결과물 */
+    desiredResult?: string;
+    /** 작업 목적 */
+    purpose?: string;
+    /** 참고자료 원문 */
+    referenceText?: string;
+    /** 참고 링크 목록 */
+    referenceLinks?: string[];
+    /** 진행 방식 */
+    progressType?: 'single' | 'milestone';
 }
 
 /**

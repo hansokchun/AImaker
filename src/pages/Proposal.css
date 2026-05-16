@@ -1,0 +1,223 @@
+.proposal-page {
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+.proposal-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    padding: 5rem 0 7rem;
+}
+
+.proposal-hero-inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.proposal-eyebrow {
+    color: #93c5fd;
+    font-weight: 800;
+}
+
+.proposal-hero h1 {
+    margin: 0.75rem 0 1rem;
+    font-size: 2.75rem;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.proposal-hero p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 1.1rem;
+}
+
+.proposal-status {
+    flex: 0 0 auto;
+    padding: 0.75rem 1rem;
+    border-radius: 99px;
+    font-weight: 800;
+}
+
+.proposal-status.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.proposal-status.expired {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.proposal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 2rem;
+    margin-top: -4rem;
+    padding-bottom: 6rem;
+}
+
+.proposal-main-card,
+.proposal-side-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.proposal-main-card {
+    padding: 2.5rem;
+}
+
+.proposal-side-card {
+    align-self: start;
+    padding: 2rem;
+    position: sticky;
+    top: 96px;
+}
+
+.proposal-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.proposal-summary-grid div {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: var(--radius-lg);
+}
+
+.proposal-summary-grid span,
+.proposal-expiry span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+}
+
+.proposal-summary-grid strong,
+.proposal-expiry strong {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.proposal-section {
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.proposal-section + .proposal-section {
+    margin-top: 2rem;
+}
+
+.proposal-section h2 {
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.proposal-section p,
+.proposal-section li,
+.proposal-expiry p {
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.proposal-section ul,
+.proposal-section ol {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.proposal-expiry {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.proposal-expiry p {
+    margin: 0.8rem 0 0;
+    font-size: 0.92rem;
+}
+
+.proposal-start-notice {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: var(--radius-lg);
+    color: #9a3412;
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.proposal-actions {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.proposal-actions button {
+    width: 100%;
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    font-weight: 800;
+}
+
+.proposal-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.proposal-actions .danger {
+    color: #b91c1c;
+}
+
+.proposal-back-link {
+    display: block;
+    margin-top: 1.25rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+@media (max-width: 940px) {
+    .proposal-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .proposal-side-card {
+        position: static;
+    }
+
+    .proposal-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .proposal-hero {
+        padding-top: 4rem;
+    }
+
+    .proposal-hero-inner {
+        flex-direction: column;
+    }
+
+    .proposal-hero h1 {
+        font-size: 2.1rem;
+    }
+
+    .proposal-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .proposal-main-card {
+        padding: 2rem;
+    }
+}

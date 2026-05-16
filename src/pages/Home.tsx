@@ -130,10 +130,10 @@ export default function Home() {
                                     <span>작업 {product.deliveryDays}일</span>
                                 </div>
                                 <div className="home-product-actions">
-                                    <Link to={ROUTES.SERVICE_REQUEST} className="btn-primary home-product-primary">
+                                    <Link to={`/request/${product.id}`} className="btn-primary home-product-primary">
                                         패키지로 의뢰하기
                                     </Link>
-                                    <Link to={`/expert/${product.expertId}`} className="btn-text home-product-secondary">
+                                    <Link to={`/expert/${product.id}`} className="btn-text home-product-secondary">
                                         상세 보기
                                     </Link>
                                 </div>

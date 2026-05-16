@@ -1,130 +1,186 @@
-/**
- * ServiceRequest 페이지 — 서비스 요청 작성
- * - 사용자가 원하는 서비스를 기술하고 카테고리/예산/마감일을 지정
- * - 제출 시 localStorage에 저장 (→ 향후 Supabase DB로 교체 예정)
- * - 저장 유틸(storage.ts)을 사용하여 JSON 파싱 에러를 안전하게 처리
- */
-import { useState, type FormEvent, type ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import CategorySelector from '../components/CategorySelector';
-import { saveRequest } from '../lib/storage';
-import { ROUTES } from '../constants/routes';
-import type { ServiceRequestData } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import './ServiceRequest.css';
+import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import CategorySelector from '../components/CategorySelector'
+import { AI_CATEGORIES } from '../constants/categories'
+import { ROUTES } from '../constants/routes'
+import { mockExpertProducts } from '../data/mockData'
+import { useAuth } from '../contexts/AuthContext'
+import { saveRequest } from '../lib/storage'
+import type { ServiceRequestData } from '../types'
+import './ServiceRequest.css'
+
+const currency = new Intl.NumberFormat('ko-KR')
 
 export default function ServiceRequest() {
-    const navigate = useNavigate();
-    const { user } = useAuth();
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-    const [title, setTitle] = useState<string>('');
-    const [description, setDescription] = useState<string>('');
-    const [budget, setBudget] = useState<string>('');
-    const [ordererEmail, setOrdererEmail] = useState<string>('');
-    const [deadline, setDeadline] = useState<string>('');
+    const navigate = useNavigate()
+    const { productId } = useParams<{ productId: string }>()
+    const { user } = useAuth()
+    const selectedProduct = mockExpertProducts.find((product) => product.id === productId)
+    const selectedPackage = selectedProduct?.packages.standard
+    const selectedCategoryName = useMemo(() => {
+        return AI_CATEGORIES.find((category) => category.id === selectedProduct?.category)?.name
+    }, [selectedProduct?.category])
+
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(
+        selectedCategoryName ? [selectedCategoryName] : [],
+    )
+    const [desiredResult, setDesiredResult] = useState<string>('')
+    const [purpose, setPurpose] = useState<string>('')
+    const [referenceText, setReferenceText] = useState<string>('')
+    const [deadline, setDeadline] = useState<string>('')
+    const [progressType, setProgressType] = useState<'single' | 'milestone'>('single')
+    const [budget, setBudget] = useState<string>(selectedPackage ? String(selectedPackage.price) : '')
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+        e.preventDefault()
 
-        // 카테고리 미선택 방어
-        if (selectedCategories.length === 0) {
-            alert('최소 하나 이상의 카테고리를 선택해주세요.');
-            return;
+        if (!selectedProduct && selectedCategories.length === 0) {
+            alert('최소 하나 이상의 카테고리를 선택해주세요.')
+            return
         }
 
+        const referenceLinks = referenceText
+            .split(/\s+/)
+            .map((item) => item.trim())
+            .filter((item) => item.startsWith('http://') || item.startsWith('https://'))
+
         const newRequest: ServiceRequestData = {
-            id: Date.now(), // 로컬 폴백용 아이디 (DB에선 직렬 id 사용)
-            title,
-            description,
+            id: Date.now(),
+            title: selectedProduct?.title ?? desiredResult,
+            description: purpose,
             budget,
             deadline,
             categories: selectedCategories,
             createdAt: new Date().toLocaleDateString(),
-            ordererEmail,
+            ordererEmail: '',
             status: 'pending',
-        };
+            productId: selectedProduct?.id,
+            selectedPackage: selectedProduct ? 'standard' : undefined,
+            desiredResult,
+            purpose,
+            referenceText,
+            referenceLinks,
+            progressType,
+        }
 
         try {
-            await saveRequest(newRequest, user?.id);
-            alert('요청서가 성공적으로 등록되었습니다!');
-            navigate(ROUTES.REQUEST_BOARD);
+            await saveRequest(newRequest, user?.id)
+            alert('요구사항이 제출되었습니다. 전문가 제안을 기다려주세요.')
+            navigate(ROUTES.REQUEST_BOARD)
         } catch (error) {
-            // saveRequest 내부에서 throw된 에러를 사용자에게 표시
-            alert(error instanceof Error ? error.message : '요청 저장에 실패했습니다.');
+            alert(error instanceof Error ? error.message : '요구사항 저장에 실패했습니다.')
         }
-    };
+    }
 
     return (
-        <div style={{ overflowY: 'auto' }}>
-            <div className="page-hero" style={{ paddingBottom: '80px', paddingTop: '100px' }}>
+        <div className="request-page">
+            <div className="page-hero request-hero">
                 <div className="container">
-                    <h1 className="page-title" style={{ marginBottom: 0 }}>서비스 요청</h1>
+                    <h1 className="page-title">요구사항 작성</h1>
+                    <p>결제 전 원하는 결과물과 진행 방식을 정리해 전문가 제안을 받습니다.</p>
                 </div>
             </div>
 
-            <main className="container" style={{ marginTop: '-30px', paddingBottom: '100px', position: 'relative', zIndex: 10, minHeight: '600px' }}>
-                <div className="content-card" style={{ maxWidth: '900px', margin: '0 auto' }}>
-                    <form onSubmit={handleSubmit} id="request-form">
-                        <div className="form-group">
-                            <label><span className="material-symbols-outlined">category</span> 카테고리 선택 (중복 선택 가능)</label>
-                            <CategorySelector selected={selectedCategories} onChange={setSelectedCategories} />
-                        </div>
+            <main className="container request-main">
+                <form onSubmit={handleSubmit} id="request-form" className="request-layout">
+                    <section className="content-card request-form-card">
+                        {selectedProduct && selectedPackage ? (
+                            <div className="selected-package-summary" aria-label="선택한 패키지 요약">
+                                <div>
+                                    <span>선택한 패키지</span>
+                                    <h2>{selectedProduct.title}</h2>
+                                </div>
+                                <dl>
+                                    <div>
+                                        <dt>패키지</dt>
+                                        <dd>{selectedPackage.name}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>금액</dt>
+                                        <dd>{currency.format(selectedPackage.price)}원</dd>
+                                    </div>
+                                    <div>
+                                        <dt>납기</dt>
+                                        <dd>{selectedPackage.deliveryDays}일</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        ) : (
+                            <div className="form-group">
+                                <label>
+                                    <span className="material-symbols-outlined">category</span>
+                                    카테고리 선택
+                                </label>
+                                <CategorySelector
+                                    selected={selectedCategories}
+                                    onChange={setSelectedCategories}
+                                />
+                            </div>
+                        )}
 
                         <div className="form-group">
-                            <label><span className="material-symbols-outlined">edit_note</span> 어떤 서비스가 필요하신가요?</label>
-                            <input
-                                type="text"
+                            <label htmlFor="desired-result">
+                                <span className="material-symbols-outlined">target</span>
+                                원하는 결과물
+                            </label>
+                            <textarea
+                                id="desired-result"
+                                aria-label="원하는 결과물"
                                 className="form-control"
-                                placeholder="예: 로고 디자인, 파이썬 웹 크롤러 개발"
+                                rows={4}
+                                placeholder="예: 15초 숏폼 영상 1차 시안, 캐릭터 이미지 3장"
                                 required
-                                value={title}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+                                value={desiredResult}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                                    setDesiredResult(e.target.value)
+                                }
                             />
                         </div>
 
                         <div className="form-group">
-                            <label><span className="material-symbols-outlined">description</span> 상세 내용</label>
+                            <label htmlFor="purpose">
+                                <span className="material-symbols-outlined">flag</span>
+                                작업 목적
+                            </label>
                             <textarea
+                                id="purpose"
+                                aria-label="작업 목적"
                                 className="form-control"
-                                rows={8}
-                                placeholder="전문가가 파악할 수 있도록 프로젝트의 목적, 요구사항, 참고 자료 등을 구체적으로 작성해주세요."
+                                rows={4}
+                                placeholder="어디에 사용할 결과물인지, 어떤 톤과 목표가 필요한지 적어주세요."
                                 required
-                                value={description}
-                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-                            ></textarea>
+                                value={purpose}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPurpose(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-group">
-                            <label><span className="material-symbols-outlined">mail</span> 주문자 이메일</label>
-                            <input
-                                type="email"
+                            <label htmlFor="reference-text">
+                                <span className="material-symbols-outlined">link</span>
+                                참고자료
+                            </label>
+                            <textarea
+                                id="reference-text"
+                                aria-label="참고자료"
                                 className="form-control"
-                                placeholder="예: user@example.com (필수)"
-                                required
-                                value={ordererEmail}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setOrdererEmail(e.target.value)}
+                                rows={4}
+                                placeholder="참고 링크, 이미지 설명, 기존 자료의 특징을 적어주세요."
+                                value={referenceText}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                                    setReferenceText(e.target.value)
+                                }
                             />
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label><span className="material-symbols-outlined">payments</span> 희망 예산 (원)</label>
+                                <label htmlFor="deadline">
+                                    <span className="material-symbols-outlined">event_available</span>
+                                    마감 희망일
+                                </label>
                                 <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="예: 500,000"
-                                    required
-                                    value={budget ? Number(budget).toLocaleString() : ''}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                                        // 쉼표와 숫자가 아닌 모든 문자 제거
-                                        const rawValue = e.target.value.replace(/[^\d]/g, '');
-                                        setBudget(rawValue);
-                                    }}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label><span className="material-symbols-outlined">event_available</span> 마감 기한</label>
-                                <input
+                                    id="deadline"
+                                    aria-label="마감 희망일"
                                     type="date"
                                     className="form-control"
                                     required
@@ -132,19 +188,62 @@ export default function ServiceRequest() {
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setDeadline(e.target.value)}
                                 />
                             </div>
+
+                            {!selectedPackage && (
+                                <div className="form-group">
+                                    <label htmlFor="budget">
+                                        <span className="material-symbols-outlined">payments</span>
+                                        희망 예산
+                                    </label>
+                                    <input
+                                        id="budget"
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="예: 500,000"
+                                        required
+                                        value={budget ? Number(budget).toLocaleString() : ''}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                            setBudget(e.target.value.replace(/[^\d]/g, ''))
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
 
-                        <div style={{ marginTop: '2rem' }}>
-                            <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1.25rem', fontSize: '1.2rem', borderRadius: 'var(--radius-xl)' }}>
-                                요청서 올리기
-                            </button>
-                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '1rem' }}>
-                                요청서를 올리면 관련 분야 전문가들에게 알림이 전송됩니다.
-                            </p>
-                        </div>
-                    </form>
-                </div>
+                        <fieldset className="progress-fieldset">
+                            <legend>진행 방식</legend>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="progressType"
+                                    value="single"
+                                    checked={progressType === 'single'}
+                                    onChange={() => setProgressType('single')}
+                                />
+                                단일 진행
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="progressType"
+                                    value="milestone"
+                                    checked={progressType === 'milestone'}
+                                    onChange={() => setProgressType('milestone')}
+                                />
+                                단계별 진행
+                            </label>
+                        </fieldset>
+
+                        <p className="platform-notice">
+                            플랫폼 외부 연락처를 주고받지 말고, 진행 안내는 AIConnect 안에서 확인합니다.
+                        </p>
+
+                        <button type="submit" className="btn-primary request-submit">
+                            요구사항 제출하기
+                        </button>
+                    </section>
+                </form>
             </main>
         </div>
-    );
+    )
 }

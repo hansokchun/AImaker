@@ -1,199 +1,114 @@
-/**
- * ExpertDetail 페이지
- * - 전문가의 상세 프로필, 경력, 포트폴리오, 사용 툴을 보여주는 페이지
- * - 요금 패키지(PackageCard)와 채팅(ChatModal)은 독립 컴포넌트로 분리
- * - DB에서 id를 기반으로 실제 프로필 정보를 로드하여 표시
- */
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import PackageCard from '../components/PackageCard';
-import ChatModal from '../components/ChatModal';
-import { useAuth } from '../contexts/AuthContext';
-import { getStoredProfile, createDefaultProfile } from '../lib/storage';
-import { ROUTES } from '../constants/routes';
-import type { ExpertProfile } from '../types';
-import './ExpertDetail.css';
+import { Link, useParams } from 'react-router-dom'
+import ChatModal from '../components/ChatModal'
+import PackageCard from '../components/PackageCard'
+import { AI_CATEGORIES } from '../constants/categories'
+import { ROUTES } from '../constants/routes'
+import { mockExpertProducts } from '../data/mockData'
+import { useAuth } from '../contexts/AuthContext'
+import { useState } from 'react'
+import './ExpertDetail.css'
 
 export default function ExpertDetail() {
-    const { id } = useParams<{ id: string }>();
-    const { user } = useAuth();
-    const [profile, setProfile] = useState<ExpertProfile | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [chatOpen, setChatOpen] = useState<boolean>(false);
+    const { id } = useParams<{ id: string }>()
+    const { user } = useAuth()
+    const [chatOpen, setChatOpen] = useState<boolean>(false)
 
-    useEffect(() => {
-        if (!id) {
-            setLoading(false);
-            return;
-        }
+    const product = mockExpertProducts.find((item) => item.id === id || item.expertId === id)
+    const category = AI_CATEGORIES.find((item) => item.id === product?.category)
 
-        const loadProfile = async () => {
-            setLoading(true);
-            try {
-                // Supabase(또는 localStorage)에서 프로필 조회
-                const data = await getStoredProfile(id);
-                if (data) {
-                    setProfile(data);
-                }
-            } catch (error) {
-                console.error('프로필 로딩 에러:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadProfile();
-    }, [id]);
-
-    if (loading) {
+    if (!product) {
         return (
-            <main className="container" style={{ display: 'flex', justifyContent: 'center', padding: '5rem 0' }}>
-                <h2>로딩 중...</h2>
+            <main className="container detail-empty-state">
+                <span className="material-symbols-outlined">inventory_2</span>
+                <h2>상품을 찾을 수 없습니다</h2>
+                <p>존재하지 않거나 더 이상 공개되지 않은 AI 작업입니다.</p>
+                <Link to={ROUTES.CATEGORY} className="btn-primary">
+                    AI 작업 찾기로 돌아가기
+                </Link>
             </main>
-        );
-    }
-
-    if (!profile) {
-        return (
-            <main className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '5rem 0', gap: '1rem' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '4rem', color: 'var(--text-muted)' }}>person_off</span>
-                <h2>전문가를 찾을 수 없습니다</h2>
-                <p style={{ color: 'var(--text-secondary)' }}>존재하지 않거나 삭제된 프로필입니다.</p>
-                <Link to={ROUTES.HOME} className="btn-primary" style={{ marginTop: '1rem' }}>홈으로 돌아가기</Link>
-            </main>
-        );
+        )
     }
 
     return (
         <main className="container">
-            {/* 내 프로필일 경우 수정 버튼 표시 */}
-            {user?.id === id && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                    <Link to={ROUTES.PROFILE} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {user?.id === product.expertId && (
+                <div className="detail-owner-actions">
+                    <Link to={ROUTES.PROFILE} className="btn-primary">
                         <span className="material-symbols-outlined">edit</span>
                         프로필 수정하기
                     </Link>
                 </div>
             )}
-            
+
             <div className="detail-layout">
-                {/* ===== 좌측: 전문가 프로필 정보 ===== */}
                 <div className="content-left">
-                    {/* 프로필 헤더 */}
-                    <div className="expert-header">
-                        {profile.imageUrl ? (
-                            <img src={profile.imageUrl} alt={profile.name} className="expert-avatar-large" />
-                        ) : (
-                            <div className="expert-avatar-large" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)', color: 'var(--text-muted)' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '3rem' }}>person</span>
-                            </div>
-                        )}
-                        <div className="expert-info-main">
-                            <div style={{ color: 'var(--primary)', fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.95rem' }}>
-                                {profile.profession}
-                            </div>
-                            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '1rem' }}>
-                                {profile.name}
-                            </h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '1.1rem' }}>
-                                <span style={{ color: 'var(--star)' }} className="material-symbols-outlined">star</span>
-                                <span>4.8</span>
-                                <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.95rem' }}>(120개)</span>
-                                <span style={{ marginLeft: '1rem', paddingLeft: '1rem', borderLeft: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500, fontSize: '0.95rem' }}>
-                                    총 의뢰 완료 245건
-                                </span>
-                            </div>
+                    <section className="product-detail-hero">
+                        <div className="product-detail-image">
+                            <img src={product.sampleImageUrl} alt={`${product.title} 샘플 결과물`} />
                         </div>
-                    </div>
+                        <div className="product-detail-copy">
+                            <div className="product-detail-category">{category?.name ?? 'AI 작업'}</div>
+                            <h1>{product.title}</h1>
+                            <p>{product.description}</p>
+                            <div className="product-detail-meta">
+                                <span>시작가 {product.startingPrice.toLocaleString()}원</span>
+                                <span>작업 {product.deliveryDays}일</span>
+                                <span>수정 {product.revisionCount}회</span>
+                            </div>
+                            <div className="product-detail-expert">{product.expertName}</div>
+                        </div>
+                    </section>
 
-                    {/* 인사말 섹션 */}
-                    <div className="detail-section">
-                        <h2><span className="material-symbols-outlined">waving_hand</span>전문가 인사말</h2>
+                    <section className="detail-section">
+                        <h2>
+                            <span className="material-symbols-outlined">description</span>
+                            상품 설명
+                        </h2>
                         <div className="section-content">
-                            {profile.oneLiner && (
-                                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1.25rem', fontSize: '1.1rem' }}>
-                                    "{profile.oneLiner}"
-                                </p>
+                            <p>{product.summary}</p>
+                        </div>
+                    </section>
+
+                    <section className="detail-section">
+                        <h2>
+                            <span className="material-symbols-outlined">image</span>
+                            샘플 결과물
+                        </h2>
+                        <div className="section-content sample-result-panel">
+                            <img src={product.sampleImageUrl} alt={`${product.title} 샘플 미리보기`} />
+                            {product.sampleLinks.length > 0 && (
+                                <a href={product.sampleLinks[0]} target="_blank" rel="noreferrer">
+                                    샘플 링크 보기
+                                </a>
                             )}
-                            <p style={{ whiteSpace: 'pre-wrap' }}>
-                                {profile.greeting || '등록된 인사말이 없습니다.'}
-                            </p>
                         </div>
-                    </div>
+                    </section>
 
-                    {/* 경력 섹션 */}
-                    <div className="detail-section">
-                        <h2><span className="material-symbols-outlined">history_edu</span>전문가 경력</h2>
-                        <div className="section-content">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                                <div>
-                                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>주요 활동</h4>
-                                    <ul style={{ listStyle: 'none' }}>
-                                        {profile.activities.filter(a => a).length > 0 ? (
-                                            profile.activities.filter(a => a).map((activity, i) => (
-                                                <li key={i} style={{ marginBottom: '0.5rem' }}>• {activity}</li>
-                                            ))
-                                        ) : (
-                                            <li style={{ color: 'var(--text-muted)' }}>등록된 활동이 없습니다.</li>
-                                        )}
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>수상 이력</h4>
-                                    <ul style={{ listStyle: 'none' }}>
-                                        {profile.awards.filter(a => a).length > 0 ? (
-                                            profile.awards.filter(a => a).map((award, i) => (
-                                                <li key={i} style={{ marginBottom: '0.5rem' }}>• {award}</li>
-                                            ))
-                                        ) : (
-                                            <li style={{ color: 'var(--text-muted)' }}>등록된 수상 이력이 없습니다.</li>
-                                        )}
-                                    </ul>
-                                </div>
-                            </div>
+                    <section className="detail-section">
+                        <h2>
+                            <span className="material-symbols-outlined">construction</span>
+                            사용 AI 도구
+                        </h2>
+                        <div className="section-content tool-chip-list">
+                            {product.aiTools.map((tool) => (
+                                <span key={tool} className="tool-chip">
+                                    {tool}
+                                </span>
+                            ))}
                         </div>
-                    </div>
-
-                    {/* 사용 툴 */}
-                    <div className="detail-section">
-                        <h2><span className="material-symbols-outlined">construction</span>사용 툴 정보</h2>
-                        <div className="section-content">
-                            <div style={{ marginBottom: '2rem' }}>
-                                <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>AI 도구</h4>
-                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                    {profile.aiTools && profile.aiTools.length > 0 ? (
-                                        profile.aiTools.map((tool) => (
-                                            <span key={tool} className="tool-chip">{tool}</span>
-                                        ))
-                                    ) : (
-                                        <span style={{ color: 'var(--text-muted)' }}>등록된 도구가 없습니다.</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>편집 및 후반 작업</h4>
-                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                    {profile.editTools && profile.editTools.length > 0 ? (
-                                        profile.editTools.map((tool) => (
-                                            <span key={tool} className="tool-chip">{tool}</span>
-                                        ))
-                                    ) : (
-                                        <span style={{ color: 'var(--text-muted)' }}>등록된 도구가 없습니다.</span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </section>
                 </div>
 
-                {/* ===== 우측: 요금 패키지 ===== */}
                 <div className="content-right">
-                    <PackageCard packages={profile.packages} onOpenChat={() => setChatOpen(true)} />
+                    <PackageCard
+                        packages={product.packages}
+                        productId={product.id}
+                        onOpenChat={() => setChatOpen(true)}
+                    />
                 </div>
             </div>
 
-            {/* 채팅 모달 */}
             {chatOpen && <ChatModal onClose={() => setChatOpen(false)} />}
         </main>
-    );
+    )
 }

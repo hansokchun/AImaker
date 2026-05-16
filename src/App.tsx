@@ -12,6 +12,8 @@ import Home from './pages/Home';
 import Category from './pages/Category';
 import ExpertDetail from './pages/ExpertDetail';
 import ServiceRequest from './pages/ServiceRequest';
+import Proposal from './pages/Proposal';
+import Workroom from './pages/Workroom';
 import RequestBoard from './pages/RequestBoard';
 import Community from './pages/Community';
 import Login from './pages/Login';
@@ -30,6 +32,9 @@ function App() {
                     <Route path={ROUTES.CATEGORY} element={<Category />} />
                     <Route path={ROUTES.EXPERT_DETAIL} element={<ExpertDetail />} />
                     <Route path={ROUTES.SERVICE_REQUEST} element={<ServiceRequest />} />
+                    <Route path={ROUTES.SERVICE_REQUEST_PRODUCT} element={<ServiceRequest />} />
+                    <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
+                    <Route path={ROUTES.WORKROOM} element={<Workroom />} />
                     <Route path={ROUTES.REQUEST_BOARD} element={<RequestBoard />} />
                     <Route path={ROUTES.COMMUNITY} element={<Community />} />
                     <Route path={ROUTES.LOGIN} element={<Login />} />

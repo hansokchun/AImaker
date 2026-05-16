@@ -10,7 +10,7 @@ interface ProductCardProps {
 const currency = new Intl.NumberFormat('ko-KR')
 
 export default function ProductCard({ product }: ProductCardProps) {
-    const requestUrl = `${ROUTES.SERVICE_REQUEST}?productId=${product.id}`
+    const requestUrl = `/request/${product.id}`
 
     return (
         <article className="product-card">
