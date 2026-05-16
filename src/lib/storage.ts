@@ -3,7 +3,18 @@
  * - 로컬 환경에선 localStorage를 fallback으로 사용하고,
  *   실제 운영/연동 시 연결된 Supabase Table을 가리키도록 진화 (Step 2 적용)
  */
-import type { ServiceRequestData, ExpertProfile, Expert, ExpertProduct } from '../types';
+import type {
+    AiServiceRequest,
+    Deliverable,
+    Expert,
+    ExpertProduct,
+    ExpertProfile,
+    Proposal,
+    Review,
+    ServiceRequestData,
+    Work,
+    WorkStep,
+} from '../types';
 import { supabase } from './supabase';
 import { mockExpertProducts } from '../data/mockData';
 
@@ -12,9 +23,110 @@ const STORAGE_KEYS = {
     REQUESTS: 'ai_requests',
     PROFILE: 'ai_profile',
     PRODUCTS: 'ai_products',
+    PROPOSALS: 'ai_proposals',
+    WORKS: 'ai_works',
+    WORK_STEPS: 'ai_work_steps',
+    DELIVERABLES: 'ai_deliverables',
+    REVIEWS: 'ai_reviews',
 } as const;
 
-export async function getStoredRequests(): Promise<ServiceRequestData[]> {
+const isUuid = (value?: string) =>
+    Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
+
+const toServiceRequest = (item: any): AiServiceRequest => ({
+    id: item.id,
+    clientId: item.client_id,
+    expertId: item.expert_id,
+    productId: item.product_id,
+    selectedPackage: item.selected_package || 'standard',
+    desiredResult: item.desired_result || '',
+    purpose: item.purpose || '',
+    referenceText: item.reference_text || '',
+    referenceLinks: item.reference_links || [],
+    deadline: item.deadline || '',
+    progressType: item.progress_type || 'single',
+    checklist: item.checklist || {
+        commercialUseNeeded: false,
+        sourceFileNeeded: false,
+        revisionNeeded: false,
+        usageContext: '',
+    },
+    additionalRequest: item.additional_request || '',
+    status: item.status || 'submitted',
+});
+
+const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): ServiceRequestData => ({
+    id: request.id as any,
+    title: request.desiredResult,
+    description: request.purpose,
+    budget: '',
+    deadline: request.deadline,
+    categories: [],
+    createdAt: createdAt ? new Date(createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+    ordererEmail: '',
+    status: request.status === 'cancelled' ? 'completed' : 'pending',
+    productId: request.productId,
+    selectedPackage: request.selectedPackage,
+    desiredResult: request.desiredResult,
+    purpose: request.purpose,
+    referenceText: request.referenceText,
+    referenceLinks: request.referenceLinks,
+    progressType: request.progressType,
+});
+
+const toProposal = (item: any): Proposal => ({
+    id: item.id,
+    requestId: item.request_id,
+    clientId: item.client_id,
+    expertId: item.expert_id,
+    title: item.title,
+    scope: item.scope,
+    deliverables: item.deliverables || [],
+    totalPrice: item.total_price || 0,
+    deliveryDays: item.delivery_days || 0,
+    revisionCount: item.revision_count || 0,
+    progressType: item.progress_type || 'single',
+    milestones: item.milestones || [],
+    commercialUseAllowed: Boolean(item.commercial_use_allowed),
+    sourceFileIncluded: Boolean(item.source_file_included),
+    status: item.status || 'sent',
+    expiresAt: item.expires_at,
+});
+
+const toWork = (item: any): Work => ({
+    id: item.id,
+    proposalId: item.proposal_id,
+    requestId: item.request_id,
+    clientId: item.client_id,
+    expertId: item.expert_id,
+    title: item.title,
+    progressType: item.progress_type || 'single',
+    status: item.status || 'in_progress',
+    stepIds: [],
+});
+
+const toWorkStep = (item: any): WorkStep => ({
+    id: item.id,
+    workId: item.work_id,
+    stepOrder: item.step_order,
+    title: item.title,
+    description: item.description || '',
+    status: item.status || 'waiting',
+});
+
+const toDeliverable = (item: any): Deliverable => ({
+    id: item.id,
+    workId: item.work_id,
+    stepId: item.step_id,
+    expertId: item.expert_id,
+    description: item.description,
+    ...(item.external_url ? { externalUrl: item.external_url } : {}),
+    ...(item.file_url ? { fileUrl: item.file_url } : {}),
+    status: item.status || 'submitted',
+    submittedAt: item.submitted_at,
+});
+
+async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
     if (!supabase) {
         console.warn('Supabase 미설정: localStorage 폴백 모드로 로딩합니다.');
         try {
@@ -43,9 +155,9 @@ export async function getStoredRequests(): Promise<ServiceRequestData[]> {
     })) as ServiceRequestData[];
 }
 
-export async function saveRequest(request: ServiceRequestData, userId?: string | null): Promise<void> {
+async function saveRequestLegacy(request: ServiceRequestData, userId?: string | null): Promise<void> {
     if (!supabase) {
-        const existing = await getStoredRequests();
+        const existing = await getStoredRequestsLegacy();
         existing.push(request);
         localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(existing));
         return;
@@ -65,6 +177,114 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
     if (error) {
         console.error('DB 저장 에러:', error);
         throw new Error('데이터베이스 통신 오류: 의뢰 저장 실패');
+    }
+}
+
+export async function getStoredRequests(): Promise<ServiceRequestData[]> {
+    if (supabase) {
+        const requests = await getServiceRequests();
+        return requests.map((request) => toLegacyRequest(request));
+    }
+
+    return getStoredRequestsLegacy();
+}
+
+export async function getServiceRequests(): Promise<AiServiceRequest[]> {
+    if (!supabase) {
+        const requests = await getStoredRequestsLegacy();
+        return requests.map((request) => ({
+            id: String(request.id),
+            clientId: '',
+            expertId: '',
+            productId: request.productId || '',
+            selectedPackage: request.selectedPackage || 'standard',
+            desiredResult: request.desiredResult || request.title,
+            purpose: request.purpose || request.description,
+            referenceText: request.referenceText || '',
+            referenceLinks: request.referenceLinks || [],
+            deadline: request.deadline,
+            progressType: request.progressType || 'single',
+            checklist: {
+                commercialUseNeeded: false,
+                sourceFileNeeded: false,
+                revisionNeeded: false,
+                usageContext: '',
+            },
+            status: 'submitted',
+        }));
+    }
+
+    const { data, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('DB 요청 로딩 오류:', error);
+        return [];
+    }
+
+    return (data || []).map(toServiceRequest);
+}
+
+export async function saveRequest(request: ServiceRequestData, userId?: string | null): Promise<void> {
+    if (!supabase) {
+        await saveRequestLegacy(request, userId);
+        return;
+    }
+
+    await saveServiceRequest({
+        id: String(request.id),
+        clientId: userId || '',
+        expertId: '',
+        productId: request.productId || '',
+        selectedPackage: request.selectedPackage || 'standard',
+        desiredResult: request.desiredResult || request.title,
+        purpose: request.purpose || request.description,
+        referenceText: request.referenceText || '',
+        referenceLinks: request.referenceLinks || [],
+        deadline: request.deadline,
+        progressType: request.progressType || 'single',
+        checklist: {
+            commercialUseNeeded: false,
+            sourceFileNeeded: false,
+            revisionNeeded: false,
+            usageContext: '',
+        },
+        status: 'submitted',
+    });
+}
+
+export async function saveServiceRequest(request: AiServiceRequest): Promise<void> {
+    if (!supabase) {
+        const existing = await getStoredRequestsLegacy();
+        existing.push(toLegacyRequest(request));
+        localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(existing));
+        return;
+    }
+
+    const { error } = await supabase.from('service_requests').insert([{
+        ...(isUuid(request.id) ? { id: request.id } : {}),
+        client_id: request.clientId || null,
+        expert_id: request.expertId || null,
+        product_id: request.productId || null,
+        selected_package: request.selectedPackage,
+        desired_result: request.desiredResult,
+        purpose: request.purpose,
+        reference_text: request.referenceText,
+        reference_links: request.referenceLinks,
+        deadline: request.deadline,
+        progress_type: request.progressType,
+        checklist: request.checklist,
+        additional_request: request.additionalRequest || null,
+        title: request.desiredResult,
+        description: request.purpose,
+        status: request.status || 'submitted',
+    }]);
+
+    if (error) {
+        console.error('DB 요청 저장 오류:', error);
+        throw new Error('데이터베이스 통신 오류: 의뢰 요청 저장 실패');
     }
 }
 
@@ -271,6 +491,186 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         packages: item.packages,
         status: item.status,
     })) as ExpertProduct[];
+}
+
+export async function saveProposal(proposal: Proposal): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
+        localStorage.setItem(STORAGE_KEYS.PROPOSALS, JSON.stringify([...proposals, proposal]));
+        return;
+    }
+
+    const { error } = await supabase.from('proposals').insert([{
+        ...(isUuid(proposal.id) ? { id: proposal.id } : {}),
+        request_id: proposal.requestId,
+        client_id: proposal.clientId,
+        expert_id: proposal.expertId,
+        title: proposal.title,
+        scope: proposal.scope,
+        deliverables: proposal.deliverables,
+        total_price: proposal.totalPrice,
+        delivery_days: proposal.deliveryDays,
+        revision_count: proposal.revisionCount,
+        progress_type: proposal.progressType,
+        milestones: proposal.milestones,
+        commercial_use_allowed: proposal.commercialUseAllowed,
+        source_file_included: proposal.sourceFileIncluded,
+        status: proposal.status,
+        expires_at: proposal.expiresAt,
+    }]);
+
+    if (error) {
+        console.error('DB 제안서 저장 오류:', error);
+        throw new Error('데이터베이스 통신 오류: 제안서 저장 실패');
+    }
+}
+
+export async function getProposal(proposalId: string): Promise<Proposal | null> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
+        return proposals.find((proposal) => proposal.id === proposalId) || null;
+    }
+
+    const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .eq('id', proposalId)
+        .single();
+
+    if (error) return null;
+    return data ? toProposal(data) : null;
+}
+
+export async function acceptProposal(proposal: Proposal): Promise<void> {
+    if (!supabase) {
+        const work: Work = {
+            id: `work-${proposal.id}`,
+            proposalId: proposal.id,
+            requestId: proposal.requestId,
+            clientId: proposal.clientId,
+            expertId: proposal.expertId,
+            title: proposal.title,
+            progressType: proposal.progressType,
+            status: 'in_progress',
+            stepIds: [],
+        };
+        const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = raw ? (JSON.parse(raw) as Work[]) : [];
+        localStorage.setItem(STORAGE_KEYS.WORKS, JSON.stringify([...works, work]));
+        return;
+    }
+
+    const { error: proposalError } = await supabase
+        .from('proposals')
+        .update({ status: 'accepted' })
+        .eq('id', proposal.id);
+
+    if (proposalError) throw new Error('데이터베이스 통신 오류: 제안서 승인 실패');
+
+    const { error: workError } = await supabase.from('works').insert([{
+        proposal_id: proposal.id,
+        request_id: proposal.requestId,
+        client_id: proposal.clientId,
+        expert_id: proposal.expertId,
+        title: proposal.title,
+        progress_type: proposal.progressType,
+        status: 'in_progress',
+    }]);
+
+    if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
+}
+
+export async function getWorkroomData(workId: string): Promise<{
+    work: Work | null;
+    steps: WorkStep[];
+    deliverables: Deliverable[];
+}> {
+    if (!supabase) {
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
+        const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
+        const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
+        return {
+            work: works.find((work) => work.id === workId) || null,
+            steps: steps.filter((step) => step.workId === workId),
+            deliverables: deliverables.filter((deliverable) => deliverable.workId === workId),
+        };
+    }
+
+    const { data: workData, error: workError } = await supabase
+        .from('works')
+        .select('*')
+        .eq('id', workId)
+        .single();
+
+    if (workError || !workData) return { work: null, steps: [], deliverables: [] };
+
+    const { data: stepData } = await supabase
+        .from('work_steps')
+        .select('*')
+        .eq('work_id', workId)
+        .order('step_order', { ascending: true });
+
+    const { data: deliverableData } = await supabase
+        .from('deliverables')
+        .select('*')
+        .eq('work_id', workId)
+        .order('submitted_at', { ascending: false });
+
+    const steps = (stepData || []).map(toWorkStep);
+    const work = toWork(workData);
+
+    return {
+        work: { ...work, stepIds: steps.map((step) => step.id) },
+        steps,
+        deliverables: (deliverableData || []).map(toDeliverable),
+    };
+}
+
+export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
+        const deliverables = raw ? (JSON.parse(raw) as Deliverable[]) : [];
+        localStorage.setItem(STORAGE_KEYS.DELIVERABLES, JSON.stringify([...deliverables, deliverable]));
+        return;
+    }
+
+    const { error } = await supabase.from('deliverables').insert([{
+        ...(isUuid(deliverable.id) ? { id: deliverable.id } : {}),
+        work_id: deliverable.workId,
+        step_id: deliverable.stepId || null,
+        expert_id: deliverable.expertId,
+        description: deliverable.description,
+        external_url: deliverable.externalUrl || null,
+        file_url: deliverable.fileUrl || null,
+        status: deliverable.status,
+    }]);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');
+}
+
+export async function saveReview(review: Review): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+        const reviews = raw ? (JSON.parse(raw) as Review[]) : [];
+        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify([...reviews, review]));
+        return;
+    }
+
+    const { error } = await supabase.from('reviews').insert([{
+        ...(isUuid(review.id) ? { id: review.id } : {}),
+        work_id: review.workId,
+        client_id: review.clientId,
+        expert_id: review.expertId,
+        rating: review.rating,
+        content: review.content,
+    }]);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 리뷰 저장 실패');
 }
 
 export async function getExpertList(): Promise<Expert[]> {

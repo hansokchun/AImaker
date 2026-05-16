@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { saveReview } from '../lib/storage'
 
 export default function MyPage() {
     const { session, user, loading, signOut } = useAuth()
@@ -140,8 +141,17 @@ export default function MyPage() {
                     >
                         <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>리뷰 작성하기</h2>
                         <form
-                            onSubmit={(event) => {
+                            onSubmit={async (event) => {
                                 event.preventDefault()
+                                await saveReview({
+                                    id: `review-${Date.now()}`,
+                                    workId: 'work-completed-01',
+                                    clientId: user?.id || '',
+                                    expertId: 'expert-demo-01',
+                                    rating: Number(reviewRating) as 1 | 2 | 3 | 4 | 5,
+                                    content: reviewContent,
+                                    createdAt: new Date().toISOString(),
+                                })
                                 setReviewSubmitted(true)
                                 setReviewOpen(false)
                                 setReviewRating('5')

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
@@ -14,6 +14,12 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../lib/supabase', () => ({
     supabase: null,
+}))
+
+const saveReview = vi.fn(async () => undefined)
+
+vi.mock('../lib/storage', () => ({
+    saveReview: (...args: unknown[]) => saveReview(...args),
 }))
 
 describe('MyPage', () => {
@@ -58,7 +64,7 @@ describe('MyPage', () => {
         expect(within(activeWork).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
     })
 
-    it('opens and submits a review form for completed work', () => {
+    it('opens and submits a review form for completed work', async () => {
         render(
             <MemoryRouter>
                 <MyPage />
@@ -74,7 +80,17 @@ describe('MyPage', () => {
         })
         fireEvent.click(screen.getByRole('button', { name: '리뷰 등록' }))
 
-        expect(screen.getByText('리뷰가 등록되었습니다.')).toBeInTheDocument()
+        await waitFor(() =>
+            expect(saveReview).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    workId: 'work-completed-01',
+                    clientId: 'user-demo-01',
+                    rating: 5,
+                    content: '결과물이 목적에 잘 맞고 일정 안내도 명확했습니다.',
+                }),
+            ),
+        )
+        expect(await screen.findByText('리뷰가 등록되었습니다.')).toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '리뷰 작성하기' })).not.toBeInTheDocument()
     })
 })

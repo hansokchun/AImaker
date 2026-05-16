@@ -157,7 +157,7 @@ describe('Profile product publishing requirements', () => {
         await waitFor(() => expect(saveProfile).toHaveBeenCalledTimes(1))
         expect(saveExpertProduct).toHaveBeenCalledWith(
             expect.objectContaining({
-                id: 'product-expert-video-01',
+                id: 'expert-video-01',
                 expertId: 'expert-video-01',
                 title: 'AI 숏폼 영상 제작',
                 description: 'SNS 홍보용 숏폼 영상을 제작합니다.',

@@ -1,6 +1,8 @@
 import { Link, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import type { Proposal as ProposalData } from '../types'
+import { useEffect, useState } from 'react'
+import { acceptProposal, getProposal } from '../lib/storage'
 import './Proposal.css'
 
 const now = new Date()
@@ -60,8 +62,36 @@ function formatDate(value: string) {
 
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
-    const proposal = mockProposals.find((item) => item.id === proposalId) ?? mockProposals[0]
+    const [proposal, setProposal] = useState<ProposalData | null>(null)
+    const [statusMessage, setStatusMessage] = useState('')
+
+    useEffect(() => {
+        let active = true
+        getProposal(proposalId || '').then((storedProposal) => {
+            if (!active) return
+            setProposal(storedProposal ?? mockProposals.find((item) => item.id === proposalId) ?? mockProposals[0])
+        })
+        return () => {
+            active = false
+        }
+    }, [proposalId])
+
+    if (!proposal) {
+        return (
+            <main className="proposal-page">
+                <section className="container proposal-layout">
+                    <div className="proposal-main-card">제안서를 불러오는 중입니다.</div>
+                </section>
+            </main>
+        )
+    }
+
     const isExpired = proposal.status === 'expired' || new Date(proposal.expiresAt) < new Date()
+    const handleAccept = async () => {
+        await acceptProposal(proposal)
+        setProposal({ ...proposal, status: 'accepted' })
+        setStatusMessage('제안서를 승인했습니다. 작업 진행방이 열렸습니다.')
+    }
 
     return (
         <main className="proposal-page">
@@ -133,9 +163,10 @@ export default function Proposal() {
                     </div>
 
                     <p className="proposal-start-notice">승인 전에는 작업이 시작되지 않습니다.</p>
+                    {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
 
                     <div className="proposal-actions">
-                        <button type="button" className="btn-primary" disabled={isExpired}>
+                        <button type="button" className="btn-primary" disabled={isExpired} onClick={handleAccept}>
                             승인하기
                         </button>
                         <button type="button" className="btn-text">

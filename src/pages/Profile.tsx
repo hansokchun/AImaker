@@ -295,7 +295,7 @@ export default function Profile() {
         const standardPackage = toProductPackage('Standard', profileData.packages.standard);
 
         return {
-            id: `product-${userId}`,
+            id: userId,
             expertId: userId,
             expertName: profileData.name,
             title: productDraft.title.trim(),

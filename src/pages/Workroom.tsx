@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Deliverable, Work, WorkStep } from '../types'
+import { getWorkroomData, saveDeliverable } from '../lib/storage'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -64,9 +66,43 @@ const statusLabels: Record<WorkStep['status'], string> = {
 
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
-    const work = workId === mockWork.id ? mockWork : mockWork
-    const steps = mockSteps.filter((step) => step.workId === work.id)
-    const activeDeliverable = mockDeliverables[0]
+    const [work, setWork] = useState<Work>(mockWork)
+    const [steps, setSteps] = useState<WorkStep[]>(mockSteps)
+    const [deliverables, setDeliverables] = useState<Deliverable[]>(mockDeliverables)
+    const [deliverableLink, setDeliverableLink] = useState('')
+    const [statusMessage, setStatusMessage] = useState('')
+    const activeDeliverable = deliverables[0]
+
+    useEffect(() => {
+        let active = true
+        getWorkroomData(workId || mockWork.id).then((data) => {
+            if (!active) return
+            setWork(data.work || mockWork)
+            setSteps(data.steps.length ? data.steps : mockSteps)
+            setDeliverables(data.deliverables.length ? data.deliverables : mockDeliverables)
+        })
+        return () => {
+            active = false
+        }
+    }, [workId])
+
+    const handleSubmitDeliverable = async () => {
+        if (!deliverableLink.trim()) return
+        const newDeliverable: Deliverable = {
+            id: `deliverable-${Date.now()}`,
+            workId: work.id,
+            stepId: steps[0]?.id || '',
+            expertId: work.expertId,
+            description: '제출물 링크',
+            externalUrl: deliverableLink.trim(),
+            status: 'submitted',
+            submittedAt: new Date().toISOString(),
+        }
+        await saveDeliverable(newDeliverable)
+        setDeliverables([newDeliverable, ...deliverables])
+        setDeliverableLink('')
+        setStatusMessage('제출물 링크가 등록되었습니다.')
+    }
 
     return (
         <main className="workroom-page">
@@ -123,12 +159,15 @@ export default function Workroom() {
                                     aria-label="제출물 링크"
                                     type="url"
                                     placeholder="https://..."
+                                    value={deliverableLink}
+                                    onChange={(event) => setDeliverableLink(event.target.value)}
                                 />
-                                <button type="button" className="btn-primary">
+                                <button type="button" className="btn-primary" onClick={handleSubmitDeliverable}>
                                     제출물 링크 등록
                                 </button>
                             </div>
                         </form>
+                        {statusMessage && <p>{statusMessage}</p>}
                     </section>
                 </div>
 
