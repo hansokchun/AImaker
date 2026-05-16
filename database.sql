@@ -30,19 +30,23 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Public profiles are viewable by everyone" on public.profiles;
 create policy "Public profiles are viewable by everyone"
   on public.profiles for select
   using (true);
 
+drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
   before update on public.profiles
   for each row execute function public.set_updated_at();
@@ -65,14 +69,17 @@ create table if not exists public.expert_profiles (
 
 alter table public.expert_profiles enable row level security;
 
+drop policy if exists "Users can view expert profiles" on public.expert_profiles;
 create policy "Users can view expert profiles"
   on public.expert_profiles for select
   using (true);
 
+drop policy if exists "Users can insert own expert profile" on public.expert_profiles;
 create policy "Users can insert own expert profile"
   on public.expert_profiles for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own expert profile" on public.expert_profiles;
 create policy "Users can update own expert profile"
   on public.expert_profiles for update
   using (auth.uid() = user_id)
@@ -101,19 +108,23 @@ create table if not exists public.expert_products (
 
 alter table public.expert_products enable row level security;
 
+drop policy if exists "Anyone can view published products" on public.expert_products;
 create policy "Anyone can view published products"
   on public.expert_products for select
   using (status = 'published' or auth.uid() = expert_id);
 
+drop policy if exists "Experts can insert own products" on public.expert_products;
 create policy "Experts can insert own products"
   on public.expert_products for insert
   with check (auth.uid() = expert_id);
 
+drop policy if exists "Experts can update own products" on public.expert_products;
 create policy "Experts can update own products"
   on public.expert_products for update
   using (auth.uid() = expert_id)
   with check (auth.uid() = expert_id);
 
+drop trigger if exists set_expert_products_updated_at on public.expert_products;
 create trigger set_expert_products_updated_at
   before update on public.expert_products
   for each row execute function public.set_updated_at();
@@ -145,19 +156,23 @@ create table if not exists public.service_requests (
 
 alter table public.service_requests enable row level security;
 
+drop policy if exists "Request participants can view requests" on public.service_requests;
 create policy "Request participants can view requests"
   on public.service_requests for select
   using (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop policy if exists "Clients can insert own requests" on public.service_requests;
 create policy "Clients can insert own requests"
   on public.service_requests for insert
   with check (auth.uid() = client_id);
 
+drop policy if exists "Clients can update own cancellable requests" on public.service_requests;
 create policy "Clients can update own cancellable requests"
   on public.service_requests for update
   using (auth.uid() = client_id)
   with check (auth.uid() = client_id);
 
+drop trigger if exists set_service_requests_updated_at on public.service_requests;
 create trigger set_service_requests_updated_at
   before update on public.service_requests
   for each row execute function public.set_updated_at();
@@ -187,19 +202,23 @@ create table if not exists public.proposals (
 
 alter table public.proposals enable row level security;
 
+drop policy if exists "Proposal participants can view proposals" on public.proposals;
 create policy "Proposal participants can view proposals"
   on public.proposals for select
   using (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop policy if exists "Experts can insert proposal for own request" on public.proposals;
 create policy "Experts can insert proposal for own request"
   on public.proposals for insert
   with check (auth.uid() = expert_id);
 
+drop policy if exists "Clients and experts can update proposals" on public.proposals;
 create policy "Clients and experts can update proposals"
   on public.proposals for update
   using (auth.uid() = client_id or auth.uid() = expert_id)
   with check (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop trigger if exists set_proposals_updated_at on public.proposals;
 create trigger set_proposals_updated_at
   before update on public.proposals
   for each row execute function public.set_updated_at();
@@ -222,19 +241,23 @@ create table if not exists public.works (
 
 alter table public.works enable row level security;
 
+drop policy if exists "Work participants can view works" on public.works;
 create policy "Work participants can view works"
   on public.works for select
   using (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop policy if exists "Accepted proposal participants can insert works" on public.works;
 create policy "Accepted proposal participants can insert works"
   on public.works for insert
   with check (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop policy if exists "Work participants can update works" on public.works;
 create policy "Work participants can update works"
   on public.works for update
   using (auth.uid() = client_id or auth.uid() = expert_id)
   with check (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop trigger if exists set_works_updated_at on public.works;
 create trigger set_works_updated_at
   before update on public.works
   for each row execute function public.set_updated_at();
@@ -258,6 +281,7 @@ create table if not exists public.work_steps (
 
 alter table public.work_steps enable row level security;
 
+drop policy if exists "Work participants can view work steps" on public.work_steps;
 create policy "Work participants can view work steps"
   on public.work_steps for select
   using (
@@ -268,6 +292,7 @@ create policy "Work participants can view work steps"
     )
   );
 
+drop policy if exists "Work participants can update work steps" on public.work_steps;
 create policy "Work participants can update work steps"
   on public.work_steps for update
   using (
@@ -278,6 +303,7 @@ create policy "Work participants can update work steps"
     )
   );
 
+drop trigger if exists set_work_steps_updated_at on public.work_steps;
 create trigger set_work_steps_updated_at
   before update on public.work_steps
   for each row execute function public.set_updated_at();
@@ -299,6 +325,7 @@ create table if not exists public.deliverables (
 
 alter table public.deliverables enable row level security;
 
+drop policy if exists "Work participants can view deliverables" on public.deliverables;
 create policy "Work participants can view deliverables"
   on public.deliverables for select
   using (
@@ -309,10 +336,12 @@ create policy "Work participants can view deliverables"
     )
   );
 
+drop policy if exists "Experts can insert deliverables" on public.deliverables;
 create policy "Experts can insert deliverables"
   on public.deliverables for insert
   with check (auth.uid() = expert_id);
 
+drop policy if exists "Work participants can update deliverables" on public.deliverables;
 create policy "Work participants can update deliverables"
   on public.deliverables for update
   using (
@@ -323,6 +352,7 @@ create policy "Work participants can update deliverables"
     )
   );
 
+drop trigger if exists set_deliverables_updated_at on public.deliverables;
 create trigger set_deliverables_updated_at
   before update on public.deliverables
   for each row execute function public.set_updated_at();
@@ -342,10 +372,12 @@ create table if not exists public.reviews (
 
 alter table public.reviews enable row level security;
 
+drop policy if exists "Public can read reviews" on public.reviews;
 create policy "Public can read reviews"
   on public.reviews for select
   using (true);
 
+drop policy if exists "Clients can review completed work" on public.reviews;
 create policy "Clients can review completed work"
   on public.reviews for insert
   with check (
@@ -358,6 +390,7 @@ create policy "Clients can review completed work"
     )
   );
 
+drop trigger if exists set_reviews_updated_at on public.reviews;
 create trigger set_reviews_updated_at
   before update on public.reviews
   for each row execute function public.set_updated_at();
@@ -370,26 +403,32 @@ values
   ('deliverable-files', 'deliverable-files', false)
 on conflict (id) do nothing;
 
+drop policy if exists "Public can read product samples" on storage.objects;
 create policy "Public can read product samples"
   on storage.objects for select
   using (bucket_id = 'product-samples');
 
+drop policy if exists "Experts can upload product samples" on storage.objects;
 create policy "Experts can upload product samples"
   on storage.objects for insert
   with check (bucket_id = 'product-samples' and auth.role() = 'authenticated');
 
+drop policy if exists "Public can read profile images" on storage.objects;
 create policy "Public can read profile images"
   on storage.objects for select
   using (bucket_id = 'profile-images');
 
+drop policy if exists "Users can upload profile images" on storage.objects;
 create policy "Users can upload profile images"
   on storage.objects for insert
   with check (bucket_id = 'profile-images' and auth.role() = 'authenticated');
 
+drop policy if exists "Work participants can read deliverable files" on storage.objects;
 create policy "Work participants can read deliverable files"
   on storage.objects for select
   using (bucket_id = 'deliverable-files' and auth.role() = 'authenticated');
 
+drop policy if exists "Experts can upload deliverable files" on storage.objects;
 create policy "Experts can upload deliverable files"
   on storage.objects for insert
   with check (bucket_id = 'deliverable-files' and auth.role() = 'authenticated');

@@ -42,4 +42,10 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Public can read product samples"/i)
         expect(sql).toMatch(/create policy "Work participants can read deliverable files"/i)
     })
+
+    it('drops policies and triggers before recreating them for safe reruns', () => {
+        expect(sql).toMatch(/drop policy if exists "Public profiles are viewable by everyone" on public\.profiles;/i)
+        expect(sql).toMatch(/drop trigger if exists set_work_steps_updated_at on public\.work_steps;/i)
+        expect(sql).toMatch(/drop policy if exists "Public can read product samples" on storage\.objects;/i)
+    })
 })
