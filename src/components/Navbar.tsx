@@ -10,8 +10,8 @@ import { ROUTES } from '../constants/routes';
 
 /** 네비게이션 링크 정의 — 추가/변경 시 여기만 수정하면 됨 */
 const NAV_LINKS = [
-    { path: ROUTES.CATEGORY, label: '전문가 찾기' },
-    { path: ROUTES.SERVICE_REQUEST, label: '서비스 요청' },
+    { path: ROUTES.CATEGORY, label: 'AI 작업 찾기' },
+    { path: ROUTES.SERVICE_REQUEST, label: 'AI 작업 요청' },
     { path: ROUTES.REQUEST_BOARD, label: '요청 게시판' },
     { path: ROUTES.COMMUNITY, label: '커뮤니티' },
 ] as const;

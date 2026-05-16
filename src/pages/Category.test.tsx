@@ -1,10 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import Category from './Category'
+import { mockExpertProducts } from '../data/mockData'
+
+vi.mock('../lib/storage', () => ({
+  getExpertProducts: vi.fn(async () => mockExpertProducts),
+}))
 
 describe('Category', () => {
-  it('renders products instead of expert cards', () => {
+  it('renders products instead of expert cards', async () => {
     render(
       <MemoryRouter>
         <Category />
@@ -15,18 +20,19 @@ describe('Category', () => {
     expect(screen.getByText('AI 영상/숏폼')).toBeInTheDocument()
     expect(screen.getByText('AI 이미지/캐릭터')).toBeInTheDocument()
     expect(screen.getByText('AI 개발/자동화')).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: '패키지로 의뢰하기' })).toHaveLength(3)
+    expect(await screen.findAllByRole('link', { name: '패키지로 의뢰하기' })).toHaveLength(3)
     expect(screen.getByText('시작가 30,000원')).toBeInTheDocument()
     expect(screen.getByText('ChatGPT · Runway · Premiere Pro')).toBeInTheDocument()
   })
 
-  it('shows an empty state when filters remove all products', () => {
+  it('shows an empty state when filters remove all products', async () => {
     render(
       <MemoryRouter>
         <Category />
       </MemoryRouter>,
     )
 
+    await screen.findAllByRole('link', { name: '패키지로 의뢰하기' })
     fireEvent.change(screen.getByLabelText('최대 가격'), { target: { value: '10000' } })
 
     expect(screen.getByText('아직 등록된 AI 작업이 없습니다.')).toBeInTheDocument()

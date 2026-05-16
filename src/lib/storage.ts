@@ -3,13 +3,15 @@
  * - 로컬 환경에선 localStorage를 fallback으로 사용하고,
  *   실제 운영/연동 시 연결된 Supabase Table을 가리키도록 진화 (Step 2 적용)
  */
-import type { ServiceRequestData, ExpertProfile, Expert } from '../types';
+import type { ServiceRequestData, ExpertProfile, Expert, ExpertProduct } from '../types';
 import { supabase } from './supabase';
+import { mockExpertProducts } from '../data/mockData';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
 const STORAGE_KEYS = {
     REQUESTS: 'ai_requests',
     PROFILE: 'ai_profile',
+    PRODUCTS: 'ai_products',
 } as const;
 
 export async function getStoredRequests(): Promise<ServiceRequestData[]> {
@@ -199,6 +201,78 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
  * - expert_profiles에서 모든 프로필을 가져와 Expert 타입으로 매핑
  * - 리뷰 및 평점 시스템 연동 전이므로 임시로 0 처리
  */
+export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+        const existing = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
+        const next = existing.filter((item) => item.id !== product.id);
+        next.push(product);
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(next));
+        return;
+    }
+
+    const { error } = await supabase.from('expert_products').upsert({
+        id: product.id,
+        expert_id: product.expertId,
+        title: product.title,
+        category: product.category,
+        summary: product.summary,
+        description: product.description,
+        ai_tools: product.aiTools,
+        sample_links: product.sampleLinks,
+        sample_file_urls: product.sampleImageUrl ? [product.sampleImageUrl] : [],
+        starting_price: product.startingPrice,
+        currency: 'KRW',
+        delivery_days: product.deliveryDays,
+        revision_count: product.revisionCount,
+        packages: product.packages,
+        status: product.status,
+        updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+        console.error('Supabase 상품 저장 실패:', error);
+        throw new Error(`데이터베이스 통신 오류: 상품 저장 실패 (${error.message})`);
+    }
+}
+
+export async function getExpertProducts(): Promise<ExpertProduct[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+        const stored = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
+        return stored.length ? stored : mockExpertProducts;
+    }
+
+    const { data, error } = await supabase
+        .from('expert_products')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Supabase 상품 목록 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map((item) => ({
+        id: item.id,
+        expertId: item.expert_id,
+        expertName: item.expert_name || 'AI 전문가',
+        title: item.title,
+        category: item.category,
+        summary: item.summary,
+        description: item.description,
+        aiTools: item.ai_tools || [],
+        sampleLinks: item.sample_links || [],
+        sampleImageUrl: item.sample_file_urls?.[0] || item.sample_links?.[0] || '',
+        startingPrice: item.starting_price,
+        deliveryDays: item.delivery_days,
+        revisionCount: item.revision_count,
+        packages: item.packages,
+        status: item.status,
+    })) as ExpertProduct[];
+}
+
 export async function getExpertList(): Promise<Expert[]> {
     if (!supabase) {
         return [];

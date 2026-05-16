@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Profile from './Profile'
 import type { ExpertProfile } from '../types'
-import { saveProfile } from '../lib/storage'
+import { saveExpertProduct, saveProfile } from '../lib/storage'
 
 const makeProfile = (overrides: Partial<ExpertProfile> = {}): ExpertProfile => ({
     imageUrl: 'https://example.com/profile.jpg',
@@ -37,6 +37,7 @@ vi.mock('../lib/storage', () => ({
     createDefaultProfile: () => makeProfile(),
     getStoredProfile: vi.fn(async () => mockProfile),
     saveProfile: vi.fn(async () => undefined),
+    saveExpertProduct: vi.fn(async () => undefined),
 }))
 
 describe('Profile product publishing requirements', () => {
@@ -113,5 +114,58 @@ describe('Profile product publishing requirements', () => {
 
         await waitFor(() => expect(window.alert).toHaveBeenCalledWith('샘플 결과물을 입력해 주세요.'))
         expect(saveProfile).not.toHaveBeenCalled()
+    })
+
+    it('saves a published expert product with the profile', async () => {
+        mockProfile = makeProfile({
+            packages: {
+                standard: {
+                    price: '30000',
+                    description: '15초 숏폼 기본 제작',
+                    workDays: '2',
+                    revisions: '1',
+                    features: ['15초 영상 시안'],
+                },
+                deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            },
+        })
+
+        render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        fireEvent.change(await screen.findByLabelText('상품명'), {
+            target: { value: 'AI 숏폼 영상 제작' },
+        })
+        fireEvent.change(screen.getByLabelText('상품 설명'), {
+            target: { value: 'SNS 홍보용 숏폼 영상을 제작합니다.' },
+        })
+        fireEvent.change(screen.getByLabelText('샘플 결과물'), {
+            target: { value: 'https://example.com/sample.mp4' },
+        })
+        fireEvent.change(screen.getByLabelText('시작 가격'), {
+            target: { value: '30000' },
+        })
+        fireEvent.change(screen.getByLabelText('작업 기간'), {
+            target: { value: '2' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '프로필 저장하기' }))
+
+        await waitFor(() => expect(saveProfile).toHaveBeenCalledTimes(1))
+        expect(saveExpertProduct).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'product-expert-video-01',
+                expertId: 'expert-video-01',
+                title: 'AI 숏폼 영상 제작',
+                description: 'SNS 홍보용 숏폼 영상을 제작합니다.',
+                sampleImageUrl: 'https://example.com/sample.mp4',
+                startingPrice: 30000,
+                deliveryDays: 2,
+                status: 'published',
+            }),
+        )
     })
 })

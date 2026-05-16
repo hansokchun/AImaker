@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
-import { mockExpertProducts } from '../data/mockData'
-import type { AiCategoryId } from '../types'
+import { getExpertProducts } from '../lib/storage'
+import type { AiCategoryId, ExpertProduct } from '../types'
 import './Category.css'
 
 export default function Category() {
+    const [products, setProducts] = useState<ExpertProduct[]>([])
     const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(
         AI_CATEGORIES.map((category) => category.id),
     )
@@ -16,9 +17,19 @@ export default function Category() {
     const [maxPrice, setMaxPrice] = useState<number>(1000000)
 
     const tools = useMemo(
-        () => Array.from(new Set(mockExpertProducts.flatMap((product) => product.aiTools))).sort(),
-        [],
+        () => Array.from(new Set(products.flatMap((product) => product.aiTools))).sort(),
+        [products],
     )
+
+    useEffect(() => {
+        let active = true
+        getExpertProducts().then((items) => {
+            if (active) setProducts(items)
+        })
+        return () => {
+            active = false
+        }
+    }, [])
 
     const toggleCategory = (categoryId: AiCategoryId) => {
         if (selectedCategories.includes(categoryId)) {
@@ -28,7 +39,7 @@ export default function Category() {
         }
     }
 
-    const filteredProducts = mockExpertProducts.filter((product) => {
+    const filteredProducts = products.filter((product) => {
         const matchesCategory =
             selectedCategories.length === 0 || selectedCategories.includes(product.category)
         const matchesPrice = product.startingPrice <= maxPrice

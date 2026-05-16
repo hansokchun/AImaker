@@ -9,11 +9,12 @@
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getStoredProfile, saveProfile, createDefaultProfile } from '../lib/storage';
+import { getStoredProfile, saveProfile, createDefaultProfile, saveExpertProduct } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
 import { supabase } from '../lib/supabase';
 import { CATEGORIES } from '../data/mockData';
-import type { ExpertProfile, PackageInfo } from '../types';
+import { AI_CATEGORIES } from '../constants/categories';
+import type { ExpertProfile, ExpertProduct, PackageInfo, ProductPackage } from '../types';
 import './Profile.css';
 
 /** 패키지 탭 종류 (PackageCard와 동일) */
@@ -273,6 +274,49 @@ export default function Profile() {
     };
 
     /** 패키지 features 리스트 항목 변경 */
+    const toProductPackage = (name: ProductPackage['name'], packageInfo: PackageInfo): ProductPackage | null => {
+        const included = packageInfo.features.map((feature) => feature.trim()).filter(Boolean);
+        if (!packageInfo.price.trim() && !packageInfo.workDays.trim() && included.length === 0) {
+            return null;
+        }
+
+        return {
+            name,
+            price: Number(packageInfo.price.replace(/[^\d]/g, '')) || 0,
+            deliveryDays: Number(packageInfo.workDays.replace(/[^\d]/g, '')) || 0,
+            revisionCount: Number(packageInfo.revisions.replace(/[^\d]/g, '')) || 0,
+            included,
+        };
+    };
+
+    const buildExpertProduct = (userId: string, profileData: ExpertProfile): ExpertProduct => {
+        const category =
+            AI_CATEGORIES.find((item) => profileData.profession.includes(item.name))?.id ?? AI_CATEGORIES[0].id;
+        const standardPackage = toProductPackage('Standard', profileData.packages.standard);
+
+        return {
+            id: `product-${userId}`,
+            expertId: userId,
+            expertName: profileData.name,
+            title: productDraft.title.trim(),
+            category,
+            summary: productDraft.description.trim(),
+            description: productDraft.description.trim(),
+            aiTools: profileData.aiTools,
+            sampleLinks: [productDraft.sampleImageUrl.trim()],
+            sampleImageUrl: productDraft.sampleImageUrl.trim(),
+            startingPrice: Number(productDraft.startingPrice) || 0,
+            deliveryDays: Number(productDraft.deliveryDays) || 0,
+            revisionCount: standardPackage?.revisionCount ?? 0,
+            packages: {
+                standard: standardPackage as ProductPackage,
+                deluxe: toProductPackage('Deluxe', profileData.packages.deluxe),
+                premium: toProductPackage('Premium', profileData.packages.premium),
+            },
+            status: 'published',
+        };
+    };
+
     const handlePackageFeatureChange = (tab: PackageTab, index: number, value: string) => {
         setProfile((prev) => {
             const features = [...prev.packages[tab].features];
@@ -365,6 +409,7 @@ export default function Profile() {
             };
 
             await saveProfile(user.id, cleanedProfile);
+            await saveExpertProduct(buildExpertProduct(user.id, cleanedProfile));
             
             // profiles 테이블 이름도 동기화
             if (supabase) {
