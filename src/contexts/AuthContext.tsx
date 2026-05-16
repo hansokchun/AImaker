@@ -8,6 +8,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { ensureUserProfile } from '../lib/storage';
 import type { AuthContextType } from '../types';
 
 const AuthContext = createContext<AuthContextType>({
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         /** 프로필 존재 여부를 확인하고 없으면 온보딩으로 리다이렉트 */
         const checkProfileAndRedirect = async (currentUser: User | null) => {
             if (!currentUser) return;
+            await ensureUserProfile(currentUser);
 
             // 온보딩/로그인 페이지에 이미 있으면 무한 루프 방지
             const path = window.location.pathname;

@@ -17,6 +17,7 @@ import type {
 } from '../types';
 import { supabase } from './supabase';
 import { mockExpertProducts } from '../data/mockData';
+import type { User } from '@supabase/supabase-js';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
 const STORAGE_KEYS = {
@@ -125,6 +126,23 @@ const toDeliverable = (item: any): Deliverable => ({
     status: item.status || 'submitted',
     submittedAt: item.submitted_at,
 });
+
+export async function ensureUserProfile(user: Pick<User, 'id' | 'email' | 'user_metadata'>): Promise<void> {
+    if (!supabase) return;
+
+    const { error } = await supabase.from('profiles').upsert(
+        {
+            id: user.id,
+            email: user.email,
+            display_name: user.user_metadata?.display_name || user.user_metadata?.name || null,
+        },
+        { onConflict: 'id' },
+    );
+
+    if (error) {
+        console.error('profiles 최소 row 보장 실패:', error);
+    }
+}
 
 async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
     if (!supabase) {

@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AiServiceRequest, Deliverable, ExpertProduct, Proposal, Review, Work, WorkStep } from '../types'
 
+const user = {
+    id: 'user-test-01',
+    email: 'tester@example.com',
+    user_metadata: { display_name: '테스터' },
+}
+
 const product: ExpertProduct = {
     id: 'product-test-01',
     expertId: 'expert-test-01',
@@ -98,6 +104,32 @@ describe('expert product storage', () => {
         expect(from).toHaveBeenCalledWith('expert_products')
         expect(select).toHaveBeenCalledWith('*')
         expect(eq).toHaveBeenCalledWith('status', 'published')
+    })
+})
+
+describe('profile storage', () => {
+    it('ensures a minimal user profile row for foreign key references', async () => {
+        vi.resetModules()
+        const upsert = vi.fn().mockResolvedValue({ error: null })
+        const from = vi.fn(() => ({ upsert }))
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { ensureUserProfile } = await import('./storage')
+
+        await ensureUserProfile(user)
+
+        expect(from).toHaveBeenCalledWith('profiles')
+        expect(upsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: user.id,
+                email: user.email,
+                display_name: '테스터',
+            }),
+            { onConflict: 'id' },
+        )
     })
 })
 
