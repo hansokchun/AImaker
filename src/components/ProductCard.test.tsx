@@ -15,6 +15,7 @@ describe('ProductCard', () => {
     )
 
     expect(screen.getByRole('heading', { name: product.title })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: product.title })).toHaveAttribute('href', `/expert/${product.id}`)
     expect(screen.getByText('시작가 30,000원')).toBeInTheDocument()
     expect(screen.getByText('ChatGPT · Runway · Premiere Pro')).toBeInTheDocument()
     expect(screen.getByAltText(`${product.title} 샘플`)).toBeInTheDocument()

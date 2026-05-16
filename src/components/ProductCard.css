@@ -42,6 +42,15 @@
     letter-spacing: 0;
 }
 
+.product-card-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.product-card-title-link:hover {
+    color: var(--primary);
+}
+
 .product-card-summary {
     margin: 0;
     color: var(--text-secondary);

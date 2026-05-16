@@ -19,6 +19,14 @@ import './Profile.css';
 /** 패키지 탭 종류 (PackageCard와 동일) */
 type PackageTab = 'standard' | 'deluxe' | 'premium';
 
+interface ProductDraft {
+    title: string;
+    description: string;
+    sampleImageUrl: string;
+    startingPrice: string;
+    deliveryDays: string;
+}
+
 /** 패키지 탭 한글 라벨 */
 const PACKAGE_LABELS: Record<PackageTab, string> = {
     standard: 'Standard',
@@ -45,6 +53,13 @@ export default function Profile() {
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
     const [aiToolInput, setAiToolInput] = useState<string>('');
     const [editToolInput, setEditToolInput] = useState<string>('');
+    const [productDraft, setProductDraft] = useState<ProductDraft>({
+        title: '',
+        description: '',
+        sampleImageUrl: '',
+        startingPrice: '',
+        deliveryDays: '',
+    });
 
     // 전문분야 '기타' 상태 관리
     const [showCustomProfession, setShowCustomProfession] = useState<boolean>(false);
@@ -118,6 +133,10 @@ export default function Profile() {
     /** 단순 텍스트 필드 변경 */
     const handleChange = (field: keyof ExpertProfile, value: string) => {
         setProfile((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleProductDraftChange = (field: keyof ProductDraft, value: string) => {
+        setProductDraft((prev) => ({ ...prev, [field]: value }));
     };
 
     /** 전문분야 다중 선택 토글 핸들러 */
@@ -323,6 +342,19 @@ export default function Profile() {
         // 전문가 모드: 전체 프로필 저장
         if (!profile.name.trim()) { alert('이름을 입력해 주세요.'); return; }
         if (!profile.profession.trim()) { alert('전문 분야를 입력해 주세요.'); return; }
+        if (!productDraft.title.trim()) { alert('상품명을 입력해 주세요.'); return; }
+        if (!productDraft.description.trim()) { alert('상품 설명을 입력해 주세요.'); return; }
+        if (!productDraft.sampleImageUrl.trim()) { alert('샘플 결과물을 입력해 주세요.'); return; }
+        if (!productDraft.startingPrice.trim()) { alert('시작 가격을 입력해 주세요.'); return; }
+        if (!productDraft.deliveryDays.trim()) { alert('작업 기간을 입력해 주세요.'); return; }
+        if (profile.aiTools.length === 0) { alert('사용 AI 도구를 하나 이상 입력해 주세요.'); return; }
+
+        const standardPackage = profile.packages.standard;
+        const hasStandardFeature = standardPackage.features.some((feature) => feature.trim());
+        if (!standardPackage.price.trim() || !standardPackage.workDays.trim() || !hasStandardFeature) {
+            alert('Standard 패키지는 가격, 작업 기간, 포함 항목이 필요합니다.');
+            return;
+        }
 
         setSaving(true);
         try {
@@ -725,7 +757,94 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    {/* ===== 5. 요금 패키지 ===== */}
+                    {/* ===== 5. 상품 등록 ===== */}
+                    <div className="profile-section product-register-section">
+                        <h2>
+                            <span className="material-symbols-outlined">inventory_2</span>
+                            상품 등록
+                        </h2>
+                        <p className="product-register-help">
+                            공개할 AI 작업 상품의 최소 정보를 입력하세요. Standard 패키지와 샘플 결과물은 필수입니다.
+                        </p>
+
+                        <div className="profile-form-group">
+                            <label htmlFor="product-title">상품명</label>
+                            <input
+                                id="product-title"
+                                aria-label="상품명"
+                                type="text"
+                                className="profile-input"
+                                value={productDraft.title}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                    handleProductDraftChange('title', e.target.value)
+                                }
+                                placeholder="예: AI 숏폼 영상 콘셉트와 1차 시안을 제작해드립니다"
+                            />
+                        </div>
+
+                        <div className="profile-form-group">
+                            <label htmlFor="product-description">상품 설명</label>
+                            <textarea
+                                id="product-description"
+                                aria-label="상품 설명"
+                                className="profile-input"
+                                rows={4}
+                                value={productDraft.description}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                                    handleProductDraftChange('description', e.target.value)
+                                }
+                                placeholder="상품에 포함되는 작업 범위와 적합한 의뢰 상황을 설명해 주세요."
+                            />
+                        </div>
+
+                        <div className="profile-form-group">
+                            <label htmlFor="sample-image-url">샘플 결과물</label>
+                            <input
+                                id="sample-image-url"
+                                aria-label="샘플 결과물"
+                                type="url"
+                                className="profile-input"
+                                value={productDraft.sampleImageUrl}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                    handleProductDraftChange('sampleImageUrl', e.target.value)
+                                }
+                                placeholder="https://example.com/sample"
+                            />
+                        </div>
+
+                        <div className="package-row">
+                            <div className="profile-form-group">
+                                <label htmlFor="starting-price">시작 가격</label>
+                                <input
+                                    id="starting-price"
+                                    aria-label="시작 가격"
+                                    type="text"
+                                    className="profile-input"
+                                    value={productDraft.startingPrice}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                        handleProductDraftChange('startingPrice', e.target.value.replace(/[^\d]/g, ''))
+                                    }
+                                    placeholder="예: 30000"
+                                />
+                            </div>
+                            <div className="profile-form-group">
+                                <label htmlFor="delivery-days">작업 기간</label>
+                                <input
+                                    id="delivery-days"
+                                    aria-label="작업 기간"
+                                    type="text"
+                                    className="profile-input"
+                                    value={productDraft.deliveryDays}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                        handleProductDraftChange('deliveryDays', e.target.value.replace(/[^\d]/g, ''))
+                                    }
+                                    placeholder="예: 2"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ===== 6. 요금 패키지 ===== */}
                     <div className="profile-section">
                         <h2>
                             <span className="material-symbols-outlined">payments</span>

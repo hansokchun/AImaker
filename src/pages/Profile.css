@@ -283,6 +283,16 @@ textarea.profile-input {
     gap: 1rem;
 }
 
+.product-register-section {
+    border-color: #bfdbfe;
+}
+
+.product-register-help {
+    margin: -0.75rem 0 1.75rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
 /* ===== 저장 버튼 영역 ===== */
 .profile-actions {
     display: flex;

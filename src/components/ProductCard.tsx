@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { ROUTES } from '../constants/routes'
 import type { ExpertProduct } from '../types'
 import './ProductCard.css'
 
@@ -10,6 +9,7 @@ interface ProductCardProps {
 const currency = new Intl.NumberFormat('ko-KR')
 
 export default function ProductCard({ product }: ProductCardProps) {
+    const detailUrl = `/expert/${product.id}`
     const requestUrl = `/request/${product.id}`
 
     return (
@@ -20,7 +20,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
             <div className="product-card-body">
                 <div className="product-card-tools">{product.aiTools.join(' · ')}</div>
-                <h3>{product.title}</h3>
+                <h3>
+                    <Link className="product-card-title-link" to={detailUrl}>
+                        {product.title}
+                    </Link>
+                </h3>
                 <p className="product-card-summary">{product.summary}</p>
 
                 <dl className="product-card-meta">
