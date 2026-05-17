@@ -469,6 +469,31 @@ describe('transaction storage', () => {
         expect(workEq).toHaveBeenCalledWith('id', work.id)
     })
 
+    it('requests a deliverable revision and marks its work as revision requested through Supabase', async () => {
+        vi.resetModules()
+        const deliverableEq = vi.fn().mockResolvedValue({ error: null })
+        const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
+        const workEq = vi.fn().mockResolvedValue({ error: null })
+        const workUpdate = vi.fn(() => ({ eq: workEq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'deliverables') return { update: deliverableUpdate }
+            if (table === 'works') return { update: workUpdate }
+            return {}
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { requestWorkRevision } = await import('./storage')
+
+        await requestWorkRevision(work.id, deliverable.id)
+
+        expect(from).toHaveBeenCalledWith('deliverables')
+        expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
+        expect(deliverableEq).toHaveBeenCalledWith('id', deliverable.id)
+        expect(from).toHaveBeenCalledWith('works')
+        expect(workUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
+        expect(workEq).toHaveBeenCalledWith('id', work.id)
+    })
+
     it('saves reviews to Supabase', async () => {
         vi.resetModules()
         const insert = vi.fn().mockResolvedValue({ error: null })

@@ -38,11 +38,13 @@ const deliverable: Deliverable = {
 
 const saveDeliverable = vi.fn(async () => undefined)
 const approveWorkDeliverable = vi.fn(async () => undefined)
+const requestWorkRevision = vi.fn(async () => undefined)
 const getWorkroomData = vi.fn(async () => ({ work, steps: [step], deliverables: [deliverable] }))
 
 vi.mock('../lib/storage', () => ({
     approveWorkDeliverable: (...args: unknown[]) => approveWorkDeliverable(...args),
     getWorkroomData: (...args: unknown[]) => getWorkroomData(...args),
+    requestWorkRevision: (...args: unknown[]) => requestWorkRevision(...args),
     saveDeliverable: (...args: unknown[]) => saveDeliverable(...args),
 }))
 
@@ -51,6 +53,7 @@ describe('Workroom', () => {
         getWorkroomData.mockReset()
         getWorkroomData.mockResolvedValue({ work, steps: [step], deliverables: [deliverable] })
         approveWorkDeliverable.mockClear()
+        requestWorkRevision.mockClear()
         saveDeliverable.mockClear()
     })
 
@@ -116,5 +119,22 @@ describe('Workroom', () => {
         await waitFor(() => expect(approveWorkDeliverable).toHaveBeenCalledWith(work.id, deliverable.id))
         expect(screen.getByText('결과물을 승인했습니다. 작업이 완료되었습니다.')).toBeInTheDocument()
         expect(screen.getByText('완료')).toBeInTheDocument()
+    })
+
+    it('requests a revision for the active deliverable and keeps the work open', async () => {
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('1차 시안 링크')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '수정 요청' }))
+
+        await waitFor(() => expect(requestWorkRevision).toHaveBeenCalledWith(work.id, deliverable.id))
+        expect(screen.getByText('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')).toBeInTheDocument()
+        expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0)
     })
 })

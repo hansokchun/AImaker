@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Deliverable, Work, WorkStep } from '../types'
-import { approveWorkDeliverable, getWorkroomData, saveDeliverable } from '../lib/storage'
+import { approveWorkDeliverable, getWorkroomData, requestWorkRevision, saveDeliverable } from '../lib/storage'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -72,7 +72,8 @@ export default function Workroom() {
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
     const activeDeliverable = deliverables[0]
-    const workStatusLabel = work.status === 'completed' ? '완료' : '결과물 검토 중'
+    const workStatusLabel =
+        work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
 
     useEffect(() => {
         let active = true
@@ -116,6 +117,21 @@ export default function Workroom() {
         )
         setWork((current) => ({ ...current, status: 'completed' }))
         setStatusMessage('결과물을 승인했습니다. 작업이 완료되었습니다.')
+    }
+
+    const handleRequestRevision = async () => {
+        if (!activeDeliverable) return
+
+        await requestWorkRevision(work.id, activeDeliverable.id)
+        setDeliverables((current) =>
+            current.map((deliverable) =>
+                deliverable.id === activeDeliverable.id
+                    ? { ...deliverable, status: 'revision_requested' }
+                    : deliverable,
+            ),
+        )
+        setWork((current) => ({ ...current, status: 'revision_requested' }))
+        setStatusMessage('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')
     }
 
     return (
@@ -203,7 +219,12 @@ export default function Workroom() {
                         >
                             결과물 승인
                         </button>
-                        <button type="button" className="btn-text">
+                        <button
+                            type="button"
+                            className="btn-text"
+                            disabled={!activeDeliverable || work.status === 'completed'}
+                            onClick={handleRequestRevision}
+                        >
                             수정 요청
                         </button>
                     </div>

@@ -747,6 +747,47 @@ export async function approveWorkDeliverable(workId: string, deliverableId: stri
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 완료 처리 실패');
 }
 
+export async function requestWorkRevision(workId: string, deliverableId: string): Promise<void> {
+    if (!supabase) {
+        const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+
+        localStorage.setItem(
+            STORAGE_KEYS.DELIVERABLES,
+            JSON.stringify(
+                deliverables.map((deliverable) =>
+                    deliverable.id === deliverableId
+                        ? { ...deliverable, status: 'revision_requested' }
+                        : deliverable,
+                ),
+            ),
+        );
+        localStorage.setItem(
+            STORAGE_KEYS.WORKS,
+            JSON.stringify(
+                works.map((work) => (work.id === workId ? { ...work, status: 'revision_requested' } : work)),
+            ),
+        );
+        return;
+    }
+
+    const { error: deliverableError } = await supabase
+        .from('deliverables')
+        .update({ status: 'revision_requested' })
+        .eq('id', deliverableId);
+
+    if (deliverableError) throw new Error('데이터베이스 통신 오류: 제출물 수정 요청 실패');
+
+    const { error: workError } = await supabase
+        .from('works')
+        .update({ status: 'revision_requested' })
+        .eq('id', workId);
+
+    if (workError) throw new Error('데이터베이스 통신 오류: 작업 수정 요청 실패');
+}
+
 export async function saveReview(review: Review): Promise<void> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
