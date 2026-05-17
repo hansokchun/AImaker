@@ -154,7 +154,7 @@ export interface Review {
  */
 export interface ServiceRequestData {
     /** 고유 식별자 (Date.now() 기반으로 생성) */
-    id: number;
+    id: number | string;
     /** 요청 제목 */
     title: string;
     /** 상세 설명 */
@@ -169,6 +169,10 @@ export interface ServiceRequestData {
     createdAt: string;
     /** 주문자 연락용 이메일 */
     ordererEmail?: string;
+    /** Supabase client id */
+    clientId?: string;
+    /** Supabase expert id */
+    expertId?: string;
     /** 요청 상태 */
     status: 'pending' | 'in_progress' | 'completed';
     /** 선택 상품 ID */

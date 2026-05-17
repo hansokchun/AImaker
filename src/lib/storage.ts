@@ -65,6 +65,8 @@ const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): Service
     categories: [],
     createdAt: createdAt ? new Date(createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
     ordererEmail: '',
+    clientId: request.clientId,
+    expertId: request.expertId,
     status: request.status === 'cancelled' ? 'completed' : 'pending',
     productId: request.productId,
     selectedPackage: request.selectedPackage,
@@ -168,6 +170,8 @@ async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
         deadline: item.deadline || '',
         categories: item.categories || [],
         ordererEmail: item.orderer_email || '',
+        clientId: item.client_id,
+        expertId: item.expert_id,
         createdAt: new Date(item.created_at).toLocaleDateString(),
         status: item.status as any,
     })) as ServiceRequestData[];

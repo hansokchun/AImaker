@@ -5,16 +5,25 @@
  */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { CATEGORIES } from '../data/mockData';
-import { getStoredRequests } from '../lib/storage';
+import { getStoredRequests, saveProposal } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
-import type { ServiceRequestData } from '../types';
+import type { Proposal, ServiceRequestData } from '../types';
 import './RequestBoard.css';
 
 export default function RequestBoard() {
+    const { user } = useAuth();
     const [requests, setRequests] = useState<ServiceRequestData[]>([]);
     const [currentFilter, setCurrentFilter] = useState<string>('전체');
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequestData | null>(null);
+    const [proposalDraft, setProposalDraft] = useState({
+        title: '',
+        scope: '',
+        totalPrice: '',
+        deliveryDays: '',
+    });
+    const [proposalMessage, setProposalMessage] = useState('');
 
     const filters: string[] = ['전체', ...CATEGORIES];
 
@@ -27,6 +36,61 @@ export default function RequestBoard() {
     const filteredRequests = currentFilter === '전체'
         ? requests
         : requests.filter((request) => request.categories?.includes(currentFilter));
+
+    const handleSelectRequest = (request: ServiceRequestData) => {
+        setSelectedRequest(request);
+        setProposalDraft({
+            title: request.title ? `${request.title} 제안` : '',
+            scope: '',
+            totalPrice: request.budget || '',
+            deliveryDays: '',
+        });
+        setProposalMessage('');
+    };
+
+    const handleProposalChange = (field: keyof typeof proposalDraft, value: string) => {
+        setProposalDraft((draft) => ({ ...draft, [field]: value }));
+        setProposalMessage('');
+    };
+
+    const handleSubmitProposal = async () => {
+        if (!selectedRequest || !user) {
+            setProposalMessage('로그인 후 제안서를 보낼 수 있습니다.');
+            return;
+        }
+
+        const totalPrice = Number(proposalDraft.totalPrice);
+        const deliveryDays = Number(proposalDraft.deliveryDays);
+        if (!proposalDraft.title.trim() || !proposalDraft.scope.trim() || !totalPrice || !deliveryDays) {
+            setProposalMessage('제안 내용을 모두 입력해 주세요.');
+            return;
+        }
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 3);
+
+        const proposal: Proposal = {
+            id: `proposal-${Date.now()}`,
+            requestId: String(selectedRequest.id),
+            clientId: selectedRequest.clientId || '',
+            expertId: user.id,
+            title: proposalDraft.title.trim(),
+            scope: proposalDraft.scope.trim(),
+            deliverables: [selectedRequest.title],
+            totalPrice,
+            deliveryDays,
+            revisionCount: 1,
+            progressType: selectedRequest.progressType || 'single',
+            milestones: [],
+            commercialUseAllowed: false,
+            sourceFileIncluded: false,
+            status: 'sent',
+            expiresAt: expiresAt.toISOString(),
+        };
+
+        await saveProposal(proposal);
+        setProposalMessage('제안서를 보냈습니다.');
+    };
 
     return (
         <>
@@ -73,7 +137,7 @@ export default function RequestBoard() {
                                 </div>
                                 <div className="request-status">
                                     <span className="status-badge">제안 대기 중</span>
-                                    <button className="btn-text" style={{ fontSize: '0.9rem', padding: '0.5rem' }} onClick={() => setSelectedRequest(request)}>상세보기</button>
+                                    <button className="btn-text" style={{ fontSize: '0.9rem', padding: '0.5rem' }} onClick={() => handleSelectRequest(request)}>상세보기</button>
                                 </div>
                             </div>
                         ))
@@ -126,15 +190,54 @@ export default function RequestBoard() {
                                 </div>
                             </div>
                             <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', marginTop: '1.25rem' }}>
+                                <div style={{ display: 'grid', gap: '1rem', marginBottom: '1rem' }}>
+                                    <label style={{ display: 'grid', gap: '0.5rem', fontWeight: 700 }}>
+                                        제안 제목
+                                        <input
+                                            className="form-input"
+                                            value={proposalDraft.title}
+                                            onChange={(event) => handleProposalChange('title', event.target.value)}
+                                        />
+                                    </label>
+                                    <label style={{ display: 'grid', gap: '0.5rem', fontWeight: 700 }}>
+                                        작업 범위
+                                        <textarea
+                                            className="form-input"
+                                            rows={4}
+                                            value={proposalDraft.scope}
+                                            onChange={(event) => handleProposalChange('scope', event.target.value)}
+                                        />
+                                    </label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <label style={{ display: 'grid', gap: '0.5rem', fontWeight: 700 }}>
+                                            제안 금액
+                                            <input
+                                                className="form-input"
+                                                type="number"
+                                                min="0"
+                                                value={proposalDraft.totalPrice}
+                                                onChange={(event) => handleProposalChange('totalPrice', event.target.value)}
+                                            />
+                                        </label>
+                                        <label style={{ display: 'grid', gap: '0.5rem', fontWeight: 700 }}>
+                                            작업 기간
+                                            <input
+                                                className="form-input"
+                                                type="number"
+                                                min="1"
+                                                value={proposalDraft.deliveryDays}
+                                                onChange={(event) => handleProposalChange('deliveryDays', event.target.value)}
+                                            />
+                                        </label>
+                                    </div>
+                                    {proposalMessage && <p style={{ margin: 0, color: 'var(--primary-color)', fontWeight: 700 }}>{proposalMessage}</p>}
+                                </div>
                                 <button
                                     className="btn-primary"
                                     style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', borderRadius: 'var(--radius-lg)' }}
-                                    onClick={() => {
-                                        alert('전문가님, 이 프로젝트의 작업 의뢰 수락이 완료되었습니다!');
-                                        setSelectedRequest(null);
-                                    }}
+                                    onClick={handleSubmitProposal}
                                 >
-                                    전문가로서 수락하기
+                                    제안서 보내기
                                 </button>
                             </div>
                         </div>
