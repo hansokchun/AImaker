@@ -17,6 +17,62 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 const saveReview = vi.fn(async () => undefined)
+const getExpertProducts = vi.fn(async () => [
+    {
+        id: 'product-owned-01',
+        expertId: 'user-demo-01',
+        expertName: 'Demo expert',
+        title: 'Owned AI product',
+        category: 'ai-video-shortform',
+        summary: 'Owned summary',
+        description: 'Owned description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 30000,
+        deliveryDays: 2,
+        revisionCount: 1,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 30000,
+                deliveryDays: 2,
+                revisionCount: 1,
+                included: ['Draft'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+    {
+        id: 'product-other-01',
+        expertId: 'other-user',
+        expertName: 'Other expert',
+        title: 'Other AI product',
+        category: 'ai-image-character',
+        summary: 'Other summary',
+        description: 'Other description',
+        aiTools: ['Midjourney'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 50000,
+        deliveryDays: 3,
+        revisionCount: 1,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 50000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                included: ['Draft'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+])
 const getUserProposals = vi.fn(async () => [
     {
         id: 'proposal-real-client',
@@ -54,6 +110,42 @@ const getUserProposals = vi.fn(async () => [
         status: 'sent',
         expiresAt: '2026-06-01T00:00:00.000Z',
     },
+    {
+        id: 'proposal-real-client-expired',
+        requestId: 'request-client-expired',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-02',
+        title: 'Expired client proposal',
+        scope: 'Expired scope',
+        deliverables: ['Expired deliverable'],
+        totalPrice: 90000,
+        deliveryDays: 5,
+        revisionCount: 1,
+        progressType: 'single',
+        milestones: [],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'expired',
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+    {
+        id: 'proposal-real-expert-second',
+        requestId: 'request-expert-second',
+        clientId: 'client-real-02',
+        expertId: 'user-demo-01',
+        title: 'Second sent proposal',
+        scope: 'Second scope',
+        deliverables: ['Second deliverable'],
+        totalPrice: 120000,
+        deliveryDays: 7,
+        revisionCount: 2,
+        progressType: 'milestone',
+        milestones: ['Step 1'],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'revision_requested',
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
 ])
 const getUserWorks = vi.fn(async () => [
     {
@@ -78,9 +170,32 @@ const getUserWorks = vi.fn(async () => [
         status: 'completed',
         stepIds: [],
     },
+    {
+        id: 'work-real-submitted',
+        proposalId: 'proposal-submitted',
+        requestId: 'request-submitted',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-03',
+        title: 'Submitted work',
+        progressType: 'milestone',
+        status: 'submitted',
+        stepIds: [],
+    },
+    {
+        id: 'work-real-completed-second',
+        proposalId: 'proposal-completed-second',
+        requestId: 'request-completed-second',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-04',
+        title: 'Second completed work',
+        progressType: 'single',
+        status: 'completed',
+        stepIds: [],
+    },
 ])
 
 vi.mock('../lib/storage', () => ({
+    getExpertProducts: (...args: unknown[]) => getExpertProducts(...args),
     getUserProposals: (...args: unknown[]) => getUserProposals(...args),
     getUserWorks: (...args: unknown[]) => getUserWorks(...args),
     saveReview: (...args: unknown[]) => saveReview(...args),
@@ -89,6 +204,7 @@ vi.mock('../lib/storage', () => ({
 describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
+        getExpertProducts.mockClear()
         getUserProposals.mockClear()
         getUserWorks.mockClear()
     })
@@ -127,11 +243,64 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        const completedWork = await screen.findByTestId('completed-work')
-        const activeWork = await screen.findByTestId('active-work')
+        const completedWork = (await screen.findAllByTestId('completed-work'))[0]
+        const activeWork = (await screen.findAllByTestId('active-work'))[0]
 
         expect(within(completedWork).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
         expect(within(activeWork).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
+    })
+
+    it('shows every received and sent proposal as proposal cards', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('Expired client proposal')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Expired client proposal' })).toHaveAttribute(
+            'href',
+            '/proposal/proposal-real-client-expired',
+        )
+        expect(await screen.findByText('Second sent proposal')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Second sent proposal' })).toHaveAttribute(
+            'href',
+            '/proposal/proposal-real-expert-second',
+        )
+        expect(screen.getByText('만료')).toBeInTheDocument()
+        expect(screen.getByText('수정 요청')).toBeInTheDocument()
+    })
+
+    it('shows every active and completed work as workroom cards', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('link', { name: 'Submitted work' })).toHaveAttribute(
+            'href',
+            '/workroom/work-real-submitted',
+        )
+        expect(await screen.findByRole('link', { name: 'Second completed work' })).toHaveAttribute(
+            'href',
+            '/workroom/work-real-completed-second',
+        )
+        expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(2)
+    })
+
+    it('shows only products registered by the current expert', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('link', { name: 'Owned AI product' })).toHaveAttribute(
+            'href',
+            '/expert/product-owned-01',
+        )
+        expect(screen.queryByText('Other AI product')).not.toBeInTheDocument()
     })
 
     it('opens and submits a review form for completed work', async () => {
@@ -141,7 +310,7 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        fireEvent.click(within(await screen.findByTestId('completed-work')).getByRole('button', { name: '리뷰 작성' }))
+        fireEvent.click(within((await screen.findAllByTestId('completed-work'))[0]).getByRole('button', { name: '리뷰 작성' }))
 
         expect(screen.getByRole('heading', { name: '리뷰 작성하기' })).toBeInTheDocument()
         fireEvent.change(screen.getByLabelText('별점'), { target: { value: '5' } })

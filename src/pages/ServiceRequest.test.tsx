@@ -3,15 +3,34 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ServiceRequest from './ServiceRequest'
 import { mockExpertProducts } from '../data/mockData'
-import { saveRequest } from '../lib/storage'
+import { getExpertProducts, saveRequest } from '../lib/storage'
+import type { ExpertProduct } from '../types'
+
+const supabaseProduct: ExpertProduct = {
+    ...mockExpertProducts[0],
+    id: 'product-supabase-01',
+    expertId: 'expert-supabase-01',
+    title: 'Supabase AI product',
+    startingPrice: 45000,
+    packages: {
+        ...mockExpertProducts[0].packages,
+        standard: {
+            ...mockExpertProducts[0].packages.standard,
+            price: 45000,
+            deliveryDays: 5,
+        },
+    },
+}
 
 vi.mock('../lib/storage', () => ({
     saveRequest: vi.fn().mockResolvedValue(undefined),
+    getExpertProducts: vi.fn(async () => mockExpertProducts),
 }))
 
 describe('ServiceRequest', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
         vi.spyOn(window, 'alert').mockImplementation(() => {})
     })
 
@@ -82,5 +101,43 @@ describe('ServiceRequest', () => {
             undefined,
         )
         expect(await screen.findByRole('heading', { name: '제안 대기' })).toBeInTheDocument()
+    })
+    it('loads selected package summary from stored expert products', async () => {
+        vi.mocked(getExpertProducts).mockResolvedValue([supabaseProduct])
+
+        render(
+            <MemoryRouter initialEntries={[`/request/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/request/:productId" element={<ServiceRequest />} />
+                    <Route path="/requests" element={<h1>제안 대기</h1>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText(supabaseProduct.title)).toBeInTheDocument()
+        expect(screen.getByText('45,000원')).toBeInTheDocument()
+        expect(screen.getByText('5일')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('원하는 결과물'), {
+            target: { value: 'Supabase product request' },
+        })
+        fireEvent.change(screen.getByLabelText('작업 목적'), {
+            target: { value: 'Real product flow QA' },
+        })
+        fireEvent.change(screen.getByLabelText('마감 희망일'), {
+            target: { value: '2026-06-01' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '요구사항 제출하기' }))
+
+        await waitFor(() =>
+            expect(saveRequest).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    productId: supabaseProduct.id,
+                    budget: '45000',
+                    selectedPackage: 'standard',
+                }),
+                undefined,
+            ),
+        )
     })
 })

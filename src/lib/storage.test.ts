@@ -361,6 +361,43 @@ describe('transaction storage', () => {
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
     })
 
+    it('marks expired user proposals from Supabase as expired', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: proposal.id,
+                    request_id: proposal.requestId,
+                    client_id: proposal.clientId,
+                    expert_id: proposal.expertId,
+                    title: proposal.title,
+                    scope: proposal.scope,
+                    deliverables: proposal.deliverables,
+                    total_price: proposal.totalPrice,
+                    delivery_days: proposal.deliveryDays,
+                    revision_count: proposal.revisionCount,
+                    progress_type: proposal.progressType,
+                    milestones: proposal.milestones,
+                    commercial_use_allowed: proposal.commercialUseAllowed,
+                    source_file_included: proposal.sourceFileIncluded,
+                    status: 'sent',
+                    expires_at: '2000-01-01T00:00:00.000Z',
+                },
+            ],
+            error: null,
+        })
+        const or = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ or }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getUserProposals } = await import('./storage')
+
+        await expect(getUserProposals(request.clientId)).resolves.toEqual([
+            expect.objectContaining({ status: 'expired' }),
+        ])
+    })
+
     it('updates proposal revision request and cancellation status through Supabase', async () => {
         vi.resetModules()
         const eq = vi.fn().mockResolvedValue({ error: null })

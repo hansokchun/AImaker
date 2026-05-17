@@ -1,12 +1,12 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import CategorySelector from '../components/CategorySelector'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { mockExpertProducts } from '../data/mockData'
 import { useAuth } from '../contexts/AuthContext'
-import { saveRequest } from '../lib/storage'
-import type { ServiceRequestData } from '../types'
+import { getExpertProducts, saveRequest } from '../lib/storage'
+import type { ExpertProduct, ServiceRequestData } from '../types'
 import './ServiceRequest.css'
 
 const currency = new Intl.NumberFormat('ko-KR')
@@ -15,7 +15,8 @@ export default function ServiceRequest() {
     const navigate = useNavigate()
     const { productId } = useParams<{ productId: string }>()
     const { user } = useAuth()
-    const selectedProduct = mockExpertProducts.find((product) => product.id === productId)
+    const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
+    const selectedProduct = products.find((product) => product.id === productId)
     const selectedPackage = selectedProduct?.packages.standard
     const selectedCategoryName = useMemo(() => {
         return AI_CATEGORIES.find((category) => category.id === selectedProduct?.category)?.name
@@ -30,6 +31,32 @@ export default function ServiceRequest() {
     const [deadline, setDeadline] = useState<string>('')
     const [progressType, setProgressType] = useState<'single' | 'milestone'>('single')
     const [budget, setBudget] = useState<string>(selectedPackage ? String(selectedPackage.price) : '')
+
+    useEffect(() => {
+        let active = true
+        getExpertProducts()
+            .then((items) => {
+                if (active) setProducts(items.length ? items : mockExpertProducts)
+            })
+            .catch(() => {
+                if (active) setProducts(mockExpertProducts)
+            })
+        return () => {
+            active = false
+        }
+    }, [])
+
+    useEffect(() => {
+        if (selectedCategoryName) {
+            setSelectedCategories([selectedCategoryName])
+        }
+    }, [selectedCategoryName])
+
+    useEffect(() => {
+        if (selectedPackage) {
+            setBudget(String(selectedPackage.price))
+        }
+    }, [selectedPackage])
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()

@@ -77,7 +77,14 @@ const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): Service
     progressType: request.progressType,
 });
 
-const toProposal = (item: any): Proposal => ({
+const normalizeProposalStatus = (proposal: Proposal): Proposal => {
+    if (proposal.status === 'sent' && new Date(proposal.expiresAt) < new Date()) {
+        return { ...proposal, status: 'expired' };
+    }
+    return proposal;
+};
+
+const toProposal = (item: any): Proposal => normalizeProposalStatus({
     id: item.id,
     requestId: item.request_id,
     clientId: item.client_id,
@@ -569,7 +576,9 @@ export async function getUserProposals(userId: string): Promise<Proposal[]> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
-        return proposals.filter((proposal) => proposal.clientId === userId || proposal.expertId === userId);
+        return proposals
+            .filter((proposal) => proposal.clientId === userId || proposal.expertId === userId)
+            .map(normalizeProposalStatus);
     }
 
     const { data, error } = await supabase

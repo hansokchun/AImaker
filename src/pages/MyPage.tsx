@@ -3,8 +3,24 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getUserProposals, getUserWorks, saveReview } from '../lib/storage'
-import type { Proposal, Work } from '../types'
+import { getExpertProducts, getUserProposals, getUserWorks, saveReview } from '../lib/storage'
+import type { ExpertProduct, Proposal, Work } from '../types'
+
+const proposalStatusText: Record<Proposal['status'], string> = {
+    sent: '대기 중',
+    revision_requested: '수정 요청',
+    accepted: '승인됨',
+    cancelled: '취소',
+    expired: '만료',
+}
+
+const workStatusText: Record<Work['status'], string> = {
+    in_progress: '진행 중',
+    submitted: '검토 대기',
+    revision_requested: '수정 요청',
+    completed: '완료',
+    cancelled: '취소',
+}
 
 export default function MyPage() {
     const { session, user, loading, signOut } = useAuth()
@@ -15,6 +31,7 @@ export default function MyPage() {
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
+    const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [works, setWorks] = useState<Work[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
@@ -37,6 +54,10 @@ export default function MyPage() {
             getUserWorks(user.id).then(setWorks).catch((error) => {
                 console.error('작업 목록 로딩 오류:', error)
                 setWorks([])
+            })
+            getExpertProducts().then(setProducts).catch((error) => {
+                console.error('상품 목록 로딩 오류:', error)
+                setProducts([])
             })
         }
     }, [user])
@@ -74,12 +95,156 @@ export default function MyPage() {
         status: 'completed' as const,
         stepIds: [],
     }
-    const receivedProposal = proposals.find((proposal) => proposal.clientId === user?.id) || {
+    const receivedProposals = proposals.filter((proposal) => proposal.clientId === user?.id)
+    const sentProposals = proposals.filter((proposal) => proposal.expertId === user?.id)
+    const myProducts = products.filter((product) => product.expertId === user?.id)
+    const activeWorks = works.filter((work) => work.status !== 'completed')
+    const completedWorks = works.filter((work) => work.status === 'completed')
+    const receivedProposal = receivedProposals[0] || {
         id: 'proposal-demo-01',
     }
-    const sentProposal = proposals.find((proposal) => proposal.expertId === user?.id) || {
+    const sentProposal = sentProposals[0] || {
         id: 'proposal-demo-01',
     }
+    const renderProposalCards = (items: Proposal[], emptyText: string) => (
+        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
+            {items.length > 0 ? (
+                items.map((proposal) => (
+                    <div
+                        key={proposal.id}
+                        style={{
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            background: '#f8fafc',
+                            border: '1px solid var(--border-color)',
+                        }}
+                    >
+                        <Link
+                            to={`/proposal/${proposal.id}`}
+                            style={{
+                                display: 'inline-block',
+                                color: '#0f172a',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                marginBottom: '0.45rem',
+                            }}
+                        >
+                            {proposal.title}
+                        </Link>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ color: '#475569', fontSize: '0.9rem' }}>
+                                {proposal.totalPrice.toLocaleString()}원 · {proposal.deliveryDays}일
+                            </span>
+                            <span
+                                style={{
+                                    padding: '0.25rem 0.55rem',
+                                    borderRadius: '999px',
+                                    background: proposal.status === 'expired' ? '#fee2e2' : '#e0f2fe',
+                                    color: proposal.status === 'expired' ? '#b91c1c' : '#0369a1',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 800,
+                                }}
+                            >
+                                {proposalStatusText[proposal.status]}
+                            </span>
+                        </div>
+                    </div>
+                ))
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
+            )}
+        </div>
+    )
+    const renderWorkCards = (items: Work[], emptyText: string) => (
+        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
+            {items.length > 0 ? (
+                items.map((work) => (
+                    <div
+                        key={work.id}
+                        data-testid={work.status === 'completed' ? 'completed-work' : 'active-work'}
+                        style={{
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            background: work.status === 'completed' ? '#f0fdf4' : '#f8fafc',
+                            border: '1px solid var(--border-color)',
+                        }}
+                    >
+                        <Link
+                            to={`/workroom/${work.id}`}
+                            style={{
+                                display: 'inline-block',
+                                color: '#0f172a',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                marginBottom: '0.45rem',
+                            }}
+                        >
+                            {work.title}
+                        </Link>
+                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 0.8rem' }}>
+                            {workStatusText[work.status]}
+                        </p>
+                        {work.status === 'completed' && (
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                style={{ padding: '0.65rem 0.9rem' }}
+                                onClick={() => {
+                                    setSelectedReviewWork(work)
+                                    setReviewOpen(true)
+                                    setReviewSubmitted(false)
+                                }}
+                            >
+                                리뷰 작성
+                            </button>
+                        )}
+                        {reviewSubmitted && selectedReviewWork?.id === work.id && (
+                            <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
+                                리뷰가 등록되었습니다.
+                            </p>
+                        )}
+                    </div>
+                ))
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
+            )}
+        </div>
+    )
+    const renderProductCards = (items: ExpertProduct[]) => (
+        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
+            {items.length > 0 ? (
+                items.map((product) => (
+                    <div
+                        key={product.id}
+                        style={{
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            background: '#f8fafc',
+                            border: '1px solid var(--border-color)',
+                        }}
+                    >
+                        <Link
+                            to={`/expert/${product.id}`}
+                            style={{
+                                display: 'inline-block',
+                                color: '#0f172a',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                marginBottom: '0.45rem',
+                            }}
+                        >
+                            {product.title}
+                        </Link>
+                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                            {product.startingPrice.toLocaleString()}원부터 · {product.deliveryDays}일
+                        </p>
+                    </div>
+                ))
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 등록한 상품이 없습니다.</p>
+            )}
+        </div>
+    )
 
     if (loading) {
         return (
@@ -134,31 +299,13 @@ export default function MyPage() {
                             <Link className="btn-text" to={`/workroom/${activeWork.id}`}>진행 중인 작업</Link>
                         </div>
 
-                        <div data-testid="active-work" style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', marginBottom: '0.75rem' }}>
-                            <strong>{activeWork.title}</strong>
-                            <p style={{ color: 'var(--text-secondary)', margin: '0.4rem 0 0' }}>진행 중</p>
-                        </div>
-                        <div data-testid="completed-work" style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f0fdf4' }}>
-                            <strong>{completedWork.title}</strong>
-                            <p style={{ color: 'var(--text-secondary)', margin: '0.4rem 0 0.8rem' }}>완료</p>
-                            <button
-                                type="button"
-                                className="btn-primary"
-                                style={{ padding: '0.65rem 0.9rem' }}
-                                onClick={() => {
-                                    setSelectedReviewWork(completedWork)
-                                    setReviewOpen(true)
-                                    setReviewSubmitted(false)
-                                }}
-                            >
-                                리뷰 작성
-                            </button>
-                            {reviewSubmitted && (
-                                <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
-                                    리뷰가 등록되었습니다.
-                                </p>
-                            )}
-                        </div>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>받은 제안서</h3>
+                        {renderProposalCards(receivedProposals, '아직 받은 제안서가 없습니다.')}
+
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>진행 중인 작업</h3>
+                        {renderWorkCards(activeWorks, '진행 중인 작업이 없습니다.')}
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>완료된 작업</h3>
+                        {renderWorkCards(completedWorks, '완료된 작업이 없습니다.')}
                     </section>
 
                     <section style={{ background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
@@ -169,6 +316,10 @@ export default function MyPage() {
                             <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서</Link>
                             <Link className="btn-text" to={`/expert/${user?.id}`}>공개 프로필 보기</Link>
                         </div>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
+                        {renderProductCards(myProducts)}
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>보낸 제안서</h3>
+                        {renderProposalCards(sentProposals, '아직 보낸 제안서가 없습니다.')}
                     </section>
                 </div>
 
@@ -199,7 +350,6 @@ export default function MyPage() {
                                 })
                                 setReviewSubmitted(true)
                                 setReviewOpen(false)
-                                setSelectedReviewWork(null)
                                 setReviewRating('5')
                                 setReviewContent('')
                             }}
