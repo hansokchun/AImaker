@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RequestBoard from './RequestBoard'
 import type { Proposal } from '../types'
 
@@ -31,10 +31,17 @@ vi.mock('../lib/storage', () => ({
 
 describe('RequestBoard', () => {
     beforeEach(() => {
+        vi.useFakeTimers({ shouldAdvanceTime: true })
         saveProposal.mockClear()
     })
 
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
     it('lets an expert submit a proposal for a request', async () => {
+        vi.setSystemTime(new Date('2026-05-18T00:00:00.000Z'))
+
         render(
             <MemoryRouter>
                 <RequestBoard />
@@ -69,6 +76,7 @@ describe('RequestBoard', () => {
                     totalPrice: 50000,
                     deliveryDays: 3,
                     status: 'sent',
+                    expiresAt: expect.stringMatching(/^2026-05-21T00:00:00\.\d{3}Z$/),
                 }),
             ),
         )

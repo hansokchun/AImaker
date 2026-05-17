@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { CATEGORIES } from '../data/mockData';
 import { getStoredRequests, saveProposal } from '../lib/storage';
-import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies';
+import { EXTERNAL_CONTACT_WARNING, PROPOSAL_VALID_DAYS, hasExternalContactInFields } from '../constants/policies';
 import { ROUTES } from '../constants/routes';
 import type { Proposal, ServiceRequestData } from '../types';
 import './RequestBoard.css';
@@ -72,7 +72,7 @@ export default function RequestBoard() {
         }
 
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 3);
+        expiresAt.setDate(expiresAt.getDate() + PROPOSAL_VALID_DAYS);
 
         const proposal: Proposal = {
             id: `proposal-${Date.now()}`,
