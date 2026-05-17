@@ -282,14 +282,17 @@ describe('transaction storage', () => {
     it('saves and accepts proposals through Supabase', async () => {
         vi.resetModules()
         const insert = vi.fn().mockResolvedValue({ error: null })
+        const workSingle = vi.fn().mockResolvedValue({ data: { id: work.id }, error: null })
+        const workSelect = vi.fn(() => ({ single: workSingle }))
+        const workInsert = vi.fn(() => ({ select: workSelect }))
         const update = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
-        const from = vi.fn(() => ({ insert, update }))
+        const from = vi.fn((table: string) => (table === 'works' ? { insert: workInsert } : { insert, update }))
         vi.doMock('./supabase', () => ({ supabase: { from } }))
 
         const { saveProposal, acceptProposal } = await import('./storage')
 
         await saveProposal(proposal)
-        await acceptProposal(proposal)
+        await expect(acceptProposal(proposal)).resolves.toBe(work.id)
 
         expect(from).toHaveBeenCalledWith('proposals')
         expect(insert).toHaveBeenCalledWith([
@@ -300,6 +303,7 @@ describe('transaction storage', () => {
             }),
         ])
         expect(from).toHaveBeenCalledWith('works')
+        expect(workSelect).toHaveBeenCalledWith('id')
     })
 
     it('loads proposals where the user is a client or expert', async () => {
@@ -338,6 +342,24 @@ describe('transaction storage', () => {
         expect(from).toHaveBeenCalledWith('proposals')
         expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+    })
+
+    it('updates proposal revision request and cancellation status through Supabase', async () => {
+        vi.resetModules()
+        const eq = vi.fn().mockResolvedValue({ error: null })
+        const update = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ update }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { cancelProposal, requestProposalRevision } = await import('./storage')
+
+        await requestProposalRevision(proposal.id)
+        expect(update).toHaveBeenCalledWith({ status: 'revision_requested' })
+        expect(eq).toHaveBeenCalledWith('id', proposal.id)
+
+        await cancelProposal(proposal.id)
+        expect(update).toHaveBeenCalledWith({ status: 'cancelled' })
+        expect(eq).toHaveBeenCalledWith('id', proposal.id)
     })
 
     it('loads workroom data and saves deliverables', async () => {

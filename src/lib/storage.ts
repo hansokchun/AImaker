@@ -582,7 +582,7 @@ export async function getUserProposals(userId: string): Promise<Proposal[]> {
     return (data || []).map(toProposal);
 }
 
-export async function acceptProposal(proposal: Proposal): Promise<void> {
+export async function acceptProposal(proposal: Proposal): Promise<string> {
     if (!supabase) {
         const work: Work = {
             id: `work-${proposal.id}`,
@@ -598,7 +598,7 @@ export async function acceptProposal(proposal: Proposal): Promise<void> {
         const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = raw ? (JSON.parse(raw) as Work[]) : [];
         localStorage.setItem(STORAGE_KEYS.WORKS, JSON.stringify([...works, work]));
-        return;
+        return work.id;
     }
 
     const { error: proposalError } = await supabase
@@ -608,7 +608,7 @@ export async function acceptProposal(proposal: Proposal): Promise<void> {
 
     if (proposalError) throw new Error('데이터베이스 통신 오류: 제안서 승인 실패');
 
-    const { error: workError } = await supabase.from('works').insert([{
+    const { data: workData, error: workError } = await supabase.from('works').insert([{
         proposal_id: proposal.id,
         request_id: proposal.requestId,
         client_id: proposal.clientId,
@@ -616,9 +616,51 @@ export async function acceptProposal(proposal: Proposal): Promise<void> {
         title: proposal.title,
         progress_type: proposal.progressType,
         status: 'in_progress',
-    }]);
+    }]).select('id').single();
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
+    return workData.id;
+}
+
+export async function requestProposalRevision(proposalId: string): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.PROPOSALS,
+            JSON.stringify(
+                proposals.map((proposal) =>
+                    proposal.id === proposalId ? { ...proposal, status: 'revision_requested' } : proposal,
+                ),
+            ),
+        );
+        return;
+    }
+
+    const { error } = await supabase
+        .from('proposals')
+        .update({ status: 'revision_requested' })
+        .eq('id', proposalId);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 제안서 수정 요청 실패');
+}
+
+export async function cancelProposal(proposalId: string): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.PROPOSALS,
+            JSON.stringify(
+                proposals.map((proposal) => (proposal.id === proposalId ? { ...proposal, status: 'cancelled' } : proposal)),
+            ),
+        );
+        return;
+    }
+
+    const { error } = await supabase.from('proposals').update({ status: 'cancelled' }).eq('id', proposalId);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 제안서 취소 실패');
 }
 
 export async function getWorkroomData(workId: string): Promise<{

@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import type { Proposal as ProposalData } from '../types'
 import { useEffect, useState } from 'react'
-import { acceptProposal, getProposal } from '../lib/storage'
+import { acceptProposal, cancelProposal, getProposal, requestProposalRevision } from '../lib/storage'
 import './Proposal.css'
 
 const now = new Date()
@@ -60,10 +60,19 @@ function formatDate(value: string) {
     }).format(new Date(value))
 }
 
+const statusText: Record<ProposalData['status'], string> = {
+    sent: '제안 대기',
+    revision_requested: '수정 요청됨',
+    accepted: '승인됨',
+    cancelled: '취소됨',
+    expired: '만료된 제안서입니다.',
+}
+
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
     const [proposal, setProposal] = useState<ProposalData | null>(null)
     const [statusMessage, setStatusMessage] = useState('')
+    const [createdWorkId, setCreatedWorkId] = useState('')
 
     useEffect(() => {
         let active = true
@@ -87,10 +96,22 @@ export default function Proposal() {
     }
 
     const isExpired = proposal.status === 'expired' || new Date(proposal.expiresAt) < new Date()
+    const isClosed = isExpired || proposal.status === 'accepted' || proposal.status === 'cancelled'
     const handleAccept = async () => {
-        await acceptProposal(proposal)
+        const workId = await acceptProposal(proposal)
         setProposal({ ...proposal, status: 'accepted' })
+        setCreatedWorkId(workId)
         setStatusMessage('제안서를 승인했습니다. 작업 진행방이 열렸습니다.')
+    }
+    const handleRequestRevision = async () => {
+        await requestProposalRevision(proposal.id)
+        setProposal({ ...proposal, status: 'revision_requested' })
+        setStatusMessage('수정 요청을 보냈습니다.')
+    }
+    const handleCancel = async () => {
+        await cancelProposal(proposal.id)
+        setProposal({ ...proposal, status: 'cancelled' })
+        setStatusMessage('제안서를 취소했습니다.')
     }
 
     return (
@@ -103,7 +124,7 @@ export default function Proposal() {
                         <p>{proposal.title}</p>
                     </div>
                     <div className={`proposal-status ${isExpired ? 'expired' : 'active'}`}>
-                        {isExpired ? '만료된 제안서입니다.' : '제안 대기'}
+                        {isExpired ? statusText.expired : statusText[proposal.status]}
                     </div>
                 </div>
             </section>
@@ -164,15 +185,20 @@ export default function Proposal() {
 
                     <p className="proposal-start-notice">승인 전에는 작업이 시작되지 않습니다.</p>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
+                    {createdWorkId && (
+                        <Link to={`/workroom/${createdWorkId}`} className="proposal-back-link">
+                            작업방으로 이동
+                        </Link>
+                    )}
 
                     <div className="proposal-actions">
-                        <button type="button" className="btn-primary" disabled={isExpired} onClick={handleAccept}>
+                        <button type="button" className="btn-primary" disabled={isClosed} onClick={handleAccept}>
                             승인하기
                         </button>
-                        <button type="button" className="btn-text">
+                        <button type="button" className="btn-text" disabled={isClosed} onClick={handleRequestRevision}>
                             수정 요청
                         </button>
-                        <button type="button" className="btn-text danger">
+                        <button type="button" className="btn-text danger" disabled={isClosed} onClick={handleCancel}>
                             취소
                         </button>
                     </div>

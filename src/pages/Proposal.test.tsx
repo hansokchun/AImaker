@@ -31,11 +31,15 @@ const expiredProposal: ProposalData = {
     expiresAt: '2000-01-01T00:00:00.000Z',
 }
 
-const acceptProposal = vi.fn(async () => undefined)
+const acceptProposal = vi.fn(async () => 'work-created-01')
+const requestProposalRevision = vi.fn(async () => undefined)
+const cancelProposal = vi.fn(async () => undefined)
 
 vi.mock('../lib/storage', () => ({
     getProposal: vi.fn(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal)),
     acceptProposal: (...args: unknown[]) => acceptProposal(...args),
+    cancelProposal: (...args: unknown[]) => cancelProposal(...args),
+    requestProposalRevision: (...args: unknown[]) => requestProposalRevision(...args),
 }))
 
 describe('Proposal', () => {
@@ -57,6 +61,32 @@ describe('Proposal', () => {
 
         await waitFor(() => expect(acceptProposal).toHaveBeenCalledWith(activeProposal))
         expect(screen.getByText('제안서를 승인했습니다. 작업 진행방이 열렸습니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '작업방으로 이동' })).toHaveAttribute(
+            'href',
+            '/workroom/work-created-01',
+        )
+    })
+
+    it('requests proposal revision and cancels proposals', async () => {
+        render(
+            <MemoryRouter initialEntries={['/proposal/proposal-demo-01']}>
+                <Routes>
+                    <Route path="/proposal/:proposalId" element={<Proposal />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '거래 제안서' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '수정 요청' }))
+        await waitFor(() => expect(requestProposalRevision).toHaveBeenCalledWith(activeProposal.id))
+        expect(screen.getByText('수정 요청을 보냈습니다.')).toBeInTheDocument()
+        expect(screen.getByText('수정 요청됨')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '취소' }))
+        await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith(activeProposal.id))
+        expect(screen.getByText('제안서를 취소했습니다.')).toBeInTheDocument()
+        expect(screen.getByText('취소됨')).toBeInTheDocument()
     })
 
     it('disables approval for expired proposals', async () => {
