@@ -17,6 +17,44 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 const saveReview = vi.fn(async () => undefined)
+const getUserProposals = vi.fn(async () => [
+    {
+        id: 'proposal-real-client',
+        requestId: 'request-client',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-01',
+        title: '받은 실제 제안서',
+        scope: '테스트 범위',
+        deliverables: ['테스트 결과물'],
+        totalPrice: 30000,
+        deliveryDays: 2,
+        revisionCount: 1,
+        progressType: 'single',
+        milestones: [],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'sent',
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+    {
+        id: 'proposal-real-expert',
+        requestId: 'request-expert',
+        clientId: 'client-real-01',
+        expertId: 'user-demo-01',
+        title: '보낸 실제 제안서',
+        scope: '테스트 범위',
+        deliverables: ['테스트 결과물'],
+        totalPrice: 50000,
+        deliveryDays: 3,
+        revisionCount: 1,
+        progressType: 'single',
+        milestones: [],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'sent',
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+])
 const getUserWorks = vi.fn(async () => [
     {
         id: 'work-real-active',
@@ -43,6 +81,7 @@ const getUserWorks = vi.fn(async () => [
 ])
 
 vi.mock('../lib/storage', () => ({
+    getUserProposals: (...args: unknown[]) => getUserProposals(...args),
     getUserWorks: (...args: unknown[]) => getUserWorks(...args),
     saveReview: (...args: unknown[]) => saveReview(...args),
 }))
@@ -50,10 +89,11 @@ vi.mock('../lib/storage', () => ({
 describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
+        getUserProposals.mockClear()
         getUserWorks.mockClear()
     })
 
-    it('shows client and expert sections with transaction links', () => {
+    it('shows client and expert sections with transaction links', async () => {
         render(
             <MemoryRouter>
                 <MyPage />
@@ -64,19 +104,19 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: '의뢰자' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전문가' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내 의뢰 요청' })).toHaveAttribute('href', '/requests')
-        expect(screen.getByRole('link', { name: '받은 제안서' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '받은 제안서' })).toHaveAttribute(
             'href',
-            '/proposal/proposal-demo-01',
+            '/proposal/proposal-real-client',
         )
-        expect(screen.getByRole('link', { name: '진행 중인 작업' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '진행 중인 작업' })).toHaveAttribute(
             'href',
-            '/workroom/work-demo-01',
+            '/workroom/work-real-active',
         )
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '받은 요청' })).toHaveAttribute('href', '/requests')
-        expect(screen.getByRole('link', { name: '보낸 제안서' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '보낸 제안서' })).toHaveAttribute(
             'href',
-            '/proposal/proposal-demo-01',
+            '/proposal/proposal-real-expert',
         )
     })
 

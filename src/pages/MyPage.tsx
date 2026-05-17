@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getUserWorks, saveReview } from '../lib/storage'
-import type { Work } from '../types'
+import { getUserProposals, getUserWorks, saveReview } from '../lib/storage'
+import type { Proposal, Work } from '../types'
 
 export default function MyPage() {
     const { session, user, loading, signOut } = useAuth()
@@ -15,6 +15,7 @@ export default function MyPage() {
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
+    const [proposals, setProposals] = useState<Proposal[]>([])
     const [works, setWorks] = useState<Work[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
 
@@ -29,6 +30,10 @@ export default function MyPage() {
             fetchProfile()
         }
         if (user) {
+            getUserProposals(user.id).then(setProposals).catch((error) => {
+                console.error('제안서 목록 로딩 오류:', error)
+                setProposals([])
+            })
             getUserWorks(user.id).then(setWorks).catch((error) => {
                 console.error('작업 목록 로딩 오류:', error)
                 setWorks([])
@@ -68,6 +73,12 @@ export default function MyPage() {
         progressType: 'single' as const,
         status: 'completed' as const,
         stepIds: [],
+    }
+    const receivedProposal = proposals.find((proposal) => proposal.clientId === user?.id) || {
+        id: 'proposal-demo-01',
+    }
+    const sentProposal = proposals.find((proposal) => proposal.expertId === user?.id) || {
+        id: 'proposal-demo-01',
     }
 
     if (loading) {
@@ -119,7 +130,7 @@ export default function MyPage() {
                         <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>의뢰자</h2>
                         <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
                             <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>내 의뢰 요청</Link>
-                            <Link className="btn-text" to="/proposal/proposal-demo-01">받은 제안서</Link>
+                            <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>받은 제안서</Link>
                             <Link className="btn-text" to={`/workroom/${activeWork.id}`}>진행 중인 작업</Link>
                         </div>
 
@@ -155,7 +166,7 @@ export default function MyPage() {
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
                             <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>받은 요청</Link>
-                            <Link className="btn-text" to="/proposal/proposal-demo-01">보낸 제안서</Link>
+                            <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서</Link>
                             <Link className="btn-text" to={`/expert/${user?.id}`}>공개 프로필 보기</Link>
                         </div>
                     </section>

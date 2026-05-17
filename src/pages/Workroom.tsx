@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Deliverable, Work, WorkStep } from '../types'
-import { getWorkroomData, saveDeliverable } from '../lib/storage'
+import { approveWorkDeliverable, getWorkroomData, saveDeliverable } from '../lib/storage'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -72,6 +72,7 @@ export default function Workroom() {
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
     const activeDeliverable = deliverables[0]
+    const workStatusLabel = work.status === 'completed' ? '완료' : '결과물 검토 중'
 
     useEffect(() => {
         let active = true
@@ -79,7 +80,7 @@ export default function Workroom() {
             if (!active) return
             setWork(data.work || mockWork)
             setSteps(data.steps.length ? data.steps : mockSteps)
-            setDeliverables(data.deliverables.length ? data.deliverables : mockDeliverables)
+            setDeliverables(data.work ? data.deliverables : mockDeliverables)
         })
         return () => {
             active = false
@@ -104,6 +105,19 @@ export default function Workroom() {
         setStatusMessage('제출물 링크가 등록되었습니다.')
     }
 
+    const handleApproveDeliverable = async () => {
+        if (!activeDeliverable) return
+
+        await approveWorkDeliverable(work.id, activeDeliverable.id)
+        setDeliverables((current) =>
+            current.map((deliverable) =>
+                deliverable.id === activeDeliverable.id ? { ...deliverable, status: 'approved' } : deliverable,
+            ),
+        )
+        setWork((current) => ({ ...current, status: 'completed' }))
+        setStatusMessage('결과물을 승인했습니다. 작업이 완료되었습니다.')
+    }
+
     return (
         <main className="workroom-page">
             <section className="workroom-hero">
@@ -121,7 +135,7 @@ export default function Workroom() {
                             <h2>진행 단계</h2>
                             <p>{work.progressType === 'milestone' ? '단계별 진행' : '단일 진행'}으로 관리됩니다.</p>
                         </div>
-                        <span className="work-status-badge">결과물 검토 중</span>
+                        <span className="work-status-badge">{workStatusLabel}</span>
                     </div>
 
                     <ol className="work-step-list">
@@ -141,15 +155,21 @@ export default function Workroom() {
 
                     <section className="deliverable-panel">
                         <h2>제출물</h2>
-                        <div className="submitted-deliverable">
-                            <div>
-                                <strong>{activeDeliverable.description}</strong>
-                                <a href={activeDeliverable.externalUrl} target="_blank" rel="noreferrer">
-                                    제출물 보기
-                                </a>
+                        {activeDeliverable ? (
+                            <div className="submitted-deliverable">
+                                <div>
+                                    <strong>{activeDeliverable.description}</strong>
+                                    {activeDeliverable.externalUrl && (
+                                        <a href={activeDeliverable.externalUrl} target="_blank" rel="noreferrer">
+                                            제출물 보기
+                                        </a>
+                                    )}
+                                </div>
+                                <span>{statusLabels[activeDeliverable.status]}</span>
                             </div>
-                            <span>{statusLabels.submitted}</span>
-                        </div>
+                        ) : (
+                            <p className="submitted-deliverable">등록된 제출물이 없습니다.</p>
+                        )}
 
                         <form className="deliverable-form">
                             <label htmlFor="deliverable-link">제출물 링크</label>
@@ -175,7 +195,12 @@ export default function Workroom() {
                     <h2>의뢰자 확인</h2>
                     <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
                     <div className="review-actions">
-                        <button type="button" className="btn-primary">
+                        <button
+                            type="button"
+                            className="btn-primary"
+                            disabled={!activeDeliverable || work.status === 'completed'}
+                            onClick={handleApproveDeliverable}
+                        >
                             결과물 승인
                         </button>
                         <button type="button" className="btn-text">

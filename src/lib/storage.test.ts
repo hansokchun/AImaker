@@ -302,6 +302,44 @@ describe('transaction storage', () => {
         expect(from).toHaveBeenCalledWith('works')
     })
 
+    it('loads proposals where the user is a client or expert', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: proposal.id,
+                    request_id: proposal.requestId,
+                    client_id: proposal.clientId,
+                    expert_id: proposal.expertId,
+                    title: proposal.title,
+                    scope: proposal.scope,
+                    deliverables: proposal.deliverables,
+                    total_price: proposal.totalPrice,
+                    delivery_days: proposal.deliveryDays,
+                    revision_count: proposal.revisionCount,
+                    progress_type: proposal.progressType,
+                    milestones: proposal.milestones,
+                    commercial_use_allowed: proposal.commercialUseAllowed,
+                    source_file_included: proposal.sourceFileIncluded,
+                    status: proposal.status,
+                    expires_at: proposal.expiresAt,
+                },
+            ],
+            error: null,
+        })
+        const or = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ or }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getUserProposals } = await import('./storage')
+
+        await expect(getUserProposals(request.clientId)).resolves.toEqual([proposal])
+        expect(from).toHaveBeenCalledWith('proposals')
+        expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
+        expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+    })
+
     it('loads workroom data and saves deliverables', async () => {
         vi.resetModules()
         const workSingle = vi.fn().mockResolvedValue({
@@ -404,6 +442,31 @@ describe('transaction storage', () => {
         expect(from).toHaveBeenCalledWith('works')
         expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+    })
+
+    it('approves a deliverable and completes its work through Supabase', async () => {
+        vi.resetModules()
+        const deliverableEq = vi.fn().mockResolvedValue({ error: null })
+        const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
+        const workEq = vi.fn().mockResolvedValue({ error: null })
+        const workUpdate = vi.fn(() => ({ eq: workEq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'deliverables') return { update: deliverableUpdate }
+            if (table === 'works') return { update: workUpdate }
+            return {}
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { approveWorkDeliverable } = await import('./storage')
+
+        await approveWorkDeliverable(work.id, deliverable.id)
+
+        expect(from).toHaveBeenCalledWith('deliverables')
+        expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'approved' })
+        expect(deliverableEq).toHaveBeenCalledWith('id', deliverable.id)
+        expect(from).toHaveBeenCalledWith('works')
+        expect(workUpdate).toHaveBeenCalledWith({ status: 'completed' })
+        expect(workEq).toHaveBeenCalledWith('id', work.id)
     })
 
     it('saves reviews to Supabase', async () => {

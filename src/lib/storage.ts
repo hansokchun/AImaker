@@ -561,6 +561,27 @@ export async function getProposal(proposalId: string): Promise<Proposal | null> 
     return data ? toProposal(data) : null;
 }
 
+export async function getUserProposals(userId: string): Promise<Proposal[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
+        return proposals.filter((proposal) => proposal.clientId === userId || proposal.expertId === userId);
+    }
+
+    const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .or(`client_id.eq.${userId},expert_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('사용자 제안서 목록 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toProposal);
+}
+
 export async function acceptProposal(proposal: Proposal): Promise<void> {
     if (!supabase) {
         const work: Work = {
@@ -690,6 +711,40 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     }]);
 
     if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');
+}
+
+export async function approveWorkDeliverable(workId: string, deliverableId: string): Promise<void> {
+    if (!supabase) {
+        const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+
+        localStorage.setItem(
+            STORAGE_KEYS.DELIVERABLES,
+            JSON.stringify(
+                deliverables.map((deliverable) =>
+                    deliverable.id === deliverableId ? { ...deliverable, status: 'approved' } : deliverable,
+                ),
+            ),
+        );
+        localStorage.setItem(
+            STORAGE_KEYS.WORKS,
+            JSON.stringify(works.map((work) => (work.id === workId ? { ...work, status: 'completed' } : work))),
+        );
+        return;
+    }
+
+    const { error: deliverableError } = await supabase
+        .from('deliverables')
+        .update({ status: 'approved' })
+        .eq('id', deliverableId);
+
+    if (deliverableError) throw new Error('데이터베이스 통신 오류: 제출물 승인 실패');
+
+    const { error: workError } = await supabase.from('works').update({ status: 'completed' }).eq('id', workId);
+
+    if (workError) throw new Error('데이터베이스 통신 오류: 작업 완료 처리 실패');
 }
 
 export async function saveReview(review: Review): Promise<void> {
