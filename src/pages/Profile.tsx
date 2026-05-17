@@ -181,18 +181,18 @@ export default function Profile() {
             const fileName = `${user.id}_${Date.now()}.${fileExt}`;
             
             const { error: uploadError } = await supabase.storage
-                .from('profiles')
+                .from('profile-images')
                 .upload(fileName, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
             const { data } = supabase.storage
-                .from('profiles')
+                .from('profile-images')
                 .getPublicUrl(fileName);
 
             setProfile((prev) => ({ ...prev, imageUrl: data.publicUrl }));
         } catch (error) {
-            alert('이미지 업로드에 실패했습니다. (Supabase Storage에 profiles 버킷이 있는지 확인해 주세요)');
+            alert('이미지 업로드에 실패했습니다. (Supabase Storage에 profile-images 버킷이 있는지 확인해 주세요)');
             console.error('업로드 에러:', error);
         } finally {
             setUploading(false);

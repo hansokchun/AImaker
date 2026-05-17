@@ -32,12 +32,12 @@ export default function Onboarding() {
             const fileName = `${user.id}_${Date.now()}.${fileExt}`;
             
             const { error: uploadError } = await supabase.storage
-                .from('profiles')
+                .from('profile-images')
                 .upload(fileName, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage.from('profiles').getPublicUrl(fileName);
+            const { data } = supabase.storage.from('profile-images').getPublicUrl(fileName);
             setImageUrl(data.publicUrl);
         } catch (err) {
             console.error('이미지 업로드 에러:', err);

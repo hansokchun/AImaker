@@ -44,8 +44,13 @@ describe('database.sql', () => {
     })
 
     it('drops policies and triggers before recreating them for safe reruns', () => {
-        expect(sql).toMatch(/drop policy if exists "Public profiles are viewable by everyone" on public\.profiles;/i)
+        expect(sql).toMatch(/drop policy if exists "Users can view own profile" on public\.profiles;/i)
         expect(sql).toMatch(/drop trigger if exists set_work_steps_updated_at on public\.work_steps;/i)
         expect(sql).toMatch(/drop policy if exists "Public can read product samples" on storage\.objects;/i)
+    })
+
+    it('keeps profile email private by limiting profiles select to the owner', () => {
+        expect(sql).not.toMatch(/create policy "Public profiles are viewable by everyone"[\s\S]*?using \(true\);/i)
+        expect(sql).toMatch(/create policy "Users can view own profile"[\s\S]*?on public\.profiles for select[\s\S]*?using \(auth\.uid\(\) = id\);/i)
     })
 })
