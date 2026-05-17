@@ -587,6 +587,10 @@ export async function getUserProposals(userId: string): Promise<Proposal[]> {
 }
 
 export async function acceptProposal(proposal: Proposal): Promise<string> {
+    if (proposal.status === 'expired' || new Date(proposal.expiresAt) < new Date()) {
+        throw new Error('만료된 제안서는 승인할 수 없습니다.');
+    }
+
     if (!supabase) {
         const work: Work = {
             id: `work-${proposal.id}`,

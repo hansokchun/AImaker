@@ -306,6 +306,23 @@ describe('transaction storage', () => {
         expect(workSelect).toHaveBeenCalledWith('id')
     })
 
+    it('blocks accepting expired proposals before creating work', async () => {
+        vi.resetModules()
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { acceptProposal } = await import('./storage')
+
+        await expect(
+            acceptProposal({
+                ...proposal,
+                status: 'expired',
+                expiresAt: '2000-01-01T00:00:00.000Z',
+            }),
+        ).rejects.toThrow('만료된 제안서는 승인할 수 없습니다.')
+        expect(from).not.toHaveBeenCalled()
+    })
+
     it('loads proposals where the user is a client or expert', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({
