@@ -53,4 +53,24 @@ describe('database.sql', () => {
         expect(sql).not.toMatch(/create policy "Public profiles are viewable by everyone"[\s\S]*?using \(true\);/i)
         expect(sql).toMatch(/create policy "Users can view own profile"[\s\S]*?on public\.profiles for select[\s\S]*?using \(auth\.uid\(\) = id\);/i)
     })
+
+    it('allows authenticated experts to read submitted service requests for the request board', () => {
+        const policyMatch = sql.match(
+            /create policy "Authenticated users can view submitted requests"[\s\S]*?on public\.service_requests for select[\s\S]*?using \(([\s\S]*?)\);/i,
+        )
+
+        expect(policyMatch?.[1]).toContain("auth.role() = 'authenticated'")
+        expect(policyMatch?.[1]).toMatch(/status in \('submitted', 'pending'\)/i)
+    })
+
+    it('limits deliverable file storage reads to work participants', () => {
+        const policyMatch = sql.match(
+            /create policy "Work participants can read deliverable files"[\s\S]*?on storage\.objects for select[\s\S]*?using \(([\s\S]*?)\);/i,
+        )
+
+        expect(policyMatch?.[1]).toContain("bucket_id = 'deliverable-files'")
+        expect(policyMatch?.[1]).toMatch(/exists \([\s\S]*select 1 from public\.works/i)
+        expect(policyMatch?.[1]).toMatch(/works\.id::text = \(storage\.foldername\(name\)\)\[1\]/i)
+        expect(policyMatch?.[1]).toMatch(/works\.client_id = auth\.uid\(\) or works\.expert_id = auth\.uid\(\)/i)
+    })
 })

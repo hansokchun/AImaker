@@ -162,6 +162,14 @@ create policy "Request participants can view requests"
   on public.service_requests for select
   using (auth.uid() = client_id or auth.uid() = expert_id);
 
+drop policy if exists "Authenticated users can view submitted requests" on public.service_requests;
+create policy "Authenticated users can view submitted requests"
+  on public.service_requests for select
+  using (
+    auth.role() = 'authenticated'
+    and status in ('submitted', 'pending')
+  );
+
 drop policy if exists "Clients can insert own requests" on public.service_requests;
 create policy "Clients can insert own requests"
   on public.service_requests for insert
@@ -427,9 +435,23 @@ create policy "Users can upload profile images"
 drop policy if exists "Work participants can read deliverable files" on storage.objects;
 create policy "Work participants can read deliverable files"
   on storage.objects for select
-  using (bucket_id = 'deliverable-files' and auth.role() = 'authenticated');
+  using (
+    bucket_id = 'deliverable-files'
+    and exists (
+      select 1 from public.works
+      where works.id::text = (storage.foldername(name))[1]
+      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
+    )
+  );
 
 drop policy if exists "Experts can upload deliverable files" on storage.objects;
 create policy "Experts can upload deliverable files"
   on storage.objects for insert
-  with check (bucket_id = 'deliverable-files' and auth.role() = 'authenticated');
+  with check (
+    bucket_id = 'deliverable-files'
+    and exists (
+      select 1 from public.works
+      where works.id::text = (storage.foldername(name))[1]
+      and works.expert_id = auth.uid()
+    )
+  );
