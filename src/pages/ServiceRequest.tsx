@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from '
 import { useNavigate, useParams } from 'react-router-dom'
 import CategorySelector from '../components/CategorySelector'
 import { AI_CATEGORIES } from '../constants/categories'
+import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies'
 import { ROUTES } from '../constants/routes'
 import { mockExpertProducts } from '../data/mockData'
 import { useAuth } from '../contexts/AuthContext'
@@ -63,6 +64,11 @@ export default function ServiceRequest() {
 
         if (!selectedProduct && selectedCategories.length === 0) {
             alert('최소 하나 이상의 카테고리를 선택해주세요.')
+            return
+        }
+
+        if (hasExternalContactInFields([desiredResult, purpose, referenceText])) {
+            alert(EXTERNAL_CONTACT_WARNING)
             return
         }
 

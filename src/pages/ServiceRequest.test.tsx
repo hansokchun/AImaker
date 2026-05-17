@@ -102,6 +102,35 @@ describe('ServiceRequest', () => {
         )
         expect(await screen.findByRole('heading', { name: '제안 대기' })).toBeInTheDocument()
     })
+
+    it('blocks external contact details in requirement fields', async () => {
+        const product = mockExpertProducts[0]
+
+        render(
+            <MemoryRouter initialEntries={[`/request/${product.id}`]}>
+                <Routes>
+                    <Route path="/request/:productId" element={<ServiceRequest />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        fireEvent.change(screen.getByLabelText('원하는 결과물'), {
+            target: { value: '15초 숏폼 영상, 카카오톡 ai-maker로 연락 주세요' },
+        })
+        fireEvent.change(screen.getByLabelText('작업 목적'), {
+            target: { value: '신제품 SNS 홍보' },
+        })
+        fireEvent.change(screen.getByLabelText('마감 희망일'), {
+            target: { value: '2026-06-01' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '요구사항 제출하기' }))
+
+        expect(saveRequest).not.toHaveBeenCalled()
+        expect(window.alert).toHaveBeenCalledWith(
+            '외부 연락처는 입력할 수 없습니다. 안전한 거래를 위해 플랫폼 안에서 소통해주세요.',
+        )
+    })
+
     it('loads selected package summary from stored expert products', async () => {
         vi.mocked(getExpertProducts).mockResolvedValue([supabaseProduct])
 

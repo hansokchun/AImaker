@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { CATEGORIES } from '../data/mockData';
 import { getStoredRequests, saveProposal } from '../lib/storage';
+import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies';
 import { ROUTES } from '../constants/routes';
 import type { Proposal, ServiceRequestData } from '../types';
 import './RequestBoard.css';
@@ -63,6 +64,10 @@ export default function RequestBoard() {
         const deliveryDays = Number(proposalDraft.deliveryDays);
         if (!proposalDraft.title.trim() || !proposalDraft.scope.trim() || !totalPrice || !deliveryDays) {
             setProposalMessage('제안 내용을 모두 입력해 주세요.');
+            return;
+        }
+        if (hasExternalContactInFields([proposalDraft.title, proposalDraft.scope])) {
+            setProposalMessage(EXTERNAL_CONTACT_WARNING);
             return;
         }
 

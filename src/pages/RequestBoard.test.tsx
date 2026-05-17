@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import RequestBoard from './RequestBoard'
 import type { Proposal } from '../types'
 
@@ -30,6 +30,10 @@ vi.mock('../lib/storage', () => ({
 }))
 
 describe('RequestBoard', () => {
+    beforeEach(() => {
+        saveProposal.mockClear()
+    })
+
     it('lets an expert submit a proposal for a request', async () => {
         render(
             <MemoryRouter>
@@ -69,5 +73,33 @@ describe('RequestBoard', () => {
             ),
         )
         expect(screen.getByText('제안서를 보냈습니다.')).toBeInTheDocument()
+    })
+
+    it('blocks external contact details in proposal text', async () => {
+        render(
+            <MemoryRouter>
+                <RequestBoard />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('QA 요청')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '상세보기' }))
+
+        fireEvent.change(screen.getByLabelText('제안 제목'), {
+            target: { value: 'QA 제안서' },
+        })
+        fireEvent.change(screen.getByLabelText('작업 범위'), {
+            target: { value: '카카오톡 ai-maker 또는 010-1234-5678로 연락 주세요' },
+        })
+        fireEvent.change(screen.getByLabelText('제안 금액'), {
+            target: { value: '50000' },
+        })
+        fireEvent.change(screen.getByLabelText('작업 기간'), {
+            target: { value: '3' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '제안서 보내기' }))
+
+        await waitFor(() => expect(saveProposal).not.toHaveBeenCalled())
+        expect(screen.getByText('외부 연락처는 입력할 수 없습니다. 안전한 거래를 위해 플랫폼 안에서 소통해주세요.')).toBeInTheDocument()
     })
 })
