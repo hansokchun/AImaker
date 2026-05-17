@@ -597,6 +597,22 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('blocks external contact details in deliverable descriptions before saving', async () => {
+        vi.resetModules()
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveDeliverable } = await import('./storage')
+
+        await expect(
+            saveDeliverable({
+                ...deliverable,
+                description: '결과물 확인 후 010-1234-5678로 연락 주세요',
+            }),
+        ).rejects.toThrow('외부 연락처는 입력할 수 없습니다.')
+        expect(from).not.toHaveBeenCalled()
+    })
+
     it('loads works where the user is a client or expert', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({

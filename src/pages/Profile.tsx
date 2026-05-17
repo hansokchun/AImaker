@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getStoredProfile, saveProfile, createDefaultProfile, saveExpertProduct } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
+import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies';
 import { supabase } from '../lib/supabase';
 import { CATEGORIES } from '../data/mockData';
 import { AI_CATEGORIES } from '../constants/categories';
@@ -396,6 +397,23 @@ export default function Profile() {
         const hasStandardFeature = standardPackage.features.some((feature) => feature.trim());
         if (!standardPackage.price.trim() || !standardPackage.workDays.trim() || !hasStandardFeature) {
             alert('Standard 패키지는 가격, 작업 기간, 포함 항목이 필요합니다.');
+            return;
+        }
+        const policyFields = [
+            profile.name,
+            profile.oneLiner,
+            profile.greeting,
+            productDraft.title,
+            productDraft.description,
+            ...profile.activities,
+            ...profile.awards,
+            ...Object.values(profile.packages).flatMap((pkg) => [
+                pkg.description,
+                ...pkg.features,
+            ]),
+        ];
+        if (hasExternalContactInFields(policyFields)) {
+            alert(EXTERNAL_CONTACT_WARNING);
             return;
         }
 

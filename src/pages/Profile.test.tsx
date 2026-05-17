@@ -168,4 +168,51 @@ describe('Profile product publishing requirements', () => {
             }),
         )
     })
+
+    it('blocks external contact details in product publishing fields', async () => {
+        mockProfile = makeProfile({
+            packages: {
+                standard: {
+                    price: '30000',
+                    description: '15초 숏폼 기본 제작',
+                    workDays: '2',
+                    revisions: '1',
+                    features: ['15초 영상 시안'],
+                },
+                deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            },
+        })
+
+        render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        fireEvent.change(await screen.findByLabelText('상품명'), {
+            target: { value: 'AI 숏폼 영상 제작' },
+        })
+        fireEvent.change(screen.getByLabelText('상품 설명'), {
+            target: { value: 'SNS 홍보용 숏폼을 제작합니다. 카카오톡 ai-maker로 연락 주세요.' },
+        })
+        fireEvent.change(screen.getByLabelText('샘플 결과물'), {
+            target: { value: 'https://example.com/sample.mp4' },
+        })
+        fireEvent.change(screen.getByLabelText('시작 가격'), {
+            target: { value: '30000' },
+        })
+        fireEvent.change(screen.getByLabelText('작업 기간'), {
+            target: { value: '2' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '프로필 저장하기' }))
+
+        await waitFor(() =>
+            expect(window.alert).toHaveBeenCalledWith(
+                '외부 연락처는 입력할 수 없습니다. 안전한 거래를 위해 플랫폼 안에서 소통해주세요.',
+            ),
+        )
+        expect(saveProfile).not.toHaveBeenCalled()
+        expect(saveExpertProduct).not.toHaveBeenCalled()
+    })
 })

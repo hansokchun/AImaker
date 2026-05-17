@@ -17,6 +17,7 @@ import type {
 } from '../types';
 import { supabase } from './supabase';
 import { mockExpertProducts } from '../data/mockData';
+import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
 import type { User } from '@supabase/supabase-js';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
@@ -796,6 +797,10 @@ export async function getUserWorks(userId: string): Promise<Work[]> {
 }
 
 export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
+    if (hasExternalContact(deliverable.description)) {
+        throw new Error(EXTERNAL_CONTACT_WARNING);
+    }
+
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const deliverables = raw ? (JSON.parse(raw) as Deliverable[]) : [];
