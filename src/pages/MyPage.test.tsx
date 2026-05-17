@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
+import type { Review } from '../types'
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -16,7 +17,8 @@ vi.mock('../lib/supabase', () => ({
     supabase: null,
 }))
 
-const saveReview = vi.fn(async () => undefined)
+const saveReview = vi.fn(async (_review: Review) => undefined)
+const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
 const getExpertProducts = vi.fn(async () => [
     {
         id: 'product-owned-01',
@@ -73,7 +75,7 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
 ])
-const getUserProposals = vi.fn(async () => [
+const getUserProposals = vi.fn(async (_userId: string) => [
     {
         id: 'proposal-real-client',
         requestId: 'request-client',
@@ -147,7 +149,7 @@ const getUserProposals = vi.fn(async () => [
         expiresAt: '2026-06-01T00:00:00.000Z',
     },
 ])
-const getUserWorks = vi.fn(async () => [
+const getUserWorks = vi.fn(async (_userId: string) => [
     {
         id: 'work-real-active',
         proposalId: 'proposal-active',
@@ -195,10 +197,11 @@ const getUserWorks = vi.fn(async () => [
 ])
 
 vi.mock('../lib/storage', () => ({
-    getExpertProducts: (...args: unknown[]) => getExpertProducts(...args),
-    getUserProposals: (...args: unknown[]) => getUserProposals(...args),
-    getUserWorks: (...args: unknown[]) => getUserWorks(...args),
-    saveReview: (...args: unknown[]) => saveReview(...args),
+    getExpertProducts: () => getExpertProducts(),
+    getUserProposals: (userId: string) => getUserProposals(userId),
+    getUserReviews: (userId: string) => getUserReviews(userId),
+    getUserWorks: (userId: string) => getUserWorks(userId),
+    saveReview: (review: Review) => saveReview(review),
 }))
 
 describe('MyPage', () => {
@@ -206,6 +209,8 @@ describe('MyPage', () => {
         saveReview.mockClear()
         getExpertProducts.mockClear()
         getUserProposals.mockClear()
+        getUserReviews.mockReset()
+        getUserReviews.mockResolvedValue([])
         getUserWorks.mockClear()
     })
 
@@ -287,6 +292,32 @@ describe('MyPage', () => {
             '/workroom/work-real-completed-second',
         )
         expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(2)
+    })
+
+    it('does not offer another review for work already reviewed by the client', async () => {
+        getUserReviews.mockResolvedValue([
+            {
+                id: 'review-existing-01',
+                workId: 'work-real-completed',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-02',
+                rating: 5,
+                content: 'Already reviewed',
+                createdAt: '2026-06-02T00:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        const completedWorks = await screen.findAllByTestId('completed-work')
+
+        expect(within(completedWorks[0]).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
+        expect(within(completedWorks[0]).getByText('리뷰 등록 완료')).toBeInTheDocument()
+        expect(within(completedWorks[1]).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
     })
 
     it('shows only products registered by the current expert', async () => {

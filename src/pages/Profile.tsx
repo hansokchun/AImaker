@@ -49,7 +49,6 @@ export default function Profile() {
     const [activePackageTab, setActivePackageTab] = useState<PackageTab>('standard');
     const [saving, setSaving] = useState<boolean>(false);
     const [uploading, setUploading] = useState<boolean>(false);
-    const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
     const [aiToolInput, setAiToolInput] = useState<string>('');

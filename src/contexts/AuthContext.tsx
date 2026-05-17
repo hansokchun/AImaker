@@ -32,6 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setLoading(false);
             return;
         }
+        const client = supabase;
 
         /** 프로필 존재 여부를 확인하고 없으면 온보딩으로 리다이렉트 */
         const checkProfileAndRedirect = async (currentUser: User | null) => {
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (path === '/onboarding' || path === '/login') return;
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await client
                     .from('profiles')
                     .select('id, name')
                     .eq('id', currentUser.id)
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
 
         // 초기 세션 가져오기
-        supabase.auth.getSession()
+        client.auth.getSession()
             .then(({ data: { session } }) => {
                 setSession(session);
                 setUser(session?.user ?? null);
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             });
 
         // 인증 상태 변경 리스너
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);

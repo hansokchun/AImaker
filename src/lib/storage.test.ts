@@ -279,14 +279,77 @@ describe('transaction storage', () => {
         expect(from).toHaveBeenCalledWith('service_requests')
     })
 
+    it('loads board-ready service requests from Supabase', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: request.id,
+                    client_id: request.clientId,
+                    expert_id: request.expertId,
+                    product_id: request.productId,
+                    selected_package: request.selectedPackage,
+                    desired_result: request.desiredResult,
+                    purpose: request.purpose,
+                    reference_text: request.referenceText,
+                    reference_links: request.referenceLinks,
+                    deadline: request.deadline,
+                    progress_type: request.progressType,
+                    checklist: request.checklist,
+                    additional_request: request.additionalRequest,
+                    title: '게시판 제목',
+                    description: '게시판 설명',
+                    budget: 88000,
+                    categories: ['AI 영상/숏폼'],
+                    status: 'submitted',
+                    created_at: '2026-06-01T00:00:00.000Z',
+                },
+            ],
+            error: null,
+        })
+        const select = vi.fn(() => ({ order }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getStoredRequests } = await import('./storage')
+
+        await expect(getStoredRequests()).resolves.toEqual([
+            expect.objectContaining({
+                id: request.id,
+                title: '게시판 제목',
+                description: '게시판 설명',
+                budget: '88000',
+                categories: ['AI 영상/숏폼'],
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: request.productId,
+                selectedPackage: request.selectedPackage,
+                desiredResult: request.desiredResult,
+                purpose: request.purpose,
+                referenceText: request.referenceText,
+                referenceLinks: request.referenceLinks,
+                progressType: request.progressType,
+                status: 'pending',
+            }),
+        ])
+        expect(from).toHaveBeenCalledWith('service_requests')
+    })
+
     it('saves and accepts proposals through Supabase', async () => {
         vi.resetModules()
         const insert = vi.fn().mockResolvedValue({ error: null })
         const workSingle = vi.fn().mockResolvedValue({ data: { id: work.id }, error: null })
         const workSelect = vi.fn(() => ({ single: workSingle }))
         const workInsert = vi.fn(() => ({ select: workSelect }))
-        const update = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
-        const from = vi.fn((table: string) => (table === 'works' ? { insert: workInsert } : { insert, update }))
+        const proposalEq = vi.fn().mockResolvedValue({ error: null })
+        const proposalUpdate = vi.fn(() => ({ eq: proposalEq }))
+        const requestEq = vi.fn().mockResolvedValue({ error: null })
+        const requestUpdate = vi.fn(() => ({ eq: requestEq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'works') return { insert: workInsert }
+            if (table === 'service_requests') return { update: requestUpdate }
+            return { insert, update: proposalUpdate }
+        })
         vi.doMock('./supabase', () => ({ supabase: { from } }))
 
         const { saveProposal, acceptProposal } = await import('./storage')
@@ -304,6 +367,50 @@ describe('transaction storage', () => {
         ])
         expect(from).toHaveBeenCalledWith('works')
         expect(workSelect).toHaveBeenCalledWith('id')
+        expect(from).toHaveBeenCalledWith('service_requests')
+        expect(requestUpdate).toHaveBeenCalledWith({ status: 'in_progress' })
+        expect(requestEq).toHaveBeenCalledWith('id', proposal.requestId)
+    })
+
+    it('keeps local proposal and request status in sync when accepting proposals', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem(
+            'ai_requests',
+            JSON.stringify([
+                {
+                    id: request.id,
+                    title: request.desiredResult,
+                    description: request.purpose,
+                    budget: '70000',
+                    deadline: request.deadline,
+                    categories: ['AI 영상/숏폼'],
+                    createdAt: '2026. 5. 17.',
+                    clientId: request.clientId,
+                    expertId: request.expertId,
+                    status: 'pending',
+                    productId: request.productId,
+                    selectedPackage: request.selectedPackage,
+                    desiredResult: request.desiredResult,
+                    purpose: request.purpose,
+                    referenceText: request.referenceText,
+                    referenceLinks: request.referenceLinks,
+                    progressType: request.progressType,
+                },
+            ]),
+        )
+        localStorage.setItem('ai_proposals', JSON.stringify([proposal]))
+
+        const { acceptProposal, getStoredRequests, getUserProposals } = await import('./storage')
+
+        await expect(acceptProposal(proposal)).resolves.toBe(`work-${proposal.id}`)
+        await expect(getStoredRequests()).resolves.toEqual([
+            expect.objectContaining({ id: request.id, status: 'in_progress' }),
+        ])
+        await expect(getUserProposals(request.clientId)).resolves.toEqual([
+            expect.objectContaining({ id: proposal.id, status: 'accepted' }),
+        ])
     })
 
     it('blocks accepting expired proposals before creating work', async () => {
@@ -526,16 +633,19 @@ describe('transaction storage', () => {
         const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
         const workEq = vi.fn().mockResolvedValue({ error: null })
         const workUpdate = vi.fn(() => ({ eq: workEq }))
+        const requestEq = vi.fn().mockResolvedValue({ error: null })
+        const requestUpdate = vi.fn(() => ({ eq: requestEq }))
         const from = vi.fn((table: string) => {
             if (table === 'deliverables') return { update: deliverableUpdate }
             if (table === 'works') return { update: workUpdate }
+            if (table === 'service_requests') return { update: requestUpdate }
             return {}
         })
         vi.doMock('./supabase', () => ({ supabase: { from } }))
 
         const { approveWorkDeliverable } = await import('./storage')
 
-        await approveWorkDeliverable(work.id, deliverable.id)
+        await approveWorkDeliverable(work.id, deliverable.id, work.requestId)
 
         expect(from).toHaveBeenCalledWith('deliverables')
         expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'approved' })
@@ -543,6 +653,9 @@ describe('transaction storage', () => {
         expect(from).toHaveBeenCalledWith('works')
         expect(workUpdate).toHaveBeenCalledWith({ status: 'completed' })
         expect(workEq).toHaveBeenCalledWith('id', work.id)
+        expect(from).toHaveBeenCalledWith('service_requests')
+        expect(requestUpdate).toHaveBeenCalledWith({ status: 'completed' })
+        expect(requestEq).toHaveBeenCalledWith('id', work.requestId)
     })
 
     it('requests a deliverable revision and marks its work as revision requested through Supabase', async () => {
@@ -589,5 +702,34 @@ describe('transaction storage', () => {
                 content: review.content,
             }),
         ])
+    })
+
+    it('loads reviews for a user from Supabase', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: review.id,
+                    work_id: review.workId,
+                    client_id: review.clientId,
+                    expert_id: review.expertId,
+                    rating: review.rating,
+                    content: review.content,
+                    created_at: review.createdAt,
+                },
+            ],
+            error: null,
+        })
+        const or = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ or }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getUserReviews } = await import('./storage')
+
+        await expect(getUserReviews(review.clientId)).resolves.toEqual([review])
+        expect(from).toHaveBeenCalledWith('reviews')
+        expect(or).toHaveBeenCalledWith(`client_id.eq.${review.clientId},expert_id.eq.${review.clientId}`)
+        expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
     })
 })

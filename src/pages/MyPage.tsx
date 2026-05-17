@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getExpertProducts, getUserProposals, getUserWorks, saveReview } from '../lib/storage'
-import type { ExpertProduct, Proposal, Work } from '../types'
+import { getExpertProducts, getUserProposals, getUserReviews, getUserWorks, saveReview } from '../lib/storage'
+import type { ExpertProduct, Proposal, Review, Work } from '../types'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
     sent: '대기 중',
@@ -33,8 +33,20 @@ export default function MyPage() {
     const [reviewContent, setReviewContent] = useState('')
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
+    const [reviews, setReviews] = useState<Review[]>([])
     const [works, setWorks] = useState<Work[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
+
+    const fetchProfile = useCallback(async () => {
+        if (!supabase || !user) return
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (data) {
+            setIsExpert(data.is_expert)
+            setName(data.name || '')
+        } else if (error && error.code !== 'PGRST116') {
+            console.error('프로필 로딩 오류:', error)
+        }
+    }, [user])
 
     useEffect(() => {
         if (!loading && !session) {
@@ -55,23 +67,16 @@ export default function MyPage() {
                 console.error('작업 목록 로딩 오류:', error)
                 setWorks([])
             })
+            getUserReviews(user.id).then(setReviews).catch((error) => {
+                console.error('리뷰 목록 로딩 오류:', error)
+                setReviews([])
+            })
             getExpertProducts().then(setProducts).catch((error) => {
                 console.error('상품 목록 로딩 오류:', error)
                 setProducts([])
             })
         }
-    }, [user])
-
-    const fetchProfile = async () => {
-        if (!supabase || !user) return
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        if (data) {
-            setIsExpert(data.is_expert)
-            setName(data.name || '')
-        } else if (error && error.code !== 'PGRST116') {
-            console.error('프로필 로딩 오류:', error)
-        }
-    }
+    }, [fetchProfile, user])
 
     const activeWork = works.find((work) => work.status !== 'completed') || {
         id: 'work-demo-01',
@@ -184,7 +189,7 @@ export default function MyPage() {
                         <p style={{ color: 'var(--text-secondary)', margin: '0 0 0.8rem' }}>
                             {workStatusText[work.status]}
                         </p>
-                        {work.status === 'completed' && (
+                        {work.status === 'completed' && !reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
                             <button
                                 type="button"
                                 className="btn-primary"
@@ -197,6 +202,11 @@ export default function MyPage() {
                             >
                                 리뷰 작성
                             </button>
+                        )}
+                        {work.status === 'completed' && reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
+                            <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
+                                리뷰 등록 완료
+                            </p>
                         )}
                         {reviewSubmitted && selectedReviewWork?.id === work.id && (
                             <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
@@ -339,7 +349,7 @@ export default function MyPage() {
                             onSubmit={async (event) => {
                                 event.preventDefault()
                                 const reviewWork = selectedReviewWork || completedWork
-                                await saveReview({
+                                const newReview: Review = {
                                     id: `review-${Date.now()}`,
                                     workId: reviewWork.id,
                                     clientId: reviewWork.clientId || user?.id || '',
@@ -347,7 +357,9 @@ export default function MyPage() {
                                     rating: Number(reviewRating) as 1 | 2 | 3 | 4 | 5,
                                     content: reviewContent,
                                     createdAt: new Date().toISOString(),
-                                })
+                                }
+                                await saveReview(newReview)
+                                setReviews((current) => [newReview, ...current])
                                 setReviewSubmitted(true)
                                 setReviewOpen(false)
                                 setReviewRating('5')

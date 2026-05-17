@@ -109,7 +109,7 @@ export default function Workroom() {
     const handleApproveDeliverable = async () => {
         if (!activeDeliverable) return
 
-        await approveWorkDeliverable(work.id, activeDeliverable.id)
+        await approveWorkDeliverable(work.id, activeDeliverable.id, work.requestId)
         setDeliverables((current) =>
             current.map((deliverable) =>
                 deliverable.id === activeDeliverable.id ? { ...deliverable, status: 'approved' } : deliverable,

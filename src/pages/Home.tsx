@@ -3,10 +3,13 @@
  * - 기존 랜딩 레이아웃과 카드 스타일은 유지하면서 초기 런칭 기획 문구로 개편
  * - 전문가 중심 소개보다 AI 작업 상품 탐색과 의뢰 시작을 우선한다.
  */
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AI_CATEGORIES } from '../constants/categories';
 import { ROUTES } from '../constants/routes';
 import { mockExpertProducts } from '../data/mockData';
+import { getExpertProducts } from '../lib/storage';
+import type { ExpertProduct } from '../types';
 
 const categoryIcons: Record<string, string> = {
     'ai-video-shortform': '🎬',
@@ -15,6 +18,22 @@ const categoryIcons: Record<string, string> = {
 };
 
 export default function Home() {
+    const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
+
+    useEffect(() => {
+        let active = true;
+        getExpertProducts()
+            .then((items) => {
+                if (active) setProducts(items.length ? items : mockExpertProducts);
+            })
+            .catch(() => {
+                if (active) setProducts(mockExpertProducts);
+            });
+        return () => {
+            active = false;
+        };
+    }, []);
+
     return (
         <main>
             <section className="hero container">
@@ -109,7 +128,7 @@ export default function Home() {
                         </Link>
                     </div>
                     <div className="request-mini-grid">
-                        {mockExpertProducts.map((product) => (
+                        {products.slice(0, 3).map((product) => (
                             <article className="request-mini-card home-product-card" key={product.id}>
                                 <img
                                     src={product.sampleImageUrl}

@@ -36,16 +36,17 @@ const deliverable: Deliverable = {
     submittedAt: '2026-06-01T00:00:00.000Z',
 }
 
-const saveDeliverable = vi.fn(async () => undefined)
-const approveWorkDeliverable = vi.fn(async () => undefined)
-const requestWorkRevision = vi.fn(async () => undefined)
-const getWorkroomData = vi.fn(async () => ({ work, steps: [step], deliverables: [deliverable] }))
+const saveDeliverable = vi.fn(async (_deliverable: Deliverable) => undefined)
+const approveWorkDeliverable = vi.fn(async (_workId: string, _deliverableId: string, _requestId?: string) => undefined)
+const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string) => undefined)
+const getWorkroomData = vi.fn(async (_workId: string) => ({ work, steps: [step], deliverables: [deliverable] }))
 
 vi.mock('../lib/storage', () => ({
-    approveWorkDeliverable: (...args: unknown[]) => approveWorkDeliverable(...args),
-    getWorkroomData: (...args: unknown[]) => getWorkroomData(...args),
-    requestWorkRevision: (...args: unknown[]) => requestWorkRevision(...args),
-    saveDeliverable: (...args: unknown[]) => saveDeliverable(...args),
+    approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string) =>
+        approveWorkDeliverable(workId, deliverableId, requestId),
+    getWorkroomData: (workId: string) => getWorkroomData(workId),
+    requestWorkRevision: (workId: string, deliverableId: string) => requestWorkRevision(workId, deliverableId),
+    saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
 }))
 
 describe('Workroom', () => {
@@ -116,7 +117,7 @@ describe('Workroom', () => {
         expect(await screen.findByText('1차 시안 링크')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: '결과물 승인' }))
 
-        await waitFor(() => expect(approveWorkDeliverable).toHaveBeenCalledWith(work.id, deliverable.id))
+        await waitFor(() => expect(approveWorkDeliverable).toHaveBeenCalledWith(work.id, deliverable.id, work.requestId))
         expect(screen.getByText('결과물을 승인했습니다. 작업이 완료되었습니다.')).toBeInTheDocument()
         expect(screen.getByText('완료')).toBeInTheDocument()
     })

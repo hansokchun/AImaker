@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import RequestBoard from './RequestBoard'
+import type { Proposal } from '../types'
 
 const request = {
     id: 'request-real-01',
@@ -15,7 +16,7 @@ const request = {
     status: 'pending',
 }
 
-const saveProposal = vi.fn(async () => undefined)
+const saveProposal = vi.fn(async (_proposal: Proposal) => undefined)
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -25,7 +26,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../lib/storage', () => ({
     getStoredRequests: vi.fn(async () => [request]),
-    saveProposal: (...args: unknown[]) => saveProposal(...args),
+    saveProposal: (proposal: Proposal) => saveProposal(proposal),
 }))
 
 describe('RequestBoard', () => {

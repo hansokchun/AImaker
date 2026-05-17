@@ -31,15 +31,15 @@ const expiredProposal: ProposalData = {
     expiresAt: '2000-01-01T00:00:00.000Z',
 }
 
-const acceptProposal = vi.fn(async () => 'work-created-01')
-const requestProposalRevision = vi.fn(async () => undefined)
-const cancelProposal = vi.fn(async () => undefined)
+const acceptProposal = vi.fn(async (_proposal: ProposalData) => 'work-created-01')
+const requestProposalRevision = vi.fn(async (_proposalId: string) => undefined)
+const cancelProposal = vi.fn(async (_proposalId: string) => undefined)
 
 vi.mock('../lib/storage', () => ({
     getProposal: vi.fn(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal)),
-    acceptProposal: (...args: unknown[]) => acceptProposal(...args),
-    cancelProposal: (...args: unknown[]) => cancelProposal(...args),
-    requestProposalRevision: (...args: unknown[]) => requestProposalRevision(...args),
+    acceptProposal: (proposal: ProposalData) => acceptProposal(proposal),
+    cancelProposal: (proposalId: string) => cancelProposal(proposalId),
+    requestProposalRevision: (proposalId: string) => requestProposalRevision(proposalId),
 }))
 
 describe('Proposal', () => {

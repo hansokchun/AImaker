@@ -56,6 +56,22 @@ const toServiceRequest = (item: any): AiServiceRequest => ({
     status: item.status || 'submitted',
 });
 
+const toReview = (item: any): Review => ({
+    id: item.id,
+    workId: item.work_id,
+    clientId: item.client_id,
+    expertId: item.expert_id,
+    rating: item.rating,
+    content: item.content,
+    createdAt: item.created_at,
+});
+
+const toBoardRequestStatus = (status?: string): ServiceRequestData['status'] => {
+    if (status === 'in_progress') return 'in_progress';
+    if (status === 'completed' || status === 'cancelled') return 'completed';
+    return 'pending';
+};
+
 const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): ServiceRequestData => ({
     id: request.id as any,
     title: request.desiredResult,
@@ -67,7 +83,7 @@ const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): Service
     ordererEmail: '',
     clientId: request.clientId,
     expertId: request.expertId,
-    status: request.status === 'cancelled' ? 'completed' : 'pending',
+    status: toBoardRequestStatus(request.status),
     productId: request.productId,
     selectedPackage: request.selectedPackage,
     desiredResult: request.desiredResult,
@@ -159,7 +175,7 @@ async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
         try {
             const raw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
             return raw ? JSON.parse(raw) : [];
-        } catch(e) { return []; }
+        } catch { return []; }
     }
 
     const { data, error } = await supabase.from('service_requests').select('*').order('created_at', { ascending: false });
@@ -168,11 +184,10 @@ async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
         return [];
     }
 
-    // 서버 데이터를 클라이언트 ServiceRequestData 타입으로 매핑
     return data.map(item => ({
         id: item.id,
-        title: item.title,
-        description: item.description,
+        title: item.title || item.desired_result || '',
+        description: item.description || item.purpose || '',
         budget: item.budget ? String(item.budget) : '',
         deadline: item.deadline || '',
         categories: item.categories || [],
@@ -180,7 +195,14 @@ async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
         clientId: item.client_id,
         expertId: item.expert_id,
         createdAt: new Date(item.created_at).toLocaleDateString(),
-        status: item.status as any,
+        status: toBoardRequestStatus(item.status),
+        productId: item.product_id || '',
+        selectedPackage: item.selected_package || 'standard',
+        desiredResult: item.desired_result || item.title || '',
+        purpose: item.purpose || item.description || '',
+        referenceText: item.reference_text || '',
+        referenceLinks: item.reference_links || [],
+        progressType: item.progress_type || 'single',
     })) as ServiceRequestData[];
 }
 
@@ -210,11 +232,6 @@ async function saveRequestLegacy(request: ServiceRequestData, userId?: string | 
 }
 
 export async function getStoredRequests(): Promise<ServiceRequestData[]> {
-    if (supabase) {
-        const requests = await getServiceRequests();
-        return requests.map((request) => toLegacyRequest(request));
-    }
-
     return getStoredRequestsLegacy();
 }
 
@@ -362,7 +379,7 @@ export async function getStoredProfile(userId: string): Promise<ExpertProfile | 
             if (!raw) return null;
             const parsed = JSON.parse(raw);
             return typeof parsed === 'object' && parsed !== null ? parsed as ExpertProfile : null;
-        } catch (error) {
+        } catch {
             return null;
         }
     }
@@ -418,7 +435,7 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
             };
             localStorage.setItem(`${STORAGE_KEYS.PROFILE}_${userId}`, JSON.stringify(toSave));
             return;
-        } catch (error) {
+        } catch {
             throw new Error('프로필 로컬 저장에 실패했습니다.');
         }
     }
@@ -615,6 +632,28 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
         const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = raw ? (JSON.parse(raw) as Work[]) : [];
         localStorage.setItem(STORAGE_KEYS.WORKS, JSON.stringify([...works, work]));
+
+        const proposalRaw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = proposalRaw ? (JSON.parse(proposalRaw) as Proposal[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.PROPOSALS,
+            JSON.stringify(
+                proposals.map((storedProposal) =>
+                    storedProposal.id === proposal.id ? { ...storedProposal, status: 'accepted' } : storedProposal,
+                ),
+            ),
+        );
+
+        const requestRaw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
+        const requests = requestRaw ? (JSON.parse(requestRaw) as ServiceRequestData[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.REQUESTS,
+            JSON.stringify(
+                requests.map((request) =>
+                    String(request.id) === proposal.requestId ? { ...request, status: 'in_progress' } : request,
+                ),
+            ),
+        );
         return work.id;
     }
 
@@ -636,6 +675,12 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
     }]).select('id').single();
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
+    const { error: requestError } = await supabase
+        .from('service_requests')
+        .update({ status: 'in_progress' })
+        .eq('id', proposal.requestId);
+
+    if (requestError) throw new Error('데이터베이스 통신 오류: 요청 상태 변경 실패');
     return workData.id;
 }
 
@@ -772,7 +817,7 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');
 }
 
-export async function approveWorkDeliverable(workId: string, deliverableId: string): Promise<void> {
+export async function approveWorkDeliverable(workId: string, deliverableId: string, requestId?: string): Promise<void> {
     if (!supabase) {
         const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
@@ -791,6 +836,18 @@ export async function approveWorkDeliverable(workId: string, deliverableId: stri
             STORAGE_KEYS.WORKS,
             JSON.stringify(works.map((work) => (work.id === workId ? { ...work, status: 'completed' } : work))),
         );
+        if (requestId) {
+            const requestsRaw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
+            const requests = requestsRaw ? (JSON.parse(requestsRaw) as ServiceRequestData[]) : [];
+            localStorage.setItem(
+                STORAGE_KEYS.REQUESTS,
+                JSON.stringify(
+                    requests.map((request) =>
+                        String(request.id) === requestId ? { ...request, status: 'completed' } : request,
+                    ),
+                ),
+            );
+        }
         return;
     }
 
@@ -804,6 +861,14 @@ export async function approveWorkDeliverable(workId: string, deliverableId: stri
     const { error: workError } = await supabase.from('works').update({ status: 'completed' }).eq('id', workId);
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 완료 처리 실패');
+    if (requestId) {
+        const { error: requestError } = await supabase
+            .from('service_requests')
+            .update({ status: 'completed' })
+            .eq('id', requestId);
+
+        if (requestError) throw new Error('데이터베이스 통신 오류: 요청 완료 처리 실패');
+    }
 }
 
 export async function requestWorkRevision(workId: string, deliverableId: string): Promise<void> {
@@ -865,6 +930,27 @@ export async function saveReview(review: Review): Promise<void> {
     }]);
 
     if (error) throw new Error('데이터베이스 통신 오류: 리뷰 저장 실패');
+}
+
+export async function getUserReviews(userId: string): Promise<Review[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+        const reviews = raw ? (JSON.parse(raw) as Review[]) : [];
+        return reviews.filter((review) => review.clientId === userId || review.expertId === userId);
+    }
+
+    const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .or(`client_id.eq.${userId},expert_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('리뷰 목록 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toReview);
 }
 
 export async function getExpertList(): Promise<Expert[]> {
