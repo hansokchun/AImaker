@@ -196,6 +196,128 @@ const getUserWorks = vi.fn(async (_userId: string) => [
     },
 ])
 
+const defaultProposals = () => [
+    {
+        id: 'proposal-real-client',
+        requestId: 'request-client',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-01',
+        title: '받은 실제 제안서',
+        scope: '테스트 범위',
+        deliverables: ['테스트 결과물'],
+        totalPrice: 30000,
+        deliveryDays: 2,
+        revisionCount: 1,
+        progressType: 'single' as const,
+        milestones: [],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'sent' as const,
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+    {
+        id: 'proposal-real-expert',
+        requestId: 'request-expert',
+        clientId: 'client-real-01',
+        expertId: 'user-demo-01',
+        title: '보낸 실제 제안서',
+        scope: '테스트 범위',
+        deliverables: ['테스트 결과물'],
+        totalPrice: 50000,
+        deliveryDays: 3,
+        revisionCount: 1,
+        progressType: 'single' as const,
+        milestones: [],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'sent' as const,
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+    {
+        id: 'proposal-real-client-expired',
+        requestId: 'request-client-expired',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-02',
+        title: 'Expired client proposal',
+        scope: 'Expired scope',
+        deliverables: ['Expired deliverable'],
+        totalPrice: 90000,
+        deliveryDays: 5,
+        revisionCount: 1,
+        progressType: 'single' as const,
+        milestones: [],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'expired' as const,
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+    {
+        id: 'proposal-real-expert-second',
+        requestId: 'request-expert-second',
+        clientId: 'client-real-02',
+        expertId: 'user-demo-01',
+        title: 'Second sent proposal',
+        scope: 'Second scope',
+        deliverables: ['Second deliverable'],
+        totalPrice: 120000,
+        deliveryDays: 7,
+        revisionCount: 2,
+        progressType: 'milestone' as const,
+        milestones: ['Step 1'],
+        commercialUseAllowed: true,
+        sourceFileIncluded: false,
+        status: 'revision_requested' as const,
+        expiresAt: '2026-06-01T00:00:00.000Z',
+    },
+]
+
+const defaultWorks = () => [
+    {
+        id: 'work-real-active',
+        proposalId: 'proposal-active',
+        requestId: 'request-active',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-01',
+        title: '진행 중인 실제 작업',
+        progressType: 'single' as const,
+        status: 'in_progress' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-real-completed',
+        proposalId: 'proposal-completed',
+        requestId: 'request-completed',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-02',
+        title: '완료된 실제 작업',
+        progressType: 'single' as const,
+        status: 'completed' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-real-submitted',
+        proposalId: 'proposal-submitted',
+        requestId: 'request-submitted',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-03',
+        title: 'Submitted work',
+        progressType: 'milestone' as const,
+        status: 'submitted' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-real-completed-second',
+        proposalId: 'proposal-completed-second',
+        requestId: 'request-completed-second',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-04',
+        title: 'Second completed work',
+        progressType: 'single' as const,
+        status: 'completed' as const,
+        stepIds: [],
+    },
+]
+
 vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
     getUserProposals: (userId: string) => getUserProposals(userId),
@@ -208,10 +330,12 @@ describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
         getExpertProducts.mockClear()
-        getUserProposals.mockClear()
+        getUserProposals.mockReset()
+        getUserProposals.mockResolvedValue(defaultProposals())
         getUserReviews.mockReset()
         getUserReviews.mockResolvedValue([])
-        getUserWorks.mockClear()
+        getUserWorks.mockReset()
+        getUserWorks.mockResolvedValue(defaultWorks())
     })
 
     it('shows client and expert sections with transaction links', async () => {
@@ -239,6 +363,26 @@ describe('MyPage', () => {
             'href',
             '/proposal/proposal-real-expert',
         )
+    })
+
+    it('does not link to demo proposal or workroom pages when there is no user data', async () => {
+        getUserProposals.mockResolvedValue([])
+        getUserWorks.mockResolvedValue([])
+
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('아직 받은 제안서가 없습니다.')).toBeInTheDocument()
+        expect(screen.getByText('진행 중인 작업이 없습니다.')).toBeInTheDocument()
+        expect(screen.getByText('완료된 작업이 없습니다.')).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '받은 제안서' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '진행 중인 작업' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '보낸 제안서' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: /proposal-demo-01/i })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: /work-demo-01/i })).not.toBeInTheDocument()
     })
 
     it('shows review button only on completed work', async () => {

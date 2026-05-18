@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Proposal from './Proposal'
 import type { Proposal as ProposalData } from '../types'
 
@@ -34,15 +34,26 @@ const expiredProposal: ProposalData = {
 const acceptProposal = vi.fn(async (_proposal: ProposalData) => 'work-created-01')
 const requestProposalRevision = vi.fn(async (_proposalId: string) => undefined)
 const cancelProposal = vi.fn(async (_proposalId: string) => undefined)
+const getProposal = vi.fn(async (id: string): Promise<ProposalData | null> =>
+    id === expiredProposal.id ? expiredProposal : activeProposal,
+)
 
 vi.mock('../lib/storage', () => ({
-    getProposal: vi.fn(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal)),
+    getProposal: (proposalId: string) => getProposal(proposalId),
     acceptProposal: (proposal: ProposalData) => acceptProposal(proposal),
     cancelProposal: (proposalId: string) => cancelProposal(proposalId),
     requestProposalRevision: (proposalId: string) => requestProposalRevision(proposalId),
 }))
 
 describe('Proposal', () => {
+    beforeEach(() => {
+        getProposal.mockReset()
+        getProposal.mockImplementation(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal))
+        acceptProposal.mockClear()
+        requestProposalRevision.mockClear()
+        cancelProposal.mockClear()
+    })
+
     it('shows proposal delivery information and accepts active proposals', async () => {
         render(
             <MemoryRouter initialEntries={['/proposal/proposal-demo-01']}>
@@ -100,5 +111,22 @@ describe('Proposal', () => {
 
         expect(await screen.findByText('만료된 제안서입니다.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '승인하기' })).toBeDisabled()
+    })
+
+    it('shows an empty state instead of demo proposal content when proposal is not found', async () => {
+        getProposal.mockResolvedValue(null)
+
+        render(
+            <MemoryRouter initialEntries={['/proposal/unknown-proposal-id']}>
+                <Routes>
+                    <Route path="/proposal/:proposalId" element={<Proposal />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('제안서를 찾을 수 없습니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '요청 목록으로 돌아가기' })).toHaveAttribute('href', '/requests')
+        expect(screen.queryByText(activeProposal.title)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '승인하기' })).not.toBeInTheDocument()
     })
 })

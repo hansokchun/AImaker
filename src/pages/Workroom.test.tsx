@@ -4,13 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Workroom from './Workroom'
 import type { Deliverable, Work, WorkStep } from '../types'
 
+const mockWorkTitle = 'AI 숏폼 영상 1차 제작'
+
 const work: Work = {
     id: 'work-demo-01',
     proposalId: 'proposal-demo-01',
     requestId: 'request-demo-01',
     clientId: 'client-demo-01',
     expertId: 'expert-video-01',
-    title: 'AI 숏폼 영상 1차 제작',
+    title: mockWorkTitle,
     progressType: 'milestone',
     status: 'submitted',
     stepIds: ['step-concept'],
@@ -41,7 +43,13 @@ const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
 const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
-const getWorkroomData = vi.fn(async (_workId: string) => ({ work, steps: [step], deliverables: [deliverable] }))
+const getWorkroomData = vi.fn(
+    async (_workId: string): Promise<{ work: Work | null; steps: WorkStep[]; deliverables: Deliverable[] }> => ({
+        work,
+        steps: [step],
+        deliverables: [deliverable],
+    }),
+)
 
 vi.mock('../lib/storage', () => ({
     approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string, stepId?: string) =>
@@ -106,6 +114,23 @@ describe('Workroom', () => {
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
         expect(screen.queryByText('1차 AI 숏폼 영상 시안 링크')).not.toBeInTheDocument()
         expect(screen.getByText('등록된 제출물이 없습니다.')).toBeInTheDocument()
+    })
+
+    it('shows an empty state instead of demo workroom content when work is not found', async () => {
+        getWorkroomData.mockResolvedValue({ work: null, steps: [], deliverables: [] })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/unknown-work-id']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('작업방을 찾을 수 없습니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute('href', '/mypage')
+        expect(screen.queryByText(mockWorkTitle)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '결과물 승인' })).not.toBeInTheDocument()
     })
 
     it('approves the active deliverable and marks the work as completed', async () => {

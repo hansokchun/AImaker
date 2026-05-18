@@ -78,39 +78,16 @@ export default function MyPage() {
         }
     }, [fetchProfile, user])
 
-    const activeWork = works.find((work) => work.status !== 'completed') || {
-        id: 'work-demo-01',
-        proposalId: 'proposal-demo-01',
-        requestId: 'request-demo-01',
-        clientId: user?.id || '',
-        expertId: 'expert-demo-01',
-        title: 'AI 숏폼 영상 제작',
-        progressType: 'single' as const,
-        status: 'in_progress' as const,
-        stepIds: [],
-    }
-    const completedWork = works.find((work) => work.status === 'completed') || {
-        id: 'work-completed-01',
-        proposalId: 'proposal-completed-01',
-        requestId: 'request-completed-01',
-        clientId: user?.id || '',
-        expertId: 'expert-demo-01',
-        title: 'AI 캐릭터 이미지 제작',
-        progressType: 'single' as const,
-        status: 'completed' as const,
-        stepIds: [],
-    }
+    const activeWork = works.find((work) => work.status !== 'completed') || null
+    const completedWork = works.find((work) => work.status === 'completed') || null
     const receivedProposals = proposals.filter((proposal) => proposal.clientId === user?.id)
     const sentProposals = proposals.filter((proposal) => proposal.expertId === user?.id)
     const myProducts = products.filter((product) => product.expertId === user?.id)
     const activeWorks = works.filter((work) => work.status !== 'completed')
     const completedWorks = works.filter((work) => work.status === 'completed')
-    const receivedProposal = receivedProposals[0] || {
-        id: 'proposal-demo-01',
-    }
-    const sentProposal = sentProposals[0] || {
-        id: 'proposal-demo-01',
-    }
+    const receivedProposal = receivedProposals[0] || null
+    const sentProposal = sentProposals[0] || null
+    const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as const
     const renderProposalCards = (items: Proposal[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
@@ -305,8 +282,16 @@ export default function MyPage() {
                         <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>의뢰자</h2>
                         <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
                             <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>내 의뢰 요청</Link>
-                            <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>받은 제안서</Link>
-                            <Link className="btn-text" to={`/workroom/${activeWork.id}`}>진행 중인 작업</Link>
+                            {receivedProposal ? (
+                                <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>받은 제안서</Link>
+                            ) : (
+                                <span style={quickLinkStyle}>받은 제안서 없음</span>
+                            )}
+                            {activeWork ? (
+                                <Link className="btn-text" to={`/workroom/${activeWork.id}`}>진행 중인 작업</Link>
+                            ) : (
+                                <span style={quickLinkStyle}>진행 중인 작업 없음</span>
+                            )}
                         </div>
 
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>받은 제안서</h3>
@@ -323,7 +308,11 @@ export default function MyPage() {
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
                             <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>받은 요청</Link>
-                            <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서</Link>
+                            {sentProposal ? (
+                                <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서</Link>
+                            ) : (
+                                <span style={quickLinkStyle}>보낸 제안서 없음</span>
+                            )}
                             <Link className="btn-text" to={`/expert/${user?.id}`}>공개 프로필 보기</Link>
                         </div>
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
@@ -349,6 +338,7 @@ export default function MyPage() {
                             onSubmit={async (event) => {
                                 event.preventDefault()
                                 const reviewWork = selectedReviewWork || completedWork
+                                if (!reviewWork) return
                                 const newReview: Review = {
                                     id: `review-${Date.now()}`,
                                     workId: reviewWork.id,

@@ -71,25 +71,44 @@ const statusText: Record<ProposalData['status'], string> = {
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
     const [proposal, setProposal] = useState<ProposalData | null>(null)
+    const [isLoaded, setIsLoaded] = useState(false)
     const [statusMessage, setStatusMessage] = useState('')
     const [createdWorkId, setCreatedWorkId] = useState('')
 
     useEffect(() => {
         let active = true
+        setIsLoaded(false)
         getProposal(proposalId || '').then((storedProposal) => {
             if (!active) return
-            setProposal(storedProposal ?? mockProposals.find((item) => item.id === proposalId) ?? mockProposals[0])
+            setProposal(storedProposal ?? mockProposals.find((item) => item.id === proposalId) ?? null)
+            setIsLoaded(true)
         })
         return () => {
             active = false
         }
     }, [proposalId])
 
-    if (!proposal) {
+    if (!isLoaded) {
         return (
             <main className="proposal-page">
                 <section className="container proposal-layout">
                     <div className="proposal-main-card">제안서를 불러오는 중입니다.</div>
+                </section>
+            </main>
+        )
+    }
+
+    if (!proposal) {
+        return (
+            <main className="proposal-page">
+                <section className="container proposal-layout">
+                    <div className="proposal-main-card">
+                        <h1>제안서를 찾을 수 없습니다.</h1>
+                        <p>제안서가 삭제되었거나 접근할 수 없는 상태입니다.</p>
+                        <Link to={ROUTES.REQUEST_BOARD} className="proposal-back-link">
+                            요청 목록으로 돌아가기
+                        </Link>
+                    </div>
                 </section>
             </main>
         )

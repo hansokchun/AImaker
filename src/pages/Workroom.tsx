@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
 import type { Deliverable, Work, WorkStep } from '../types'
 import { approveWorkDeliverable, getWorkroomData, requestWorkRevision, saveDeliverable } from '../lib/storage'
 import './Workroom.css'
@@ -71,17 +72,27 @@ export default function Workroom() {
     const [deliverables, setDeliverables] = useState<Deliverable[]>(mockDeliverables)
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
+    const [isLoaded, setIsLoaded] = useState(false)
+    const [notFound, setNotFound] = useState(false)
     const activeDeliverable = deliverables[0]
     const workStatusLabel =
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
 
     useEffect(() => {
         let active = true
+        setIsLoaded(false)
+        setNotFound(false)
         getWorkroomData(workId || mockWork.id).then((data) => {
             if (!active) return
-            setWork(data.work || mockWork)
+            if (!data.work) {
+                setNotFound(true)
+                setIsLoaded(true)
+                return
+            }
+            setWork(data.work)
             setSteps(data.steps.length ? data.steps : mockSteps)
-            setDeliverables(data.work ? data.deliverables : mockDeliverables)
+            setDeliverables(data.deliverables)
+            setIsLoaded(true)
         })
         return () => {
             active = false
@@ -142,6 +153,32 @@ export default function Workroom() {
         )
         setWork((current) => ({ ...current, status: 'revision_requested' }))
         setStatusMessage('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')
+    }
+
+    if (!isLoaded) {
+        return (
+            <main className="workroom-page">
+                <section className="container workroom-layout">
+                    <div className="workroom-main-card">작업방을 불러오는 중입니다.</div>
+                </section>
+            </main>
+        )
+    }
+
+    if (notFound) {
+        return (
+            <main className="workroom-page">
+                <section className="container workroom-layout">
+                    <div className="workroom-main-card">
+                        <h1>작업방을 찾을 수 없습니다.</h1>
+                        <p>작업이 삭제되었거나 접근할 수 없는 상태입니다.</p>
+                        <Link to={ROUTES.MY_PAGE} className="btn-text">
+                            마이페이지로 돌아가기
+                        </Link>
+                    </div>
+                </section>
+            </main>
+        )
     }
 
     return (
