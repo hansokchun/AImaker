@@ -110,4 +110,19 @@ describe('RequestBoard', () => {
         await waitFor(() => expect(saveProposal).not.toHaveBeenCalled())
         expect(screen.getByText('외부 연락처는 입력할 수 없습니다. 안전한 거래를 위해 플랫폼 안에서 소통해주세요.')).toBeInTheDocument()
     })
+
+    it('does not expose a private contact field in request details', async () => {
+        render(
+            <MemoryRouter>
+                <RequestBoard />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('QA 요청')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '상세보기' }))
+
+        expect(screen.queryByText('주문자 연락처')).not.toBeInTheDocument()
+        expect(screen.getByText('요청자 정보')).toBeInTheDocument()
+        expect(screen.getByText('플랫폼 내부 요청 기록으로 확인합니다.')).toBeInTheDocument()
+    })
 })

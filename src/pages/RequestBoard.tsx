@@ -189,8 +189,8 @@ export default function RequestBoard() {
                                         </div>
                                     </div>
                                     <div style={{ gridColumn: '1 / -1' }}>
-                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>주문자 연락처</span>
-                                        <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>{selectedRequest.ordererEmail || '이메일 미기재'}</div>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>요청자 정보</span>
+                                        <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>플랫폼 내부 요청 기록으로 확인합니다.</div>
                                     </div>
                                 </div>
                             </div>

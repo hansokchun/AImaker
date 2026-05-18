@@ -169,4 +169,21 @@ describe('ServiceRequest', () => {
             ),
         )
     })
+
+    it('shows a not found state instead of a generic request form for unknown product ids', async () => {
+        vi.mocked(getExpertProducts).mockResolvedValue([supabaseProduct])
+
+        render(
+            <MemoryRouter initialEntries={['/request/unknown-product-id']}>
+                <Routes>
+                    <Route path="/request/:productId" element={<ServiceRequest />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '상품을 찾을 수 없습니다' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'AI 작업 찾기로 돌아가기' })).toHaveAttribute('href', '/category')
+        expect(screen.queryByRole('button', { name: '요구사항 제출하기' })).not.toBeInTheDocument()
+        expect(screen.queryByText('카테고리 선택')).not.toBeInTheDocument()
+    })
 })

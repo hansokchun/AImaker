@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import CategorySelector from '../components/CategorySelector'
 import { AI_CATEGORIES } from '../constants/categories'
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies'
@@ -17,6 +17,7 @@ export default function ServiceRequest() {
     const { productId } = useParams<{ productId: string }>()
     const { user } = useAuth()
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
+    const [productsLoaded, setProductsLoaded] = useState(false)
     const selectedProduct = products.find((product) => product.id === productId)
     const selectedPackage = selectedProduct?.packages.standard
     const selectedCategoryName = useMemo(() => {
@@ -35,12 +36,15 @@ export default function ServiceRequest() {
 
     useEffect(() => {
         let active = true
+        setProductsLoaded(false)
         getExpertProducts()
             .then((items) => {
                 if (active) setProducts(items.length ? items : mockExpertProducts)
+                if (active) setProductsLoaded(true)
             })
             .catch(() => {
                 if (active) setProducts(mockExpertProducts)
+                if (active) setProductsLoaded(true)
             })
         return () => {
             active = false
@@ -103,6 +107,22 @@ export default function ServiceRequest() {
         } catch (error) {
             alert(error instanceof Error ? error.message : '요구사항 저장에 실패했습니다.')
         }
+    }
+
+    if (productId && productsLoaded && !selectedProduct) {
+        return (
+            <div className="request-page">
+                <main className="container request-main">
+                    <section className="content-card request-form-card">
+                        <h1>상품을 찾을 수 없습니다</h1>
+                        <p>존재하지 않거나 더 이상 공개되지 않은 AI 작업입니다.</p>
+                        <Link to={ROUTES.CATEGORY} className="btn-primary">
+                            AI 작업 찾기로 돌아가기
+                        </Link>
+                    </section>
+                </main>
+            </div>
+        )
     }
 
     return (
