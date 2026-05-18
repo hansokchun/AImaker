@@ -153,6 +153,21 @@ const toDeliverable = (item: any): Deliverable => ({
     submittedAt: item.submitted_at,
 });
 
+const buildInitialWorkSteps = (proposal: Proposal, workId: string): WorkStep[] => {
+    const titles = proposal.progressType === 'milestone' && proposal.milestones.length > 0
+        ? proposal.milestones
+        : [proposal.title];
+
+    return titles.map((title, index) => ({
+        id: `step-${workId}-${index + 1}`,
+        workId,
+        stepOrder: index + 1,
+        title,
+        description: index === 0 ? '작업을 시작합니다.' : '이전 단계 완료 후 진행합니다.',
+        status: index === 0 ? 'in_progress' : 'waiting',
+    }));
+};
+
 export async function ensureUserProfile(user: Pick<User, 'id' | 'email' | 'user_metadata'>): Promise<void> {
     if (!supabase) return;
 
@@ -630,9 +645,14 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             status: 'in_progress',
             stepIds: [],
         };
+        const steps = buildInitialWorkSteps(proposal, work.id);
         const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = raw ? (JSON.parse(raw) as Work[]) : [];
-        localStorage.setItem(STORAGE_KEYS.WORKS, JSON.stringify([...works, work]));
+        localStorage.setItem(STORAGE_KEYS.WORKS, JSON.stringify([...works, { ...work, stepIds: steps.map((step) => step.id) }]));
+
+        const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
+        const storedSteps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
+        localStorage.setItem(STORAGE_KEYS.WORK_STEPS, JSON.stringify([...storedSteps, ...steps]));
 
         const proposalRaw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = proposalRaw ? (JSON.parse(proposalRaw) as Proposal[]) : [];
@@ -676,6 +696,20 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
     }]).select('id').single();
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
+
+    const steps = buildInitialWorkSteps(proposal, workData.id);
+    const { error: stepError } = await supabase.from('work_steps').insert(
+        steps.map((step) => ({
+            work_id: step.workId,
+            step_order: step.stepOrder,
+            title: step.title,
+            description: step.description,
+            status: step.status,
+        })),
+    );
+
+    if (stepError) throw new Error('데이터베이스 통신 오류: 작업 단계 생성 실패');
+
     const { error: requestError } = await supabase
         .from('service_requests')
         .update({ status: 'in_progress' })

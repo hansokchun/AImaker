@@ -90,7 +90,7 @@ export default function Workroom() {
                 return
             }
             setWork(data.work)
-            setSteps(data.steps.length ? data.steps : mockSteps)
+            setSteps(data.steps)
             setDeliverables(data.deliverables)
             setIsLoaded(true)
         })
@@ -201,20 +201,24 @@ export default function Workroom() {
                         <span className="work-status-badge">{workStatusLabel}</span>
                     </div>
 
-                    <ol className="work-step-list">
-                        {steps.map((step) => (
-                            <li key={step.id} className={`work-step ${step.status}`}>
-                                <div className="step-index">{step.stepOrder}</div>
-                                <div className="step-body">
-                                    <div className="step-title-row">
-                                        <h3>{step.title}</h3>
-                                        <span>{statusLabels[step.status]}</span>
+                    {steps.length > 0 ? (
+                        <ol className="work-step-list">
+                            {steps.map((step) => (
+                                <li key={step.id} className={`work-step ${step.status}`}>
+                                    <div className="step-index">{step.stepOrder}</div>
+                                    <div className="step-body">
+                                        <div className="step-title-row">
+                                            <h3>{step.title}</h3>
+                                            <span>{statusLabels[step.status]}</span>
+                                        </div>
+                                        <p>{step.description}</p>
                                     </div>
-                                    <p>{step.description}</p>
-                                </div>
-                            </li>
-                        ))}
-                    </ol>
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p className="submitted-deliverable">등록된 진행 단계가 없습니다.</p>
+                    )}
 
                     <section className="deliverable-panel">
                         <h2>제출물</h2>

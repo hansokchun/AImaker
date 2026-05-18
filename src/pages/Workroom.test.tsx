@@ -116,6 +116,22 @@ describe('Workroom', () => {
         expect(screen.getByText('등록된 제출물이 없습니다.')).toBeInTheDocument()
     })
 
+    it('does not show demo steps when a real work has no steps yet', async () => {
+        getWorkroomData.mockResolvedValue({ work, steps: [], deliverables: [] })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
+        expect(screen.queryByText('콘셉트 확인')).not.toBeInTheDocument()
+        expect(screen.getByText('등록된 진행 단계가 없습니다.')).toBeInTheDocument()
+    })
+
     it('shows an empty state instead of demo workroom content when work is not found', async () => {
         getWorkroomData.mockResolvedValue({ work: null, steps: [], deliverables: [] })
 

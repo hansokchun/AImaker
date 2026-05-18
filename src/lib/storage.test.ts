@@ -338,6 +338,7 @@ describe('transaction storage', () => {
     it('saves and accepts proposals through Supabase', async () => {
         vi.resetModules()
         const insert = vi.fn().mockResolvedValue({ error: null })
+        const stepInsert = vi.fn().mockResolvedValue({ error: null })
         const workSingle = vi.fn().mockResolvedValue({ data: { id: work.id }, error: null })
         const workSelect = vi.fn(() => ({ single: workSingle }))
         const workInsert = vi.fn(() => ({ select: workSelect }))
@@ -347,6 +348,7 @@ describe('transaction storage', () => {
         const requestUpdate = vi.fn(() => ({ eq: requestEq }))
         const from = vi.fn((table: string) => {
             if (table === 'works') return { insert: workInsert }
+            if (table === 'work_steps') return { insert: stepInsert }
             if (table === 'service_requests') return { update: requestUpdate }
             return { insert, update: proposalUpdate }
         })
@@ -367,6 +369,27 @@ describe('transaction storage', () => {
         ])
         expect(from).toHaveBeenCalledWith('works')
         expect(workSelect).toHaveBeenCalledWith('id')
+        expect(from).toHaveBeenCalledWith('work_steps')
+        expect(stepInsert).toHaveBeenCalledWith([
+            expect.objectContaining({
+                work_id: work.id,
+                step_order: 1,
+                title: '콘셉트 확인',
+                status: 'in_progress',
+            }),
+            expect.objectContaining({
+                work_id: work.id,
+                step_order: 2,
+                title: '1차 시안',
+                status: 'waiting',
+            }),
+            expect.objectContaining({
+                work_id: work.id,
+                step_order: 3,
+                title: '최종 제출',
+                status: 'waiting',
+            }),
+        ])
         expect(from).toHaveBeenCalledWith('service_requests')
         expect(requestUpdate).toHaveBeenCalledWith({ status: 'in_progress' })
         expect(requestEq).toHaveBeenCalledWith('id', proposal.requestId)
