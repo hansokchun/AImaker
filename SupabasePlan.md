@@ -23,6 +23,8 @@ profiles
 
 기존 `database.sql`은 이전 구조를 담고 있으므로, 실제 구현 단계에서는 이 문서를 기준으로 새 migration을 작성한다.
 
+최신 SQL을 Supabase에 다시 반영할 때는 `SupabaseSqlApplyChecklist.md`의 절차를 따른다.
+
 ---
 
 ## 2. 공통 규칙
