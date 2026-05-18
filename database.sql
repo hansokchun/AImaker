@@ -222,10 +222,11 @@ create policy "Experts can insert proposal for own request"
   with check (auth.uid() = expert_id);
 
 drop policy if exists "Clients and experts can update proposals" on public.proposals;
-create policy "Clients and experts can update proposals"
+drop policy if exists "Clients can update received proposals" on public.proposals;
+create policy "Clients can update received proposals"
   on public.proposals for update
-  using (auth.uid() = client_id or auth.uid() = expert_id)
-  with check (auth.uid() = client_id or auth.uid() = expert_id);
+  using (auth.uid() = client_id)
+  with check (auth.uid() = client_id);
 
 drop trigger if exists set_proposals_updated_at on public.proposals;
 create trigger set_proposals_updated_at

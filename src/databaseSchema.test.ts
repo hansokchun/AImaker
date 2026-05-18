@@ -63,6 +63,16 @@ describe('database.sql', () => {
         expect(policyMatch?.[1]).toMatch(/status in \('submitted', 'pending'\)/i)
     })
 
+    it('limits proposal status updates to the client who received the proposal', () => {
+        const policyMatch = sql.match(/create policy "Clients can update received proposals"[\s\S]*?;/i)
+        const policySql = policyMatch?.[0] || ''
+
+        expect(policySql).toMatch(/on public\.proposals for update/i)
+        expect(policySql).toMatch(/using \(auth\.uid\(\) = client_id\)/i)
+        expect(policySql).toMatch(/with check \(auth\.uid\(\) = client_id\)/i)
+        expect(policySql).not.toMatch(/expert_id/)
+    })
+
     it('limits deliverable file storage reads to work participants', () => {
         const policyMatch = sql.match(
             /create policy "Work participants can read deliverable files"[\s\S]*?on storage\.objects for select[\s\S]*?using \(([\s\S]*?)\);/i,
