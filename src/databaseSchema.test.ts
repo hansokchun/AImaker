@@ -94,6 +94,20 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/service_requests\.status in \('submitted', 'pending'\)/i)
     })
 
+    it('allows works to be inserted only from an accepted matching proposal', () => {
+        const policyMatch = sql.match(/create policy "Accepted proposal participants can insert works"[\s\S]*?;/i)
+        const policySql = policyMatch?.[0] || ''
+
+        expect(policySql).toMatch(/on public\.works for insert/i)
+        expect(policySql).toMatch(/auth\.uid\(\) = client_id/i)
+        expect(policySql).toMatch(/exists \([\s\S]*select 1 from public\.proposals/i)
+        expect(policySql).toMatch(/proposals\.id = works\.proposal_id/i)
+        expect(policySql).toMatch(/proposals\.request_id = works\.request_id/i)
+        expect(policySql).toMatch(/proposals\.client_id = works\.client_id/i)
+        expect(policySql).toMatch(/proposals\.expert_id = works\.expert_id/i)
+        expect(policySql).toMatch(/proposals\.status = 'accepted'/i)
+    })
+
     it('limits deliverable file storage reads to work participants', () => {
         const policyMatch = sql.match(
             /create policy "Work participants can read deliverable files"[\s\S]*?on storage\.objects for select[\s\S]*?using \(([\s\S]*?)\);/i,

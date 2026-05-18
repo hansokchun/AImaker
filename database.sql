@@ -269,7 +269,17 @@ create policy "Work participants can view works"
 drop policy if exists "Accepted proposal participants can insert works" on public.works;
 create policy "Accepted proposal participants can insert works"
   on public.works for insert
-  with check (auth.uid() = client_id or auth.uid() = expert_id);
+  with check (
+    auth.uid() = client_id
+    and exists (
+      select 1 from public.proposals
+      where proposals.id = works.proposal_id
+      and proposals.request_id = works.request_id
+      and proposals.client_id = works.client_id
+      and proposals.expert_id = works.expert_id
+      and proposals.status = 'accepted'
+    )
+  );
 
 drop policy if exists "Work participants can update works" on public.works;
 create policy "Work participants can update works"
