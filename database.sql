@@ -434,6 +434,7 @@ create policy "Clients can review completed work"
       select 1 from public.works
       where works.id = reviews.work_id
       and works.client_id = auth.uid()
+      and works.expert_id = reviews.expert_id
       and works.status = 'completed'
     )
   );

@@ -108,6 +108,23 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/proposals\.status = 'accepted'/i)
     })
 
+    it('allows clients to review only completed work with the matching expert', () => {
+        const policyMatch = sql.match(/create policy "Clients can review completed work"[\s\S]*?;/i)
+        const policySql = policyMatch?.[0] || ''
+
+        expect(policySql).toMatch(/on public\.reviews for insert/i)
+        expect(policySql).toMatch(/auth\.uid\(\) = client_id/i)
+        expect(policySql).toMatch(/exists \([\s\S]*select 1 from public\.works/i)
+        expect(policySql).toMatch(/works\.id = reviews\.work_id/i)
+        expect(policySql).toMatch(/works\.client_id = auth\.uid\(\)/i)
+        expect(policySql).toMatch(/works\.expert_id = reviews\.expert_id/i)
+        expect(policySql).toMatch(/works\.status = 'completed'/i)
+    })
+
+    it('does not allow review updates in the initial launch policy', () => {
+        expect(sql).not.toMatch(/on public\.reviews for update/i)
+    })
+
     it('limits deliverable file storage reads to work participants', () => {
         const policyMatch = sql.match(
             /create policy "Work participants can read deliverable files"[\s\S]*?on storage\.objects for select[\s\S]*?using \(([\s\S]*?)\);/i,
