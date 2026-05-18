@@ -176,7 +176,8 @@ create policy "Clients can insert own requests"
   with check (auth.uid() = client_id);
 
 drop policy if exists "Clients can update own cancellable requests" on public.service_requests;
-create policy "Clients can update own cancellable requests"
+drop policy if exists "Clients can update own request status" on public.service_requests;
+create policy "Clients can update own request status"
   on public.service_requests for update
   using (auth.uid() = client_id)
   with check (auth.uid() = client_id);
@@ -217,9 +218,18 @@ create policy "Proposal participants can view proposals"
   using (auth.uid() = client_id or auth.uid() = expert_id);
 
 drop policy if exists "Experts can insert proposal for own request" on public.proposals;
-create policy "Experts can insert proposal for own request"
+drop policy if exists "Experts can insert proposal for submitted request" on public.proposals;
+create policy "Experts can insert proposal for submitted request"
   on public.proposals for insert
-  with check (auth.uid() = expert_id);
+  with check (
+    auth.uid() = expert_id
+    and exists (
+      select 1 from public.service_requests
+      where service_requests.id = proposals.request_id
+      and service_requests.client_id = proposals.client_id
+      and service_requests.status in ('submitted', 'pending')
+    )
+  );
 
 drop policy if exists "Clients and experts can update proposals" on public.proposals;
 drop policy if exists "Clients can update received proposals" on public.proposals;
