@@ -647,12 +647,15 @@ describe('transaction storage', () => {
         vi.resetModules()
         const deliverableEq = vi.fn().mockResolvedValue({ error: null })
         const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
+        const stepEq = vi.fn().mockResolvedValue({ error: null })
+        const stepUpdate = vi.fn(() => ({ eq: stepEq }))
         const workEq = vi.fn().mockResolvedValue({ error: null })
         const workUpdate = vi.fn(() => ({ eq: workEq }))
         const requestEq = vi.fn().mockResolvedValue({ error: null })
         const requestUpdate = vi.fn(() => ({ eq: requestEq }))
         const from = vi.fn((table: string) => {
             if (table === 'deliverables') return { update: deliverableUpdate }
+            if (table === 'work_steps') return { update: stepUpdate }
             if (table === 'works') return { update: workUpdate }
             if (table === 'service_requests') return { update: requestUpdate }
             return {}
@@ -661,11 +664,14 @@ describe('transaction storage', () => {
 
         const { approveWorkDeliverable } = await import('./storage')
 
-        await approveWorkDeliverable(work.id, deliverable.id, work.requestId)
+        await approveWorkDeliverable(work.id, deliverable.id, work.requestId, deliverable.stepId)
 
         expect(from).toHaveBeenCalledWith('deliverables')
         expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'approved' })
         expect(deliverableEq).toHaveBeenCalledWith('id', deliverable.id)
+        expect(from).toHaveBeenCalledWith('work_steps')
+        expect(stepUpdate).toHaveBeenCalledWith({ status: 'approved' })
+        expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
         expect(from).toHaveBeenCalledWith('works')
         expect(workUpdate).toHaveBeenCalledWith({ status: 'completed' })
         expect(workEq).toHaveBeenCalledWith('id', work.id)
@@ -678,10 +684,13 @@ describe('transaction storage', () => {
         vi.resetModules()
         const deliverableEq = vi.fn().mockResolvedValue({ error: null })
         const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
+        const stepEq = vi.fn().mockResolvedValue({ error: null })
+        const stepUpdate = vi.fn(() => ({ eq: stepEq }))
         const workEq = vi.fn().mockResolvedValue({ error: null })
         const workUpdate = vi.fn(() => ({ eq: workEq }))
         const from = vi.fn((table: string) => {
             if (table === 'deliverables') return { update: deliverableUpdate }
+            if (table === 'work_steps') return { update: stepUpdate }
             if (table === 'works') return { update: workUpdate }
             return {}
         })
@@ -689,11 +698,14 @@ describe('transaction storage', () => {
 
         const { requestWorkRevision } = await import('./storage')
 
-        await requestWorkRevision(work.id, deliverable.id)
+        await requestWorkRevision(work.id, deliverable.id, deliverable.stepId)
 
         expect(from).toHaveBeenCalledWith('deliverables')
         expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
         expect(deliverableEq).toHaveBeenCalledWith('id', deliverable.id)
+        expect(from).toHaveBeenCalledWith('work_steps')
+        expect(stepUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
+        expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
         expect(from).toHaveBeenCalledWith('works')
         expect(workUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
         expect(workEq).toHaveBeenCalledWith('id', work.id)

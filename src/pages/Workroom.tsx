@@ -109,10 +109,15 @@ export default function Workroom() {
     const handleApproveDeliverable = async () => {
         if (!activeDeliverable) return
 
-        await approveWorkDeliverable(work.id, activeDeliverable.id, work.requestId)
+        await approveWorkDeliverable(work.id, activeDeliverable.id, work.requestId, activeDeliverable.stepId)
         setDeliverables((current) =>
             current.map((deliverable) =>
                 deliverable.id === activeDeliverable.id ? { ...deliverable, status: 'approved' } : deliverable,
+            ),
+        )
+        setSteps((current) =>
+            current.map((step) =>
+                step.id === activeDeliverable.stepId ? { ...step, status: 'approved' } : step,
             ),
         )
         setWork((current) => ({ ...current, status: 'completed' }))
@@ -122,12 +127,17 @@ export default function Workroom() {
     const handleRequestRevision = async () => {
         if (!activeDeliverable) return
 
-        await requestWorkRevision(work.id, activeDeliverable.id)
+        await requestWorkRevision(work.id, activeDeliverable.id, activeDeliverable.stepId)
         setDeliverables((current) =>
             current.map((deliverable) =>
                 deliverable.id === activeDeliverable.id
                     ? { ...deliverable, status: 'revision_requested' }
                     : deliverable,
+            ),
+        )
+        setSteps((current) =>
+            current.map((step) =>
+                step.id === activeDeliverable.stepId ? { ...step, status: 'revision_requested' } : step,
             ),
         )
         setWork((current) => ({ ...current, status: 'revision_requested' }))

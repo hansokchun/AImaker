@@ -822,12 +822,19 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');
 }
 
-export async function approveWorkDeliverable(workId: string, deliverableId: string, requestId?: string): Promise<void> {
+export async function approveWorkDeliverable(
+    workId: string,
+    deliverableId: string,
+    requestId?: string,
+    stepId?: string,
+): Promise<void> {
     if (!supabase) {
         const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
         const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
 
         localStorage.setItem(
             STORAGE_KEYS.DELIVERABLES,
@@ -841,6 +848,12 @@ export async function approveWorkDeliverable(workId: string, deliverableId: stri
             STORAGE_KEYS.WORKS,
             JSON.stringify(works.map((work) => (work.id === workId ? { ...work, status: 'completed' } : work))),
         );
+        if (stepId) {
+            localStorage.setItem(
+                STORAGE_KEYS.WORK_STEPS,
+                JSON.stringify(steps.map((step) => (step.id === stepId ? { ...step, status: 'approved' } : step))),
+            );
+        }
         if (requestId) {
             const requestsRaw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
             const requests = requestsRaw ? (JSON.parse(requestsRaw) as ServiceRequestData[]) : [];
@@ -863,6 +876,15 @@ export async function approveWorkDeliverable(workId: string, deliverableId: stri
 
     if (deliverableError) throw new Error('데이터베이스 통신 오류: 제출물 승인 실패');
 
+    if (stepId) {
+        const { error: stepError } = await supabase
+            .from('work_steps')
+            .update({ status: 'approved' })
+            .eq('id', stepId);
+
+        if (stepError) throw new Error('데이터베이스 통신 오류: 단계 승인 처리 실패');
+    }
+
     const { error: workError } = await supabase.from('works').update({ status: 'completed' }).eq('id', workId);
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 완료 처리 실패');
@@ -876,12 +898,14 @@ export async function approveWorkDeliverable(workId: string, deliverableId: stri
     }
 }
 
-export async function requestWorkRevision(workId: string, deliverableId: string): Promise<void> {
+export async function requestWorkRevision(workId: string, deliverableId: string, stepId?: string): Promise<void> {
     if (!supabase) {
         const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
         const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
 
         localStorage.setItem(
             STORAGE_KEYS.DELIVERABLES,
@@ -899,6 +923,14 @@ export async function requestWorkRevision(workId: string, deliverableId: string)
                 works.map((work) => (work.id === workId ? { ...work, status: 'revision_requested' } : work)),
             ),
         );
+        if (stepId) {
+            localStorage.setItem(
+                STORAGE_KEYS.WORK_STEPS,
+                JSON.stringify(
+                    steps.map((step) => (step.id === stepId ? { ...step, status: 'revision_requested' } : step)),
+                ),
+            );
+        }
         return;
     }
 
@@ -908,6 +940,15 @@ export async function requestWorkRevision(workId: string, deliverableId: string)
         .eq('id', deliverableId);
 
     if (deliverableError) throw new Error('데이터베이스 통신 오류: 제출물 수정 요청 실패');
+
+    if (stepId) {
+        const { error: stepError } = await supabase
+            .from('work_steps')
+            .update({ status: 'revision_requested' })
+            .eq('id', stepId);
+
+        if (stepError) throw new Error('데이터베이스 통신 오류: 단계 수정 요청 처리 실패');
+    }
 
     const { error: workError } = await supabase
         .from('works')

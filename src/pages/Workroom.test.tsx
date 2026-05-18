@@ -37,15 +37,18 @@ const deliverable: Deliverable = {
 }
 
 const saveDeliverable = vi.fn(async (_deliverable: Deliverable) => undefined)
-const approveWorkDeliverable = vi.fn(async (_workId: string, _deliverableId: string, _requestId?: string) => undefined)
-const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string) => undefined)
+const approveWorkDeliverable = vi.fn(
+    async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
+)
+const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
 const getWorkroomData = vi.fn(async (_workId: string) => ({ work, steps: [step], deliverables: [deliverable] }))
 
 vi.mock('../lib/storage', () => ({
-    approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string) =>
-        approveWorkDeliverable(workId, deliverableId, requestId),
+    approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string, stepId?: string) =>
+        approveWorkDeliverable(workId, deliverableId, requestId, stepId),
     getWorkroomData: (workId: string) => getWorkroomData(workId),
-    requestWorkRevision: (workId: string, deliverableId: string) => requestWorkRevision(workId, deliverableId),
+    requestWorkRevision: (workId: string, deliverableId: string, stepId?: string) =>
+        requestWorkRevision(workId, deliverableId, stepId),
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
 }))
 
@@ -117,9 +120,12 @@ describe('Workroom', () => {
         expect(await screen.findByText('1차 시안 링크')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: '결과물 승인' }))
 
-        await waitFor(() => expect(approveWorkDeliverable).toHaveBeenCalledWith(work.id, deliverable.id, work.requestId))
+        await waitFor(() =>
+            expect(approveWorkDeliverable).toHaveBeenCalledWith(work.id, deliverable.id, work.requestId, step.id),
+        )
         expect(screen.getByText('결과물을 승인했습니다. 작업이 완료되었습니다.')).toBeInTheDocument()
         expect(screen.getByText('완료')).toBeInTheDocument()
+        expect(screen.getAllByText('승인됨').length).toBeGreaterThan(0)
     })
 
     it('requests a revision for the active deliverable and keeps the work open', async () => {
@@ -134,7 +140,7 @@ describe('Workroom', () => {
         expect(await screen.findByText('1차 시안 링크')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: '수정 요청' }))
 
-        await waitFor(() => expect(requestWorkRevision).toHaveBeenCalledWith(work.id, deliverable.id))
+        await waitFor(() => expect(requestWorkRevision).toHaveBeenCalledWith(work.id, deliverable.id, step.id))
         expect(screen.getByText('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')).toBeInTheDocument()
         expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0)
     })
