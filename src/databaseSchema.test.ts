@@ -125,6 +125,10 @@ describe('database.sql', () => {
         expect(sql).not.toMatch(/on public\.reviews for update/i)
     })
 
+    it('does not contain trailing commas before statement terminators', () => {
+        expect(sql).not.toMatch(/,\s*;/)
+    })
+
     it('limits deliverable file storage reads to work participants', () => {
         const policyMatch = sql.match(
             /create policy "Work participants can read deliverable files"[\s\S]*?on storage\.objects for select[\s\S]*?using \(([\s\S]*?)\);/i,

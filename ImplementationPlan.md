@@ -329,6 +329,14 @@ npm.cmd run test
 npm.cmd run build
 ```
 
+현재 검증 상태:
+
+- [x] 최신 `database.sql`을 Supabase SQL Editor에서 실행 성공 확인
+- [x] `database.sql` trailing comma 회귀 테스트 추가
+- [x] `npm.cmd test` 통과
+- [x] `npm.cmd run lint` 통과
+- [x] `npm.cmd run build` 통과
+
 브라우저 확인:
 
 ```text
