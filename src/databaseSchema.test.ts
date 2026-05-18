@@ -73,4 +73,25 @@ describe('database.sql', () => {
         expect(policyMatch?.[1]).toMatch(/works\.id::text = \(storage\.foldername\(name\)\)\[1\]/i)
         expect(policyMatch?.[1]).toMatch(/works\.client_id = auth\.uid\(\) or works\.expert_id = auth\.uid\(\)/i)
     })
+
+    it('allows work participants to insert initial work steps after proposal acceptance', () => {
+        const policyMatch = sql.match(
+            /create policy "Work participants can insert work steps"[\s\S]*?on public\.work_steps for insert[\s\S]*?with check \(([\s\S]*?)\);/i,
+        )
+
+        expect(policyMatch?.[1]).toMatch(/exists \([\s\S]*select 1 from public\.works/i)
+        expect(policyMatch?.[1]).toMatch(/works\.id = work_steps\.work_id/i)
+        expect(policyMatch?.[1]).toMatch(/works\.client_id = auth\.uid\(\) or works\.expert_id = auth\.uid\(\)/i)
+    })
+
+    it('limits deliverable inserts to the expert assigned to the work', () => {
+        const policyMatch = sql.match(
+            /create policy "Experts can insert deliverables"[\s\S]*?on public\.deliverables for insert[\s\S]*?with check \(([\s\S]*?)\);/i,
+        )
+
+        expect(policyMatch?.[1]).toMatch(/exists \([\s\S]*select 1 from public\.works/i)
+        expect(policyMatch?.[1]).toMatch(/works\.id = deliverables\.work_id/i)
+        expect(policyMatch?.[1]).toMatch(/works\.expert_id = auth\.uid\(\)/i)
+        expect(policyMatch?.[1]).toMatch(/deliverables\.expert_id = auth\.uid\(\)/i)
+    })
 })

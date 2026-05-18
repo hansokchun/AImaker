@@ -302,6 +302,17 @@ create policy "Work participants can view work steps"
   );
 
 drop policy if exists "Work participants can update work steps" on public.work_steps;
+drop policy if exists "Work participants can insert work steps" on public.work_steps;
+create policy "Work participants can insert work steps"
+  on public.work_steps for insert
+  with check (
+    exists (
+      select 1 from public.works
+      where works.id = work_steps.work_id
+      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
+    )
+  );
+
 create policy "Work participants can update work steps"
   on public.work_steps for update
   using (
@@ -348,7 +359,14 @@ create policy "Work participants can view deliverables"
 drop policy if exists "Experts can insert deliverables" on public.deliverables;
 create policy "Experts can insert deliverables"
   on public.deliverables for insert
-  with check (auth.uid() = expert_id);
+  with check (
+    deliverables.expert_id = auth.uid()
+    and exists (
+      select 1 from public.works
+      where works.id = deliverables.work_id
+      and works.expert_id = auth.uid()
+    )
+  );
 
 drop policy if exists "Work participants can update deliverables" on public.deliverables;
 create policy "Work participants can update deliverables"
