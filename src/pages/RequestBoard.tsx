@@ -25,6 +25,7 @@ export default function RequestBoard() {
         deliveryDays: '',
     });
     const [proposalMessage, setProposalMessage] = useState('');
+    const [sentProposalId, setSentProposalId] = useState('');
 
     const filters: string[] = ['전체', ...CATEGORIES];
 
@@ -47,11 +48,13 @@ export default function RequestBoard() {
             deliveryDays: '',
         });
         setProposalMessage('');
+        setSentProposalId('');
     };
 
     const handleProposalChange = (field: keyof typeof proposalDraft, value: string) => {
         setProposalDraft((draft) => ({ ...draft, [field]: value }));
         setProposalMessage('');
+        setSentProposalId('');
     };
 
     const handleSubmitProposal = async () => {
@@ -93,7 +96,8 @@ export default function RequestBoard() {
             expiresAt: expiresAt.toISOString(),
         };
 
-        await saveProposal(proposal);
+        const savedProposalId = await saveProposal(proposal);
+        setSentProposalId(savedProposalId);
         setProposalMessage('제안서를 보냈습니다.');
     };
 
@@ -236,6 +240,11 @@ export default function RequestBoard() {
                                         </label>
                                     </div>
                                     {proposalMessage && <p style={{ margin: 0, color: 'var(--primary-color)', fontWeight: 700 }}>{proposalMessage}</p>}
+                                    {sentProposalId && (
+                                        <Link to={`/proposal/${sentProposalId}`} className="btn-text">
+                                            보낸 제안서 보기
+                                        </Link>
+                                    )}
                                 </div>
                                 <button
                                     className="btn-primary"

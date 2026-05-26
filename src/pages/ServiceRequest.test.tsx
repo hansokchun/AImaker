@@ -22,14 +22,26 @@ const supabaseProduct: ExpertProduct = {
     },
 }
 
+let mockUser: { id: string; email: string } | null = {
+    id: 'client-real-01',
+    email: 'client@example.com',
+}
+
 vi.mock('../lib/storage', () => ({
     saveRequest: vi.fn().mockResolvedValue(undefined),
     getExpertProducts: vi.fn(async () => mockExpertProducts),
 }))
 
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: () => ({
+        user: mockUser,
+    }),
+}))
+
 describe('ServiceRequest', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        mockUser = { id: 'client-real-01', email: 'client@example.com' }
         vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
         vi.spyOn(window, 'alert').mockImplementation(() => {})
     })
@@ -98,9 +110,36 @@ describe('ServiceRequest', () => {
                 progressType: 'milestone',
                 status: 'pending',
             }),
-            undefined,
+            mockUser?.id,
         )
         expect(await screen.findByRole('heading', { name: '제안 대기' })).toBeInTheDocument()
+    })
+
+    it('requires login before saving requirements to Supabase', async () => {
+        mockUser = null
+        const product = mockExpertProducts[0]
+
+        const { container } = render(
+            <MemoryRouter initialEntries={[`/request/${product.id}`]}>
+                <Routes>
+                    <Route path="/request/:productId" element={<ServiceRequest />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        fireEvent.change(container.querySelector('#desired-result') as HTMLTextAreaElement, {
+            target: { value: 'QA Test Request' },
+        })
+        fireEvent.change(container.querySelector('#purpose') as HTMLTextAreaElement, {
+            target: { value: '다른 전문가 계정에서 보여야 합니다.' },
+        })
+        fireEvent.change(container.querySelector('#deadline') as HTMLInputElement, {
+            target: { value: '2026-06-01' },
+        })
+        fireEvent.click(container.querySelector('button[type="submit"]') as HTMLButtonElement)
+
+        expect(saveRequest).not.toHaveBeenCalled()
+        expect(window.alert).toHaveBeenCalled()
     })
 
     it('blocks external contact details in requirement fields', async () => {
@@ -165,7 +204,7 @@ describe('ServiceRequest', () => {
                     budget: '45000',
                     selectedPackage: 'standard',
                 }),
-                undefined,
+                mockUser?.id,
             ),
         )
     })

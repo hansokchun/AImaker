@@ -225,24 +225,77 @@ describe('transaction storage', () => {
 
         const { saveServiceRequest } = await import('./storage')
 
-        await saveServiceRequest(request)
+        const uuidRequest = {
+            ...request,
+            clientId: '11111111-1111-4111-8111-111111111111',
+            expertId: '22222222-2222-4222-8222-222222222222',
+            productId: '33333333-3333-4333-8333-333333333333',
+        }
+
+        await saveServiceRequest(uuidRequest)
 
         expect(from).toHaveBeenCalledWith('service_requests')
         expect(insert).toHaveBeenCalledWith([
             expect.objectContaining({
-                client_id: request.clientId,
-                expert_id: request.expertId,
-                product_id: request.productId,
-                selected_package: request.selectedPackage,
-                desired_result: request.desiredResult,
-                purpose: request.purpose,
-                reference_text: request.referenceText,
-                reference_links: request.referenceLinks,
-                progress_type: request.progressType,
-                checklist: request.checklist,
+                client_id: uuidRequest.clientId,
+                expert_id: uuidRequest.expertId,
+                product_id: uuidRequest.productId,
+                selected_package: uuidRequest.selectedPackage,
+                desired_result: uuidRequest.desiredResult,
+                purpose: uuidRequest.purpose,
+                reference_text: uuidRequest.referenceText,
+                reference_links: uuidRequest.referenceLinks,
+                progress_type: uuidRequest.progressType,
+                checklist: uuidRequest.checklist,
                 status: 'submitted',
             }),
         ])
+    })
+
+    it('saves board request fields and omits non-uuid foreign keys for Supabase inserts', async () => {
+        vi.resetModules()
+        const insert = vi.fn().mockResolvedValue({ error: null })
+        const from = vi.fn(() => ({ insert }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveRequest } = await import('./storage')
+        const clientId = '11111111-1111-4111-8111-111111111111'
+
+        await saveRequest(
+            {
+                id: 12345,
+                title: 'QA Test Request',
+                description: 'QA 요청 상세',
+                budget: '45000',
+                deadline: '2026-06-01',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 5. 21.',
+                status: 'pending',
+                productId: 'product-ai-shortform-01',
+                expertId: 'expert-video-01',
+                selectedPackage: 'standard',
+                desiredResult: 'QA Test Request',
+                purpose: '다른 전문가 계정에서 보여야 합니다.',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+            },
+            clientId,
+        )
+
+        const payload = insert.mock.calls[0][0][0]
+        expect(payload).toEqual(
+            expect.objectContaining({
+                client_id: clientId,
+                title: 'QA Test Request',
+                description: '다른 전문가 계정에서 보여야 합니다.',
+                budget: 45000,
+                categories: ['AI 영상/숏폼'],
+                status: 'submitted',
+            }),
+        )
+        expect(payload).not.toHaveProperty('product_id')
+        expect(payload).not.toHaveProperty('expert_id')
     })
 
     it('loads service requests from Supabase', async () => {
@@ -337,7 +390,9 @@ describe('transaction storage', () => {
 
     it('saves and accepts proposals through Supabase', async () => {
         vi.resetModules()
-        const insert = vi.fn().mockResolvedValue({ error: null })
+        const proposalSingle = vi.fn().mockResolvedValue({ data: { id: 'proposal-db-01' }, error: null })
+        const proposalSelect = vi.fn(() => ({ single: proposalSingle }))
+        const insert = vi.fn(() => ({ select: proposalSelect }))
         const stepInsert = vi.fn().mockResolvedValue({ error: null })
         const workSingle = vi.fn().mockResolvedValue({ data: { id: work.id }, error: null })
         const workSelect = vi.fn(() => ({ single: workSingle }))
@@ -356,7 +411,7 @@ describe('transaction storage', () => {
 
         const { saveProposal, acceptProposal } = await import('./storage')
 
-        await saveProposal(proposal)
+        await expect(saveProposal(proposal)).resolves.toBe('proposal-db-01')
         await expect(acceptProposal(proposal)).resolves.toBe(work.id)
 
         expect(from).toHaveBeenCalledWith('proposals')
@@ -367,6 +422,8 @@ describe('transaction storage', () => {
                 expires_at: proposal.expiresAt,
             }),
         ])
+        expect(proposalSelect).toHaveBeenCalledWith('id')
+        expect(proposalSingle).toHaveBeenCalled()
         expect(from).toHaveBeenCalledWith('works')
         expect(workSelect).toHaveBeenCalledWith('id')
         expect(from).toHaveBeenCalledWith('work_steps')

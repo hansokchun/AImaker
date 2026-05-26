@@ -35,6 +35,11 @@ const STORAGE_KEYS = {
 const isUuid = (value?: string) =>
     Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
+const toOptionalNumber = (value?: string): number | null => {
+    const numericValue = Number(String(value || '').replace(/[^\d]/g, ''));
+    return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
+};
+
 const toServiceRequest = (item: any): AiServiceRequest => ({
     id: item.id,
     clientId: item.client_id,
@@ -298,7 +303,7 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
     await saveServiceRequest({
         id: String(request.id),
         clientId: userId || '',
-        expertId: '',
+        expertId: request.expertId || '',
         productId: request.productId || '',
         selectedPackage: request.selectedPackage || 'standard',
         desiredResult: request.desiredResult || request.title,
@@ -314,6 +319,10 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
             usageContext: '',
         },
         status: 'submitted',
+        title: request.title,
+        description: request.purpose || request.description,
+        budget: request.budget,
+        categories: request.categories,
     });
 }
 
@@ -328,8 +337,8 @@ export async function saveServiceRequest(request: AiServiceRequest): Promise<voi
     const { error } = await supabase.from('service_requests').insert([{
         ...(isUuid(request.id) ? { id: request.id } : {}),
         client_id: request.clientId || null,
-        expert_id: request.expertId || null,
-        product_id: request.productId || null,
+        ...(isUuid(request.expertId) ? { expert_id: request.expertId } : {}),
+        ...(isUuid(request.productId) ? { product_id: request.productId } : {}),
         selected_package: request.selectedPackage,
         desired_result: request.desiredResult,
         purpose: request.purpose,
@@ -339,8 +348,10 @@ export async function saveServiceRequest(request: AiServiceRequest): Promise<voi
         progress_type: request.progressType,
         checklist: request.checklist,
         additional_request: request.additionalRequest || null,
-        title: request.desiredResult,
-        description: request.purpose,
+        title: request.title || request.desiredResult,
+        description: request.description || request.purpose,
+        ...(request.budget !== undefined ? { budget: toOptionalNumber(request.budget) } : {}),
+        ...(request.categories ? { categories: request.categories } : {}),
         status: request.status || 'submitted',
     }]);
 
@@ -555,37 +566,43 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
     })) as ExpertProduct[];
 }
 
-export async function saveProposal(proposal: Proposal): Promise<void> {
+export async function saveProposal(proposal: Proposal): Promise<string> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
         localStorage.setItem(STORAGE_KEYS.PROPOSALS, JSON.stringify([...proposals, proposal]));
-        return;
+        return proposal.id;
     }
 
-    const { error } = await supabase.from('proposals').insert([{
-        ...(isUuid(proposal.id) ? { id: proposal.id } : {}),
-        request_id: proposal.requestId,
-        client_id: proposal.clientId,
-        expert_id: proposal.expertId,
-        title: proposal.title,
-        scope: proposal.scope,
-        deliverables: proposal.deliverables,
-        total_price: proposal.totalPrice,
-        delivery_days: proposal.deliveryDays,
-        revision_count: proposal.revisionCount,
-        progress_type: proposal.progressType,
-        milestones: proposal.milestones,
-        commercial_use_allowed: proposal.commercialUseAllowed,
-        source_file_included: proposal.sourceFileIncluded,
-        status: proposal.status,
-        expires_at: proposal.expiresAt,
-    }]);
+    const { data, error } = await supabase
+        .from('proposals')
+        .insert([{
+            ...(isUuid(proposal.id) ? { id: proposal.id } : {}),
+            request_id: proposal.requestId,
+            client_id: proposal.clientId,
+            expert_id: proposal.expertId,
+            title: proposal.title,
+            scope: proposal.scope,
+            deliverables: proposal.deliverables,
+            total_price: proposal.totalPrice,
+            delivery_days: proposal.deliveryDays,
+            revision_count: proposal.revisionCount,
+            progress_type: proposal.progressType,
+            milestones: proposal.milestones,
+            commercial_use_allowed: proposal.commercialUseAllowed,
+            source_file_included: proposal.sourceFileIncluded,
+            status: proposal.status,
+            expires_at: proposal.expiresAt,
+        }])
+        .select('id')
+        .single();
 
     if (error) {
         console.error('DB 제안서 저장 오류:', error);
         throw new Error('데이터베이스 통신 오류: 제안서 저장 실패');
     }
+
+    return data?.id || proposal.id;
 }
 
 export async function getProposal(proposalId: string): Promise<Proposal | null> {

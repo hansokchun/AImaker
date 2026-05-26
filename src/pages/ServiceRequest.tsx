@@ -76,6 +76,11 @@ export default function ServiceRequest() {
             return
         }
 
+        if (!user) {
+            alert('로그인 후 의뢰 요청을 제출할 수 있습니다.')
+            return
+        }
+
         const referenceLinks = referenceText
             .split(/\s+/)
             .map((item) => item.trim())
@@ -92,6 +97,7 @@ export default function ServiceRequest() {
             ordererEmail: '',
             status: 'pending',
             productId: selectedProduct?.id,
+            expertId: selectedProduct?.expertId,
             selectedPackage: selectedProduct ? 'standard' : undefined,
             desiredResult,
             purpose,
@@ -101,7 +107,7 @@ export default function ServiceRequest() {
         }
 
         try {
-            await saveRequest(newRequest, user?.id)
+            await saveRequest(newRequest, user.id)
             alert('요구사항이 제출되었습니다. 전문가 제안을 기다려주세요.')
             navigate(ROUTES.REQUEST_BOARD)
         } catch (error) {

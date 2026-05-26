@@ -16,7 +16,7 @@ const request = {
     status: 'pending',
 }
 
-const saveProposal = vi.fn(async (_proposal: Proposal) => undefined)
+const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-created-01')
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -81,6 +81,10 @@ describe('RequestBoard', () => {
             ),
         )
         expect(screen.getByText('제안서를 보냈습니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '보낸 제안서 보기' })).toHaveAttribute(
+            'href',
+            '/proposal/proposal-created-01',
+        )
     })
 
     it('blocks external contact details in proposal text', async () => {

@@ -83,6 +83,10 @@ export interface AiServiceRequest {
     };
     additionalRequest?: string;
     status: 'submitted' | 'proposal_sent' | 'cancelled';
+    title?: string;
+    description?: string;
+    budget?: string;
+    categories?: string[];
 }
 
 export interface Proposal {
