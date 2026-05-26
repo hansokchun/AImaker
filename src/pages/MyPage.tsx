@@ -87,6 +87,7 @@ export default function MyPage() {
     const completedWorks = works.filter((work) => work.status === 'completed')
     const receivedProposal = receivedProposals[0] || null
     const sentProposal = sentProposals[0] || null
+    const publicProduct = myProducts[0] || null
     const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as const
     const renderProposalCards = (items: Proposal[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
@@ -313,7 +314,11 @@ export default function MyPage() {
                             ) : (
                                 <span style={quickLinkStyle}>보낸 제안서 없음</span>
                             )}
-                            <Link className="btn-text" to={`/expert/${user?.id}`}>공개 프로필 보기</Link>
+                            {publicProduct ? (
+                                <Link className="btn-text" to={`/expert/${publicProduct.id}`}>공개 상품 보기</Link>
+                            ) : (
+                                <span style={quickLinkStyle}>공개 상품 없음</span>
+                            )}
                         </div>
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
                         {renderProductCards(myProducts)}

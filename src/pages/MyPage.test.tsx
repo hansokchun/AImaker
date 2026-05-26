@@ -359,6 +359,10 @@ describe('MyPage', () => {
         )
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '받은 요청' })).toHaveAttribute('href', '/requests')
+        expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
+            'href',
+            '/expert/product-owned-01',
+        )
         expect(await screen.findByRole('link', { name: '보낸 제안서' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-expert',
