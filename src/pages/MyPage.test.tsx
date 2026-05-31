@@ -390,11 +390,13 @@ describe('MyPage', () => {
         )
 
         expect(screen.getByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '의뢰자 홈' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '전문가 홈' })).toBeInTheDocument()
+        expect(screen.getByRole('navigation', { name: '마이페이지 메뉴' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '개요' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('heading', { name: '전체 현황' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
         expect(screen.getByRole('heading', { name: '제안 단계' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '작업방' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '전문가 응답 필요' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '공개 요청 보기' })).toHaveAttribute('href', '/requests')
         expect(await screen.findByRole('link', { name: '제안서 검토하기' })).toHaveAttribute(
             'href',
@@ -404,6 +406,9 @@ describe('MyPage', () => {
             'href',
             '/workroom/work-real-active',
         )
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+        expect(screen.getByRole('heading', { name: '전문가 응답 필요' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '공개 요청 게시판 보기' })).toHaveAttribute('href', '/requests')
         expect(await screen.findByText('받은 상품 의뢰')).toBeInTheDocument()
@@ -428,11 +433,13 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
         expect(await screen.findByText('아직 받은 제안서가 없습니다.')).toBeInTheDocument()
         expect(screen.getByText('진행 중인 작업이 없습니다.')).toBeInTheDocument()
-        expect(screen.getByText('완료된 작업이 없습니다.')).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '제안서 검토하기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '작업방 들어가기' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: /proposal-demo-01/i })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: /work-demo-01/i })).not.toBeInTheDocument()
@@ -445,10 +452,13 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
         const completedWork = (await screen.findAllByTestId('completed-work'))[0]
+        expect(within(completedWork).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
         const activeWork = (await screen.findAllByTestId('active-work'))[0]
 
-        expect(within(completedWork).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
         expect(within(activeWork).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
     })
 
@@ -459,17 +469,20 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
         expect(await screen.findByText('Expired client proposal')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Expired client proposal' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-client-expired',
         )
+        expect(screen.getByText('만료')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(await screen.findByText('Second sent proposal')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Second sent proposal' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-expert-second',
         )
-        expect(screen.getByText('만료')).toBeInTheDocument()
         expect(screen.getByText('수정 요청')).toBeInTheDocument()
     })
 
@@ -480,10 +493,12 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
         expect(await screen.findByRole('link', { name: 'Submitted work' })).toHaveAttribute(
             'href',
             '/workroom/work-real-submitted',
         )
+        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
         expect(await screen.findByRole('link', { name: 'Second completed work' })).toHaveAttribute(
             'href',
             '/workroom/work-real-completed-second',
@@ -510,6 +525,7 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
         const completedWorks = await screen.findAllByTestId('completed-work')
 
         expect(within(completedWorks[0]).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
@@ -524,6 +540,7 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(await screen.findByRole('link', { name: 'Owned AI product' })).toHaveAttribute(
             'href',
             '/expert/product-owned-01',
@@ -538,6 +555,7 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
         fireEvent.click(within((await screen.findAllByTestId('completed-work'))[0]).getByRole('button', { name: '리뷰 작성' }))
 
         expect(screen.getByRole('heading', { name: '리뷰 작성하기' })).toBeInTheDocument()

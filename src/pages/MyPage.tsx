@@ -22,9 +22,29 @@ const workStatusText: Record<Work['status'], string> = {
     cancelled: '취소',
 }
 
+type MyPagePanel = 'overview' | 'client' | 'expert' | 'workroom' | 'reviews'
+
+const menuItems: Array<{ id: MyPagePanel; label: string }> = [
+    { id: 'overview', label: '개요' },
+    { id: 'client', label: '의뢰자 홈' },
+    { id: 'expert', label: '전문가 홈' },
+    { id: 'workroom', label: '작업방' },
+    { id: 'reviews', label: '완료 / 리뷰' },
+]
+
+const cardStyle = {
+    background: 'white',
+    padding: '2rem',
+    borderRadius: '1rem',
+    border: '1px solid var(--border-color)',
+} as const
+
+const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as const
+
 export default function MyPage() {
     const { session, user, loading, signOut } = useAuth()
     const navigate = useNavigate()
+    const [activePanel, setActivePanel] = useState<MyPagePanel>('overview')
     const [isExpert, setIsExpert] = useState(false)
     const [name, setName] = useState('')
     const [reviewOpen, setReviewOpen] = useState(false)
@@ -94,7 +114,7 @@ export default function MyPage() {
     const receivedProposal = receivedProposals[0] || null
     const sentProposal = sentProposals[0] || null
     const publicProduct = myProducts[0] || null
-    const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as const
+
     const renderProposalCards = (items: Proposal[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
@@ -144,6 +164,7 @@ export default function MyPage() {
             )}
         </div>
     )
+
     const renderWorkCards = (items: Work[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
@@ -204,6 +225,7 @@ export default function MyPage() {
             )}
         </div>
     )
+
     const renderProductCards = (items: ExpertProduct[]) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
@@ -239,6 +261,7 @@ export default function MyPage() {
             )}
         </div>
     )
+
     const renderRequestCards = (items: ServiceRequestData[]) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
@@ -267,6 +290,110 @@ export default function MyPage() {
         </div>
     )
 
+    const renderPanel = () => {
+        if (activePanel === 'overview') {
+            return (
+                <section style={cardStyle}>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>전체 현황</h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem' }}>
+                        {[
+                            ['받은 제안서', receivedProposals.length],
+                            ['진행 중인 작업', activeWorks.length],
+                            ['받은 상품 의뢰', receivedProductRequests.length],
+                            ['완료된 작업', completedWorks.length],
+                        ].map(([label, count]) => (
+                            <div key={label} style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)' }}>
+                                <span style={{ display: 'block', color: '#64748b', fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.45rem' }}>
+                                    {label}
+                                </span>
+                                <strong style={{ color: '#0f172a', fontSize: '1.6rem' }}>{count}</strong>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )
+        }
+
+        if (activePanel === 'client') {
+            return (
+                <section style={cardStyle}>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 홈</h2>
+                    <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                        받은 제안서와 승인 후 생성된 작업방을 나눠서 확인합니다.
+                    </p>
+                    <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                        <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 보기</Link>
+                        {receivedProposal ? (
+                            <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>제안서 검토하기</Link>
+                        ) : (
+                            <span style={quickLinkStyle}>받은 제안서 없음</span>
+                        )}
+                        {activeWork ? (
+                            <Link className="btn-text" to={`/workroom/${activeWork.id}`}>작업방 들어가기</Link>
+                        ) : (
+                            <span style={quickLinkStyle}>진행 중인 작업 없음</span>
+                        )}
+                    </div>
+
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>제안 단계</h3>
+                    {renderProposalCards(receivedProposals, '아직 받은 제안서가 없습니다.')}
+
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>작업방</h3>
+                    {renderWorkCards(activeWorks, '진행 중인 작업이 없습니다.')}
+                </section>
+            )
+        }
+
+        if (activePanel === 'expert') {
+            return (
+                <section style={cardStyle}>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 홈</h2>
+                    <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                        상품 지정 의뢰와 공개 요청에 보낸 제안서를 구분해서 확인합니다.
+                    </p>
+                    <div style={{ display: 'grid', gap: '0.75rem' }}>
+                        <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
+                        <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>
+                        {sentProposal ? (
+                            <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서 보기</Link>
+                        ) : (
+                            <span style={quickLinkStyle}>보낸 제안서 없음</span>
+                        )}
+                        {publicProduct ? (
+                            <Link className="btn-text" to={`/expert/${publicProduct.id}`}>공개 상품 보기</Link>
+                        ) : (
+                            <span style={quickLinkStyle}>공개 상품 없음</span>
+                        )}
+                    </div>
+
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
+                    {renderProductCards(myProducts)}
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>전문가 응답 필요</h3>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem', color: '#334155' }}>받은 상품 의뢰</h4>
+                    {renderRequestCards(receivedProductRequests)}
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>보낸 제안서</h3>
+                    {renderProposalCards(sentProposals, '아직 보낸 제안서가 없습니다.')}
+                </section>
+            )
+        }
+
+        if (activePanel === 'workroom') {
+            return (
+                <section style={cardStyle}>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>작업방</h2>
+                    {renderWorkCards(activeWorks, '진행 중인 작업이 없습니다.')}
+                </section>
+            )
+        }
+
+        return (
+            <section style={cardStyle}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>완료 / 리뷰</h2>
+                {renderWorkCards(completedWorks, '완료된 작업이 없습니다.')}
+            </section>
+        )
+    }
+
     if (loading) {
         return (
             <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
@@ -284,7 +411,7 @@ export default function MyPage() {
                     <div>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>마이페이지</h1>
                         <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            제안 단계와 작업방을 구분해서 현재 해야 할 일을 확인합니다.
+                            왼쪽 메뉴에서 필요한 업무 영역을 선택해 확인합니다.
                         </p>
                     </div>
                     <Link to={ROUTES.PROFILE} className="btn-primary" style={{ padding: '0.9rem 1.2rem' }}>
@@ -292,175 +419,158 @@ export default function MyPage() {
                     </Link>
                 </div>
 
-                <section style={{ background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' }}>
-                        <div>
-                            <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.85rem', marginBottom: '0.4rem' }}>닉네임</span>
-                            <strong style={{ color: '#1e293b' }}>{name || '미설정'}</strong>
-                        </div>
-                        <div>
-                            <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.85rem', marginBottom: '0.4rem' }}>접속 계정</span>
-                            <strong style={{ color: '#1e293b' }}>{user?.email || ''}</strong>
-                        </div>
-                        <div>
-                            <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.85rem', marginBottom: '0.4rem' }}>회원 유형</span>
-                            <strong style={{ color: isExpert ? '#1e40af' : '#166534' }}>
-                                {isExpert ? '전문가' : '의뢰자'}
-                            </strong>
-                        </div>
-                    </div>
-                </section>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.5rem' }}>
-                    <section style={{ background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 홈</h2>
-                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                            제안서는 아직 협의 단계이고, 작업방은 승인 후 열린 진행 공간입니다.
-                        </p>
-                        <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 보기</Link>
-                            {receivedProposal ? (
-                                <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>제안서 검토하기</Link>
-                            ) : (
-                                <span style={quickLinkStyle}>받은 제안서 없음</span>
-                            )}
-                            {activeWork ? (
-                                <Link className="btn-text" to={`/workroom/${activeWork.id}`}>작업방 들어가기</Link>
-                            ) : (
-                                <span style={quickLinkStyle}>진행 중인 작업 없음</span>
-                            )}
+                <div style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+                    <aside style={{ ...cardStyle, padding: '1.25rem', position: 'sticky', top: '1rem' }}>
+                        <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
+                            <div>
+                                <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>닉네임</span>
+                                <strong style={{ color: '#1e293b' }}>{name || '미설정'}</strong>
+                            </div>
+                            <div>
+                                <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>접속 계정</span>
+                                <strong style={{ color: '#1e293b', wordBreak: 'break-all' }}>{user?.email || ''}</strong>
+                            </div>
+                            <div>
+                                <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>회원 유형</span>
+                                <strong style={{ color: isExpert ? '#1e40af' : '#166534' }}>
+                                    {isExpert ? '전문가' : '의뢰자'}
+                                </strong>
+                            </div>
                         </div>
 
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>제안 단계</h3>
-                        {renderProposalCards(receivedProposals, '아직 받은 제안서가 없습니다.')}
+                        <nav aria-label="마이페이지 메뉴" style={{ display: 'grid', gap: '0.45rem' }}>
+                            {menuItems.map((item) => {
+                                const selected = activePanel === item.id
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        aria-pressed={selected}
+                                        onClick={() => setActivePanel(item.id)}
+                                        style={{
+                                            width: '100%',
+                                            textAlign: 'left',
+                                            padding: '0.8rem 0.9rem',
+                                            borderRadius: '0.5rem',
+                                            border: selected ? '1px solid #2563eb' : '1px solid transparent',
+                                            background: selected ? '#eff6ff' : 'transparent',
+                                            color: selected ? '#1d4ed8' : '#334155',
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {item.label}
+                                    </button>
+                                )
+                            })}
+                        </nav>
 
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>작업방</h3>
-                        {renderWorkCards(activeWorks, '진행 중인 작업이 없습니다.')}
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>완료 / 리뷰</h3>
-                        {renderWorkCards(completedWorks, '완료된 작업이 없습니다.')}
-                    </section>
-
-                    <section style={{ background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 홈</h2>
-                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                            새 의뢰에는 제안서를 보내고, 승인된 건은 작업방에서 진행합니다.
-                        </p>
-                        <div style={{ display: 'grid', gap: '0.75rem' }}>
-                            <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
-                            <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>
-                            {sentProposal ? (
-                                <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서 보기</Link>
-                            ) : (
-                                <span style={quickLinkStyle}>보낸 제안서 없음</span>
-                            )}
-                            {publicProduct ? (
-                                <Link className="btn-text" to={`/expert/${publicProduct.id}`}>공개 상품 보기</Link>
-                            ) : (
-                                <span style={quickLinkStyle}>공개 상품 없음</span>
-                            )}
-                        </div>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
-                        {renderProductCards(myProducts)}
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>전문가 응답 필요</h3>
-                        <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem', color: '#334155' }}>받은 상품 의뢰</h4>
-                        {renderRequestCards(receivedProductRequests)}
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>보낸 제안서</h3>
-                        {renderProposalCards(sentProposals, '아직 보낸 제안서가 없습니다.')}
-                    </section>
-                </div>
-
-                {reviewOpen && (
-                    <section
-                        aria-label="리뷰 작성"
-                        style={{
-                            marginTop: '1.5rem',
-                            background: 'white',
-                            padding: '2rem',
-                            borderRadius: '1rem',
-                            border: '1px solid var(--border-color)',
-                        }}
-                    >
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>리뷰 작성하기</h2>
-                        <form
-                            onSubmit={async (event) => {
-                                event.preventDefault()
-                                const reviewWork = selectedReviewWork || completedWork
-                                if (!reviewWork) return
-                                const newReview: Review = {
-                                    id: `review-${Date.now()}`,
-                                    workId: reviewWork.id,
-                                    clientId: reviewWork.clientId || user?.id || '',
-                                    expertId: reviewWork.expertId,
-                                    rating: Number(reviewRating) as 1 | 2 | 3 | 4 | 5,
-                                    content: reviewContent,
-                                    createdAt: new Date().toISOString(),
-                                }
-                                await saveReview(newReview)
-                                setReviews((current) => [newReview, ...current])
-                                setReviewSubmitted(true)
-                                setReviewOpen(false)
-                                setReviewRating('5')
-                                setReviewContent('')
+                        <button
+                            onClick={() => {
+                                signOut()
+                                navigate(ROUTES.HOME)
                             }}
-                            style={{ display: 'grid', gap: '1rem' }}
+                            style={{
+                                width: '100%',
+                                marginTop: '1.25rem',
+                                padding: '0.85rem 1rem',
+                                borderRadius: '0.5rem',
+                                fontSize: '1rem',
+                                background: '#ffe4e6',
+                                color: '#e11d48',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                            }}
                         >
-                            <div style={{ display: 'grid', gap: '0.45rem' }}>
-                                <label htmlFor="review-rating" style={{ fontWeight: 800 }}>
-                                    별점
-                                </label>
-                                <select
-                                    id="review-rating"
-                                    value={reviewRating}
-                                    onChange={(event) => setReviewRating(event.target.value)}
-                                    style={{
-                                        maxWidth: '12rem',
-                                        padding: '0.75rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid var(--border-color)',
-                                    }}
-                                >
-                                    <option value="5">5점</option>
-                                    <option value="4">4점</option>
-                                    <option value="3">3점</option>
-                                    <option value="2">2점</option>
-                                    <option value="1">1점</option>
-                                </select>
-                            </div>
-                            <div style={{ display: 'grid', gap: '0.45rem' }}>
-                                <label htmlFor="review-content" style={{ fontWeight: 800 }}>
-                                    리뷰 내용
-                                </label>
-                                <textarea
-                                    id="review-content"
-                                    value={reviewContent}
-                                    onChange={(event) => setReviewContent(event.target.value)}
-                                    rows={4}
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.85rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid var(--border-color)',
-                                        resize: 'vertical',
-                                    }}
-                                />
-                            </div>
-                            <button type="submit" className="btn-primary" style={{ justifySelf: 'start', padding: '0.75rem 1rem' }}>
-                                리뷰 등록
-                            </button>
-                        </form>
-                    </section>
-                )}
+                            로그아웃
+                        </button>
+                    </aside>
 
-                <button
-                    onClick={() => {
-                        signOut()
-                        navigate(ROUTES.HOME)
-                    }}
-                    style={{ marginTop: '1.5rem', padding: '0.85rem 1.2rem', borderRadius: '0.5rem', fontSize: '1rem', background: '#ffe4e6', color: '#e11d48', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                >
-                    로그아웃
-                </button>
+                    <div>
+                        {renderPanel()}
+
+                        {reviewOpen && (
+                            <section
+                                aria-label="리뷰 작성"
+                                style={{
+                                    marginTop: '1.5rem',
+                                    ...cardStyle,
+                                }}
+                            >
+                                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>리뷰 작성하기</h2>
+                                <form
+                                    onSubmit={async (event) => {
+                                        event.preventDefault()
+                                        const reviewWork = selectedReviewWork || completedWork
+                                        if (!reviewWork) return
+                                        const newReview: Review = {
+                                            id: `review-${Date.now()}`,
+                                            workId: reviewWork.id,
+                                            clientId: reviewWork.clientId || user?.id || '',
+                                            expertId: reviewWork.expertId,
+                                            rating: Number(reviewRating) as 1 | 2 | 3 | 4 | 5,
+                                            content: reviewContent,
+                                            createdAt: new Date().toISOString(),
+                                        }
+                                        await saveReview(newReview)
+                                        setReviews((current) => [newReview, ...current])
+                                        setReviewSubmitted(true)
+                                        setReviewOpen(false)
+                                        setReviewRating('5')
+                                        setReviewContent('')
+                                    }}
+                                    style={{ display: 'grid', gap: '1rem' }}
+                                >
+                                    <div style={{ display: 'grid', gap: '0.45rem' }}>
+                                        <label htmlFor="review-rating" style={{ fontWeight: 800 }}>
+                                            별점
+                                        </label>
+                                        <select
+                                            id="review-rating"
+                                            value={reviewRating}
+                                            onChange={(event) => setReviewRating(event.target.value)}
+                                            style={{
+                                                maxWidth: '12rem',
+                                                padding: '0.75rem',
+                                                borderRadius: '0.5rem',
+                                                border: '1px solid var(--border-color)',
+                                            }}
+                                        >
+                                            <option value="5">5점</option>
+                                            <option value="4">4점</option>
+                                            <option value="3">3점</option>
+                                            <option value="2">2점</option>
+                                            <option value="1">1점</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'grid', gap: '0.45rem' }}>
+                                        <label htmlFor="review-content" style={{ fontWeight: 800 }}>
+                                            리뷰 내용
+                                        </label>
+                                        <textarea
+                                            id="review-content"
+                                            value={reviewContent}
+                                            onChange={(event) => setReviewContent(event.target.value)}
+                                            rows={4}
+                                            required
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem',
+                                                borderRadius: '0.5rem',
+                                                border: '1px solid var(--border-color)',
+                                                resize: 'vertical',
+                                            }}
+                                        />
+                                    </div>
+                                    <button type="submit" className="btn-primary" style={{ justifySelf: 'start', padding: '0.75rem 1rem' }}>
+                                        리뷰 등록
+                                    </button>
+                                </form>
+                            </section>
+                        )}
+                    </div>
+                </div>
             </main>
         </div>
     )
