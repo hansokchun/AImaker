@@ -108,8 +108,13 @@ export default function ServiceRequest() {
 
         try {
             await saveRequest(newRequest, user.id)
-            alert('요구사항이 제출되었습니다. 전문가 제안을 기다려주세요.')
-            navigate(ROUTES.REQUEST_BOARD)
+            if (selectedProduct) {
+                alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
+                navigate(ROUTES.MY_PAGE)
+            } else {
+                alert('요청 게시판에 등록되었습니다. 전문가 제안을 기다려주세요.')
+                navigate(ROUTES.REQUEST_BOARD)
+            }
         } catch (error) {
             alert(error instanceof Error ? error.message : '요구사항 저장에 실패했습니다.')
         }

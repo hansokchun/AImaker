@@ -360,7 +360,9 @@ describe('transaction storage', () => {
             ],
             error: null,
         })
-        const select = vi.fn(() => ({ order }))
+        const isExpertNull = vi.fn(() => ({ order }))
+        const isProductNull = vi.fn(() => ({ is: isExpertNull }))
+        const select = vi.fn(() => ({ is: isProductNull }))
         const from = vi.fn(() => ({ select }))
         vi.doMock('./supabase', () => ({ supabase: { from } }))
 
@@ -386,6 +388,55 @@ describe('transaction storage', () => {
             }),
         ])
         expect(from).toHaveBeenCalledWith('service_requests')
+        expect(isProductNull).toHaveBeenCalledWith('product_id', null)
+        expect(isExpertNull).toHaveBeenCalledWith('expert_id', null)
+    })
+
+    it('keeps product-directed requests out of the local request board', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem(
+            'ai_requests',
+            JSON.stringify([
+                {
+                    id: 'public-board-request',
+                    title: '공개 요청',
+                    description: '전문가 제안을 받는 공개 요청',
+                    budget: '70000',
+                    deadline: '2026-06-01',
+                    categories: ['AI 영상/숏폼'],
+                    createdAt: '2026. 5. 17.',
+                    clientId: request.clientId,
+                    status: 'pending',
+                },
+                {
+                    id: request.id,
+                    title: request.desiredResult,
+                    description: request.purpose,
+                    budget: '70000',
+                    deadline: request.deadline,
+                    categories: ['AI 영상/숏폼'],
+                    createdAt: '2026. 5. 17.',
+                    clientId: request.clientId,
+                    expertId: request.expertId,
+                    productId: request.productId,
+                    status: 'pending',
+                    selectedPackage: request.selectedPackage,
+                    desiredResult: request.desiredResult,
+                    purpose: request.purpose,
+                    referenceText: request.referenceText,
+                    referenceLinks: request.referenceLinks,
+                    progressType: request.progressType,
+                },
+            ]),
+        )
+
+        const { getStoredRequests } = await import('./storage')
+
+        await expect(getStoredRequests()).resolves.toEqual([
+            expect.objectContaining({ id: 'public-board-request' }),
+        ])
     })
 
     it('saves and accepts proposals through Supabase', async () => {
@@ -485,9 +536,11 @@ describe('transaction storage', () => {
         const { acceptProposal, getStoredRequests, getUserProposals } = await import('./storage')
 
         await expect(acceptProposal(proposal)).resolves.toBe(`work-${proposal.id}`)
-        await expect(getStoredRequests()).resolves.toEqual([
+        const updatedRequests = JSON.parse(localStorage.getItem('ai_requests') || '[]')
+        expect(updatedRequests).toEqual([
             expect.objectContaining({ id: request.id, status: 'in_progress' }),
         ])
+        await expect(getStoredRequests()).resolves.toEqual([])
         await expect(getUserProposals(request.clientId)).resolves.toEqual([
             expect.objectContaining({ id: proposal.id, status: 'accepted' }),
         ])

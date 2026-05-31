@@ -72,14 +72,14 @@ describe('ServiceRequest', () => {
         expect(screen.getByText('플랫폼 외부 연락처를 주고받지 말고, 진행 안내는 AIConnect 안에서 확인합니다.')).toBeInTheDocument()
     })
 
-    it('submits requirements and moves to the proposal waiting state', async () => {
+    it('submits product requirements to the selected expert without opening the request board', async () => {
         const product = mockExpertProducts[0]
 
         render(
             <MemoryRouter initialEntries={[`/request/${product.id}`]}>
                 <Routes>
                     <Route path="/request/:productId" element={<ServiceRequest />} />
-                    <Route path="/requests" element={<h1>제안 대기</h1>} />
+                    <Route path="/mypage" element={<h1>마이페이지</h1>} />
                 </Routes>
             </MemoryRouter>,
         )
@@ -103,6 +103,7 @@ describe('ServiceRequest', () => {
         expect(saveRequest).toHaveBeenCalledWith(
             expect.objectContaining({
                 productId: product.id,
+                expertId: product.expertId,
                 selectedPackage: 'standard',
                 desiredResult: '15초 숏폼 영상 1차 시안',
                 purpose: '신제품 SNS 홍보',
@@ -112,7 +113,8 @@ describe('ServiceRequest', () => {
             }),
             mockUser?.id,
         )
-        expect(await screen.findByRole('heading', { name: '제안 대기' })).toBeInTheDocument()
+        expect(window.alert).toHaveBeenCalledWith('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
+        expect(await screen.findByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
     })
 
     it('requires login before saving requirements to Supabase', async () => {

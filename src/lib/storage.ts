@@ -195,11 +195,17 @@ async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
         console.warn('Supabase 미설정: localStorage 폴백 모드로 로딩합니다.');
         try {
             const raw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
-            return raw ? JSON.parse(raw) : [];
+            const requests = raw ? (JSON.parse(raw) as ServiceRequestData[]) : [];
+            return requests.filter((request) => !request.productId && !request.expertId);
         } catch { return []; }
     }
 
-    const { data, error } = await supabase.from('service_requests').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .is('product_id', null)
+        .is('expert_id', null)
+        .order('created_at', { ascending: false });
     if (error) {
         console.error('DB 요청 로딩 에러:', error);
         return [];

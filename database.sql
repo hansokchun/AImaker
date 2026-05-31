@@ -168,6 +168,8 @@ create policy "Authenticated users can view submitted requests"
   using (
     auth.role() = 'authenticated'
     and status in ('submitted', 'pending')
+    and product_id is null
+    and expert_id is null
   );
 
 drop policy if exists "Clients can insert own requests" on public.service_requests;
@@ -228,6 +230,10 @@ create policy "Experts can insert proposal for submitted request"
       where service_requests.id = proposals.request_id
       and service_requests.client_id = proposals.client_id
       and service_requests.status in ('submitted', 'pending')
+      and (
+        service_requests.expert_id is null
+        or service_requests.expert_id = proposals.expert_id
+      )
     )
   );
 

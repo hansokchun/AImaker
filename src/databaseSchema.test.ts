@@ -61,6 +61,8 @@ describe('database.sql', () => {
 
         expect(policyMatch?.[1]).toContain("auth.role() = 'authenticated'")
         expect(policyMatch?.[1]).toMatch(/status in \('submitted', 'pending'\)/i)
+        expect(policyMatch?.[1]).toMatch(/product_id is null/i)
+        expect(policyMatch?.[1]).toMatch(/expert_id is null/i)
     })
 
     it('allows clients to update their own request status during proposal and work flow', () => {
@@ -92,6 +94,8 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/service_requests\.id = proposals\.request_id/i)
         expect(policySql).toMatch(/service_requests\.client_id = proposals\.client_id/i)
         expect(policySql).toMatch(/service_requests\.status in \('submitted', 'pending'\)/i)
+        expect(policySql).toMatch(/service_requests\.expert_id is null/i)
+        expect(policySql).toMatch(/service_requests\.expert_id = proposals\.expert_id/i)
     })
 
     it('allows works to be inserted only from an accepted matching proposal', () => {
