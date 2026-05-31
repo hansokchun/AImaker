@@ -43,6 +43,19 @@ describe('ExpertDetail', () => {
         )
     })
 
+    it('loads the expert public page through the expert id from product cards', async () => {
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.expertId}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+        expect(screen.getByText(supabaseProduct.expertName)).toBeInTheDocument()
+    })
+
     it('shows a not found state without demo product content for unknown product ids', async () => {
         getExpertProducts.mockResolvedValue([supabaseProduct])
 

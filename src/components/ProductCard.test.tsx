@@ -19,6 +19,10 @@ describe('ProductCard', () => {
     expect(screen.getByText('시작가 30,000원')).toBeInTheDocument()
     expect(screen.getByText('ChatGPT · Runway · Premiere Pro')).toBeInTheDocument()
     expect(screen.getByAltText(`${product.title} 샘플`)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: `${product.expertName} 프로필 보기` })).toHaveAttribute(
+      'href',
+      `/expert/${product.expertId}`,
+    )
     expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toBeInTheDocument()
   })
 })

@@ -10,6 +10,7 @@ const currency = new Intl.NumberFormat('ko-KR')
 
 export default function ProductCard({ product }: ProductCardProps) {
     const detailUrl = `/expert/${product.id}`
+    const expertUrl = `/expert/${product.expertId}`
     const requestUrl = `/request/${product.id}`
 
     return (
@@ -43,7 +44,14 @@ export default function ProductCard({ product }: ProductCardProps) {
                 </dl>
 
                 <div className="product-card-footer">
-                    <span>{product.expertName}</span>
+                    <Link
+                        className="product-card-expert-link"
+                        to={expertUrl}
+                        aria-label={`${product.expertName} 프로필 보기`}
+                    >
+                        <span>작업 등록 전문가</span>
+                        <strong>{product.expertName}</strong>
+                    </Link>
                     <Link className="btn-primary product-card-cta" to={requestUrl}>
                         패키지로 의뢰하기
                     </Link>
