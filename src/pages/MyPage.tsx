@@ -284,7 +284,7 @@ export default function MyPage() {
                     <div>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>마이페이지</h1>
                         <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            의뢰, 제안, 진행 중인 작업을 한 곳에서 확인합니다.
+                            제안 단계와 작업방을 구분해서 현재 해야 할 일을 확인합니다.
                         </p>
                     </div>
                     <Link to={ROUTES.PROFILE} className="btn-primary" style={{ padding: '0.9rem 1.2rem' }}>
@@ -313,37 +313,43 @@ export default function MyPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.5rem' }}>
                     <section style={{ background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>의뢰자</h2>
+                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 홈</h2>
+                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                            제안서는 아직 협의 단계이고, 작업방은 승인 후 열린 진행 공간입니다.
+                        </p>
                         <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>내 의뢰 요청</Link>
+                            <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 보기</Link>
                             {receivedProposal ? (
-                                <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>받은 제안서</Link>
+                                <Link className="btn-text" to={`/proposal/${receivedProposal.id}`}>제안서 검토하기</Link>
                             ) : (
                                 <span style={quickLinkStyle}>받은 제안서 없음</span>
                             )}
                             {activeWork ? (
-                                <Link className="btn-text" to={`/workroom/${activeWork.id}`}>진행 중인 작업</Link>
+                                <Link className="btn-text" to={`/workroom/${activeWork.id}`}>작업방 들어가기</Link>
                             ) : (
                                 <span style={quickLinkStyle}>진행 중인 작업 없음</span>
                             )}
                         </div>
 
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>받은 제안서</h3>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>제안 단계</h3>
                         {renderProposalCards(receivedProposals, '아직 받은 제안서가 없습니다.')}
 
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>진행 중인 작업</h3>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>작업방</h3>
                         {renderWorkCards(activeWorks, '진행 중인 작업이 없습니다.')}
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>완료된 작업</h3>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>완료 / 리뷰</h3>
                         {renderWorkCards(completedWorks, '완료된 작업이 없습니다.')}
                     </section>
 
                     <section style={{ background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1rem' }}>전문가</h2>
+                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 홈</h2>
+                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                            새 의뢰에는 제안서를 보내고, 승인된 건은 작업방에서 진행합니다.
+                        </p>
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
-                            <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>받은 요청</Link>
+                            <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>
                             {sentProposal ? (
-                                <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서</Link>
+                                <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서 보기</Link>
                             ) : (
                                 <span style={quickLinkStyle}>보낸 제안서 없음</span>
                             )}
@@ -355,7 +361,8 @@ export default function MyPage() {
                         </div>
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
                         {renderProductCards(myProducts)}
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>받은 상품 의뢰</h3>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>전문가 응답 필요</h3>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem', color: '#334155' }}>받은 상품 의뢰</h4>
                         {renderRequestCards(receivedProductRequests)}
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>보낸 제안서</h3>
                         {renderProposalCards(sentProposals, '아직 보낸 제안서가 없습니다.')}

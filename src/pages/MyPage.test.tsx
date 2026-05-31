@@ -390,26 +390,29 @@ describe('MyPage', () => {
         )
 
         expect(screen.getByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '의뢰자' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '전문가' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '내 의뢰 요청' })).toHaveAttribute('href', '/requests')
-        expect(await screen.findByRole('link', { name: '받은 제안서' })).toHaveAttribute(
+        expect(screen.getByRole('heading', { name: '의뢰자 홈' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '전문가 홈' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '제안 단계' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '작업방' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '전문가 응답 필요' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '공개 요청 보기' })).toHaveAttribute('href', '/requests')
+        expect(await screen.findByRole('link', { name: '제안서 검토하기' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-client',
         )
-        expect(await screen.findByRole('link', { name: '진행 중인 작업' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '작업방 들어가기' })).toHaveAttribute(
             'href',
             '/workroom/work-real-active',
         )
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
-        expect(screen.getByRole('link', { name: '받은 요청' })).toHaveAttribute('href', '/requests')
+        expect(screen.getByRole('link', { name: '공개 요청 게시판 보기' })).toHaveAttribute('href', '/requests')
         expect(await screen.findByText('받은 상품 의뢰')).toBeInTheDocument()
         expect(screen.getByText('상품 지정 요구사항')).toBeInTheDocument()
         expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
             'href',
             '/expert/product-owned-01',
         )
-        expect(await screen.findByRole('link', { name: '보낸 제안서' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '보낸 제안서 보기' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-expert',
         )
@@ -428,9 +431,9 @@ describe('MyPage', () => {
         expect(await screen.findByText('아직 받은 제안서가 없습니다.')).toBeInTheDocument()
         expect(screen.getByText('진행 중인 작업이 없습니다.')).toBeInTheDocument()
         expect(screen.getByText('완료된 작업이 없습니다.')).toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '받은 제안서' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '진행 중인 작업' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '보낸 제안서' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '제안서 검토하기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '작업방 들어가기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: /proposal-demo-01/i })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: /work-demo-01/i })).not.toBeInTheDocument()
     })
