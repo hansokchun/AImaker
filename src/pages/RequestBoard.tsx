@@ -130,7 +130,12 @@ export default function RequestBoard() {
                     {filteredRequests.length > 0 ? (
                         /* 최신순 정렬을 위해 reverse — 원본 배열 보호를 위해 스프레드 사용 */
                         [...filteredRequests].reverse().map((request) => (
-                            <div className="request-item" key={request.id}>
+                            <button
+                                className="request-item"
+                                key={request.id}
+                                type="button"
+                                onClick={() => handleSelectRequest(request)}
+                            >
                                 <div className="request-info">
                                     <div className="request-tags">
                                         {request.categories.map((category, index) => (
@@ -146,9 +151,8 @@ export default function RequestBoard() {
                                 </div>
                                 <div className="request-status">
                                     <span className="status-badge">제안 대기 중</span>
-                                    <button className="btn-text" style={{ fontSize: '0.9rem', padding: '0.5rem' }} onClick={() => handleSelectRequest(request)}>상세보기</button>
                                 </div>
-                            </div>
+                            </button>
                         ))
                     ) : (
                         <div className="empty-state">

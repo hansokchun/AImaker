@@ -49,7 +49,8 @@ describe('RequestBoard', () => {
         )
 
         expect(await screen.findByText('QA 요청')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: '상세보기' }))
+        expect(screen.queryByRole('button', { name: '상세보기' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /QA 요청/ }))
 
         fireEvent.change(screen.getByLabelText('제안 제목'), {
             target: { value: 'QA 제안서' },
@@ -95,7 +96,7 @@ describe('RequestBoard', () => {
         )
 
         expect(await screen.findByText('QA 요청')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: '상세보기' }))
+        fireEvent.click(screen.getByRole('button', { name: /QA 요청/ }))
 
         fireEvent.change(screen.getByLabelText('제안 제목'), {
             target: { value: 'QA 제안서' },
@@ -123,7 +124,7 @@ describe('RequestBoard', () => {
         )
 
         expect(await screen.findByText('QA 요청')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: '상세보기' }))
+        fireEvent.click(screen.getByRole('button', { name: /QA 요청/ }))
 
         expect(screen.queryByText('주문자 연락처')).not.toBeInTheDocument()
         expect(screen.getByText('요청자 정보')).toBeInTheDocument()
