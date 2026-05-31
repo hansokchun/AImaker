@@ -439,6 +439,52 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('loads user-visible service requests including product-directed requests', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: request.id,
+                    client_id: request.clientId,
+                    expert_id: request.expertId,
+                    product_id: request.productId,
+                    selected_package: request.selectedPackage,
+                    desired_result: request.desiredResult,
+                    purpose: request.purpose,
+                    reference_text: request.referenceText,
+                    reference_links: request.referenceLinks,
+                    deadline: request.deadline,
+                    progress_type: request.progressType,
+                    checklist: request.checklist,
+                    title: request.desiredResult,
+                    description: request.purpose,
+                    budget: 70000,
+                    categories: ['AI 영상/숏폼'],
+                    status: 'submitted',
+                    created_at: '2026-06-01T00:00:00.000Z',
+                },
+            ],
+            error: null,
+        })
+        const or = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ or }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getUserServiceRequests } = await import('./storage')
+
+        await expect(getUserServiceRequests(request.expertId)).resolves.toEqual([
+            expect.objectContaining({
+                id: request.id,
+                expertId: request.expertId,
+                productId: request.productId,
+                title: request.desiredResult,
+            }),
+        ])
+        expect(from).toHaveBeenCalledWith('service_requests')
+        expect(or).toHaveBeenCalledWith(`client_id.eq.${request.expertId},expert_id.eq.${request.expertId}`)
+    })
+
     it('saves and accepts proposals through Supabase', async () => {
         vi.resetModules()
         const proposalSingle = vi.fn().mockResolvedValue({ data: { id: 'proposal-db-01' }, error: null })

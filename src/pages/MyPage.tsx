@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getExpertProducts, getUserProposals, getUserReviews, getUserWorks, saveReview } from '../lib/storage'
-import type { ExpertProduct, Proposal, Review, Work } from '../types'
+import { getExpertProducts, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveReview } from '../lib/storage'
+import type { ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
     sent: '대기 중',
@@ -33,6 +33,7 @@ export default function MyPage() {
     const [reviewContent, setReviewContent] = useState('')
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
+    const [serviceRequests, setServiceRequests] = useState<ServiceRequestData[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
     const [works, setWorks] = useState<Work[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
@@ -63,6 +64,10 @@ export default function MyPage() {
                 console.error('제안서 목록 로딩 오류:', error)
                 setProposals([])
             })
+            getUserServiceRequests(user.id).then(setServiceRequests).catch((error) => {
+                console.error('의뢰 요청 목록 로딩 오류:', error)
+                setServiceRequests([])
+            })
             getUserWorks(user.id).then(setWorks).catch((error) => {
                 console.error('작업 목록 로딩 오류:', error)
                 setWorks([])
@@ -82,6 +87,7 @@ export default function MyPage() {
     const completedWork = works.find((work) => work.status === 'completed') || null
     const receivedProposals = proposals.filter((proposal) => proposal.clientId === user?.id)
     const sentProposals = proposals.filter((proposal) => proposal.expertId === user?.id)
+    const receivedProductRequests = serviceRequests.filter((request) => request.expertId === user?.id && request.productId)
     const myProducts = products.filter((product) => product.expertId === user?.id)
     const activeWorks = works.filter((work) => work.status !== 'completed')
     const completedWorks = works.filter((work) => work.status === 'completed')
@@ -233,6 +239,33 @@ export default function MyPage() {
             )}
         </div>
     )
+    const renderRequestCards = (items: ServiceRequestData[]) => (
+        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
+            {items.length > 0 ? (
+                items.map((request) => (
+                    <div
+                        key={request.id}
+                        style={{
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            background: '#f8fafc',
+                            border: '1px solid var(--border-color)',
+                        }}
+                    >
+                        <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.45rem' }}>
+                            {request.desiredResult || request.title}
+                        </strong>
+                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                            {request.budget ? `${Number(request.budget).toLocaleString()}원 · ` : ''}
+                            마감 {request.deadline || '미정'}
+                        </p>
+                    </div>
+                ))
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 상품 의뢰가 없습니다.</p>
+            )}
+        </div>
+    )
 
     if (loading) {
         return (
@@ -322,6 +355,8 @@ export default function MyPage() {
                         </div>
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
                         {renderProductCards(myProducts)}
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>받은 상품 의뢰</h3>
+                        {renderRequestCards(receivedProductRequests)}
                         <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>보낸 제안서</h3>
                         {renderProposalCards(sentProposals, '아직 보낸 제안서가 없습니다.')}
                     </section>

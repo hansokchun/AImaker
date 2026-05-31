@@ -99,6 +99,27 @@ const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): Service
     progressType: request.progressType,
 });
 
+const toServiceRequestData = (item: any): ServiceRequestData => ({
+    id: item.id,
+    title: item.title || item.desired_result || '',
+    description: item.description || item.purpose || '',
+    budget: item.budget ? String(item.budget) : '',
+    deadline: item.deadline || '',
+    categories: item.categories || [],
+    ordererEmail: item.orderer_email || '',
+    clientId: item.client_id,
+    expertId: item.expert_id,
+    createdAt: new Date(item.created_at).toLocaleDateString(),
+    status: toBoardRequestStatus(item.status),
+    productId: item.product_id || '',
+    selectedPackage: item.selected_package || 'standard',
+    desiredResult: item.desired_result || item.title || '',
+    purpose: item.purpose || item.description || '',
+    referenceText: item.reference_text || '',
+    referenceLinks: item.reference_links || [],
+    progressType: item.progress_type || 'single',
+});
+
 const normalizeProposalStatus = (proposal: Proposal): Proposal => {
     if (proposal.status === 'sent' && new Date(proposal.expiresAt) < new Date()) {
         return { ...proposal, status: 'expired' };
@@ -211,26 +232,7 @@ async function getStoredRequestsLegacy(): Promise<ServiceRequestData[]> {
         return [];
     }
 
-    return data.map(item => ({
-        id: item.id,
-        title: item.title || item.desired_result || '',
-        description: item.description || item.purpose || '',
-        budget: item.budget ? String(item.budget) : '',
-        deadline: item.deadline || '',
-        categories: item.categories || [],
-        ordererEmail: item.orderer_email || '',
-        clientId: item.client_id,
-        expertId: item.expert_id,
-        createdAt: new Date(item.created_at).toLocaleDateString(),
-        status: toBoardRequestStatus(item.status),
-        productId: item.product_id || '',
-        selectedPackage: item.selected_package || 'standard',
-        desiredResult: item.desired_result || item.title || '',
-        purpose: item.purpose || item.description || '',
-        referenceText: item.reference_text || '',
-        referenceLinks: item.reference_links || [],
-        progressType: item.progress_type || 'single',
-    })) as ServiceRequestData[];
+    return data.map(toServiceRequestData) as ServiceRequestData[];
 }
 
 async function saveRequestLegacy(request: ServiceRequestData, userId?: string | null): Promise<void> {
@@ -260,6 +262,27 @@ async function saveRequestLegacy(request: ServiceRequestData, userId?: string | 
 
 export async function getStoredRequests(): Promise<ServiceRequestData[]> {
     return getStoredRequestsLegacy();
+}
+
+export async function getUserServiceRequests(userId: string): Promise<ServiceRequestData[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
+        const requests = raw ? (JSON.parse(raw) as ServiceRequestData[]) : [];
+        return requests.filter((request) => request.clientId === userId || request.expertId === userId);
+    }
+
+    const { data, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .or(`client_id.eq.${userId},expert_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('사용자 의뢰 요청 목록 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toServiceRequestData);
 }
 
 export async function getServiceRequests(): Promise<AiServiceRequest[]> {

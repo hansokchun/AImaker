@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
-import type { Review } from '../types'
+import type { Review, ServiceRequestData } from '../types'
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -19,6 +19,27 @@ vi.mock('../lib/supabase', () => ({
 
 const saveReview = vi.fn(async (_review: Review) => undefined)
 const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
+const getUserServiceRequests = vi.fn(async (_userId: string): Promise<ServiceRequestData[]> => [
+    {
+        id: 'request-product-directed-01',
+        title: 'Owned AI product',
+        description: '상품 지정 의뢰 상세',
+        budget: '30000',
+        deadline: '2026-06-01',
+        categories: ['AI 영상/숏폼'],
+        createdAt: '2026. 6. 1.',
+        clientId: 'client-real-01',
+        expertId: 'user-demo-01',
+        productId: 'product-owned-01',
+        selectedPackage: 'standard',
+        desiredResult: '상품 지정 요구사항',
+        purpose: 'SNS 홍보',
+        referenceText: '',
+        referenceLinks: [],
+        progressType: 'single',
+        status: 'pending',
+    },
+])
 const getExpertProducts = vi.fn(async () => [
     {
         id: 'product-owned-01',
@@ -322,6 +343,7 @@ vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
     getUserProposals: (userId: string) => getUserProposals(userId),
     getUserReviews: (userId: string) => getUserReviews(userId),
+    getUserServiceRequests: (userId: string) => getUserServiceRequests(userId),
     getUserWorks: (userId: string) => getUserWorks(userId),
     saveReview: (review: Review) => saveReview(review),
 }))
@@ -334,6 +356,28 @@ describe('MyPage', () => {
         getUserProposals.mockResolvedValue(defaultProposals())
         getUserReviews.mockReset()
         getUserReviews.mockResolvedValue([])
+        getUserServiceRequests.mockReset()
+        getUserServiceRequests.mockResolvedValue([
+            {
+                id: 'request-product-directed-01',
+                title: 'Owned AI product',
+                description: '상품 지정 의뢰 상세',
+                budget: '30000',
+                deadline: '2026-06-01',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '상품 지정 요구사항',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'pending',
+            },
+        ])
         getUserWorks.mockReset()
         getUserWorks.mockResolvedValue(defaultWorks())
     })
@@ -359,6 +403,8 @@ describe('MyPage', () => {
         )
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '받은 요청' })).toHaveAttribute('href', '/requests')
+        expect(await screen.findByText('받은 상품 의뢰')).toBeInTheDocument()
+        expect(screen.getByText('상품 지정 요구사항')).toBeInTheDocument()
         expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
             'href',
             '/expert/product-owned-01',
