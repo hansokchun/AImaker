@@ -295,6 +295,20 @@ export default function MyPage() {
             return (
                 <section style={cardStyle}>
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>전체 현황</h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                        <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)' }}>
+                            <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>의뢰자 홈</strong>
+                            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                                의뢰자 영역은 내가 맡긴 일을 관리하는 곳입니다.
+                            </p>
+                        </div>
+                        <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)' }}>
+                            <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>전문가 홈</strong>
+                            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                                전문가 영역은 내가 받거나 제안한 일을 관리하는 곳입니다.
+                            </p>
+                        </div>
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem' }}>
                         {[
                             ['받은 제안서', receivedProposals.length],
@@ -317,9 +331,12 @@ export default function MyPage() {
         if (activePanel === 'client') {
             return (
                 <section style={cardStyle}>
+                    <span style={{ display: 'inline-block', color: '#1d4ed8', fontWeight: 800, marginBottom: '0.6rem' }}>
+                        내가 맡긴 일
+                    </span>
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 홈</h2>
                     <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                        받은 제안서와 승인 후 생성된 작업방을 나눠서 확인합니다.
+                        요청을 올린 뒤 받은 제안서와 승인된 작업방을 확인합니다.
                     </p>
                     <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
                         <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 보기</Link>
@@ -347,9 +364,12 @@ export default function MyPage() {
         if (activePanel === 'expert') {
             return (
                 <section style={cardStyle}>
+                    <span style={{ display: 'inline-block', color: '#166534', fontWeight: 800, marginBottom: '0.6rem' }}>
+                        내가 수행할 일
+                    </span>
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 홈</h2>
                     <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                        상품 지정 의뢰와 공개 요청에 보낸 제안서를 구분해서 확인합니다.
+                        내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.
                     </p>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>

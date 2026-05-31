@@ -393,8 +393,12 @@ describe('MyPage', () => {
         expect(screen.getByRole('navigation', { name: '마이페이지 메뉴' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '개요' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('heading', { name: '전체 현황' })).toBeInTheDocument()
+        expect(screen.getByText('의뢰자 영역은 내가 맡긴 일을 관리하는 곳입니다.')).toBeInTheDocument()
+        expect(screen.getByText('전문가 영역은 내가 받거나 제안한 일을 관리하는 곳입니다.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+        expect(screen.getByText('내가 맡긴 일')).toBeInTheDocument()
+        expect(screen.getByText('요청을 올린 뒤 받은 제안서와 승인된 작업방을 확인합니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '제안 단계' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '작업방' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '공개 요청 보기' })).toHaveAttribute('href', '/requests')
@@ -408,6 +412,8 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+        expect(screen.getByText('내가 수행할 일')).toBeInTheDocument()
+        expect(screen.getByText('내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전문가 응답 필요' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '공개 요청 게시판 보기' })).toHaveAttribute('href', '/requests')
