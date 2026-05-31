@@ -69,6 +69,33 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
     {
+        id: 'product-client-01',
+        expertId: 'expert-real-01',
+        expertName: 'Client order expert',
+        title: 'AI 숏폼 영상 제작',
+        category: 'ai-video-shortform',
+        summary: 'Client order summary',
+        description: 'Client order description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 30000,
+        deliveryDays: 2,
+        revisionCount: 1,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 30000,
+                deliveryDays: 2,
+                revisionCount: 1,
+                included: ['Draft'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+    {
         id: 'product-other-01',
         expertId: 'other-user',
         expertName: 'Other expert',
@@ -99,7 +126,7 @@ const getExpertProducts = vi.fn(async () => [
 const getUserProposals = vi.fn(async (_userId: string) => [
     {
         id: 'proposal-real-client',
-        requestId: 'request-client',
+        requestId: 'request-product-client-01',
         clientId: 'user-demo-01',
         expertId: 'expert-real-01',
         title: '받은 실제 제안서',
@@ -174,7 +201,7 @@ const getUserWorks = vi.fn(async (_userId: string) => [
     {
         id: 'work-real-active',
         proposalId: 'proposal-active',
-        requestId: 'request-active',
+        requestId: 'request-product-client-01',
         clientId: 'user-demo-01',
         expertId: 'expert-real-01',
         title: '진행 중인 실제 작업',
@@ -220,7 +247,7 @@ const getUserWorks = vi.fn(async (_userId: string) => [
 const defaultProposals = () => [
     {
         id: 'proposal-real-client',
-        requestId: 'request-client',
+        requestId: 'request-product-client-01',
         clientId: 'user-demo-01',
         expertId: 'expert-real-01',
         title: '받은 실제 제안서',
@@ -296,7 +323,7 @@ const defaultWorks = () => [
     {
         id: 'work-real-active',
         proposalId: 'proposal-active',
-        requestId: 'request-active',
+        requestId: 'request-product-client-01',
         clientId: 'user-demo-01',
         expertId: 'expert-real-01',
         title: '진행 중인 실제 작업',
@@ -359,6 +386,25 @@ describe('MyPage', () => {
         getUserServiceRequests.mockReset()
         getUserServiceRequests.mockResolvedValue([
             {
+                id: 'request-product-client-01',
+                title: 'AI 숏폼 상품 주문',
+                description: '의뢰자가 주문한 상품 상세',
+                budget: '30000',
+                deadline: '2026-06-01',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-01',
+                productId: 'product-client-01',
+                selectedPackage: 'standard',
+                desiredResult: '제품 홍보 숏폼',
+                purpose: '신제품 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
+            },
+            {
                 id: 'request-product-directed-01',
                 title: 'Owned AI product',
                 description: '상품 지정 의뢰 상세',
@@ -398,15 +444,14 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
         expect(screen.getByText('내가 맡긴 일')).toBeInTheDocument()
-        expect(screen.getByText('요청을 올린 뒤 받은 제안서와 승인된 작업방을 확인합니다.')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '제안 단계' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '작업방' })).toBeInTheDocument()
+        expect(screen.getByText('상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '상품 주문 관리' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '공개 요청 보기' })).toHaveAttribute('href', '/requests')
-        expect(await screen.findByRole('link', { name: '제안서 검토하기' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '제안서 보기' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-client',
         )
-        expect(await screen.findByRole('link', { name: '작업방 들어가기' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: '작업방 열기' })).toHaveAttribute(
             'href',
             '/workroom/work-real-active',
         )
@@ -429,9 +474,33 @@ describe('MyPage', () => {
         )
     })
 
+    it('lets clients open a product order and manage its related stages together', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+
+        expect(await screen.findByRole('heading', { name: '상품 주문 관리' })).toBeInTheDocument()
+        expect(screen.getByText('상품별로 요구사항, 제안서, 작업방 단계를 한 곳에서 확인합니다.')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: /AI 숏폼 영상 제작/ }))
+
+        expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
+        expect(screen.getByText('요구사항 접수')).toBeInTheDocument()
+        expect(screen.getByText('제품 홍보 숏폼')).toBeInTheDocument()
+        expect(screen.getByText('제안서 도착')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
+        expect(screen.getByText('작업방 진행')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
+    })
+
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {
         getUserProposals.mockResolvedValue([])
         getUserWorks.mockResolvedValue([])
+        getUserServiceRequests.mockResolvedValue([])
 
         render(
             <MemoryRouter>
@@ -440,10 +509,9 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
-        expect(await screen.findByText('아직 받은 제안서가 없습니다.')).toBeInTheDocument()
-        expect(screen.getByText('진행 중인 작업이 없습니다.')).toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '제안서 검토하기' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '작업방 들어가기' })).not.toBeInTheDocument()
+        expect(await screen.findByText('아직 상품 주문 내역이 없습니다.')).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '제안서 보기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '작업방 열기' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
@@ -476,12 +544,8 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
-        expect(await screen.findByText('Expired client proposal')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Expired client proposal' })).toHaveAttribute(
-            'href',
-            '/proposal/proposal-real-client-expired',
-        )
-        expect(screen.getByText('만료')).toBeInTheDocument()
+        expect(await screen.findByText('제안서 도착')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(await screen.findByText('Second sent proposal')).toBeInTheDocument()
