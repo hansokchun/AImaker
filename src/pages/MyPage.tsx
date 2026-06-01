@@ -628,7 +628,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         '검토 단계',
                                         '제안서 검토',
                                         `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]}`,
-                                        selectedClientOrderWork ? 'done' : 'current',
+                                        'done',
                                         { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                                     )
                                     : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.', 'current')}

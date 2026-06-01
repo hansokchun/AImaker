@@ -937,6 +937,41 @@ describe('MyPage', () => {
         expect(within(pendingReviewStage).getByText('작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.')).toHaveAttribute('data-stage-muted', 'true')
     })
 
+    it('shows only payment as the current stage after a proposal is received but unpaid', async () => {
+        getUserProposals.mockResolvedValue([
+            ...defaultProposals(),
+            {
+                id: 'proposal-client-before-payment',
+                requestId: 'request-product-client-before',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-before',
+                title: '결제 대기 제안서',
+                scope: '작업 전 주문에 도착한 제안서',
+                deliverables: ['AI 숏폼 1편'],
+                totalPrice: 40000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                progressType: 'single' as const,
+                milestones: [],
+                commercialUseAllowed: true,
+                sourceFileIncluded: false,
+                status: 'sent' as const,
+                paymentStatus: 'unpaid' as const,
+                expiresAt: '2026-06-05T00:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/mypage?panel=client&clientOrder=request-product-client-before']}>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('현재 단계: 테스트 결제 대기')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('제안서 검토 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('테스트 결제 대기 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+    })
+
     it('groups client product orders by before, active, and completed work states', async () => {
         render(
             <MemoryRouter>
