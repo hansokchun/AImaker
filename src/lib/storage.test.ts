@@ -516,12 +516,30 @@ describe('transaction storage', () => {
             expect.objectContaining({
                 request_id: proposal.requestId,
                 total_price: proposal.totalPrice,
+                payment_status: 'unpaid',
+                platform_fee_rate: 0.12,
                 expires_at: proposal.expiresAt,
             }),
         ])
         expect(proposalSelect).toHaveBeenCalledWith('id')
         expect(proposalSingle).toHaveBeenCalled()
+        expect(proposalUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'accepted',
+                payment_status: 'paid',
+                platform_fee_rate: 0.12,
+            }),
+        )
         expect(from).toHaveBeenCalledWith('works')
+        expect(workInsert).toHaveBeenCalledWith([
+            expect.objectContaining({
+                proposal_id: proposal.id,
+                total_price: proposal.totalPrice,
+                platform_fee: 8400,
+                expert_payout: 61600,
+                settlement_status: 'held',
+            }),
+        ])
         expect(workSelect).toHaveBeenCalledWith('id')
         expect(from).toHaveBeenCalledWith('work_steps')
         expect(stepInsert).toHaveBeenCalledWith([
@@ -588,7 +606,7 @@ describe('transaction storage', () => {
         ])
         await expect(getStoredRequests()).resolves.toEqual([])
         await expect(getUserProposals(request.clientId)).resolves.toEqual([
-            expect.objectContaining({ id: proposal.id, status: 'accepted' }),
+            expect.objectContaining({ id: proposal.id, status: 'accepted', paymentStatus: 'paid' }),
         ])
     })
 
@@ -641,7 +659,9 @@ describe('transaction storage', () => {
 
         const { getUserProposals } = await import('./storage')
 
-        await expect(getUserProposals(request.clientId)).resolves.toEqual([proposal])
+        await expect(getUserProposals(request.clientId)).resolves.toEqual([
+            { ...proposal, paymentStatus: 'unpaid', platformFeeRate: 0.12 },
+        ])
         expect(from).toHaveBeenCalledWith('proposals')
         expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
@@ -763,7 +783,13 @@ describe('transaction storage', () => {
         const { getWorkroomData, saveDeliverable } = await import('./storage')
 
         await expect(getWorkroomData(work.id)).resolves.toEqual({
-            work,
+            work: {
+                ...work,
+                totalPrice: 0,
+                platformFee: 0,
+                expertPayout: 0,
+                settlementStatus: 'held',
+            },
             steps: [step],
             deliverables: [deliverable],
         })
@@ -816,7 +842,14 @@ describe('transaction storage', () => {
 
         const { getUserWorks } = await import('./storage')
 
-        await expect(getUserWorks(request.clientId)).resolves.toEqual([{ ...work, stepIds: [] }])
+        await expect(getUserWorks(request.clientId)).resolves.toEqual([{
+            ...work,
+            totalPrice: 0,
+            platformFee: 0,
+            expertPayout: 0,
+            settlementStatus: 'held',
+            stepIds: [],
+        }])
         expect(from).toHaveBeenCalledWith('works')
         expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
@@ -852,7 +885,12 @@ describe('transaction storage', () => {
         expect(stepUpdate).toHaveBeenCalledWith({ status: 'approved' })
         expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
         expect(from).toHaveBeenCalledWith('works')
-        expect(workUpdate).toHaveBeenCalledWith({ status: 'completed' })
+        expect(workUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'completed',
+                settlement_status: 'pending',
+            }),
+        )
         expect(workEq).toHaveBeenCalledWith('id', work.id)
         expect(from).toHaveBeenCalledWith('service_requests')
         expect(requestUpdate).toHaveBeenCalledWith({ status: 'completed' })

@@ -122,9 +122,9 @@ export default function Proposal() {
     const isClosed = isExpired || proposal.status === 'accepted' || proposal.status === 'cancelled'
     const handleAccept = async () => {
         const workId = await acceptProposal(proposal)
-        setProposal({ ...proposal, status: 'accepted' })
+        setProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid', platformFeeRate: 0.12 })
         setCreatedWorkId(workId)
-        setStatusMessage('제안서를 승인했습니다. 작업 진행방이 열렸습니다.')
+        setStatusMessage('제안서를 승인하고 결제를 완료했습니다. 작업 진행방이 열렸습니다.')
     }
     const handleRequestRevision = async () => {
         await requestProposalRevision(proposal.id)
@@ -206,7 +206,8 @@ export default function Proposal() {
                         <p>제안 유효기간은 발송일로부터 3일입니다.</p>
                     </div>
 
-                    <p className="proposal-start-notice">승인 전에는 작업이 시작되지 않습니다.</p>
+                    <p className="proposal-start-notice">승인과 결제가 완료되어야 작업방이 생성됩니다.</p>
+                    <p className="proposal-start-notice">완료 승인 시 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
                     {createdWorkId && (
                         <Link to={`/workroom/${createdWorkId}`} className="proposal-back-link" state={myPageReturnState}>
@@ -216,7 +217,7 @@ export default function Proposal() {
 
                     <div className="proposal-actions">
                         <button type="button" className="btn-primary" disabled={isClosed} onClick={handleAccept}>
-                            승인하기
+                            승인하고 결제하기
                         </button>
                         <button type="button" className="btn-text" disabled={isClosed} onClick={handleRequestRevision}>
                             수정 요청

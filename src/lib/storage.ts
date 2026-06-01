@@ -32,6 +32,8 @@ const STORAGE_KEYS = {
     REVIEWS: 'ai_reviews',
 } as const;
 
+const PLATFORM_FEE_RATE = 0.12;
+
 const isUuid = (value?: string) =>
     Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
@@ -143,6 +145,8 @@ const toProposal = (item: any): Proposal => normalizeProposalStatus({
     commercialUseAllowed: Boolean(item.commercial_use_allowed),
     sourceFileIncluded: Boolean(item.source_file_included),
     status: item.status || 'sent',
+    paymentStatus: item.payment_status || 'unpaid',
+    platformFeeRate: item.platform_fee_rate ?? PLATFORM_FEE_RATE,
     expiresAt: item.expires_at,
 });
 
@@ -155,8 +159,20 @@ const toWork = (item: any): Work => ({
     title: item.title,
     progressType: item.progress_type || 'single',
     status: item.status || 'in_progress',
+    totalPrice: item.total_price || 0,
+    platformFee: item.platform_fee || 0,
+    expertPayout: item.expert_payout || 0,
+    settlementStatus: item.settlement_status || 'held',
     stepIds: [],
 });
+
+const getProposalMoney = (proposal: Proposal) => {
+    const platformFee = Math.round(proposal.totalPrice * PLATFORM_FEE_RATE);
+    return {
+        platformFee,
+        expertPayout: proposal.totalPrice - platformFee,
+    };
+};
 
 const toWorkStep = (item: any): WorkStep => ({
     id: item.id,
@@ -621,6 +637,8 @@ export async function saveProposal(proposal: Proposal): Promise<string> {
             commercial_use_allowed: proposal.commercialUseAllowed,
             source_file_included: proposal.sourceFileIncluded,
             status: proposal.status,
+            payment_status: proposal.paymentStatus || 'unpaid',
+            platform_fee_rate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
             expires_at: proposal.expiresAt,
         }])
         .select('id')
@@ -679,6 +697,8 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
         throw new Error('만료된 제안서는 승인할 수 없습니다.');
     }
 
+    const money = getProposalMoney(proposal);
+
     if (!supabase) {
         const work: Work = {
             id: `work-${proposal.id}`,
@@ -689,6 +709,10 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             title: proposal.title,
             progressType: proposal.progressType,
             status: 'in_progress',
+            totalPrice: proposal.totalPrice,
+            platformFee: money.platformFee,
+            expertPayout: money.expertPayout,
+            settlementStatus: 'held',
             stepIds: [],
         };
         const steps = buildInitialWorkSteps(proposal, work.id);
@@ -706,7 +730,14 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             STORAGE_KEYS.PROPOSALS,
             JSON.stringify(
                 proposals.map((storedProposal) =>
-                    storedProposal.id === proposal.id ? { ...storedProposal, status: 'accepted' } : storedProposal,
+                    storedProposal.id === proposal.id
+                        ? {
+                            ...storedProposal,
+                            status: 'accepted',
+                            paymentStatus: 'paid',
+                            platformFeeRate: PLATFORM_FEE_RATE,
+                        }
+                        : storedProposal,
                 ),
             ),
         );
@@ -726,7 +757,12 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
 
     const { error: proposalError } = await supabase
         .from('proposals')
-        .update({ status: 'accepted' })
+        .update({
+            status: 'accepted',
+            payment_status: 'paid',
+            paid_at: new Date().toISOString(),
+            platform_fee_rate: PLATFORM_FEE_RATE,
+        })
         .eq('id', proposal.id);
 
     if (proposalError) throw new Error('데이터베이스 통신 오류: 제안서 승인 실패');
@@ -739,6 +775,10 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
         title: proposal.title,
         progress_type: proposal.progressType,
         status: 'in_progress',
+        total_price: proposal.totalPrice,
+        platform_fee: money.platformFee,
+        expert_payout: money.expertPayout,
+        settlement_status: 'held',
     }]).select('id').single();
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
@@ -926,7 +966,11 @@ export async function approveWorkDeliverable(
         );
         localStorage.setItem(
             STORAGE_KEYS.WORKS,
-            JSON.stringify(works.map((work) => (work.id === workId ? { ...work, status: 'completed' } : work))),
+            JSON.stringify(
+                works.map((work) =>
+                    work.id === workId ? { ...work, status: 'completed', settlementStatus: 'pending' } : work,
+                ),
+            ),
         );
         if (stepId) {
             localStorage.setItem(
@@ -965,7 +1009,14 @@ export async function approveWorkDeliverable(
         if (stepError) throw new Error('데이터베이스 통신 오류: 단계 승인 처리 실패');
     }
 
-    const { error: workError } = await supabase.from('works').update({ status: 'completed' }).eq('id', workId);
+    const { error: workError } = await supabase
+        .from('works')
+        .update({
+            status: 'completed',
+            settlement_status: 'pending',
+            completed_at: new Date().toISOString(),
+        })
+        .eq('id', workId);
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 완료 처리 실패');
     if (requestId) {

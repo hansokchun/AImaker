@@ -110,6 +110,19 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/proposals\.client_id = works\.client_id/i)
         expect(policySql).toMatch(/proposals\.expert_id = works\.expert_id/i)
         expect(policySql).toMatch(/proposals\.status = 'accepted'/i)
+        expect(policySql).toMatch(/proposals\.payment_status = 'paid'/i)
+    })
+
+    it('stores MVP payment, platform fee, and settlement status fields', () => {
+        expect(sql).toMatch(/payment_status text not null default 'unpaid'/i)
+        expect(sql).toMatch(/platform_fee_rate numeric\(5,4\) not null default 0\.12/i)
+        expect(sql).toMatch(/paid_at timestamptz/i)
+        expect(sql).toMatch(/total_price integer not null default 0/i)
+        expect(sql).toMatch(/platform_fee integer not null default 0/i)
+        expect(sql).toMatch(/expert_payout integer not null default 0/i)
+        expect(sql).toMatch(/settlement_status text not null default 'held'/i)
+        expect(sql).toMatch(/add column if not exists payment_status/i)
+        expect(sql).toMatch(/add column if not exists settlement_status/i)
     })
 
     it('allows clients to review only completed work with the matching expert', () => {

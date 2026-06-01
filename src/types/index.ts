@@ -105,6 +105,8 @@ export interface Proposal {
     commercialUseAllowed: boolean;
     sourceFileIncluded: boolean;
     status: 'sent' | 'revision_requested' | 'accepted' | 'cancelled' | 'expired';
+    paymentStatus?: 'unpaid' | 'paid' | 'refunded';
+    platformFeeRate?: number;
     expiresAt: string;
 }
 
@@ -117,6 +119,10 @@ export interface Work {
     title: string;
     progressType: 'single' | 'milestone';
     status: 'in_progress' | 'submitted' | 'revision_requested' | 'completed' | 'cancelled';
+    totalPrice?: number;
+    platformFee?: number;
+    expertPayout?: number;
+    settlementStatus?: 'held' | 'pending' | 'settled' | 'refunded';
     stepIds: string[];
 }
 

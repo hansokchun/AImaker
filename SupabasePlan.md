@@ -27,6 +27,49 @@ profiles
 
 ---
 
+## MVP 결제/정산 상태 확장
+
+추천 결제 방식 확정에 따라 제안서와 작업 테이블에 결제/수수료/정산 상태를 저장한다.
+
+`proposals` 추가 필드:
+
+```text
+payment_status text default 'unpaid'
+platform_fee_rate numeric(5,4) default 0.12
+paid_at timestamptz
+refunded_at timestamptz
+```
+
+`payment_status` 값:
+
+```text
+unpaid
+paid
+refunded
+```
+
+`works` 추가 필드:
+
+```text
+total_price integer default 0
+platform_fee integer default 0
+expert_payout integer default 0
+settlement_status text default 'held'
+```
+
+`settlement_status` 값:
+
+```text
+held       결제 완료 후 작업 진행 중
+pending    의뢰자 완료 승인 후 정산 대기
+settled    전문가 정산 완료
+refunded   환불 처리
+```
+
+작업방은 `proposals.status = accepted`이고 `proposals.payment_status = paid`인 제안서에서만 생성된다. 실제 PG 승인, 자동 환불, 자동 정산은 후속 개발로 분리한다.
+
+---
+
 ## 2. 공통 규칙
 
 모든 핵심 테이블은 다음 필드를 기본으로 둔다.

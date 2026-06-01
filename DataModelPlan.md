@@ -277,3 +277,33 @@ approved
 ```
 
 이 구조가 잡히면 이후 자동 결제, 단계별 정산, 알림, 고급 리뷰 기능을 확장할 수 있다.
+---
+
+## MVP 결제/정산 데이터
+
+제안서 승인은 결제 완료와 같은 단계로 처리한다. 실제 PG 연동 전까지는 상태값으로 결제 흐름을 고정한다.
+
+`proposals`:
+
+- `payment_status`: `unpaid`, `paid`, `refunded`
+- `platform_fee_rate`: 기본 `0.12`
+- `paid_at`
+- `refunded_at`
+
+`works`:
+
+- `total_price`: 제안서 총액
+- `platform_fee`: `total_price * 12%`
+- `expert_payout`: `total_price - platform_fee`
+- `settlement_status`: `held`, `pending`, `settled`, `refunded`
+
+상태 전환:
+
+```text
+제안서 발송: proposals.payment_status = unpaid
+의뢰자 승인+결제: proposals.status = accepted, proposals.payment_status = paid
+작업방 생성: works.settlement_status = held
+결과물 승인: works.status = completed, works.settlement_status = pending
+운영자 정산 완료: works.settlement_status = settled
+환불 처리: payment_status 또는 settlement_status = refunded
+```

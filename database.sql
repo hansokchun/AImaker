@@ -207,10 +207,19 @@ create table if not exists public.proposals (
   commercial_use_allowed boolean not null default false,
   source_file_included boolean not null default false,
   status text not null default 'sent' check (status in ('sent', 'revision_requested', 'accepted', 'cancelled', 'expired')),
+  payment_status text not null default 'unpaid' check (payment_status in ('unpaid', 'paid', 'refunded')),
+  platform_fee_rate numeric(5,4) not null default 0.12,
+  paid_at timestamptz,
+  refunded_at timestamptz,
   expires_at timestamptz not null default (now() + interval '3 days'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.proposals add column if not exists payment_status text not null default 'unpaid';
+alter table public.proposals add column if not exists platform_fee_rate numeric(5,4) not null default 0.12;
+alter table public.proposals add column if not exists paid_at timestamptz;
+alter table public.proposals add column if not exists refunded_at timestamptz;
 
 alter table public.proposals enable row level security;
 
@@ -259,11 +268,20 @@ create table if not exists public.works (
   title text not null,
   progress_type text not null default 'single' check (progress_type in ('single', 'milestone')),
   status text not null default 'in_progress' check (status in ('in_progress', 'submitted', 'revision_requested', 'completed', 'cancelled')),
+  total_price integer not null default 0 check (total_price >= 0),
+  platform_fee integer not null default 0 check (platform_fee >= 0),
+  expert_payout integer not null default 0 check (expert_payout >= 0),
+  settlement_status text not null default 'held' check (settlement_status in ('held', 'pending', 'settled', 'refunded')),
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.works add column if not exists total_price integer not null default 0;
+alter table public.works add column if not exists platform_fee integer not null default 0;
+alter table public.works add column if not exists expert_payout integer not null default 0;
+alter table public.works add column if not exists settlement_status text not null default 'held';
 
 alter table public.works enable row level security;
 
@@ -284,6 +302,7 @@ create policy "Accepted proposal participants can insert works"
       and proposals.client_id = works.client_id
       and proposals.expert_id = works.expert_id
       and proposals.status = 'accepted'
+      and proposals.payment_status = 'paid'
     )
   );
 

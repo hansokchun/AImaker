@@ -356,3 +356,33 @@ npm.cmd run build
 여기까지가 구현 계획 확정이다.
 
 다음 단계인 `TDD 기반 구현 시작`은 기획 단계가 아니라 실제 개발 단계다. 즉, 이 문서를 기준으로 테스트를 먼저 만들고 코드를 고치는 단계로 넘어간다.
+---
+
+## 16. Task 13: MVP 결제/수수료 상태 연결
+
+**Decision:** 추천 방식으로 확정한다. 제안서 승인과 결제를 같은 단계로 묶고, 결제 완료 후에만 작업방이 생성된다. 실제 PG 연동은 후속 단계로 분리한다.
+
+**Files:**
+
+- Modify: `src/types/index.ts`
+- Modify: `src/lib/storage.ts`
+- Modify: `src/pages/Proposal.tsx`
+- Modify: `database.sql`
+- Modify: `FinalSpec.md`, `PolicyPlan.md`, `SupabasePlan.md`
+
+작업:
+
+- [x] 제안서 화면의 승인 버튼을 `승인하고 결제하기` 흐름으로 변경한다.
+- [x] 결제 완료 상태를 `proposals.payment_status = paid`로 저장한다.
+- [x] 작업방 생성 시 총액, 플랫폼 수수료, 전문가 정산 예정액을 저장한다.
+- [x] 플랫폼 수수료율은 MVP 기준 `12%`로 고정한다.
+- [x] 작업 완료 승인 시 `works.settlement_status = pending`으로 변경한다.
+- [x] 기존 테이블에도 반영할 수 있도록 `alter table ... add column if not exists`를 포함한다.
+
+검증:
+
+```text
+npm.cmd test -- src/pages/Proposal.test.tsx src/lib/storage.test.ts src/databaseSchema.test.ts
+npm.cmd test
+npm.cmd run build
+```
