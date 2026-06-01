@@ -124,6 +124,13 @@ export default function MyPage() {
     const selectedClientOrderWork = selectedClientOrder
         ? works.find((work) => work.requestId === selectedClientOrder.id || work.proposalId === selectedClientOrderProposal?.id)
         : null
+    const selectedClientOrderCurrentStage = selectedClientOrderWork
+        ? selectedClientOrderWork.status === 'completed'
+            ? '작업 후'
+            : '작업 중'
+        : selectedClientOrderProposal
+            ? '검토 단계'
+            : '작업 전'
 
     const renderProposalCards = (items: Proposal[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
@@ -300,10 +307,10 @@ export default function MyPage() {
         </div>
     )
 
-    const renderClientOrderStage = (label: string, title: string, description: string, action?: { label: string; to: string }) => (
+    const renderClientOrderStage = (phase: string, title: string, description: string, action?: { label: string; to: string }) => (
         <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)' }}>
             <span style={{ display: 'block', color: '#2563eb', fontSize: '0.82rem', fontWeight: 800, marginBottom: '0.35rem' }}>
-                {label}
+                {phase}
             </span>
             <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>{title}</strong>
             <p style={{ color: 'var(--text-secondary)', margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
@@ -365,28 +372,38 @@ export default function MyPage() {
                                 {selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}
                                 마감 {selectedClientOrder.deadline || '미정'}
                             </p>
+                            <p style={{ color: '#1d4ed8', fontWeight: 800, margin: '0 0 1rem' }}>
+                                현재 단계: {selectedClientOrderCurrentStage}
+                            </p>
+                            <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
                                 {renderClientOrderStage(
-                                    '1단계',
-                                    '요구사항 접수',
+                                    '작업 전',
+                                    '의뢰서 작성/요구사항',
                                     selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
+                                    selectedClientOrder.productId ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}` } : undefined,
                                 )}
                                 {selectedClientOrderProposal
                                     ? renderClientOrderStage(
-                                        '2단계',
-                                        '제안서 도착',
+                                        '검토 단계',
+                                        '제안서 검토',
                                         `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]}`,
                                         { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                                     )
-                                    : renderClientOrderStage('2단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.')}
+                                    : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.')}
                                 {selectedClientOrderWork
                                     ? renderClientOrderStage(
-                                        '3단계',
+                                        '작업 중',
                                         selectedClientOrderWork.status === 'completed' ? '작업 완료' : '작업방 진행',
                                         workStatusText[selectedClientOrderWork.status],
                                         { label: selectedClientOrderWork.status === 'completed' ? '완료 작업 보기' : '작업방 열기', to: `/workroom/${selectedClientOrderWork.id}` },
                                     )
-                                    : renderClientOrderStage('3단계', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.')}
+                                    : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.')}
+                                {renderClientOrderStage(
+                                    '작업 후',
+                                    '완료 확인/리뷰',
+                                    selectedClientOrderWork?.status === 'completed' ? '결과물을 확인하고 리뷰를 남길 수 있습니다.' : '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.',
+                                )}
                             </div>
                         </div>
                     )}
@@ -461,6 +478,12 @@ export default function MyPage() {
                     <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
                         내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.
                     </p>
+                    <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
+                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                            받은 의뢰 → 제안서 작성/수정 → 작업 진행 순서로 봅니다.
+                        </p>
+                    </div>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
                         <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>

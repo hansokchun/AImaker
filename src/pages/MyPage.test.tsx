@@ -459,6 +459,8 @@ describe('MyPage', () => {
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(screen.getByText('내가 수행할 일')).toBeInTheDocument()
         expect(screen.getByText('내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '받은 일 관리' })).toBeInTheDocument()
+        expect(screen.getByText('받은 의뢰 → 제안서 작성/수정 → 작업 진행 순서로 봅니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전문가 응답 필요' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '공개 요청 게시판 보기' })).toHaveAttribute('href', '/requests')
@@ -489,12 +491,19 @@ describe('MyPage', () => {
         fireEvent.click(screen.getByRole('button', { name: /AI 숏폼 영상 제작/ }))
 
         expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
-        expect(screen.getByText('요구사항 접수')).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 작업 중')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '전체 과정' })).toBeInTheDocument()
+        expect(screen.getByText('작업 전')).toBeInTheDocument()
+        expect(screen.getByText('의뢰서 작성/요구사항')).toBeInTheDocument()
         expect(screen.getByText('제품 홍보 숏폼')).toBeInTheDocument()
-        expect(screen.getByText('제안서 도착')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute('href', '/request/product-client-01')
+        expect(screen.getByText('제안서 검토')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
+        expect(screen.getByText('작업 중')).toBeInTheDocument()
         expect(screen.getByText('작업방 진행')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
+        expect(screen.getByText('작업 후')).toBeInTheDocument()
+        expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {
@@ -544,7 +553,7 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
-        expect(await screen.findByText('제안서 도착')).toBeInTheDocument()
+        expect(await screen.findByText('제안서 검토')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
