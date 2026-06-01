@@ -23,6 +23,13 @@ const workStatusText: Record<Work['status'], string> = {
 }
 
 type MyPagePanel = 'overview' | 'client' | 'expert' | 'workroom' | 'reviews'
+type WorkPhase = 'before' | 'active' | 'completed'
+
+const workPhaseLabels: Record<WorkPhase, string> = {
+    before: '작업 전',
+    active: '작업 중',
+    completed: '작업 완료',
+}
 
 const menuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'overview', label: '개요' },
@@ -46,6 +53,7 @@ export default function MyPage() {
     const navigate = useNavigate()
     const [activePanel, setActivePanel] = useState<MyPagePanel>('overview')
     const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(null)
+    const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(null)
     const [isExpert, setIsExpert] = useState(false)
     const [name, setName] = useState('')
     const [reviewOpen, setReviewOpen] = useState(false)
@@ -114,6 +122,34 @@ export default function MyPage() {
     const completedWorks = works.filter((work) => work.status === 'completed')
     const sentProposal = sentProposals[0] || null
     const publicProduct = myProducts[0] || null
+
+    const getProposalForRequest = (request: ServiceRequestData) =>
+        proposals.find((proposal) => proposal.requestId === request.id)
+
+    const getWorkForRequest = (request: ServiceRequestData) => {
+        const requestProposal = getProposalForRequest(request)
+        return works.find((work) => work.requestId === request.id || work.proposalId === requestProposal?.id) || null
+    }
+
+    const getWorkPhaseForRequest = (request: ServiceRequestData): WorkPhase => {
+        const requestWork = getWorkForRequest(request)
+        if (requestWork?.status === 'completed') return 'completed'
+        if (requestWork) return 'active'
+        return 'before'
+    }
+
+    const clientRequestsByPhase: Record<WorkPhase, ServiceRequestData[]> = {
+        before: clientProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'before'),
+        active: clientProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'active'),
+        completed: clientProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'completed'),
+    }
+
+    const expertRequestsByPhase: Record<WorkPhase, ServiceRequestData[]> = {
+        before: receivedProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'before'),
+        active: receivedProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'active'),
+        completed: receivedProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'completed'),
+    }
+
     const selectedClientOrder = clientProductRequests.find((request) => request.id === selectedClientOrderId) || clientProductRequests[0] || null
     const selectedClientOrderProduct = selectedClientOrder
         ? products.find((product) => product.id === selectedClientOrder.productId)
@@ -130,6 +166,21 @@ export default function MyPage() {
             : '작업 중'
         : selectedClientOrderProposal
             ? '검토 단계'
+            : '작업 전'
+    const selectedExpertRequest = receivedProductRequests.find((request) => request.id === selectedExpertRequestId) || receivedProductRequests[0] || null
+    const selectedExpertRequestProduct = selectedExpertRequest
+        ? products.find((product) => product.id === selectedExpertRequest.productId)
+        : null
+    const selectedExpertRequestProposal = selectedExpertRequest
+        ? sentProposals.find((proposal) => proposal.requestId === selectedExpertRequest.id)
+        : null
+    const selectedExpertRequestWork = selectedExpertRequest ? getWorkForRequest(selectedExpertRequest) : null
+    const selectedExpertRequestCurrentStage = selectedExpertRequestWork
+        ? selectedExpertRequestWork.status === 'completed'
+            ? '작업 완료'
+            : '작업 중'
+        : selectedExpertRequestProposal
+            ? '제안서 단계'
             : '작업 전'
 
     const renderProposalCards = (items: Proposal[], emptyText: string) => (
@@ -211,7 +262,7 @@ export default function MyPage() {
                         <p style={{ color: 'var(--text-secondary)', margin: '0 0 0.8rem' }}>
                             {workStatusText[work.status]}
                         </p>
-                        {work.status === 'completed' && !reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
+                        {work.status === 'completed' && work.clientId === user?.id && !reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
                             <button
                                 type="button"
                                 className="btn-primary"
@@ -225,12 +276,12 @@ export default function MyPage() {
                                 리뷰 작성
                             </button>
                         )}
-                        {work.status === 'completed' && reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
+                        {work.status === 'completed' && work.clientId === user?.id && reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
                             <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
                                 리뷰 등록 완료
                             </p>
                         )}
-                        {reviewSubmitted && selectedReviewWork?.id === work.id && (
+                        {reviewSubmitted && selectedReviewWork?.id === work.id && work.clientId === user?.id && (
                             <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
                                 리뷰가 등록되었습니다.
                             </p>
@@ -322,6 +373,59 @@ export default function MyPage() {
         </div>
     )
 
+    const renderOrderGroup = (
+        phase: WorkPhase,
+        items: ServiceRequestData[],
+        selectedId: string | number | null | undefined,
+        onSelect: (id: string | number) => void,
+        emptyText: string,
+    ) => (
+        <section
+            key={phase}
+            style={{
+                paddingTop: phase === 'before' ? 0 : '1rem',
+                borderTop: phase === 'before' ? 'none' : '1px solid var(--border-color)',
+            }}
+        >
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.65rem', color: '#0f172a' }}>
+                {workPhaseLabels[phase]}
+            </h4>
+            {items.length > 0 ? (
+                <div style={{ display: 'grid', gap: '0.65rem' }}>
+                    {items.map((request) => {
+                        const product = products.find((item) => item.id === request.productId)
+                        const selected = selectedId === request.id
+                        return (
+                            <button
+                                key={request.id}
+                                type="button"
+                                aria-pressed={selected}
+                                onClick={() => onSelect(request.id)}
+                                style={{
+                                    textAlign: 'left',
+                                    padding: '1rem',
+                                    borderRadius: '0.75rem',
+                                    border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
+                                    background: selected ? '#eff6ff' : '#f8fafc',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>
+                                    {product?.title || request.desiredResult || request.title}
+                                </strong>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    {request.desiredResult || request.title}
+                                </span>
+                            </button>
+                        )
+                    })}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
+            )}
+        </section>
+    )
+
     const renderClientProductOrderManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
             <div>
@@ -333,34 +437,10 @@ export default function MyPage() {
 
             {clientProductRequests.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
-                    <div style={{ display: 'grid', gap: '0.65rem' }}>
-                        {clientProductRequests.map((request) => {
-                            const product = products.find((item) => item.id === request.productId)
-                            const selected = selectedClientOrder?.id === request.id
-                            return (
-                                <button
-                                    key={request.id}
-                                    type="button"
-                                    aria-pressed={selected}
-                                    onClick={() => setSelectedClientOrderId(request.id)}
-                                    style={{
-                                        textAlign: 'left',
-                                        padding: '1rem',
-                                        borderRadius: '0.75rem',
-                                        border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
-                                        background: selected ? '#eff6ff' : '#f8fafc',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>
-                                        {product?.title || request.title}
-                                    </strong>
-                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                        {request.selectedPackage || '패키지'} · {request.status === 'completed' ? '완료' : request.status === 'in_progress' ? '진행 중' : '요청 접수'}
-                                    </span>
-                                </button>
-                            )
-                        })}
+                    <div aria-label="의뢰자 주문 상태 그룹" style={{ display: 'grid', gap: '1rem' }}>
+                        {renderOrderGroup('before', clientRequestsByPhase.before, selectedClientOrder?.id, setSelectedClientOrderId, '작업 전 주문이 없습니다.')}
+                        {renderOrderGroup('active', clientRequestsByPhase.active, selectedClientOrder?.id, setSelectedClientOrderId, '진행 중인 주문이 없습니다.')}
+                        {renderOrderGroup('completed', clientRequestsByPhase.completed, selectedClientOrder?.id, setSelectedClientOrderId, '완료된 주문이 없습니다.')}
                     </div>
 
                     {selectedClientOrder && (
@@ -410,6 +490,74 @@ export default function MyPage() {
                 </div>
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 상품 주문 내역이 없습니다.</p>
+            )}
+        </div>
+    )
+
+    const renderExpertReceivedWorkManager = () => (
+        <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
+            <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
+                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                    받은 의뢰를 작업 전, 작업 중, 작업 완료로 나눠 관리합니다.
+                </p>
+            </div>
+
+            {receivedProductRequests.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                    <div aria-label="전문가 받은 일 상태 그룹" style={{ display: 'grid', gap: '1rem' }}>
+                        {renderOrderGroup('before', expertRequestsByPhase.before, selectedExpertRequest?.id, setSelectedExpertRequestId, '새로 받은 상품 의뢰가 없습니다.')}
+                        {renderOrderGroup('active', expertRequestsByPhase.active, selectedExpertRequest?.id, setSelectedExpertRequestId, '진행 중인 받은 일이 없습니다.')}
+                        {renderOrderGroup('completed', expertRequestsByPhase.completed, selectedExpertRequest?.id, setSelectedExpertRequestId, '완료된 받은 일이 없습니다.')}
+                    </div>
+
+                    {selectedExpertRequest && (
+                        <div style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
+                                {selectedExpertRequest.desiredResult || selectedExpertRequestProduct?.title || selectedExpertRequest.title}
+                            </h3>
+                            <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                                {selectedExpertRequestProduct?.title || '상품 의뢰'} · {selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}
+                                마감 {selectedExpertRequest.deadline || '미정'}
+                            </p>
+                            <p style={{ color: '#166534', fontWeight: 800, margin: '0 0 1rem' }}>
+                                현재 단계: {selectedExpertRequestCurrentStage}
+                            </p>
+                            <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
+                            <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                {renderClientOrderStage(
+                                    '작업 전',
+                                    '받은 의뢰',
+                                    selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
+                                    selectedExpertRequest.productId ? { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` } : undefined,
+                                )}
+                                {selectedExpertRequestProposal
+                                    ? renderClientOrderStage(
+                                        '검토 단계',
+                                        '제안서 작성/수정',
+                                        `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
+                                        { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
+                                    )
+                                    : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.')}
+                                {selectedExpertRequestWork
+                                    ? renderClientOrderStage(
+                                        '작업 중',
+                                        '작업 진행',
+                                        workStatusText[selectedExpertRequestWork.status],
+                                        { label: selectedExpertRequestWork.status === 'completed' ? '완료 작업 보기' : '작업방 열기', to: `/workroom/${selectedExpertRequestWork.id}` },
+                                    )
+                                    : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.')}
+                                {renderClientOrderStage(
+                                    '작업 완료',
+                                    '작업 완료',
+                                    selectedExpertRequestWork?.status === 'completed' ? '의뢰자에게 결과물을 전달한 작업입니다.' : '결과물을 제출하고 의뢰자 확인을 기다립니다.',
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 상품 의뢰가 없습니다.</p>
             )}
         </div>
     )
@@ -478,12 +626,6 @@ export default function MyPage() {
                     <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
                         내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.
                     </p>
-                    <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
-                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            받은 의뢰 → 제안서 작성/수정 → 작업 진행 순서로 봅니다.
-                        </p>
-                    </div>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
                         <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>
@@ -498,6 +640,8 @@ export default function MyPage() {
                             <span style={quickLinkStyle}>공개 상품 없음</span>
                         )}
                     </div>
+
+                    {renderExpertReceivedWorkManager()}
 
                     <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
                     {renderProductCards(myProducts)}

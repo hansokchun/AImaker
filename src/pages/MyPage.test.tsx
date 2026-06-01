@@ -96,6 +96,60 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
     {
+        id: 'product-client-before',
+        expertId: 'expert-real-before',
+        expertName: 'Before expert',
+        title: '작업 전 테스트 상품',
+        category: 'ai-video-shortform',
+        summary: 'Before summary',
+        description: 'Before description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 40000,
+        deliveryDays: 3,
+        revisionCount: 1,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 40000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                included: ['Draft'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+    {
+        id: 'product-client-completed',
+        expertId: 'expert-real-completed',
+        expertName: 'Completed expert',
+        title: '작업 완료 테스트 상품',
+        category: 'ai-video-shortform',
+        summary: 'Completed summary',
+        description: 'Completed description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 60000,
+        deliveryDays: 4,
+        revisionCount: 1,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 60000,
+                deliveryDays: 4,
+                revisionCount: 1,
+                included: ['Final'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+    {
         id: 'product-other-01',
         expertId: 'other-user',
         expertName: 'Other expert',
@@ -364,6 +418,39 @@ const defaultWorks = () => [
         status: 'completed' as const,
         stepIds: [],
     },
+    {
+        id: 'work-client-completed-order',
+        proposalId: 'proposal-client-completed-order',
+        requestId: 'request-product-client-completed',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-completed',
+        title: '작업 완료 테스트 상품',
+        progressType: 'single' as const,
+        status: 'completed' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-expert-active-order',
+        proposalId: 'proposal-expert-active-order',
+        requestId: 'request-product-directed-active',
+        clientId: 'client-real-active',
+        expertId: 'user-demo-01',
+        title: '전문가 진행 중 상품',
+        progressType: 'single' as const,
+        status: 'in_progress' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-expert-completed-order',
+        proposalId: 'proposal-expert-completed-order',
+        requestId: 'request-product-directed-completed',
+        clientId: 'client-real-completed',
+        expertId: 'user-demo-01',
+        title: '전문가 완료 상품',
+        progressType: 'single' as const,
+        status: 'completed' as const,
+        stepIds: [],
+    },
 ]
 
 vi.mock('../lib/storage', () => ({
@@ -405,6 +492,44 @@ describe('MyPage', () => {
                 status: 'in_progress',
             },
             {
+                id: 'request-product-client-before',
+                title: '작업 전 상품 주문',
+                description: '아직 작업방이 없는 주문',
+                budget: '40000',
+                deadline: '2026-06-05',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-before',
+                productId: 'product-client-before',
+                selectedPackage: 'standard',
+                desiredResult: '작업 전 요구사항',
+                purpose: '런칭 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'pending',
+            },
+            {
+                id: 'request-product-client-completed',
+                title: '작업 완료 상품 주문',
+                description: '작업이 끝난 주문',
+                budget: '60000',
+                deadline: '2026-06-10',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-completed',
+                productId: 'product-client-completed',
+                selectedPackage: 'standard',
+                desiredResult: '작업 완료 요구사항',
+                purpose: '성과 보고',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'completed',
+            },
+            {
                 id: 'request-product-directed-01',
                 title: 'Owned AI product',
                 description: '상품 지정 의뢰 상세',
@@ -422,6 +547,44 @@ describe('MyPage', () => {
                 referenceLinks: [],
                 progressType: 'single',
                 status: 'pending',
+            },
+            {
+                id: 'request-product-directed-active',
+                title: '전문가 진행 중 상품 의뢰',
+                description: '전문가가 진행 중인 상품 지정 의뢰',
+                budget: '50000',
+                deadline: '2026-06-08',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'client-real-active',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '전문가 진행 중 요구사항',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
+            },
+            {
+                id: 'request-product-directed-completed',
+                title: '전문가 완료 상품 의뢰',
+                description: '전문가가 완료한 상품 지정 의뢰',
+                budget: '70000',
+                deadline: '2026-06-09',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'client-real-completed',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '전문가 완료 요구사항',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'completed',
             },
         ])
         getUserWorks.mockReset()
@@ -460,12 +623,12 @@ describe('MyPage', () => {
         expect(screen.getByText('내가 수행할 일')).toBeInTheDocument()
         expect(screen.getByText('내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '받은 일 관리' })).toBeInTheDocument()
-        expect(screen.getByText('받은 의뢰 → 제안서 작성/수정 → 작업 진행 순서로 봅니다.')).toBeInTheDocument()
+        expect(screen.getByText('받은 의뢰를 작업 전, 작업 중, 작업 완료로 나눠 관리합니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전문가 응답 필요' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '공개 요청 게시판 보기' })).toHaveAttribute('href', '/requests')
         expect(await screen.findByText('받은 상품 의뢰')).toBeInTheDocument()
-        expect(screen.getByText('상품 지정 요구사항')).toBeInTheDocument()
+        expect(screen.getAllByText('상품 지정 요구사항').length).toBeGreaterThan(0)
         expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
             'href',
             '/expert/product-owned-01',
@@ -493,17 +656,64 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
         expect(screen.getByText('현재 단계: 작업 중')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전체 과정' })).toBeInTheDocument()
-        expect(screen.getByText('작업 전')).toBeInTheDocument()
+        expect(screen.getAllByText('작업 전').length).toBeGreaterThan(0)
         expect(screen.getByText('의뢰서 작성/요구사항')).toBeInTheDocument()
-        expect(screen.getByText('제품 홍보 숏폼')).toBeInTheDocument()
+        expect(screen.getAllByText('제품 홍보 숏폼').length).toBeGreaterThan(0)
         expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute('href', '/request/product-client-01')
         expect(screen.getByText('제안서 검토')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
-        expect(screen.getByText('작업 중')).toBeInTheDocument()
+        expect(screen.getAllByText('작업 중').length).toBeGreaterThan(0)
         expect(screen.getByText('작업방 진행')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
         expect(screen.getByText('작업 후')).toBeInTheDocument()
         expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
+    })
+
+    it('groups client product orders by before, active, and completed work states', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+
+        const groups = await screen.findByLabelText('의뢰자 주문 상태 그룹')
+        expect(within(groups).getByRole('heading', { name: '작업 전' })).toBeInTheDocument()
+        expect(within(groups).getByRole('heading', { name: '작업 중' })).toBeInTheDocument()
+        expect(within(groups).getByRole('heading', { name: '작업 완료' })).toBeInTheDocument()
+
+        expect(within(groups).getByRole('button', { name: /작업 전 테스트 상품/ })).toBeInTheDocument()
+        expect(within(groups).getByRole('button', { name: /AI 숏폼 영상 제작/ })).toBeInTheDocument()
+        expect(within(groups).getByRole('button', { name: /작업 완료 테스트 상품/ })).toBeInTheDocument()
+    })
+
+    it('groups expert received product work by before, active, and completed states', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+
+        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        expect(within(groups).getByRole('heading', { name: '작업 전' })).toBeInTheDocument()
+        expect(within(groups).getByRole('heading', { name: '작업 중' })).toBeInTheDocument()
+        expect(within(groups).getByRole('heading', { name: '작업 완료' })).toBeInTheDocument()
+
+        expect(within(groups).getByRole('button', { name: /상품 지정 요구사항/ })).toBeInTheDocument()
+        expect(within(groups).getByRole('button', { name: /전문가 진행 중 요구사항/ })).toBeInTheDocument()
+        expect(within(groups).getByRole('button', { name: /전문가 완료 요구사항/ })).toBeInTheDocument()
+
+        fireEvent.click(within(groups).getByRole('button', { name: /전문가 진행 중 요구사항/ }))
+        expect(screen.getByRole('heading', { name: '전문가 진행 중 요구사항' })).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 작업 중')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '전체 과정' })).toBeInTheDocument()
+        expect(screen.getByText('받은 의뢰')).toBeInTheDocument()
+        expect(screen.getByText('제안서 작성/수정')).toBeInTheDocument()
+        expect(screen.getByText('작업 진행')).toBeInTheDocument()
+        expect(screen.getAllByText('작업 완료').length).toBeGreaterThan(0)
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {
@@ -582,7 +792,7 @@ describe('MyPage', () => {
             'href',
             '/workroom/work-real-completed-second',
         )
-        expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(2)
+        expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(3)
     })
 
     it('does not offer another review for work already reviewed by the client', async () => {
