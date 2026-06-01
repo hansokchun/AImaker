@@ -362,6 +362,55 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </div>
     )
 
+    const renderWorkRoleSwitch = () => (
+        <div
+            aria-label="내 작업 역할 전환"
+            style={{
+                display: 'grid',
+                padding: '0.3rem',
+                borderRadius: '0.75rem',
+                background: '#f1f5f9',
+                border: '1px solid var(--border-color)',
+                gap: '0.3rem',
+            }}
+        >
+            <button
+                type="button"
+                aria-pressed={workRole === 'client'}
+                onClick={() => setWorkRole('client')}
+                style={{
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: '0.55rem',
+                    border: 'none',
+                    background: workRole === 'client' ? 'white' : 'transparent',
+                    color: workRole === 'client' ? '#1d4ed8' : '#475569',
+                    fontWeight: 800,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                }}
+            >
+                의뢰자로 보기
+            </button>
+            <button
+                type="button"
+                aria-pressed={workRole === 'expert'}
+                onClick={() => setWorkRole('expert')}
+                style={{
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: '0.55rem',
+                    border: 'none',
+                    background: workRole === 'expert' ? 'white' : 'transparent',
+                    color: workRole === 'expert' ? '#166534' : '#475569',
+                    fontWeight: 800,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                }}
+            >
+                전문가로 보기
+            </button>
+        </div>
+    )
+
     const renderClientOrderStage = (
         phase: string,
         title: string,
@@ -672,57 +721,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             if (mode === 'work') {
                 return (
                     <section style={cardStyle}>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>작업 관리</h2>
-                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                            내가 의뢰한 일과 전문가로 받은 일을 역할을 전환하며 확인합니다.
-                        </p>
-                        <div
-                            aria-label="내 작업 역할 전환"
-                            style={{
-                                display: 'inline-grid',
-                                gridTemplateColumns: '1fr 1fr',
-                                padding: '0.25rem',
-                                borderRadius: '0.75rem',
-                                background: '#f1f5f9',
-                                border: '1px solid var(--border-color)',
-                                gap: '0.25rem',
-                                marginBottom: '1.25rem',
-                            }}
-                        >
-                            <button
-                                type="button"
-                                aria-pressed={workRole === 'client'}
-                                onClick={() => setWorkRole('client')}
-                                style={{
-                                    padding: '0.7rem 1rem',
-                                    borderRadius: '0.55rem',
-                                    border: 'none',
-                                    background: workRole === 'client' ? 'white' : 'transparent',
-                                    color: workRole === 'client' ? '#1d4ed8' : '#475569',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                의뢰자로 보기
-                            </button>
-                            <button
-                                type="button"
-                                aria-pressed={workRole === 'expert'}
-                                onClick={() => setWorkRole('expert')}
-                                style={{
-                                    padding: '0.7rem 1rem',
-                                    borderRadius: '0.55rem',
-                                    border: 'none',
-                                    background: workRole === 'expert' ? 'white' : 'transparent',
-                                    color: workRole === 'expert' ? '#166534' : '#475569',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                전문가로 보기
-                            </button>
-                        </div>
-
                         {workRole === 'client' ? (
                             <div>
                                 <span style={{ display: 'inline-block', color: '#1d4ed8', fontWeight: 800, marginBottom: '0.6rem' }}>
@@ -851,22 +849,28 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
                     <aside style={{ ...cardStyle, padding: '1.25rem', position: 'sticky', top: '1rem' }}>
-                        <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
-                            <div>
-                                <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>닉네임</span>
-                                <strong style={{ color: '#1e293b' }}>{name || '미설정'}</strong>
+                        {mode === 'work' ? (
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                {renderWorkRoleSwitch()}
                             </div>
-                            <div>
-                                <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>접속 계정</span>
-                                <strong style={{ color: '#1e293b', wordBreak: 'break-all' }}>{user?.email || ''}</strong>
+                        ) : (
+                            <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div>
+                                    <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>닉네임</span>
+                                    <strong style={{ color: '#1e293b' }}>{name || '미설정'}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>접속 계정</span>
+                                    <strong style={{ color: '#1e293b', wordBreak: 'break-all' }}>{user?.email || ''}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>회원 유형</span>
+                                    <strong style={{ color: isExpert ? '#1e40af' : '#166534' }}>
+                                        {isExpert ? '전문가' : '의뢰자'}
+                                    </strong>
+                                </div>
                             </div>
-                            <div>
-                                <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>회원 유형</span>
-                                <strong style={{ color: isExpert ? '#1e40af' : '#166534' }}>
-                                    {isExpert ? '전문가' : '의뢰자'}
-                                </strong>
-                            </div>
-                        </div>
+                        )}
 
                         <nav aria-label={menuLabel} style={{ display: 'grid', gap: '0.45rem' }}>
                             {menuItems.map((item) => {

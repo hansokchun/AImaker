@@ -646,16 +646,23 @@ describe('MyPage', () => {
         expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '의뢰자 홈' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '전문가 홈' })).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.queryByText('닉네임')).not.toBeInTheDocument()
+        expect(screen.queryByText('접속 계정')).not.toBeInTheDocument()
+        expect(screen.queryByText('demo@example.com')).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '작업 관리' })).not.toBeInTheDocument()
+        expect(screen.queryByText('내가 의뢰한 일과 전문가로 받은 일을 역할을 전환하며 확인합니다.')).not.toBeInTheDocument()
+
+        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        expect(within(roleSwitch).getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
         expect(screen.getByRole('button', { name: '작업방' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '완료 / 리뷰' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
 
-        expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
     })
 
