@@ -4,9 +4,11 @@
  * - sticky 포지션으로 스크롤 시에도 항상 화면 상단에 고정
  * - 현재 경로에 따라 활성 링크 색상을 변경하여 사용자의 위치를 시각적으로 안내
  */
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ROUTES } from '../constants/routes';
+import { getStoredProfile } from '../lib/storage';
 
 /** 네비게이션 링크 정의 — 추가/변경 시 여기만 수정하면 됨 */
 const NAV_LINKS = [
@@ -20,6 +22,30 @@ export default function Navbar() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
+    const [profileImageUrl, setProfileImageUrl] = useState('');
+
+    useEffect(() => {
+        let active = true;
+        const metadataImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '';
+
+        if (!user) {
+            setProfileImageUrl('');
+            return;
+        }
+
+        setProfileImageUrl(metadataImage);
+        getStoredProfile(user.id)
+            .then((profile) => {
+                if (active) setProfileImageUrl(profile?.imageUrl || metadataImage);
+            })
+            .catch(() => {
+                if (active) setProfileImageUrl(metadataImage);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [user]);
 
     const handleSignOut = async () => {
         try {
@@ -54,9 +80,20 @@ export default function Navbar() {
                 <div className="nav-actions">
                     {user ? (
                         <>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                {user.user_metadata?.display_name || user.email}
-                            </span>
+                            <Link
+                                to={`${ROUTES.MY_PAGE}?panel=profile`}
+                                className="nav-profile-link"
+                                aria-label="마이 프로필"
+                                style={{ color: location.pathname === ROUTES.MY_PAGE ? 'var(--primary)' : undefined }}
+                            >
+                                {profileImageUrl ? (
+                                    <img src={profileImageUrl} alt="마이 프로필" className="nav-profile-image" />
+                                ) : (
+                                    <span className="nav-profile-fallback" aria-hidden="true">
+                                        {(user.user_metadata?.display_name || user.email || '?').slice(0, 1).toUpperCase()}
+                                    </span>
+                                )}
+                            </Link>
                             <Link
                                 to={ROUTES.MY_PAGE}
                                 className="btn-text"

@@ -4,6 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
 import type { Proposal, Review, ServiceRequestData } from '../types'
 
+vi.mock('./Profile', () => ({
+    default: () => (
+        <section aria-label="마이 프로필 편집">
+            <h2>마이 프로필</h2>
+            <button type="button">프로필 저장하기</button>
+        </section>
+    ),
+}))
+
 function LocationProbe() {
     const location = useLocation()
     return <span data-testid="location">{location.search}</span>
@@ -602,6 +611,24 @@ describe('MyPage', () => {
         ])
         getUserWorks.mockReset()
         getUserWorks.mockResolvedValue(defaultWorks())
+    })
+
+    it('opens profile management from the left menu instead of the top edit button', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        expect(screen.queryByRole('link', { name: '프로필 수정하기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '마이 프로필' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '마이 프로필' }))
+
+        expect(await screen.findByLabelText('마이 프로필 편집')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '프로필 저장하기' })).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=profile'))
     })
 
     it('shows client and expert sections with transaction links', async () => {

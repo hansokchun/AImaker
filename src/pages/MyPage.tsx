@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getExpertProducts, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveProposal, saveReview } from '../lib/storage'
 import type { ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
+import Profile from './Profile'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
     sent: '대기 중',
@@ -22,7 +23,7 @@ const workStatusText: Record<Work['status'], string> = {
     cancelled: '취소',
 }
 
-type MyPagePanel = 'overview' | 'client' | 'expert' | 'workroom' | 'reviews'
+type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'workroom' | 'reviews'
 type WorkPhase = 'before' | 'active' | 'completed'
 type StageVisualState = 'done' | 'current' | 'pending'
 
@@ -64,6 +65,7 @@ const stageVisualConfig: Record<StageVisualState, { label: string; border: strin
 
 const menuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'overview', label: '개요' },
+    { id: 'profile', label: '마이 프로필' },
     { id: 'client', label: '의뢰자 홈' },
     { id: 'expert', label: '전문가 홈' },
     { id: 'workroom', label: '작업방' },
@@ -632,6 +634,10 @@ export default function MyPage() {
             )
         }
 
+        if (activePanel === 'profile') {
+            return <Profile />
+        }
+
         if (activePanel === 'client') {
             return (
                 <section style={cardStyle}>
@@ -716,9 +722,6 @@ export default function MyPage() {
                             왼쪽 메뉴에서 필요한 업무 영역을 선택해 확인합니다.
                         </p>
                     </div>
-                    <Link to={ROUTES.PROFILE} className="btn-primary" style={{ padding: '0.9rem 1.2rem' }}>
-                        프로필 수정하기
-                    </Link>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
