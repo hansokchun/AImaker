@@ -917,7 +917,10 @@ describe('MyPage', () => {
         expect(screen.getAllByText('작업 전').length).toBeGreaterThan(0)
         expect(screen.getByText('의뢰서 작성/요구사항')).toBeInTheDocument()
         expect(screen.getAllByText('제품 홍보 숏폼').length).toBeGreaterThan(0)
-        expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute('href', '/request/product-client-01')
+        expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute(
+            'href',
+            '/request/product-client-01?requestId=request-product-client-01',
+        )
         expect(screen.getByText('제안서 검토')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
         expect(screen.getByText('테스트 결제 완료')).toBeInTheDocument()

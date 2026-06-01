@@ -141,7 +141,7 @@ export default function Proposal() {
     const handleCancel = async () => {
         await cancelProposal(proposal.id)
         setProposal({ ...proposal, status: 'cancelled' })
-        setStatusMessage('제안서를 취소했습니다.')
+        setStatusMessage('제안서를 거절했습니다.')
     }
 
     return (
@@ -217,7 +217,7 @@ export default function Proposal() {
                     <p className="proposal-start-notice">완료 승인 시 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
                     <div className="proposal-test-payment">
                         <strong>테스트 결제 모드</strong>
-                        <p>현재는 실제 PG 결제 없이 결제 완료 상태로 처리됩니다.</p>
+                        <p>승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리되고 작업방이 생성됩니다.</p>
                     </div>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
                     {createdWorkId && (
@@ -228,14 +228,17 @@ export default function Proposal() {
 
                     <div className="proposal-actions">
                         <button type="button" className="btn-primary" disabled={isClosed} onClick={handleAccept}>
-                            테스트 결제 완료 처리
+                            승인 및 결제하기
                         </button>
                         <button type="button" className="btn-text" disabled={isClosed} onClick={handleRequestRevision}>
-                            수정 요청
+                            수정요청
                         </button>
                         <button type="button" className="btn-text danger" disabled={isClosed} onClick={handleCancel}>
-                            취소
+                            거절하기
                         </button>
+                        <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="btn-text" state={myPageReturnState}>
+                            취소
+                        </Link>
                     </div>
 
                     <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="proposal-back-link">

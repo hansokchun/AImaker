@@ -183,11 +183,15 @@
     gap: 0.75rem;
 }
 
-.proposal-actions button {
+.proposal-actions button,
+.proposal-actions a {
     width: 100%;
     padding: 1rem;
     border-radius: var(--radius-lg);
     font-weight: 800;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
 }
 
 .proposal-actions button:disabled {

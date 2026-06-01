@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import CategorySelector from '../components/CategorySelector'
 import { AI_CATEGORIES } from '../constants/categories'
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies'
 import { ROUTES } from '../constants/routes'
 import { mockExpertProducts } from '../data/mockData'
 import { useAuth } from '../contexts/AuthContext'
-import { getExpertProducts, saveRequest } from '../lib/storage'
+import { getExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
 import type { ExpertProduct, ServiceRequestData } from '../types'
 import './ServiceRequest.css'
 
@@ -15,7 +15,9 @@ const currency = new Intl.NumberFormat('ko-KR')
 export default function ServiceRequest() {
     const navigate = useNavigate()
     const { productId } = useParams<{ productId: string }>()
+    const [searchParams] = useSearchParams()
     const { user } = useAuth()
+    const editRequestId = searchParams.get('requestId')
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
     const [productsLoaded, setProductsLoaded] = useState(false)
     const selectedProduct = products.find((product) => product.id === productId)
@@ -33,6 +35,7 @@ export default function ServiceRequest() {
     const [deadline, setDeadline] = useState<string>('')
     const [progressType, setProgressType] = useState<'single' | 'milestone'>('single')
     const [budget, setBudget] = useState<string>(selectedPackage ? String(selectedPackage.price) : '')
+    const [editingRequest, setEditingRequest] = useState<ServiceRequestData | null>(null)
 
     useEffect(() => {
         let active = true
@@ -63,6 +66,27 @@ export default function ServiceRequest() {
         }
     }, [selectedPackage])
 
+    useEffect(() => {
+        if (!editRequestId) return
+        let active = true
+
+        getRequestById(editRequestId).then((request) => {
+            if (!active || !request) return
+            setEditingRequest(request)
+            setSelectedCategories(request.categories || (selectedCategoryName ? [selectedCategoryName] : []))
+            setDesiredResult(request.desiredResult || request.title)
+            setPurpose(request.purpose || request.description)
+            setReferenceText(request.referenceText || '')
+            setDeadline(request.deadline || '')
+            setProgressType(request.progressType || 'single')
+            setBudget(request.budget || (selectedPackage ? String(selectedPackage.price) : ''))
+        })
+
+        return () => {
+            active = false
+        }
+    }, [editRequestId, selectedCategoryName, selectedPackage])
+
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
@@ -87,7 +111,7 @@ export default function ServiceRequest() {
             .filter((item) => item.startsWith('http://') || item.startsWith('https://'))
 
         const newRequest: ServiceRequestData = {
-            id: Date.now(),
+            id: editingRequest?.id || Date.now(),
             title: selectedProduct?.title ?? desiredResult,
             description: purpose,
             budget,
@@ -107,6 +131,13 @@ export default function ServiceRequest() {
         }
 
         try {
+            if (editingRequest) {
+                await updateRequest(newRequest, user.id)
+                alert('의뢰서를 수정했습니다. 전문가가 수정된 내용을 확인할 수 있습니다.')
+                navigate(ROUTES.MY_PAGE)
+                return
+            }
+
             await saveRequest(newRequest, user.id)
             if (selectedProduct) {
                 alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
@@ -140,7 +171,7 @@ export default function ServiceRequest() {
         <div className="request-page">
             <div className="page-hero request-hero">
                 <div className="container">
-                    <h1 className="page-title">요구사항 작성</h1>
+                    <h1 className="page-title">{editingRequest ? '의뢰서 수정' : '요구사항 작성'}</h1>
                     <p>결제 전 원하는 결과물과 진행 방식을 정리해 전문가 제안을 받습니다.</p>
                 </div>
             </div>
@@ -303,7 +334,7 @@ export default function ServiceRequest() {
                         </p>
 
                         <button type="submit" className="btn-primary request-submit">
-                            요구사항 제출하기
+                            {editingRequest ? '의뢰서 수정하기' : '요구사항 제출하기'}
                         </button>
                     </section>
                 </form>

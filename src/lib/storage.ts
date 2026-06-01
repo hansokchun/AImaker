@@ -371,6 +371,64 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
     });
 }
 
+export async function getRequestById(requestId: string | number): Promise<ServiceRequestData | null> {
+    if (!supabase) {
+        const requests = await getStoredRequestsLegacy();
+        return requests.find((request) => String(request.id) === String(requestId)) || null;
+    }
+
+    const { data, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('id', String(requestId))
+        .maybeSingle();
+
+    if (error) {
+        console.error('의뢰 요청 로딩 실패:', error);
+        return null;
+    }
+
+    return data ? toServiceRequestData(data) : null;
+}
+
+export async function updateRequest(request: ServiceRequestData, userId?: string | null): Promise<void> {
+    if (!supabase) {
+        const requests = await getStoredRequestsLegacy();
+        const nextRequests = requests.map((storedRequest) =>
+            String(storedRequest.id) === String(request.id) ? { ...storedRequest, ...request } : storedRequest,
+        );
+        localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(nextRequests));
+        return;
+    }
+
+    let query = supabase
+        .from('service_requests')
+        .update({
+            title: request.title,
+            description: request.purpose || request.description,
+            budget: request.budget ? toOptionalNumber(request.budget) : null,
+            deadline: request.deadline,
+            categories: request.categories,
+            selected_package: request.selectedPackage || 'standard',
+            desired_result: request.desiredResult || request.title,
+            purpose: request.purpose || request.description,
+            reference_text: request.referenceText || '',
+            reference_links: request.referenceLinks || [],
+            progress_type: request.progressType || 'single',
+        })
+        .eq('id', String(request.id));
+
+    if (userId) {
+        query = query.eq('client_id', userId);
+    }
+
+    const { error } = await query;
+    if (error) {
+        console.error('의뢰 요청 수정 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 의뢰 요청 수정 실패');
+    }
+}
+
 export async function saveServiceRequest(request: AiServiceRequest): Promise<void> {
     if (!supabase) {
         const existing = await getStoredRequestsLegacy();

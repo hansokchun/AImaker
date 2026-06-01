@@ -594,7 +594,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     '의뢰서 작성/요구사항',
                                     selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                                     'done',
-                                    selectedClientOrder.productId ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}` } : undefined,
+                                    selectedClientOrder.productId
+                                        ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` }
+                                        : undefined,
                                 )}
                                 {selectedClientOrderProposal
                                     ? renderClientOrderStage(

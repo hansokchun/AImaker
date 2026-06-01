@@ -3,8 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ServiceRequest from './ServiceRequest'
 import { mockExpertProducts } from '../data/mockData'
-import { getExpertProducts, saveRequest } from '../lib/storage'
-import type { ExpertProduct } from '../types'
+import { getExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
+import type { ExpertProduct, ServiceRequestData } from '../types'
 
 const supabaseProduct: ExpertProduct = {
     ...mockExpertProducts[0],
@@ -29,6 +29,8 @@ let mockUser: { id: string; email: string } | null = {
 
 vi.mock('../lib/storage', () => ({
     saveRequest: vi.fn().mockResolvedValue(undefined),
+    updateRequest: vi.fn().mockResolvedValue(undefined),
+    getRequestById: vi.fn().mockResolvedValue(null),
     getExpertProducts: vi.fn(async () => mockExpertProducts),
 }))
 
@@ -43,6 +45,7 @@ describe('ServiceRequest', () => {
         vi.clearAllMocks()
         mockUser = { id: 'client-real-01', email: 'client@example.com' }
         vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
+        vi.mocked(getRequestById).mockResolvedValue(null)
         vi.spyOn(window, 'alert').mockImplementation(() => {})
     })
 
@@ -115,6 +118,60 @@ describe('ServiceRequest', () => {
         )
         expect(window.alert).toHaveBeenCalledWith('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
         expect(await screen.findByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
+    })
+
+    it('loads and updates an existing product request from my page', async () => {
+        const product = mockExpertProducts[0]
+        const existingRequest: ServiceRequestData = {
+            id: 'request-edit-01',
+            title: product.title,
+            description: '기존 작업 목적',
+            budget: '30000',
+            deadline: '2026-06-10',
+            categories: ['AI 영상/숏폼'],
+            createdAt: '2026-06-01T12:00:00.000Z',
+            ordererEmail: '',
+            status: 'pending',
+            productId: product.id,
+            expertId: product.expertId,
+            selectedPackage: 'standard',
+            desiredResult: '기존 결과물',
+            purpose: '기존 작업 목적',
+            referenceText: 'https://example.com/old',
+            referenceLinks: ['https://example.com/old'],
+            progressType: 'single',
+        }
+        vi.mocked(getRequestById).mockResolvedValue(existingRequest)
+
+        render(
+            <MemoryRouter initialEntries={[`/request/${product.id}?requestId=${existingRequest.id}`]}>
+                <Routes>
+                    <Route path="/request/:productId" element={<ServiceRequest />} />
+                    <Route path="/mypage" element={<h1>마이페이지</h1>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByDisplayValue('기존 결과물')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '의뢰서 수정' })).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('원하는 결과물'), {
+            target: { value: '수정된 결과물' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '의뢰서 수정하기' }))
+
+        await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1))
+        expect(updateRequest).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: existingRequest.id,
+                productId: product.id,
+                desiredResult: '수정된 결과물',
+                purpose: '기존 작업 목적',
+            }),
+            mockUser?.id,
+        )
+        expect(saveRequest).not.toHaveBeenCalled()
+        expect(window.alert).toHaveBeenCalledWith('의뢰서를 수정했습니다. 전문가가 수정된 내용을 확인할 수 있습니다.')
     })
 
     it('requires login before saving requirements to Supabase', async () => {

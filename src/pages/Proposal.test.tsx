@@ -73,11 +73,11 @@ describe('Proposal', () => {
         expect(screen.getByText(activeProposal.scope)).toBeInTheDocument()
 
         expect(screen.getByText('테스트 결제 모드')).toBeInTheDocument()
-        expect(screen.getByText('현재는 실제 PG 결제 없이 결제 완료 상태로 처리됩니다.')).toBeInTheDocument()
+        expect(screen.getByText('승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리되고 작업방이 생성됩니다.')).toBeInTheDocument()
         expect(screen.getByText('승인과 결제가 완료되어야 작업방이 생성됩니다.')).toBeInTheDocument()
         expect(screen.getByText('완료 승인 시 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '테스트 결제 완료 처리' }))
+        fireEvent.click(screen.getByRole('button', { name: '승인 및 결제하기' }))
 
         await waitFor(() => expect(acceptProposal).toHaveBeenCalledWith(activeProposal))
         expect(screen.getByText('제안서를 승인하고 결제를 완료했습니다. 작업 진행방이 열렸습니다.')).toBeInTheDocument()
@@ -98,15 +98,16 @@ describe('Proposal', () => {
 
         expect(await screen.findByRole('heading', { name: '거래 제안서' })).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '수정 요청' }))
+        fireEvent.click(screen.getByRole('button', { name: '수정요청' }))
         await waitFor(() => expect(requestProposalRevision).toHaveBeenCalledWith(activeProposal.id))
         expect(screen.getByText('수정 요청을 보냈습니다.')).toBeInTheDocument()
         expect(screen.getByText('수정 요청됨')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '취소' }))
+        fireEvent.click(screen.getByRole('button', { name: '거절하기' }))
         await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith(activeProposal.id))
-        expect(screen.getByText('제안서를 취소했습니다.')).toBeInTheDocument()
+        expect(screen.getByText('제안서를 거절했습니다.')).toBeInTheDocument()
         expect(screen.getByText('취소됨')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '취소' })).toHaveAttribute('href', '/requests')
     })
 
     it('shows the existing workroom link when reopening a paid accepted proposal', async () => {
@@ -137,7 +138,7 @@ describe('Proposal', () => {
 
         expect(await screen.findByText('승인됨')).toBeInTheDocument()
         await waitFor(() => expect(getWorkByProposal).toHaveBeenCalledWith(activeProposal.id))
-        expect(screen.queryByRole('button', { name: '테스트 결제 완료 처리' })).toBeDisabled()
+        expect(screen.queryByRole('button', { name: '승인 및 결제하기' })).toBeDisabled()
         expect(screen.getByRole('link', { name: '작업방으로 이동' })).toHaveAttribute(
             'href',
             '/workroom/work-existing-01',
@@ -154,7 +155,7 @@ describe('Proposal', () => {
         )
 
         expect(await screen.findByText('만료된 제안서입니다.')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '테스트 결제 완료 처리' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: '승인 및 결제하기' })).toBeDisabled()
     })
 
     it('shows an empty state instead of demo proposal content when proposal is not found', async () => {
@@ -171,6 +172,6 @@ describe('Proposal', () => {
         expect(await screen.findByText('제안서를 찾을 수 없습니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '요청 목록으로 돌아가기' })).toHaveAttribute('href', '/requests')
         expect(screen.queryByText(activeProposal.title)).not.toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: '테스트 결제 완료 처리' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '승인 및 결제하기' })).not.toBeInTheDocument()
     })
 })
