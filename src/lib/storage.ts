@@ -700,6 +700,11 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
     const money = getProposalMoney(proposal);
 
     if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = raw ? (JSON.parse(raw) as Work[]) : [];
+        const existingWork = works.find((work) => work.proposalId === proposal.id);
+        if (proposal.paymentStatus === 'paid' && existingWork) return existingWork.id;
+
         const work: Work = {
             id: `work-${proposal.id}`,
             proposalId: proposal.id,
@@ -716,8 +721,6 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             stepIds: [],
         };
         const steps = buildInitialWorkSteps(proposal, work.id);
-        const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
-        const works = raw ? (JSON.parse(raw) as Work[]) : [];
         localStorage.setItem(STORAGE_KEYS.WORKS, JSON.stringify([...works, { ...work, stepIds: steps.map((step) => step.id) }]));
 
         const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
@@ -753,6 +756,16 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             ),
         );
         return work.id;
+    }
+
+    if (proposal.paymentStatus === 'paid') {
+        const { data: existingWorkData } = await supabase
+            .from('works')
+            .select('id')
+            .eq('proposal_id', proposal.id)
+            .single();
+
+        if (existingWorkData?.id) return existingWorkData.id;
     }
 
     const { error: proposalError } = await supabase

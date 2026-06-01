@@ -610,6 +610,52 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('does not create duplicate local work when a paid proposal is accepted again', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_proposals', JSON.stringify([{ ...proposal, status: 'accepted', paymentStatus: 'paid' }]))
+        localStorage.setItem(
+            'ai_works',
+            JSON.stringify([
+                {
+                    ...work,
+                    id: 'work-existing-paid-01',
+                    proposalId: proposal.id,
+                },
+            ]),
+        )
+
+        const { acceptProposal, getUserWorks } = await import('./storage')
+
+        await expect(acceptProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid' })).resolves.toBe('work-existing-paid-01')
+        await expect(getUserWorks(proposal.clientId)).resolves.toHaveLength(1)
+    })
+
+    it('does not create duplicate Supabase work when a paid proposal is accepted again', async () => {
+        vi.resetModules()
+        const existingWorkSingle = vi.fn().mockResolvedValue({ data: { id: 'work-existing-db-01' }, error: null })
+        const existingWorkEq = vi.fn(() => ({ single: existingWorkSingle }))
+        const workSelect = vi.fn(() => ({ eq: existingWorkEq }))
+        const workInsert = vi.fn()
+        const proposalUpdate = vi.fn()
+        const from = vi.fn((table: string) => {
+            if (table === 'works') return { select: workSelect, insert: workInsert }
+            if (table === 'proposals') return { update: proposalUpdate }
+            return {}
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { acceptProposal } = await import('./storage')
+
+        await expect(acceptProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid' })).resolves.toBe('work-existing-db-01')
+        expect(from).toHaveBeenCalledWith('works')
+        expect(workSelect).toHaveBeenCalledWith('id')
+        expect(existingWorkEq).toHaveBeenCalledWith('proposal_id', proposal.id)
+        expect(workInsert).not.toHaveBeenCalled()
+        expect(proposalUpdate).not.toHaveBeenCalled()
+    })
+
     it('marks revised local work as submitted again after resubmission', async () => {
         vi.resetModules()
         localStorage.clear()
