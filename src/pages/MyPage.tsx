@@ -34,14 +34,7 @@ const currency = new Intl.NumberFormat('ko-KR')
 
 type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
-type WorkPhase = 'before' | 'active' | 'completed'
 type StageVisualState = 'done' | 'current' | 'pending'
-
-const workPhaseLabels: Record<WorkPhase, string> = {
-    before: '작업 전',
-    active: '작업 중',
-    completed: '작업 완료',
-}
 
 const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
     done: {
@@ -263,26 +256,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         return works.find((work) => work.requestId === request.id || work.proposalId === requestProposal?.id) || null
     }
 
-    const getWorkPhaseForRequest = (request: ServiceRequestData): WorkPhase => {
-        const requestWork = getWorkForRequest(request)
-        if (requestWork?.status === 'completed') return 'completed'
-        if (requestWork) return 'active'
-        return 'before'
+    const getRequestCreatedTime = (request: ServiceRequestData) => {
+        const parsed = Date.parse(request.createdAt || '')
+        return Number.isNaN(parsed) ? 0 : parsed
     }
 
-    const clientRequestsByPhase: Record<WorkPhase, ServiceRequestData[]> = {
-        before: clientProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'before'),
-        active: clientProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'active'),
-        completed: clientProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'completed'),
-    }
+    const sortRequestsByCreatedAtDesc = (requests: ServiceRequestData[]) =>
+        [...requests].sort((first, second) => getRequestCreatedTime(second) - getRequestCreatedTime(first))
 
-    const expertRequestsByPhase: Record<WorkPhase, ServiceRequestData[]> = {
-        before: receivedProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'before'),
-        active: receivedProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'active'),
-        completed: receivedProductRequests.filter((request) => getWorkPhaseForRequest(request) === 'completed'),
-    }
+    const clientProductRequestsByCreatedAt = sortRequestsByCreatedAtDesc(clientProductRequests)
+    const receivedProductRequestsByCreatedAt = sortRequestsByCreatedAtDesc(receivedProductRequests)
 
-    const selectedClientOrder = clientProductRequests.find((request) => request.id === selectedClientOrderId) || clientProductRequests[0] || null
+    const selectedClientOrder = clientProductRequestsByCreatedAt.find((request) => request.id === selectedClientOrderId) || clientProductRequestsByCreatedAt[0] || null
     const selectedClientOrderProduct = selectedClientOrder
         ? products.find((product) => product.id === selectedClientOrder.productId)
         : null
@@ -305,7 +290,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ? '작업방 생성 대기'
                 : '테스트 결제 대기'
             : '작업 전'
-    const selectedExpertRequest = receivedProductRequests.find((request) => request.id === selectedExpertRequestId) || receivedProductRequests[0] || null
+    const selectedExpertRequest = receivedProductRequestsByCreatedAt.find((request) => request.id === selectedExpertRequestId) || receivedProductRequestsByCreatedAt[0] || null
     const selectedExpertRequestProduct = selectedExpertRequest
         ? products.find((product) => product.id === selectedExpertRequest.productId)
         : null
@@ -532,23 +517,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         )
     }
 
-    const renderOrderGroup = (
-        phase: WorkPhase,
+    const renderOrderList = (
         items: ServiceRequestData[],
         selectedId: string | number | null | undefined,
         onSelect: (id: string | number) => void,
         emptyText: string,
     ) => (
-        <section
-            key={phase}
-            style={{
-                paddingTop: phase === 'before' ? 0 : '1rem',
-                borderTop: phase === 'before' ? 'none' : '1px solid var(--border-color)',
-            }}
-        >
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.65rem', color: '#0f172a' }}>
-                {workPhaseLabels[phase]}
-            </h4>
+        <section>
             {items.length > 0 ? (
                 <div style={{ display: 'grid', gap: '0.65rem' }}>
                     {items.map((request) => {
@@ -596,10 +571,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
             {clientProductRequests.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
-                    <div aria-label="의뢰자 주문 상태 그룹" style={{ display: 'grid', gap: '1rem' }}>
-                        {renderOrderGroup('before', clientRequestsByPhase.before, selectedClientOrder?.id, setSelectedClientOrderId, '작업 전 주문이 없습니다.')}
-                        {renderOrderGroup('active', clientRequestsByPhase.active, selectedClientOrder?.id, setSelectedClientOrderId, '진행 중인 주문이 없습니다.')}
-                        {renderOrderGroup('completed', clientRequestsByPhase.completed, selectedClientOrder?.id, setSelectedClientOrderId, '완료된 주문이 없습니다.')}
+                    <div aria-label="의뢰자 상품 주문 목록" style={{ display: 'grid', gap: '1rem' }}>
+                        {renderOrderList(clientProductRequestsByCreatedAt, selectedClientOrder?.id, setSelectedClientOrderId, '상품 주문 이력이 없습니다.')}
                     </div>
 
                     {selectedClientOrder && (
@@ -674,16 +647,14 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             <div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                    받은 의뢰를 작업 전, 작업 중, 작업 완료로 나눠 관리합니다.
+                    받은 상품 의뢰를 최신순으로 확인하고, 선택한 의뢰의 진행 단계를 관리합니다.
                 </p>
             </div>
 
             {receivedProductRequests.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
-                    <div aria-label="전문가 받은 일 상태 그룹" style={{ display: 'grid', gap: '1rem' }}>
-                        {renderOrderGroup('before', expertRequestsByPhase.before, selectedExpertRequest?.id, setSelectedExpertRequestId, '새로 받은 상품 의뢰가 없습니다.')}
-                        {renderOrderGroup('active', expertRequestsByPhase.active, selectedExpertRequest?.id, setSelectedExpertRequestId, '진행 중인 받은 일이 없습니다.')}
-                        {renderOrderGroup('completed', expertRequestsByPhase.completed, selectedExpertRequest?.id, setSelectedExpertRequestId, '완료된 받은 일이 없습니다.')}
+                    <div aria-label="전문가 받은 상품 의뢰 목록" style={{ display: 'grid', gap: '1rem' }}>
+                        {renderOrderList(receivedProductRequestsByCreatedAt, selectedExpertRequest?.id, setSelectedExpertRequestId, '받은 상품 의뢰가 없습니다.')}
                     </div>
 
                     {selectedExpertRequest && (

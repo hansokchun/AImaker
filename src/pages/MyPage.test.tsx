@@ -880,7 +880,7 @@ describe('MyPage', () => {
         expect(screen.getByText('내가 수행할 일')).toBeInTheDocument()
         expect(screen.getByText('내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '받은 일 관리' })).toBeInTheDocument()
-        expect(screen.getByText('받은 의뢰를 작업 전, 작업 중, 작업 완료로 나눠 관리합니다.')).toBeInTheDocument()
+        expect(screen.getByText('받은 상품 의뢰를 최신순으로 확인하고, 선택한 의뢰의 진행 단계를 관리합니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
         expect(screen.getByRole('link', { name: '요청 게시판에서 제안할 일 찾기' })).toHaveAttribute('href', '/requests')
         expect(screen.getAllByText('상품 지정 요구사항').length).toBeGreaterThan(0)
@@ -972,7 +972,48 @@ describe('MyPage', () => {
         expect(within(screen.getByLabelText('테스트 결제 대기 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
     })
 
-    it('groups client product orders by before, active, and completed work states', async () => {
+    it('lists client product orders by request creation time without phase groups', async () => {
+        getUserServiceRequests.mockResolvedValue([
+            {
+                id: 'client-old-order',
+                title: '오래된 상품 주문',
+                description: '먼저 보낸 주문',
+                budget: '30000',
+                deadline: '2026-06-01',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026-06-01T00:00:00.000Z',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-01',
+                productId: 'product-client-01',
+                selectedPackage: 'standard',
+                desiredResult: '오래된 의뢰서',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
+            },
+            {
+                id: 'client-new-order',
+                title: '최신 상품 주문',
+                description: '나중에 보낸 주문',
+                budget: '40000',
+                deadline: '2026-06-05',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026-06-03T00:00:00.000Z',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-before',
+                productId: 'product-client-before',
+                selectedPackage: 'standard',
+                desiredResult: '최신 의뢰서',
+                purpose: '런칭 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'pending',
+            },
+        ])
+
         render(
             <MemoryRouter>
                 <MyPage />
@@ -981,14 +1022,14 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
 
-        const groups = await screen.findByLabelText('의뢰자 주문 상태 그룹')
-        expect(within(groups).getByRole('heading', { name: '작업 전' })).toBeInTheDocument()
-        expect(within(groups).getByRole('heading', { name: '작업 중' })).toBeInTheDocument()
-        expect(within(groups).getByRole('heading', { name: '작업 완료' })).toBeInTheDocument()
+        const list = await screen.findByLabelText('의뢰자 상품 주문 목록')
+        expect(within(list).queryByRole('heading', { name: '작업 전' })).not.toBeInTheDocument()
+        expect(within(list).queryByRole('heading', { name: '작업 중' })).not.toBeInTheDocument()
+        expect(within(list).queryByRole('heading', { name: '작업 완료' })).not.toBeInTheDocument()
 
-        expect(within(groups).getByRole('button', { name: /작업 전 테스트 상품/ })).toBeInTheDocument()
-        expect(within(groups).getByRole('button', { name: /AI 숏폼 영상 제작/ })).toBeInTheDocument()
-        expect(within(groups).getByRole('button', { name: /작업 완료 테스트 상품/ })).toBeInTheDocument()
+        const orders = within(list).getAllByRole('button')
+        expect(orders[0]).toHaveTextContent('최신 의뢰서')
+        expect(orders[1]).toHaveTextContent('오래된 의뢰서')
     })
 
     it('shows submitted product orders as client review tasks', async () => {
@@ -1000,7 +1041,7 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
 
-        const groups = await screen.findByLabelText('의뢰자 주문 상태 그룹')
+        const groups = await screen.findByLabelText('의뢰자 상품 주문 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /결과물 검토 요구사항/ }))
 
         expect(screen.getByRole('heading', { name: '결과물 검토 테스트 상품' })).toBeInTheDocument()
@@ -1025,7 +1066,7 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
 
-        const groups = await screen.findByLabelText('의뢰자 주문 상태 그룹')
+        const groups = await screen.findByLabelText('의뢰자 상품 주문 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /수정 요청 요구사항/ }))
 
         expect(screen.getByRole('heading', { name: '수정 요청 테스트 상품' })).toBeInTheDocument()
@@ -1038,7 +1079,48 @@ describe('MyPage', () => {
         )
     })
 
-    it('groups expert received product work by before, active, and completed states', async () => {
+    it('lists expert received product requests by received time without phase groups', async () => {
+        getUserServiceRequests.mockResolvedValue([
+            {
+                id: 'expert-old-request',
+                title: '오래된 받은 의뢰',
+                description: '먼저 받은 상품 의뢰',
+                budget: '50000',
+                deadline: '2026-06-12',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026-06-01T00:00:00.000Z',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '오래된 받은 의뢰서',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'pending',
+            },
+            {
+                id: 'expert-new-request',
+                title: '최신 받은 의뢰',
+                description: '나중에 받은 상품 의뢰',
+                budget: '70000',
+                deadline: '2026-06-14',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026-06-04T00:00:00.000Z',
+                clientId: 'client-real-active',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '최신 받은 의뢰서',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'pending',
+            },
+        ])
+
         render(
             <MemoryRouter>
                 <MyPage />
@@ -1047,31 +1129,21 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
 
-        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
-        expect(within(groups).getByRole('heading', { name: '작업 전' })).toBeInTheDocument()
-        expect(within(groups).getByRole('heading', { name: '작업 중' })).toBeInTheDocument()
-        expect(within(groups).getByRole('heading', { name: '작업 완료' })).toBeInTheDocument()
+        const list = await screen.findByLabelText('전문가 받은 상품 의뢰 목록')
+        expect(within(list).queryByRole('heading', { name: '작업 전' })).not.toBeInTheDocument()
+        expect(within(list).queryByRole('heading', { name: '작업 중' })).not.toBeInTheDocument()
+        expect(within(list).queryByRole('heading', { name: '작업 완료' })).not.toBeInTheDocument()
 
-        expect(within(groups).getByRole('button', { name: /상품 지정 요구사항/ })).toBeInTheDocument()
-        expect(within(groups).getByRole('button', { name: /전문가 진행 중 요구사항/ })).toBeInTheDocument()
-        expect(within(groups).getByRole('button', { name: /전문가 완료 요구사항/ })).toBeInTheDocument()
+        const requests = within(list).getAllByRole('button')
+        expect(requests[0]).toHaveTextContent('최신 받은 의뢰서')
+        expect(requests[1]).toHaveTextContent('오래된 받은 의뢰서')
 
-        fireEvent.click(within(groups).getByRole('button', { name: /전문가 진행 중 요구사항/ }))
-        expect(screen.getByRole('heading', { name: '전문가 진행 중 요구사항' })).toBeInTheDocument()
-        expect(screen.getByText('현재 단계: 작업 중')).toBeInTheDocument()
+        fireEvent.click(requests[1])
+        expect(screen.getByRole('heading', { name: '오래된 받은 의뢰서' })).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 작업 전')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전체 과정' })).toBeInTheDocument()
         expect(screen.getByText('받은 의뢰')).toBeInTheDocument()
         expect(screen.getByText('제안서 작성/수정')).toBeInTheDocument()
-        expect(screen.getByText('작업 진행')).toBeInTheDocument()
-        expect(screen.getAllByText('작업 완료').length).toBeGreaterThan(0)
-
-        expect(within(screen.getByLabelText('받은 의뢰 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
-        expect(within(screen.getByLabelText('제안서 작성/수정 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
-        expect(within(screen.getByLabelText('작업 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
-        const pendingCompleteStage = screen.getByLabelText('작업 완료 단계 상태: 대기')
-        expect(within(pendingCompleteStage).getByText('대기')).toBeInTheDocument()
-        expect(within(pendingCompleteStage).getAllByText('작업 완료').some((element) => element.getAttribute('data-stage-muted') === 'true')).toBe(true)
-        expect(within(pendingCompleteStage).getByText('결과물을 제출하고 의뢰자 확인을 기다립니다.')).toHaveAttribute('data-stage-muted', 'true')
     })
 
     it('shows submitted expert work as waiting for client approval', async () => {
@@ -1083,7 +1155,7 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
 
-        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        const groups = await screen.findByLabelText('전문가 받은 상품 의뢰 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /전문가 제출 완료 요구사항/ }))
 
         expect(screen.getByRole('heading', { name: '전문가 제출 완료 요구사항' })).toBeInTheDocument()
@@ -1105,7 +1177,7 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
 
-        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        const groups = await screen.findByLabelText('전문가 받은 상품 의뢰 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /전문가 수정 요청 요구사항/ }))
 
         expect(screen.getByRole('heading', { name: '전문가 수정 요청 요구사항' })).toBeInTheDocument()
@@ -1127,7 +1199,7 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
-        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        const groups = await screen.findByLabelText('전문가 받은 상품 의뢰 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
 
         await waitFor(() => {
@@ -1177,7 +1249,7 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
 
-        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        const groups = await screen.findByLabelText('전문가 받은 상품 의뢰 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
         fireEvent.click(screen.getByRole('button', { name: '제안서 보내기' }))
 
@@ -1251,7 +1323,7 @@ describe('MyPage', () => {
         expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
-        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        const groups = await screen.findByLabelText('전문가 받은 상품 의뢰 목록')
         fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
         expect(screen.getByText('의뢰자 결제 대기')).toBeInTheDocument()
         expect(screen.getByText('제안서를 보낸 뒤 의뢰자 결제 완료를 기다립니다.')).toBeInTheDocument()
