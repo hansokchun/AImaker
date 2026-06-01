@@ -610,6 +610,48 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('marks revised local work as submitted again after resubmission', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem(
+            'ai_works',
+            JSON.stringify([
+                {
+                    ...work,
+                    status: 'revision_requested',
+                },
+            ]),
+        )
+        localStorage.setItem(
+            'ai_work_steps',
+            JSON.stringify([
+                {
+                    ...step,
+                    status: 'revision_requested',
+                },
+            ]),
+        )
+
+        const { saveDeliverable, getUserWorks, getWorkroomData } = await import('./storage')
+
+        await saveDeliverable({
+            ...deliverable,
+            description: '수정본 링크',
+            status: 'submitted',
+        })
+
+        await expect(getUserWorks(work.clientId)).resolves.toEqual([
+            expect.objectContaining({ id: work.id, status: 'submitted' }),
+        ])
+        await expect(getWorkroomData(work.id)).resolves.toEqual(
+            expect.objectContaining({
+                steps: [expect.objectContaining({ id: step.id, status: 'submitted' })],
+                deliverables: [expect.objectContaining({ description: '수정본 링크', status: 'submitted' })],
+            }),
+        )
+    })
+
     it('finds an existing local work by proposal id', async () => {
         vi.resetModules()
         localStorage.clear()
@@ -781,6 +823,10 @@ describe('transaction storage', () => {
             error: null,
         })
         const deliverableInsert = vi.fn().mockResolvedValue({ error: null })
+        const stepUpdateEq = vi.fn().mockResolvedValue({ error: null })
+        const stepUpdate = vi.fn(() => ({ eq: stepUpdateEq }))
+        const workUpdateEq = vi.fn().mockResolvedValue({ error: null })
+        const workUpdate = vi.fn(() => ({ eq: workUpdateEq }))
         const deliverableOrder = vi.fn().mockResolvedValue({
             data: [
                 {
@@ -797,8 +843,8 @@ describe('transaction storage', () => {
             error: null,
         })
         const from = vi.fn((table: string) => {
-            if (table === 'works') return { select: vi.fn(() => ({ eq: workEq })) }
-            if (table === 'work_steps') return { select: vi.fn(() => ({ eq: vi.fn(() => ({ order: stepOrder })) })) }
+            if (table === 'works') return { select: vi.fn(() => ({ eq: workEq })), update: workUpdate }
+            if (table === 'work_steps') return { select: vi.fn(() => ({ eq: vi.fn(() => ({ order: stepOrder })) })), update: stepUpdate }
             if (table === 'deliverables') {
                 return {
                     select: vi.fn(() => ({ eq: vi.fn(() => ({ order: deliverableOrder })) })),
@@ -829,6 +875,50 @@ describe('transaction storage', () => {
                 external_url: deliverable.externalUrl,
             }),
         ])
+        expect(stepUpdate).toHaveBeenCalledWith({ status: 'submitted' })
+        expect(stepUpdateEq).toHaveBeenCalledWith('id', deliverable.stepId)
+        expect(workUpdate).toHaveBeenCalledWith({ status: 'submitted' })
+        expect(workUpdateEq).toHaveBeenCalledWith('id', deliverable.workId)
+    })
+
+    it('marks revised deliverables as submitted again after resubmission through Supabase', async () => {
+        vi.resetModules()
+        const deliverableInsert = vi.fn().mockResolvedValue({ error: null })
+        const stepEq = vi.fn().mockResolvedValue({ error: null })
+        const stepUpdate = vi.fn(() => ({ eq: stepEq }))
+        const workEq = vi.fn().mockResolvedValue({ error: null })
+        const workUpdate = vi.fn(() => ({ eq: workEq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'deliverables') return { insert: deliverableInsert }
+            if (table === 'work_steps') return { update: stepUpdate }
+            if (table === 'works') return { update: workUpdate }
+            return {}
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveDeliverable } = await import('./storage')
+
+        await saveDeliverable({
+            ...deliverable,
+            description: '수정본 링크',
+            status: 'submitted',
+        })
+
+        expect(from).toHaveBeenCalledWith('deliverables')
+        expect(deliverableInsert).toHaveBeenCalledWith([
+            expect.objectContaining({
+                work_id: deliverable.workId,
+                step_id: deliverable.stepId,
+                description: '수정본 링크',
+                status: 'submitted',
+            }),
+        ])
+        expect(from).toHaveBeenCalledWith('work_steps')
+        expect(stepUpdate).toHaveBeenCalledWith({ status: 'submitted' })
+        expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
+        expect(from).toHaveBeenCalledWith('works')
+        expect(workUpdate).toHaveBeenCalledWith({ status: 'submitted' })
+        expect(workEq).toHaveBeenCalledWith('id', deliverable.workId)
     })
 
     it('blocks external contact details in deliverable descriptions before saving', async () => {

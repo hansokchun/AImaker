@@ -943,6 +943,24 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
         const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const deliverables = raw ? (JSON.parse(raw) as Deliverable[]) : [];
         localStorage.setItem(STORAGE_KEYS.DELIVERABLES, JSON.stringify([...deliverables, deliverable]));
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.WORKS,
+            JSON.stringify(works.map((work) => (work.id === deliverable.workId ? { ...work, status: 'submitted' } : work))),
+        );
+        if (deliverable.stepId) {
+            const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
+            const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
+            localStorage.setItem(
+                STORAGE_KEYS.WORK_STEPS,
+                JSON.stringify(
+                    steps.map((step) =>
+                        step.id === deliverable.stepId ? { ...step, status: 'submitted' } : step,
+                    ),
+                ),
+            );
+        }
         return;
     }
 
@@ -958,6 +976,22 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     }]);
 
     if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');
+
+    if (deliverable.stepId) {
+        const { error: stepError } = await supabase
+            .from('work_steps')
+            .update({ status: 'submitted' })
+            .eq('id', deliverable.stepId);
+
+        if (stepError) throw new Error('데이터베이스 통신 오류: 단계 제출 처리 실패');
+    }
+
+    const { error: workError } = await supabase
+        .from('works')
+        .update({ status: 'submitted' })
+        .eq('id', deliverable.workId);
+
+    if (workError) throw new Error('데이터베이스 통신 오류: 작업 제출 처리 실패');
 }
 
 export async function approveWorkDeliverable(
