@@ -21,6 +21,7 @@ export default function Navbar() {
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
     const [profileImageUrl, setProfileImageUrl] = useState('');
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -28,6 +29,7 @@ export default function Navbar() {
 
         if (!user) {
             setProfileImageUrl('');
+            setProfileMenuOpen(false);
             return;
         }
 
@@ -48,6 +50,7 @@ export default function Navbar() {
     const handleSignOut = async () => {
         try {
             await signOut();
+            setProfileMenuOpen(false);
             navigate(ROUTES.HOME);
         } catch (error) {
             // 로그아웃 실패 시에도 사용자에게 불편을 주지 않기 위해 콘솔에만 기록
@@ -77,36 +80,43 @@ export default function Navbar() {
 
                 <div className="nav-actions">
                     {user ? (
-                        <>
-                            <Link
-                                to={`${ROUTES.MY_PAGE}?panel=profile`}
+                        <div className="nav-profile-menu">
+                            <button
+                                type="button"
                                 className="nav-profile-link"
-                                aria-label="마이 프로필"
-                                style={{ color: location.pathname === ROUTES.MY_PAGE ? 'var(--primary)' : undefined }}
+                                aria-label="프로필 메뉴 열기"
+                                aria-expanded={profileMenuOpen}
+                                onClick={() => setProfileMenuOpen((open) => !open)}
                             >
                                 {profileImageUrl ? (
-                                    <img src={profileImageUrl} alt="마이 프로필" className="nav-profile-image" />
+                                    <img src={profileImageUrl} alt="마이 프로필 메뉴" className="nav-profile-image" />
                                 ) : (
                                     <span className="nav-profile-fallback" aria-hidden="true">
                                         {(user.user_metadata?.display_name || user.email || '?').slice(0, 1).toUpperCase()}
                                     </span>
                                 )}
-                            </Link>
-                            <Link
-                                to={ROUTES.MY_PAGE}
-                                className="btn-text"
-                                style={{ color: location.pathname === ROUTES.MY_PAGE ? 'var(--primary)' : undefined }}
-                            >
-                                마이페이지
-                            </Link>
-                            <button
-                                onClick={handleSignOut}
-                                className="btn-text"
-                                style={{ cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'inherit' }}
-                            >
-                                로그아웃
                             </button>
-                        </>
+                            {profileMenuOpen && (
+                                <div className="nav-profile-dropdown" role="menu">
+                                    <Link
+                                        to={`${ROUTES.MY_PAGE}?panel=profile`}
+                                        className="nav-profile-dropdown-item"
+                                        role="menuitem"
+                                        onClick={() => setProfileMenuOpen(false)}
+                                    >
+                                        마이페이지
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleSignOut}
+                                        className="nav-profile-dropdown-item"
+                                        role="menuitem"
+                                    >
+                                        로그아웃
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <>
                             <Link to={ROUTES.LOGIN} className="btn-primary">로그인</Link>

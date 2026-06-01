@@ -87,6 +87,9 @@ a { text-decoration: none; color: inherit; }
     align-items: center; 
     gap: 1.5rem; 
 }
+.nav-profile-menu {
+    position: relative;
+}
 .nav-profile-link {
     width: 2.5rem;
     height: 2.5rem;
@@ -97,6 +100,7 @@ a { text-decoration: none; color: inherit; }
     border: 1px solid var(--border-color);
     background: white;
     overflow: hidden;
+    cursor: pointer;
     transition: var(--transition);
 }
 .nav-profile-link:hover {
@@ -118,6 +122,37 @@ a { text-decoration: none; color: inherit; }
     background: #eff6ff;
     color: var(--primary);
     font-weight: 800;
+}
+.nav-profile-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.65rem);
+    min-width: 9rem;
+    padding: 0.4rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: white;
+    box-shadow: var(--shadow-lg);
+    display: grid;
+    gap: 0.2rem;
+    z-index: 1001;
+}
+.nav-profile-dropdown-item {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+.nav-profile-dropdown-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
 }
 
 /* Buttons */
