@@ -42,6 +42,24 @@ const deliverable: Deliverable = {
     submittedAt: '2026-06-01T00:00:00.000Z',
 }
 
+const revisionWork: Work = {
+    ...work,
+    id: 'work-revision-01',
+    status: 'revision_requested',
+}
+
+const revisionStep: WorkStep = {
+    ...step,
+    workId: revisionWork.id,
+    status: 'revision_requested',
+}
+
+const revisionDeliverable: Deliverable = {
+    ...deliverable,
+    workId: revisionWork.id,
+    status: 'revision_requested',
+}
+
 const saveDeliverable = vi.fn(async (_deliverable: Deliverable) => undefined)
 const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
@@ -195,5 +213,42 @@ describe('Workroom', () => {
         await waitFor(() => expect(requestWorkRevision).toHaveBeenCalledWith(work.id, deliverable.id, step.id))
         expect(screen.getByText('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')).toBeInTheDocument()
         expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0)
+    })
+
+    it('shows revision copy when experts resubmit after a revision request', async () => {
+        getWorkroomData.mockResolvedValue({
+            work: revisionWork,
+            steps: [revisionStep],
+            deliverables: [revisionDeliverable],
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-revision-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0))
+        expect(screen.getByText('의뢰자가 수정 요청을 보냈습니다. 수정본을 다시 제출해 주세요.')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('수정본 링크'), {
+            target: { value: 'https://example.com/revision-deliverable' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '수정본 제출하기' }))
+
+        await waitFor(() =>
+            expect(saveDeliverable).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    workId: revisionWork.id,
+                    expertId: revisionWork.expertId,
+                    description: '수정본 링크',
+                    externalUrl: 'https://example.com/revision-deliverable',
+                    status: 'submitted',
+                }),
+            ),
+        )
+        expect(screen.getByText('수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.')).toBeInTheDocument()
     })
 })

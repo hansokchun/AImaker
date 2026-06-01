@@ -85,6 +85,9 @@ export default function Workroom() {
     const [isLoaded, setIsLoaded] = useState(false)
     const [notFound, setNotFound] = useState(false)
     const activeDeliverable = deliverables[0]
+    const isRevisionMode = work.status === 'revision_requested'
+    const deliverableFieldLabel = isRevisionMode ? '수정본 링크' : '제출물 링크'
+    const deliverableButtonLabel = isRevisionMode ? '수정본 제출하기' : '제출물 링크 등록'
     const workStatusLabel =
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
@@ -118,7 +121,7 @@ export default function Workroom() {
             workId: work.id,
             stepId: steps[0]?.id || '',
             expertId: work.expertId,
-            description: '제출물 링크',
+            description: deliverableFieldLabel,
             externalUrl: deliverableLink.trim(),
             status: 'submitted',
             submittedAt: new Date().toISOString(),
@@ -126,7 +129,7 @@ export default function Workroom() {
         await saveDeliverable(newDeliverable)
         setDeliverables([newDeliverable, ...deliverables])
         setDeliverableLink('')
-        setStatusMessage('제출물 링크가 등록되었습니다.')
+        setStatusMessage(isRevisionMode ? '수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.' : '제출물 링크가 등록되었습니다.')
     }
 
     const handleApproveDeliverable = async () => {
@@ -234,6 +237,11 @@ export default function Workroom() {
 
                     <section className="deliverable-panel">
                         <h2>제출물</h2>
+                        {isRevisionMode && (
+                            <p className="submitted-deliverable">
+                                의뢰자가 수정 요청을 보냈습니다. 수정본을 다시 제출해 주세요.
+                            </p>
+                        )}
                         {activeDeliverable ? (
                             <div className="submitted-deliverable">
                                 <div>
@@ -251,18 +259,18 @@ export default function Workroom() {
                         )}
 
                         <form className="deliverable-form">
-                            <label htmlFor="deliverable-link">제출물 링크</label>
+                            <label htmlFor="deliverable-link">{deliverableFieldLabel}</label>
                             <div>
                                 <input
                                     id="deliverable-link"
-                                    aria-label="제출물 링크"
+                                    aria-label={deliverableFieldLabel}
                                     type="url"
                                     placeholder="https://..."
                                     value={deliverableLink}
                                     onChange={(event) => setDeliverableLink(event.target.value)}
                                 />
                                 <button type="button" className="btn-primary" onClick={handleSubmitDeliverable}>
-                                    제출물 링크 등록
+                                    {deliverableButtonLabel}
                                 </button>
                             </div>
                         </form>
