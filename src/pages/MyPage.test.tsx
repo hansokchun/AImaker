@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
-import type { Review, ServiceRequestData } from '../types'
+import type { Proposal, Review, ServiceRequestData } from '../types'
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -18,6 +18,7 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 const saveReview = vi.fn(async (_review: Review) => undefined)
+const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-directed-created')
 const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
 const getUserServiceRequests = vi.fn(async (_userId: string): Promise<ServiceRequestData[]> => [
     {
@@ -459,12 +460,14 @@ vi.mock('../lib/storage', () => ({
     getUserReviews: (userId: string) => getUserReviews(userId),
     getUserServiceRequests: (userId: string) => getUserServiceRequests(userId),
     getUserWorks: (userId: string) => getUserWorks(userId),
+    saveProposal: (proposal: Proposal) => saveProposal(proposal),
     saveReview: (review: Review) => saveReview(review),
 }))
 
 describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
+        saveProposal.mockClear()
         getExpertProducts.mockClear()
         getUserProposals.mockReset()
         getUserProposals.mockResolvedValue(defaultProposals())
@@ -730,6 +733,36 @@ describe('MyPage', () => {
         expect(within(pendingCompleteStage).getByText('대기')).toBeInTheDocument()
         expect(within(pendingCompleteStage).getAllByText('작업 완료').some((element) => element.getAttribute('data-stage-muted') === 'true')).toBe(true)
         expect(within(pendingCompleteStage).getByText('결과물을 제출하고 의뢰자 확인을 기다립니다.')).toHaveAttribute('data-stage-muted', 'true')
+    })
+
+    it('lets experts send a proposal from a product-directed request in my page', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+
+        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
+        fireEvent.click(screen.getByRole('button', { name: '제안서 보내기' }))
+
+        await waitFor(() => expect(saveProposal).toHaveBeenCalledWith(
+            expect.objectContaining({
+                requestId: 'request-product-directed-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                title: expect.stringContaining('상품 지정 요구사항'),
+                status: 'sent',
+            }),
+        ))
+        expect(screen.getByText('제안서를 보냈습니다.')).toBeInTheDocument()
+        expect(
+            screen
+                .getAllByRole('link', { name: '보낸 제안서 보기' })
+                .some((link) => link.getAttribute('href') === '/proposal/proposal-product-directed-created'),
+        ).toBe(true)
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {

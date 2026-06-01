@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getExpertProducts, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveReview } from '../lib/storage'
+import { getExpertProducts, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveProposal, saveReview } from '../lib/storage'
 import type { ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
@@ -91,6 +91,7 @@ export default function MyPage() {
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
+    const [expertProposalMessage, setExpertProposalMessage] = useState('')
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [serviceRequests, setServiceRequests] = useState<ServiceRequestData[]>([])
@@ -213,6 +214,40 @@ export default function MyPage() {
         : selectedExpertRequestProposal
             ? '제안서 단계'
             : '작업 전'
+
+    const handleSendProductProposal = async () => {
+        if (!selectedExpertRequest || !user) return
+
+        const standardPackage = selectedExpertRequestProduct?.packages?.standard
+        const totalPrice = Number(standardPackage?.price || selectedExpertRequest.budget || selectedExpertRequestProduct?.startingPrice || 0)
+        const deliveryDays = Number(standardPackage?.deliveryDays || selectedExpertRequestProduct?.deliveryDays || 1)
+        const revisionCount = Number(standardPackage?.revisionCount || selectedExpertRequestProduct?.revisionCount || 1)
+        const expiresAt = new Date()
+        expiresAt.setDate(expiresAt.getDate() + 3)
+        const proposal: Proposal = {
+            id: `proposal-${selectedExpertRequest.id}`,
+            requestId: String(selectedExpertRequest.id),
+            clientId: selectedExpertRequest.clientId || '',
+            expertId: user.id,
+            title: `${selectedExpertRequest.desiredResult || selectedExpertRequest.title} 제안서`,
+            scope: selectedExpertRequest.description || selectedExpertRequest.purpose || '의뢰 요구사항에 맞춰 작업합니다.',
+            deliverables: [selectedExpertRequest.desiredResult || selectedExpertRequest.title],
+            totalPrice: Number.isFinite(totalPrice) && totalPrice > 0 ? totalPrice : 0,
+            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
+            revisionCount: Number.isFinite(revisionCount) && revisionCount >= 0 ? revisionCount : 1,
+            progressType: selectedExpertRequest.progressType || 'single',
+            milestones: [],
+            commercialUseAllowed: true,
+            sourceFileIncluded: false,
+            status: 'sent',
+            expiresAt: expiresAt.toISOString(),
+        }
+
+        const savedProposalId = await saveProposal(proposal)
+        const savedProposal = { ...proposal, id: savedProposalId }
+        setProposals((current) => [savedProposal, ...current])
+        setExpertProposalMessage('제안서를 보냈습니다.')
+    }
 
     const renderProposalCards = (items: Proposal[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
@@ -629,6 +664,21 @@ export default function MyPage() {
                                     selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
                                 )}
                             </div>
+                            {!selectedExpertRequestProposal && !selectedExpertRequestWork && (
+                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <button type="button" className="btn-primary" onClick={handleSendProductProposal}>
+                                        제안서 보내기
+                                    </button>
+                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                        받은 상품 의뢰에 바로 제안서를 보냅니다.
+                                    </span>
+                                </div>
+                            )}
+                            {expertProposalMessage && (
+                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{expertProposalMessage}</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
