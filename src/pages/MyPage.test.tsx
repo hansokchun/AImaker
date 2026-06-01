@@ -746,6 +746,8 @@ describe('MyPage', () => {
         expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute('href', '/request/product-client-01')
         expect(screen.getByText('제안서 검토')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
+        expect(screen.getByText('테스트 결제 완료')).toBeInTheDocument()
+        expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
         expect(screen.getAllByText('작업 중').length).toBeGreaterThan(0)
         expect(screen.getByText('작업방 진행')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
@@ -945,10 +947,14 @@ describe('MyPage', () => {
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
         expect(await screen.findByText('제안서 검토')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
+        expect(screen.getByText('테스트 결제 완료')).toBeInTheDocument()
+        expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
         fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
+        expect(screen.getByText('의뢰자 결제 대기')).toBeInTheDocument()
+        expect(screen.getByText('제안서를 보낸 뒤 의뢰자 결제 완료를 기다립니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '보낸 제안서 보기' })).toHaveAttribute(
             'href',
             '/proposal/proposal-real-expert',

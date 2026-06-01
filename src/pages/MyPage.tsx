@@ -257,7 +257,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ? '작업 후'
             : '작업 중'
         : selectedClientOrderProposal
-            ? '검토 단계'
+            ? selectedClientOrderProposal.paymentStatus === 'paid'
+                ? '작업방 생성 대기'
+                : '테스트 결제 대기'
             : '작업 전'
     const selectedExpertRequest = receivedProductRequests.find((request) => request.id === selectedExpertRequestId) || receivedProductRequests[0] || null
     const selectedExpertRequestProduct = selectedExpertRequest
@@ -272,7 +274,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ? '작업 완료'
             : '작업 중'
         : selectedExpertRequestProposal
-            ? '제안서 단계'
+            ? selectedExpertRequestProposal.paymentStatus === 'paid'
+                ? '작업방 생성 대기'
+                : '의뢰자 결제 대기'
             : '작업 전'
 
     const handleSendProductProposal = async () => {
@@ -580,6 +584,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                                     )
                                     : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.', 'current')}
+                                {selectedClientOrderProposal
+                                    ? renderClientOrderStage(
+                                        '결제',
+                                        selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '테스트 결제 대기',
+                                        selectedClientOrderWork
+                                            ? '결제 완료 후 작업방이 생성되었습니다.'
+                                            : selectedClientOrderProposal.paymentStatus === 'paid'
+                                                ? '결제 완료 처리된 제안서입니다. 작업방 생성을 기다립니다.'
+                                                : '제안서 화면에서 테스트 결제 완료 처리를 진행해야 작업방이 생성됩니다.',
+                                        selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
+                                    )
+                                    : renderClientOrderStage('결제', '테스트 결제 대기', '제안서를 받은 뒤 결제 완료 처리를 할 수 있습니다.', 'pending')}
                                 {selectedClientOrderWork
                                     ? renderClientOrderStage(
                                         '작업 중',
@@ -652,6 +668,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
                                     )
                                     : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.', selectedExpertRequestWork ? 'pending' : 'current')}
+                                {selectedExpertRequestProposal
+                                    ? renderClientOrderStage(
+                                        '결제',
+                                        selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '의뢰자 결제 대기',
+                                        selectedExpertRequestWork
+                                            ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
+                                            : selectedExpertRequestProposal.paymentStatus === 'paid'
+                                                ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                                                : '의뢰자가 제안서에서 테스트 결제 완료 처리를 하면 작업방이 생성됩니다.',
+                                        selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
+                                    )
+                                    : renderClientOrderStage('결제', '의뢰자 결제 대기', '제안서를 보낸 뒤 의뢰자 결제 완료를 기다립니다.', 'pending')}
                                 {selectedExpertRequestWork
                                     ? renderClientOrderStage(
                                         '작업 중',
