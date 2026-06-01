@@ -130,6 +130,14 @@ export interface ConsultationMessage {
     createdAt: string;
 }
 
+export interface CreateConsultationInput {
+    clientId: string;
+    expertId: string;
+    productId: string;
+    title: string;
+    initialMessage: string;
+}
+
 export interface Work {
     id: string;
     proposalId: string;

@@ -959,6 +959,65 @@ describe('transaction storage', () => {
         expect(messageOrder).toHaveBeenCalledWith('created_at', { ascending: true })
     })
 
+    it('creates a consultation and its first message in Supabase', async () => {
+        vi.resetModules()
+        const consultationSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: 'consultation-created-01',
+                client_id: request.clientId,
+                expert_id: request.expertId,
+                product_id: request.productId,
+                status: 'open',
+                title: 'AI 숏폼 상담',
+                last_message_at: '2026-06-02T10:00:00.000Z',
+                created_at: '2026-06-02T10:00:00.000Z',
+            },
+            error: null,
+        })
+        const consultationSelect = vi.fn(() => ({ single: consultationSingle }))
+        const consultationInsert = vi.fn(() => ({ select: consultationSelect }))
+        const messageInsert = vi.fn().mockResolvedValue({ error: null })
+        const from = vi.fn((table: string) => {
+            if (table === 'consultation_messages') return { insert: messageInsert }
+            return { insert: consultationInsert }
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { createConsultation } = await import('./storage')
+
+        await expect(createConsultation({
+            clientId: request.clientId,
+            expertId: request.expertId,
+            productId: request.productId,
+            title: 'AI 숏폼 상담',
+            initialMessage: '작업 범위를 먼저 문의하고 싶습니다.',
+        })).resolves.toEqual({
+            id: 'consultation-created-01',
+            clientId: request.clientId,
+            expertId: request.expertId,
+            productId: request.productId,
+            status: 'open',
+            title: 'AI 숏폼 상담',
+            lastMessageAt: '2026-06-02T10:00:00.000Z',
+            createdAt: '2026-06-02T10:00:00.000Z',
+        })
+        expect(from).toHaveBeenCalledWith('consultations')
+        expect(consultationInsert).toHaveBeenCalledWith({
+            client_id: request.clientId,
+            expert_id: request.expertId,
+            product_id: request.productId,
+            title: 'AI 숏폼 상담',
+            status: 'open',
+        })
+        expect(from).toHaveBeenCalledWith('consultation_messages')
+        expect(messageInsert).toHaveBeenCalledWith({
+            consultation_id: 'consultation-created-01',
+            sender_id: request.clientId,
+            body: '작업 범위를 먼저 문의하고 싶습니다.',
+            attachment_urls: [],
+        })
+    })
+
     it('marks expired user proposals from Supabase as expired', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({

@@ -1,19 +1,19 @@
-import { Link, useLocation, useParams } from 'react-router-dom'
-import ChatModal from '../components/ChatModal'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import PackageCard from '../components/PackageCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
-import { getExpertProducts } from '../lib/storage'
+import { createConsultation, getExpertProducts } from '../lib/storage'
 import type { ExpertProduct } from '../types'
 import './ExpertDetail.css'
 
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
     const location = useLocation()
+    const navigate = useNavigate()
     const { user } = useAuth()
-    const [chatOpen, setChatOpen] = useState<boolean>(false)
+    const [creatingConsultation, setCreatingConsultation] = useState<boolean>(false)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -33,6 +33,31 @@ export default function ExpertDetail() {
     const category = AI_CATEGORIES.find((item) => item.id === product?.category)
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
     const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ''
+
+    const handleStartConsultation = async () => {
+        if (!product) return
+        if (!user) {
+            navigate(ROUTES.LOGIN, { state: { from: { pathname: location.pathname, search: location.search } } })
+            return
+        }
+
+        setCreatingConsultation(true)
+        try {
+            const consultation = await createConsultation({
+                clientId: user.id,
+                expertId: product.expertId,
+                productId: product.id,
+                title: `${product.title} 상담`,
+                initialMessage: `${product.title} 작업 범위를 상담하고 싶습니다.`,
+            })
+            navigate(`${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`)
+        } catch (error) {
+            console.error('상담 시작 실패:', error)
+            window.alert('상담을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+        } finally {
+            setCreatingConsultation(false)
+        }
+    }
 
     if (loading) {
         return (
@@ -136,12 +161,11 @@ export default function ExpertDetail() {
                     <PackageCard
                         packages={product.packages}
                         productId={product.id}
-                        onOpenChat={() => setChatOpen(true)}
+                        onOpenChat={handleStartConsultation}
+                        chatButtonDisabled={creatingConsultation}
                     />
                 </div>
             </div>
-
-            {chatOpen && <ChatModal onClose={() => setChatOpen(false)} />}
         </main>
     )
 }

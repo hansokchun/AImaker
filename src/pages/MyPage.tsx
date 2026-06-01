@@ -150,6 +150,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [searchParams, setSearchParams] = useSearchParams()
     const menuItems = mode === 'profile' ? profileMenuItems : mode === 'work' ? workMenuItems : allMenuItems
     const defaultPanel = menuItems[0].id
+    const searchParamString = searchParams.toString()
     const [activePanel, setActivePanel] = useState<MyPagePanel>(
         isMyPagePanel(searchParams.get('panel'), menuItems) ? searchParams.get('panel') : defaultPanel,
     )
@@ -196,6 +197,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             setActivePanel(defaultPanel)
         }
     }, [activePanel, defaultPanel, menuItems])
+
+    useEffect(() => {
+        const panel = searchParams.get('panel')
+        const consultation = searchParams.get('consultation')
+
+        if (isMyPagePanel(panel, menuItems) && panel !== activePanel) {
+            setActivePanel(panel)
+        }
+        if (consultation && consultation !== selectedConsultationId) {
+            setSelectedConsultationId(consultation)
+        }
+    }, [activePanel, menuItems, searchParamString, selectedConsultationId])
 
     useEffect(() => {
         const nextParams = new URLSearchParams()
@@ -266,6 +279,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const sentProposals = proposals.filter((proposal) => proposal.expertId === user?.id)
     const receivedProductRequests = serviceRequests.filter((request) => request.expertId === user?.id && request.productId)
     const clientProductRequests = serviceRequests.filter((request) => request.clientId === user?.id && request.productId)
+    const clientConsultations = consultations.filter((consultation) => consultation.clientId === user?.id)
+    const expertConsultations = consultations.filter((consultation) => consultation.expertId === user?.id)
     const myProducts = products.filter((product) => product.expertId === user?.id)
     const activeWorks = works.filter((work) => work.status !== 'completed')
     const completedWorks = works.filter((work) => work.status === 'completed')
@@ -293,8 +308,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const sortRequestsByCreatedAtDesc = (requests: ServiceRequestData[]) =>
         [...requests].sort((first, second) => getRequestCreatedTime(second) - getRequestCreatedTime(first))
 
+    const getConsultationCreatedTime = (consultation: Consultation) => {
+        const parsed = Date.parse(consultation.lastMessageAt || consultation.createdAt || '')
+        return Number.isNaN(parsed) ? 0 : parsed
+    }
+
+    const sortConsultationsByCreatedAtDesc = (items: Consultation[]) =>
+        [...items].sort((first, second) => getConsultationCreatedTime(second) - getConsultationCreatedTime(first))
+
     const clientProductRequestsByCreatedAt = sortRequestsByCreatedAtDesc(clientProductRequests)
     const receivedProductRequestsByCreatedAt = sortRequestsByCreatedAtDesc(receivedProductRequests)
+    const clientConsultationsByCreatedAt = sortConsultationsByCreatedAtDesc(clientConsultations)
+    const expertConsultationsByCreatedAt = sortConsultationsByCreatedAtDesc(expertConsultations)
 
     const selectedClientOrder = clientProductRequestsByCreatedAt.find((request) => request.id === selectedClientOrderId) || clientProductRequestsByCreatedAt[0] || null
     const selectedClientOrderProduct = selectedClientOrder
@@ -328,6 +353,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         : null
     const selectedExpertRequestWork = selectedExpertRequest ? getWorkForRequest(selectedExpertRequest) : null
     const selectedConsultation = consultations.find((consultation) => consultation.id === selectedConsultationId) || consultations[0] || null
+    const selectedClientConsultation = clientConsultationsByCreatedAt.find((consultation) => consultation.id === selectedConsultationId) || clientConsultationsByCreatedAt[0] || null
+    const selectedExpertConsultation = expertConsultationsByCreatedAt.find((consultation) => consultation.id === selectedConsultationId) || expertConsultationsByCreatedAt[0] || null
     const selectedConsultationProduct = selectedConsultation
         ? products.find((product) => product.id === selectedConsultation.productId)
         : null
@@ -593,6 +620,93 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </section>
     )
 
+    const renderConsultationOrderList = (
+        items: Consultation[],
+        selectedId: string | null | undefined,
+        onSelect: (id: string) => void,
+        emptyText: string,
+    ) => (
+        <section>
+            {items.length > 0 ? (
+                <div style={{ display: 'grid', gap: '0.65rem' }}>
+                    {items.map((consultation) => {
+                        const product = products.find((item) => item.id === consultation.productId)
+                        const selected = selectedId === consultation.id
+                        return (
+                            <button
+                                key={consultation.id}
+                                type="button"
+                                aria-label="전문가 문의 상담 선택"
+                                aria-pressed={selected}
+                                onClick={() => onSelect(consultation.id)}
+                                style={{
+                                    textAlign: 'left',
+                                    padding: '1rem',
+                                    borderRadius: '0.75rem',
+                                    border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
+                                    background: selected ? '#eff6ff' : '#f8fafc',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>
+                                    {product?.title || consultation.title}
+                                </strong>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    {consultation.title}
+                                </span>
+                            </button>
+                        )
+                    })}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
+            )}
+        </section>
+    )
+
+    const renderConsultationFlow = (consultation: Consultation | null, role: 'client' | 'expert') => {
+        if (!consultation) return null
+        const product = products.find((item) => item.id === consultation.productId)
+        const consultationUrl = `${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`
+        const proposalLabel = role === 'client' ? '상담 후 제안서 대기' : '상담 후 제안서 작성'
+        const proposalDescription = role === 'client'
+            ? '전문가와 상담한 뒤 제안서를 받으면 결제 단계로 진행합니다.'
+            : '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
+
+        return (
+            <div style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
+                    전문가 문의 - {product?.title || consultation.title}
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                    전문가 문의 · {consultation.status === 'proposal_sent' ? '제안서 발송됨' : consultation.status === 'closed' ? '종료됨' : '상담 중'}
+                </p>
+                <p style={{ color: '#1d4ed8', fontWeight: 800, margin: '0 0 1rem' }}>
+                    현재 단계: 상담 채팅
+                </p>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>상담 전체 과정</h4>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {renderClientOrderStage(
+                        '작업 전',
+                        '상담 채팅',
+                        '전문가 문의로 시작한 거래입니다. 채팅에서 범위와 조건을 먼저 협의합니다.',
+                        consultation.status === 'open' ? 'current' : 'done',
+                        { label: '상담 채팅 보기', to: consultationUrl },
+                    )}
+                    {renderClientOrderStage(
+                        '검토 단계',
+                        proposalLabel,
+                        proposalDescription,
+                        consultation.status === 'proposal_sent' ? 'current' : 'pending',
+                    )}
+                    {renderClientOrderStage('결제', '테스트 결제 대기', '제안서를 승인하면 테스트 결제 완료 처리 후 작업방이 생성됩니다.', 'pending')}
+                    {renderClientOrderStage('작업 중', '작업방 대기', '결제가 끝나면 작업방에서 제작을 진행합니다.', 'pending')}
+                    {renderClientOrderStage('상담 후', '상담 완료/리뷰', '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.', 'pending')}
+                </div>
+            </div>
+        )
+    }
+
     const renderClientProductOrderManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
             <div>
@@ -601,6 +715,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     상품별로 요구사항, 제안서, 작업방 단계를 한 곳에서 확인합니다.
                 </p>
             </div>
+
+            {clientConsultationsByCreatedAt.length > 0 && (
+                <div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전문가 문의</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                        <div aria-label="의뢰자 전문가 문의 목록" style={{ display: 'grid', gap: '1rem' }}>
+                            {renderConsultationOrderList(clientConsultationsByCreatedAt, selectedClientConsultation?.id, setSelectedConsultationId, '전문가 문의 내역이 없습니다.')}
+                        </div>
+                        {renderConsultationFlow(selectedClientConsultation, 'client')}
+                    </div>
+                </div>
+            )}
 
             {clientProductRequests.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
@@ -685,6 +811,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     받은 상품 의뢰를 최신순으로 확인하고, 선택한 의뢰의 진행 단계를 관리합니다.
                 </p>
             </div>
+
+            {expertConsultationsByCreatedAt.length > 0 && (
+                <div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전문가 문의</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                        <div aria-label="전문가 받은 문의 목록" style={{ display: 'grid', gap: '1rem' }}>
+                            {renderConsultationOrderList(expertConsultationsByCreatedAt, selectedExpertConsultation?.id, setSelectedConsultationId, '받은 전문가 문의가 없습니다.')}
+                        </div>
+                        {renderConsultationFlow(selectedExpertConsultation, 'expert')}
+                    </div>
+                </div>
+            )}
 
             {receivedProductRequests.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>

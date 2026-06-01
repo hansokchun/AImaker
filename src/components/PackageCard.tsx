@@ -8,6 +8,7 @@ interface PackageCardProps {
     packages: ProductPackages
     productId: string
     onOpenChat?: () => void
+    chatButtonDisabled?: boolean
 }
 
 const packageLabels: Record<PackageTier, string> = {
@@ -22,7 +23,7 @@ function getPackageTabs(packages: ProductPackages) {
     return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages[tab]))
 }
 
-export default function PackageCard({ packages, productId, onOpenChat }: PackageCardProps) {
+export default function PackageCard({ packages, productId, onOpenChat, chatButtonDisabled = false }: PackageCardProps) {
     const tabs = useMemo(() => getPackageTabs(packages), [packages])
     const [activeTab, setActiveTab] = useState<PackageTier>('standard')
     const currentPackage = packages[activeTab] ?? packages.standard
@@ -67,8 +68,13 @@ export default function PackageCard({ packages, productId, onOpenChat }: Package
                 </Link>
 
                 {onOpenChat && (
-                    <button type="button" onClick={onOpenChat} className="btn-text package-secondary-cta">
-                        전문가에게 문의하기
+                    <button
+                        type="button"
+                        onClick={onOpenChat}
+                        className="btn-text package-secondary-cta"
+                        disabled={chatButtonDisabled}
+                    >
+                        {chatButtonDisabled ? '상담 생성 중' : '전문가에게 문의하기'}
                     </button>
                 )}
             </div>

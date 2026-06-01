@@ -938,6 +938,62 @@ describe('MyPage', () => {
         expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
     })
 
+    it('shows expert inquiry orders in work management and links their chat stage to the selected consultation', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('전문가 문의')).toBeInTheDocument()
+        expect(screen.getByText(/상담 중/)).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('link', { name: '상담 채팅 보기' }))
+
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=consultations'))
+        expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
+    })
+
+    it('shows received expert inquiry chats in expert work management', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+
+        expect(await screen.findByText('전문가 문의 - Owned AI product')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '상담 채팅 보기' })).toHaveAttribute(
+            'href',
+            '/my-work?panel=consultations&consultation=consult-expert-01',
+        )
+    })
+
+    it('shows client and expert work sections with current labels', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        expect(screen.getByText('마이페이지')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+        expect(screen.getByText('상품 주문 관리')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '요청 게시판 보기' })).toHaveAttribute('href', '/requests')
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+        expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
+    })
+
     it('shows client and expert sections with transaction links', async () => {
         render(
             <MemoryRouter>
@@ -1367,6 +1423,7 @@ describe('MyPage', () => {
         getUserProposals.mockResolvedValue([])
         getUserWorks.mockResolvedValue([])
         getUserServiceRequests.mockResolvedValue([])
+        getUserConsultations.mockResolvedValue([])
 
         render(
             <MemoryRouter>

@@ -6,6 +6,7 @@
 import type {
     AiServiceRequest,
     Consultation,
+    CreateConsultationInput,
     ConsultationMessage,
     Deliverable,
     Expert,
@@ -369,6 +370,73 @@ export async function getConsultationMessages(consultationId: string): Promise<C
     }
 
     return (data || []).map(toConsultationMessage);
+}
+
+export async function createConsultation(input: CreateConsultationInput): Promise<Consultation> {
+    const now = new Date().toISOString();
+
+    if (!supabase) {
+        const consultation: Consultation = {
+            id: `consultation-${Date.now()}`,
+            clientId: input.clientId,
+            expertId: input.expertId,
+            productId: input.productId,
+            status: 'open',
+            title: input.title,
+            lastMessageAt: now,
+            createdAt: now,
+        };
+        const message: ConsultationMessage = {
+            id: `consultation-message-${Date.now()}`,
+            consultationId: consultation.id,
+            senderId: input.clientId,
+            body: input.initialMessage,
+            attachmentUrls: [],
+            createdAt: now,
+        };
+        const consultationRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
+        const consultations = consultationRaw ? (JSON.parse(consultationRaw) as Consultation[]) : [];
+        localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify([consultation, ...consultations]));
+
+        const messageRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
+        const messages = messageRaw ? (JSON.parse(messageRaw) as ConsultationMessage[]) : [];
+        localStorage.setItem(STORAGE_KEYS.CONSULTATION_MESSAGES, JSON.stringify([...messages, message]));
+        return consultation;
+    }
+
+    const { data, error } = await supabase
+        .from('consultations')
+        .insert({
+            client_id: input.clientId,
+            expert_id: input.expertId,
+            product_id: input.productId,
+            title: input.title,
+            status: 'open',
+        })
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('상담 생성 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 상담 생성 실패');
+    }
+
+    const consultation = toConsultation(data);
+    const { error: messageError } = await supabase
+        .from('consultation_messages')
+        .insert({
+            consultation_id: consultation.id,
+            sender_id: input.clientId,
+            body: input.initialMessage,
+            attachment_urls: [],
+        });
+
+    if (messageError) {
+        console.error('상담 첫 메시지 저장 실패:', messageError);
+        throw new Error('데이터베이스 통신 오류: 상담 메시지 저장 실패');
+    }
+
+    return consultation;
 }
 
 export async function getServiceRequests(): Promise<AiServiceRequest[]> {
