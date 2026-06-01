@@ -39,6 +39,17 @@ describe('RequestBoard', () => {
         vi.useRealTimers()
     })
 
+    it('offers request creation from the request board page', async () => {
+        render(
+            <MemoryRouter>
+                <RequestBoard />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('QA 요청')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'AI 작업 요청하기' })).toHaveAttribute('href', '/request')
+    })
+
     it('lets an expert submit a proposal for a request', async () => {
         vi.setSystemTime(new Date('2026-05-18T00:00:00.000Z'))
 

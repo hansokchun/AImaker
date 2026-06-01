@@ -111,6 +111,28 @@ export default function RequestBoard() {
             </div>
 
             <main className="container" style={{ marginTop: '-3rem', paddingBottom: '8rem', position: 'relative', zIndex: 10 }}>
+                <div
+                    className="content-card"
+                    style={{
+                        marginBottom: '1.25rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    <div>
+                        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.35rem' }}>AI 작업 요청</h2>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                            원하는 작업 조건을 작성하면 요청 게시판에 등록되고 전문가의 제안을 받을 수 있습니다.
+                        </p>
+                    </div>
+                    <Link to={ROUTES.SERVICE_REQUEST} className="btn-primary">
+                        AI 작업 요청하기
+                    </Link>
+                </div>
+
                 {/* 카테고리 필터 칩 — 요청이 있을 때만 표시 */}
                 {requests.length > 0 && (
                     <div className="filter-container">
