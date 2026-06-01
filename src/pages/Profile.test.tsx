@@ -47,6 +47,19 @@ describe('Profile product publishing requirements', () => {
         mockProfile = makeProfile()
     })
 
+    it('does not show external profile image URL editing', async () => {
+        render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('프로필 이미지 업로드')).toBeInTheDocument()
+        expect(document.querySelector('input[type="file"]')).toBeInTheDocument()
+        expect(screen.queryByText('또는 외부 이미지 링크 입력:')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('https://example.com/my-photo.jpg')).not.toBeInTheDocument()
+    })
+
     it('does not publish product without a required Standard package', async () => {
         render(
             <MemoryRouter>

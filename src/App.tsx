@@ -15,7 +15,6 @@ import ServiceRequest from './pages/ServiceRequest';
 import Proposal from './pages/Proposal';
 import Workroom from './pages/Workroom';
 import RequestBoard from './pages/RequestBoard';
-import Community from './pages/Community';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import MyPage from './pages/MyPage';
@@ -36,7 +35,6 @@ function App() {
                     <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
                     <Route path={ROUTES.WORKROOM} element={<Workroom />} />
                     <Route path={ROUTES.REQUEST_BOARD} element={<RequestBoard />} />
-                    <Route path={ROUTES.COMMUNITY} element={<Community />} />
                     <Route path={ROUTES.LOGIN} element={<Login />} />
                     <Route path={ROUTES.ONBOARDING} element={<Onboarding />} />
                     <Route path={ROUTES.MY_PAGE} element={<MyPage />} />

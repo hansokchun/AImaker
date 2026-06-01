@@ -170,7 +170,7 @@ export default function Profile() {
         const file = e.target.files[0];
         
         if (!supabase) {
-            alert('Supabase 연동이 필요합니다. 외부 이미지 URL을 직접 입력해 주세요.');
+            alert('이미지 업로드를 사용하려면 Supabase 연동이 필요합니다.');
             return;
         }
 
@@ -629,18 +629,6 @@ export default function Profile() {
                                         style={{ padding: '0.6rem 1rem' }}
                                     />
                                     {uploading && <div style={{ fontSize: '0.85rem', color: 'var(--primary)', marginTop: '0.5rem' }}>업로드 중...</div>}
-                                </div>
-                                <div className="profile-form-group">
-                                    <label>
-                                        <span className="label-hint" style={{ marginLeft: 0 }}>또는 외부 이미지 링크 입력:</span>
-                                    </label>
-                                    <input
-                                        type="url"
-                                        className="profile-input"
-                                        value={profile.imageUrl}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('imageUrl', e.target.value)}
-                                        placeholder="https://example.com/my-photo.jpg"
-                                    />
                                 </div>
                             </div>
                         </div>
