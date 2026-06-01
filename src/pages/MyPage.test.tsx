@@ -667,6 +667,11 @@ describe('MyPage', () => {
         expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
         expect(screen.getByText('작업 후')).toBeInTheDocument()
         expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
+
+        expect(within(screen.getByLabelText('의뢰서 작성/요구사항 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('제안서 검토 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+        expect(within(screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
     })
 
     it('groups client product orders by before, active, and completed work states', async () => {
@@ -714,6 +719,11 @@ describe('MyPage', () => {
         expect(screen.getByText('제안서 작성/수정')).toBeInTheDocument()
         expect(screen.getByText('작업 진행')).toBeInTheDocument()
         expect(screen.getAllByText('작업 완료').length).toBeGreaterThan(0)
+
+        expect(within(screen.getByLabelText('받은 의뢰 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('제안서 작성/수정 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('작업 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+        expect(within(screen.getByLabelText('작업 완료 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {

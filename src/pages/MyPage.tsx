@@ -24,11 +24,36 @@ const workStatusText: Record<Work['status'], string> = {
 
 type MyPagePanel = 'overview' | 'client' | 'expert' | 'workroom' | 'reviews'
 type WorkPhase = 'before' | 'active' | 'completed'
+type StageVisualState = 'done' | 'current' | 'pending'
 
 const workPhaseLabels: Record<WorkPhase, string> = {
     before: '작업 전',
     active: '작업 중',
     completed: '작업 완료',
+}
+
+const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string }> = {
+    done: {
+        label: '완료됨',
+        border: '#16a34a',
+        background: '#f0fdf4',
+        badgeBackground: '#dcfce7',
+        badgeColor: '#166534',
+    },
+    current: {
+        label: '진행 중',
+        border: '#2563eb',
+        background: '#eff6ff',
+        badgeBackground: '#dbeafe',
+        badgeColor: '#1d4ed8',
+    },
+    pending: {
+        label: '대기',
+        border: '#cbd5e1',
+        background: '#f8fafc',
+        badgeBackground: '#e2e8f0',
+        badgeColor: '#475569',
+    },
 }
 
 const menuItems: Array<{ id: MyPagePanel; label: string }> = [
@@ -358,20 +383,53 @@ export default function MyPage() {
         </div>
     )
 
-    const renderClientOrderStage = (phase: string, title: string, description: string, action?: { label: string; to: string }) => (
-        <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)' }}>
-            <span style={{ display: 'block', color: '#2563eb', fontSize: '0.82rem', fontWeight: 800, marginBottom: '0.35rem' }}>
-                {phase}
-            </span>
-            <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>{title}</strong>
+    const renderClientOrderStage = (
+        phase: string,
+        title: string,
+        description: string,
+        state: StageVisualState,
+        action?: { label: string; to: string },
+    ) => {
+        const visual = stageVisualConfig[state]
+        return (
+            <div
+                aria-label={`${title} 단계 상태: ${visual.label}`}
+                style={{
+                    padding: '1rem',
+                    borderRadius: '0.75rem',
+                    background: visual.background,
+                    border: '1px solid var(--border-color)',
+                    borderLeft: `0.35rem solid ${visual.border}`,
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <span style={{ display: 'block', color: visual.border, fontSize: '0.82rem', fontWeight: 800 }}>
+                        {phase}
+                    </span>
+                    <span
+                        style={{
+                            flexShrink: 0,
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: '999px',
+                            background: visual.badgeBackground,
+                            color: visual.badgeColor,
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                        }}
+                    >
+                        {visual.label}
+                    </span>
+                </div>
+                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>{title}</strong>
             <p style={{ color: 'var(--text-secondary)', margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
             {action && (
                 <Link className="btn-text" to={action.to}>
                     {action.label}
                 </Link>
             )}
-        </div>
-    )
+            </div>
+        )
+    }
 
     const renderOrderGroup = (
         phase: WorkPhase,
@@ -461,6 +519,7 @@ export default function MyPage() {
                                     '작업 전',
                                     '의뢰서 작성/요구사항',
                                     selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
+                                    'done',
                                     selectedClientOrder.productId ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}` } : undefined,
                                 )}
                                 {selectedClientOrderProposal
@@ -468,21 +527,24 @@ export default function MyPage() {
                                         '검토 단계',
                                         '제안서 검토',
                                         `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]}`,
+                                        selectedClientOrderWork ? 'done' : 'current',
                                         { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                                     )
-                                    : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.')}
+                                    : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.', 'current')}
                                 {selectedClientOrderWork
                                     ? renderClientOrderStage(
                                         '작업 중',
                                         selectedClientOrderWork.status === 'completed' ? '작업 완료' : '작업방 진행',
                                         workStatusText[selectedClientOrderWork.status],
+                                        selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
                                         { label: selectedClientOrderWork.status === 'completed' ? '완료 작업 보기' : '작업방 열기', to: `/workroom/${selectedClientOrderWork.id}` },
                                     )
-                                    : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.')}
+                                    : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
                                 {renderClientOrderStage(
                                     '작업 후',
                                     '완료 확인/리뷰',
                                     selectedClientOrderWork?.status === 'completed' ? '결과물을 확인하고 리뷰를 남길 수 있습니다.' : '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.',
+                                    selectedClientOrderWork?.status === 'completed' ? 'current' : 'pending',
                                 )}
                             </div>
                         </div>
@@ -529,6 +591,7 @@ export default function MyPage() {
                                     '작업 전',
                                     '받은 의뢰',
                                     selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
+                                    'done',
                                     selectedExpertRequest.productId ? { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` } : undefined,
                                 )}
                                 {selectedExpertRequestProposal
@@ -536,21 +599,24 @@ export default function MyPage() {
                                         '검토 단계',
                                         '제안서 작성/수정',
                                         `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
+                                        selectedExpertRequestWork ? 'done' : 'current',
                                         { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
                                     )
-                                    : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.')}
+                                    : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.', selectedExpertRequestWork ? 'pending' : 'current')}
                                 {selectedExpertRequestWork
                                     ? renderClientOrderStage(
                                         '작업 중',
                                         '작업 진행',
                                         workStatusText[selectedExpertRequestWork.status],
+                                        selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
                                         { label: selectedExpertRequestWork.status === 'completed' ? '완료 작업 보기' : '작업방 열기', to: `/workroom/${selectedExpertRequestWork.id}` },
                                     )
-                                    : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.')}
+                                    : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
                                 {renderClientOrderStage(
                                     '작업 완료',
                                     '작업 완료',
                                     selectedExpertRequestWork?.status === 'completed' ? '의뢰자에게 결과물을 전달한 작업입니다.' : '결과물을 제출하고 의뢰자 확인을 기다립니다.',
+                                    selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
                                 )}
                             </div>
                         </div>
