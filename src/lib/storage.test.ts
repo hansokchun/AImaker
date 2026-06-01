@@ -610,6 +610,35 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('finds an existing local work by proposal id', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem(
+            'ai_works',
+            JSON.stringify([
+                {
+                    id: 'work-existing-01',
+                    proposalId: proposal.id,
+                    requestId: proposal.requestId,
+                    clientId: proposal.clientId,
+                    expertId: proposal.expertId,
+                    title: proposal.title,
+                    progressType: proposal.progressType,
+                    status: 'in_progress',
+                    stepIds: [],
+                },
+            ]),
+        )
+
+        const { getWorkByProposal } = await import('./storage')
+
+        await expect(getWorkByProposal(proposal.id)).resolves.toEqual(
+            expect.objectContaining({ id: 'work-existing-01', proposalId: proposal.id }),
+        )
+        await expect(getWorkByProposal('missing-proposal')).resolves.toBeNull()
+    })
+
     it('blocks accepting expired proposals before creating work', async () => {
         vi.resetModules()
         const from = vi.fn()

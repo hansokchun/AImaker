@@ -34,12 +34,14 @@ const expiredProposal: ProposalData = {
 const acceptProposal = vi.fn(async (_proposal: ProposalData) => 'work-created-01')
 const requestProposalRevision = vi.fn(async (_proposalId: string) => undefined)
 const cancelProposal = vi.fn(async (_proposalId: string) => undefined)
+const getWorkByProposal = vi.fn(async (_proposalId: string) => null)
 const getProposal = vi.fn(async (id: string): Promise<ProposalData | null> =>
     id === expiredProposal.id ? expiredProposal : activeProposal,
 )
 
 vi.mock('../lib/storage', () => ({
     getProposal: (proposalId: string) => getProposal(proposalId),
+    getWorkByProposal: (proposalId: string) => getWorkByProposal(proposalId),
     acceptProposal: (proposal: ProposalData) => acceptProposal(proposal),
     cancelProposal: (proposalId: string) => cancelProposal(proposalId),
     requestProposalRevision: (proposalId: string) => requestProposalRevision(proposalId),
@@ -52,6 +54,8 @@ describe('Proposal', () => {
         acceptProposal.mockClear()
         requestProposalRevision.mockClear()
         cancelProposal.mockClear()
+        getWorkByProposal.mockReset()
+        getWorkByProposal.mockResolvedValue(null)
     })
 
     it('shows proposal delivery information and accepts active proposals', async () => {
@@ -103,6 +107,41 @@ describe('Proposal', () => {
         await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith(activeProposal.id))
         expect(screen.getByText('제안서를 취소했습니다.')).toBeInTheDocument()
         expect(screen.getByText('취소됨')).toBeInTheDocument()
+    })
+
+    it('shows the existing workroom link when reopening a paid accepted proposal', async () => {
+        getProposal.mockResolvedValue({
+            ...activeProposal,
+            status: 'accepted',
+            paymentStatus: 'paid',
+        })
+        getWorkByProposal.mockResolvedValue({
+            id: 'work-existing-01',
+            proposalId: activeProposal.id,
+            requestId: activeProposal.requestId,
+            clientId: activeProposal.clientId,
+            expertId: activeProposal.expertId,
+            title: activeProposal.title,
+            progressType: activeProposal.progressType,
+            status: 'in_progress',
+            stepIds: [],
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/proposal/proposal-demo-01']}>
+                <Routes>
+                    <Route path="/proposal/:proposalId" element={<Proposal />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('승인됨')).toBeInTheDocument()
+        await waitFor(() => expect(getWorkByProposal).toHaveBeenCalledWith(activeProposal.id))
+        expect(screen.queryByRole('button', { name: '테스트 결제 완료 처리' })).toBeDisabled()
+        expect(screen.getByRole('link', { name: '작업방으로 이동' })).toHaveAttribute(
+            'href',
+            '/workroom/work-existing-01',
+        )
     })
 
     it('disables approval for expired proposals', async () => {

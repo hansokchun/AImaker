@@ -895,6 +895,24 @@ export async function getWorkroomData(workId: string): Promise<{
     };
 }
 
+export async function getWorkByProposal(proposalId: string): Promise<Work | null> {
+    if (!supabase) {
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        return works.find((work) => work.proposalId === proposalId) || null;
+    }
+
+    const { data, error } = await supabase
+        .from('works')
+        .select('*')
+        .eq('proposal_id', proposalId)
+        .single();
+
+    if (error || !data) return null;
+
+    return toWork(data);
+}
+
 export async function getUserWorks(userId: string): Promise<Work[]> {
     if (!supabase) {
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);

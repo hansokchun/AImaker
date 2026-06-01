@@ -2,7 +2,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import type { Proposal as ProposalData } from '../types'
 import { useEffect, useState } from 'react'
-import { acceptProposal, cancelProposal, getProposal, requestProposalRevision } from '../lib/storage'
+import { acceptProposal, cancelProposal, getProposal, getWorkByProposal, requestProposalRevision } from '../lib/storage'
 import './Proposal.css'
 
 const now = new Date()
@@ -82,9 +82,16 @@ export default function Proposal() {
     useEffect(() => {
         let active = true
         setIsLoaded(false)
-        getProposal(proposalId || '').then((storedProposal) => {
+        setCreatedWorkId('')
+        getProposal(proposalId || '').then(async (storedProposal) => {
             if (!active) return
-            setProposal(storedProposal ?? mockProposals.find((item) => item.id === proposalId) ?? null)
+            const nextProposal = storedProposal ?? mockProposals.find((item) => item.id === proposalId) ?? null
+            setProposal(nextProposal)
+            if (nextProposal?.status === 'accepted' && nextProposal.paymentStatus === 'paid') {
+                const existingWork = await getWorkByProposal(nextProposal.id)
+                if (!active) return
+                setCreatedWorkId(existingWork?.id || '')
+            }
             setIsLoaded(true)
         })
         return () => {
