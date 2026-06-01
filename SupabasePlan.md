@@ -14,7 +14,7 @@
 ```text
 profiles
 → expert_products
-→ service_requests
+→ service_requests 또는 consultations
 → proposals
 → works
 → deliverables
@@ -67,6 +67,8 @@ refunded   환불 처리
 ```
 
 작업방은 `proposals.status = accepted`이고 `proposals.payment_status = paid`인 제안서에서만 생성된다. 실제 PG 승인, 자동 환불, 자동 정산은 후속 개발로 분리한다.
+
+전문가 문의형 거래에서는 `consultations`와 `consultation_messages`에 결제 전 상담 기록을 남긴 뒤, 전문가가 상담 내용을 바탕으로 `proposals`를 생성한다.
 
 ---
 
@@ -185,6 +187,52 @@ RLS:
 
 ---
 
+## 4.5. consultations / consultation_messages
+
+전문가 문의형 거래에서 결제 전 상담을 저장한다. 상담은 작업방이 아니며, 상담만으로 작업이 시작되지 않는다.
+
+`consultations` 주요 컬럼:
+
+```text
+id uuid primary key
+client_id uuid references profiles(id)
+expert_id uuid references profiles(id)
+product_id uuid references expert_products(id)
+status text
+last_message_at timestamptz
+created_at timestamptz
+updated_at timestamptz
+```
+
+`consultation_messages` 주요 컬럼:
+
+```text
+id uuid primary key
+consultation_id uuid references consultations(id)
+sender_id uuid references profiles(id)
+body text
+attachment_urls text[]
+created_at timestamptz
+```
+
+status 값:
+
+```text
+open
+proposal_sent
+closed
+```
+
+정책:
+
+- 상담 참여자인 의뢰자와 전문가만 상담과 메시지를 볼 수 있다.
+- 상담 참여자만 메시지를 작성할 수 있다.
+- 외부 연락처와 외부 결제 유도 문구는 상담 메시지에서도 차단한다.
+- 전문가는 상담 내용을 바탕으로 제안서를 보낼 수 있다.
+- 제안서 승인 및 결제 전에는 작업방이 생성되지 않는다.
+
+---
+
 ## 5. service_requests
 
 의뢰자가 상품을 보고 보내는 요구사항이다.
@@ -243,6 +291,7 @@ RLS:
 ```text
 id uuid primary key
 request_id uuid references service_requests(id)
+consultation_id uuid references consultations(id)
 client_id uuid references profiles(id)
 expert_id uuid references profiles(id)
 title text
@@ -277,6 +326,8 @@ expired
 - `expires_at`은 생성 시점 기준 3일 후로 설정한다.
 - 의뢰자는 수정 요청을 1회만 할 수 있다.
 - 의뢰자가 승인하기 전에는 작업이 생성되지 않는다.
+- 제안서는 패키지 구매형의 `service_requests` 또는 전문가 문의형의 `consultations` 중 하나에서 생성된다.
+- 둘 중 하나의 출처는 반드시 있어야 하며, 동시에 둘 다 비어 있으면 안 된다.
 
 RLS:
 

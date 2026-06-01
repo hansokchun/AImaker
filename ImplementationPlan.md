@@ -313,10 +313,11 @@ npm.cmd run build
 ```text
 전문가가 상품을 등록한다.
 의뢰자가 상품을 찾는다.
-의뢰자가 요구사항을 보낸다.
+의뢰자가 요구사항을 보내거나 전문가에게 문의한다.
+전문가 문의형이면 상담으로 조건을 협의한다.
 전문가가 제안서를 보낸다.
-의뢰자가 제안서를 승인한다.
-작업 진행표가 열린다.
+의뢰자가 제안서를 승인하고 결제한다.
+작업방이 열린다.
 전문가가 산출물 링크를 제출한다.
 의뢰자가 단계를 승인한다.
 완료 후 리뷰를 작성한다.
@@ -326,6 +327,38 @@ npm.cmd run build
 
 ```text
 npm.cmd run test
+npm.cmd run build
+```
+
+---
+
+## 17. Task 14: 전문가 문의형 거래 흐름 추가
+
+**Decision:** 상품에서 거래를 시작하는 방식은 `패키지 구매형`과 `전문가 문의형` 두 가지로 확정한다. 두 흐름 모두 최종 거래 성사는 제안서 승인 및 결제로 통일하고, 결제 완료 후에만 작업방을 생성한다.
+
+**Files:**
+
+- Modify: `src/types/index.ts`
+- Modify: `src/lib/storage.ts`
+- Modify: `src/pages/ExpertDetail.tsx`
+- Add: 상담/메시지 화면 컴포넌트
+- Modify: `database.sql`
+- Modify: `FinalSpec.md`, `PagePlan.md`, `PolicyPlan.md`, `SupabasePlan.md`, `CopyPlan.md`, `TestPlan.md`
+
+작업:
+
+- [ ] 상품 상세의 `전문가에게 문의하기` CTA를 결제 전 상담 흐름으로 연결한다.
+- [ ] 상담방은 상품, 의뢰자, 전문가를 기준으로 생성한다.
+- [ ] 상담 메시지에는 외부 연락처/외부 결제 유도 문구 차단을 적용한다.
+- [ ] 전문가는 상담 내용을 바탕으로 제안서를 보낼 수 있다.
+- [ ] 상담에서 생성된 제안서도 `승인 및 결제하기` 후에만 작업방을 생성한다.
+- [ ] 마이페이지/작업 관리에서 패키지 의뢰와 상담 기반 제안서를 같은 거래 단계 모델로 표시한다.
+
+검증:
+
+```text
+npm.cmd test -- src/pages/ExpertDetail.test.tsx src/pages/Proposal.test.tsx src/lib/storage.test.ts
+npm.cmd test
 npm.cmd run build
 ```
 
@@ -372,7 +405,7 @@ npm.cmd run build
 
 작업:
 
-- [x] 제안서 화면의 승인 버튼을 MVP 테스트용 `테스트 결제 완료 처리` 흐름으로 변경한다.
+- [x] 제안서 화면의 승인 버튼을 MVP 테스트용 `승인 및 결제하기` 흐름으로 변경한다.
 - [x] 결제 완료 상태를 `proposals.payment_status = paid`로 저장한다.
 - [x] 작업방 생성 시 총액, 플랫폼 수수료, 전문가 정산 예정액을 저장한다.
 - [x] 플랫폼 수수료율은 MVP 기준 `12%`로 고정한다.

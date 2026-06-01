@@ -40,6 +40,7 @@ flowchart TD
   Category["전문가/상품 목록"]
   Detail["전문가/상품 상세"]
   Request["패키지 의뢰/요구사항 작성"]
+  Consultation["전문가 문의/상담"]
   Proposal["거래 제안서"]
   Workroom["작업 진행표"]
   ProductForm["전문가 상품 등록"]
@@ -49,7 +50,9 @@ flowchart TD
   Home --> ProductForm
   Category --> Detail
   Detail --> Request
+  Detail --> Consultation
   Request --> Proposal
+  Consultation --> Proposal
   Proposal --> Workroom
   MyPage --> Proposal
   MyPage --> Workroom
@@ -64,6 +67,7 @@ flowchart TD
 | 전문가/상품 목록 | 상품 카드 탐색 | `Category.tsx`, `ExpertCard.tsx` |
 | 전문가/상품 상세 | 샘플, 패키지, AI 도구 확인 | `ExpertDetail.tsx`, `PackageCard.tsx` |
 | 요구사항 작성 | 의뢰 요청 접수 | `ServiceRequest.tsx` |
+| 전문가 문의/상담 | 결제 전 작업 범위와 조건 협의 | 신규 상담/메시지 화면 |
 | 거래 제안서 | 전문가가 최종 조건 제안 | 신규 페이지 |
 | 작업 진행표 | 단계별 상태와 산출물 확인 | 신규 페이지 |
 | 상품 등록 | 전문가가 AI 상품 등록 | `Profile.tsx` 일부 재구성 |
@@ -119,6 +123,7 @@ src/
 /category/:categoryId   전문가/상품 목록
 /experts/:expertId      전문가/상품 상세
 /request/:productId     패키지 의뢰/요구사항 작성
+/consultations/:id      결제 전 전문가 문의/상담
 /proposals/:proposalId  거래 제안서
 /workrooms/:workId      작업 진행표
 /products/new           전문가 상품 등록
@@ -139,8 +144,12 @@ src/
 erDiagram
   profiles ||--o{ expert_products : owns
   profiles ||--o{ service_requests : requests
+  profiles ||--o{ consultations : starts
   expert_products ||--o{ service_requests : receives
+  expert_products ||--o{ consultations : receives
   service_requests ||--o{ proposals : creates
+  consultations ||--o{ consultation_messages : includes
+  consultations ||--o{ proposals : creates
   proposals ||--o| works : starts
   works ||--o{ deliverables : includes
   works ||--o| reviews : receives
@@ -166,9 +175,25 @@ erDiagram
     text status
   }
 
+  consultations {
+    uuid id
+    uuid client_id
+    uuid expert_id
+    uuid product_id
+    text status
+  }
+
+  consultation_messages {
+    uuid id
+    uuid consultation_id
+    uuid sender_id
+    text body
+  }
+
   proposals {
     uuid id
     uuid request_id
+    uuid consultation_id
     text status
     timestamptz expires_at
   }
@@ -311,7 +336,7 @@ Supabase RLS는 위 규칙을 기준으로 작성한다. 개발 초기에는 moc
 - PG 연동
 - 에스크로
 - 단계별 자동 정산
-- 실시간 채팅
+- 작업방 실시간 채팅 고도화
 - 전자계약서
 - 추천 알고리즘
 - 전문가 등급
