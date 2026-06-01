@@ -32,7 +32,7 @@ describe('Navbar', () => {
 
         expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
         expect(screen.getByRole('link', { name: '요청 게시판' })).toHaveAttribute('href', '/requests')
-        expect(screen.getByRole('link', { name: '내 작업' })).toHaveAttribute('href', '/my-work')
+        expect(screen.queryByRole('link', { name: '내 작업' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 요청' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '커뮤니티' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '전문가 찾기' })).not.toBeInTheDocument()
@@ -65,6 +65,7 @@ describe('Navbar', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '프로필 메뉴 열기' }))
 
+        expect(screen.getByRole('menuitem', { name: '내 작업' })).toHaveAttribute('href', '/my-work')
         expect(screen.getByRole('menuitem', { name: '마이페이지' })).toHaveAttribute('href', '/mypage?panel=profile')
         fireEvent.click(screen.getByRole('menuitem', { name: '로그아웃' }))
 

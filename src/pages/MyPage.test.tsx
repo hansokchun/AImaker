@@ -644,12 +644,19 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '내 작업' })).toBeInTheDocument()
         expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '의뢰자 홈' })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByRole('button', { name: '전문가 홈' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '의뢰자 홈' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '전문가 홈' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
         expect(screen.getByRole('button', { name: '작업방' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '완료 / 리뷰' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가로 보기' }))
+
+        expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
     })
 
     it('shows client and expert sections with transaction links', async () => {

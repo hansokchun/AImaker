@@ -14,7 +14,6 @@ import { getStoredProfile } from '../lib/storage';
 const NAV_LINKS = [
     { path: ROUTES.CATEGORY, label: 'AI 작업 찾기' },
     { path: ROUTES.REQUEST_BOARD, label: '요청 게시판' },
-    { path: ROUTES.WORK_DASHBOARD, label: '내 작업' },
 ] as const;
 
 export default function Navbar() {
@@ -99,6 +98,14 @@ export default function Navbar() {
                             </button>
                             {profileMenuOpen && (
                                 <div className="nav-profile-dropdown" role="menu">
+                                    <Link
+                                        to={ROUTES.WORK_DASHBOARD}
+                                        className="nav-profile-dropdown-item"
+                                        role="menuitem"
+                                        onClick={() => setProfileMenuOpen(false)}
+                                    >
+                                        내 작업
+                                    </Link>
                                     <Link
                                         to={`${ROUTES.MY_PAGE}?panel=profile`}
                                         className="nav-profile-dropdown-item"

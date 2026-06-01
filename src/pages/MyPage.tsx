@@ -70,13 +70,19 @@ const profileMenuItems: Array<{ id: MyPagePanel; label: string }> = [
 ]
 
 const workMenuItems: Array<{ id: MyPagePanel; label: string }> = [
+    { id: 'client', label: '작업 관리' },
+    { id: 'workroom', label: '작업방' },
+    { id: 'reviews', label: '완료 / 리뷰' },
+]
+
+const legacyWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '의뢰자 홈' },
     { id: 'expert', label: '전문가 홈' },
     { id: 'workroom', label: '작업방' },
     { id: 'reviews', label: '완료 / 리뷰' },
 ]
 
-const allMenuItems = [...profileMenuItems, ...workMenuItems]
+const allMenuItems = [...profileMenuItems, ...legacyWorkMenuItems]
 
 const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; label: string }> = allMenuItems): value is MyPagePanel =>
     Boolean(value && items.some((item) => item.id === value))
@@ -113,6 +119,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
     const [expertProposalMessage, setExpertProposalMessage] = useState('')
+    const [workRole, setWorkRole] = useState<'client' | 'expert'>('client')
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [serviceRequests, setServiceRequests] = useState<ServiceRequestData[]>([])
@@ -662,6 +669,101 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
 
         if (activePanel === 'client') {
+            if (mode === 'work') {
+                return (
+                    <section style={cardStyle}>
+                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>작업 관리</h2>
+                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                            내가 의뢰한 일과 전문가로 받은 일을 역할을 전환하며 확인합니다.
+                        </p>
+                        <div
+                            aria-label="내 작업 역할 전환"
+                            style={{
+                                display: 'inline-grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                padding: '0.25rem',
+                                borderRadius: '0.75rem',
+                                background: '#f1f5f9',
+                                border: '1px solid var(--border-color)',
+                                gap: '0.25rem',
+                                marginBottom: '1.25rem',
+                            }}
+                        >
+                            <button
+                                type="button"
+                                aria-pressed={workRole === 'client'}
+                                onClick={() => setWorkRole('client')}
+                                style={{
+                                    padding: '0.7rem 1rem',
+                                    borderRadius: '0.55rem',
+                                    border: 'none',
+                                    background: workRole === 'client' ? 'white' : 'transparent',
+                                    color: workRole === 'client' ? '#1d4ed8' : '#475569',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                의뢰자로 보기
+                            </button>
+                            <button
+                                type="button"
+                                aria-pressed={workRole === 'expert'}
+                                onClick={() => setWorkRole('expert')}
+                                style={{
+                                    padding: '0.7rem 1rem',
+                                    borderRadius: '0.55rem',
+                                    border: 'none',
+                                    background: workRole === 'expert' ? 'white' : 'transparent',
+                                    color: workRole === 'expert' ? '#166534' : '#475569',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                전문가로 보기
+                            </button>
+                        </div>
+
+                        {workRole === 'client' ? (
+                            <div>
+                                <span style={{ display: 'inline-block', color: '#1d4ed8', fontWeight: 800, marginBottom: '0.6rem' }}>
+                                    내가 맡긴 일
+                                </span>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 작업</h3>
+                                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                                    상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
+                                </p>
+                                <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판 보기</Link>
+                                {renderClientProductOrderManager()}
+                            </div>
+                        ) : (
+                            <div>
+                                <span style={{ display: 'inline-block', color: '#166534', fontWeight: 800, marginBottom: '0.6rem' }}>
+                                    내가 수행할 일
+                                </span>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 작업</h3>
+                                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                                    상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.
+                                </p>
+                                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                    <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
+                                    <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판에서 제안할 일 찾기</Link>
+                                    {sentProposal ? (
+                                        <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
+                                    ) : (
+                                        <span style={quickLinkStyle}>보낸 제안서 없음</span>
+                                    )}
+                                    {publicProduct ? (
+                                        <Link className="btn-text" to={`/expert/${publicProduct.id}`} state={myPageReturnState}>공개 상품 보기</Link>
+                                    ) : (
+                                        <span style={quickLinkStyle}>공개 상품 없음</span>
+                                    )}
+                                </div>
+                                {renderExpertReceivedWorkManager()}
+                            </div>
+                        )}
+                    </section>
+                )
+            }
             return (
                 <section style={cardStyle}>
                     <span style={{ display: 'inline-block', color: '#1d4ed8', fontWeight: 800, marginBottom: '0.6rem' }}>
