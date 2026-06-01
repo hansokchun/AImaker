@@ -170,6 +170,33 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
     {
+        id: 'product-client-submitted',
+        expertId: 'expert-real-submitted',
+        expertName: 'Submitted expert',
+        title: '결과물 검토 테스트 상품',
+        category: 'ai-video-shortform',
+        summary: 'Submitted summary',
+        description: 'Submitted description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 50000,
+        deliveryDays: 3,
+        revisionCount: 1,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 50000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                included: ['Review'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+    {
         id: 'product-other-01',
         expertId: 'other-user',
         expertName: 'Other expert',
@@ -447,6 +474,17 @@ const defaultWorks = () => [
         stepIds: [],
     },
     {
+        id: 'work-client-submitted-order',
+        proposalId: 'proposal-client-submitted-order',
+        requestId: 'request-product-client-submitted',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-submitted',
+        title: '결과물 검토 테스트 상품',
+        progressType: 'single' as const,
+        status: 'submitted' as const,
+        stepIds: [],
+    },
+    {
         id: 'work-client-completed-order',
         proposalId: 'proposal-client-completed-order',
         requestId: 'request-product-client-completed',
@@ -466,6 +504,17 @@ const defaultWorks = () => [
         title: '전문가 진행 중 상품',
         progressType: 'single' as const,
         status: 'in_progress' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-expert-submitted-order',
+        proposalId: 'proposal-expert-submitted-order',
+        requestId: 'request-product-directed-submitted',
+        clientId: 'client-real-submitted',
+        expertId: 'user-demo-01',
+        title: '전문가 제출 완료 상품',
+        progressType: 'single' as const,
+        status: 'submitted' as const,
         stepIds: [],
     },
     {
@@ -560,6 +609,25 @@ describe('MyPage', () => {
                 status: 'completed',
             },
             {
+                id: 'request-product-client-submitted',
+                title: '결과물 검토 상품 주문',
+                description: '전문가가 결과물을 제출한 주문',
+                budget: '50000',
+                deadline: '2026-06-07',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-submitted',
+                productId: 'product-client-submitted',
+                selectedPackage: 'standard',
+                desiredResult: '결과물 검토 요구사항',
+                purpose: '성과 검토',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
+            },
+            {
                 id: 'request-product-directed-01',
                 title: 'Owned AI product',
                 description: '상품 지정 의뢰 상세',
@@ -615,6 +683,25 @@ describe('MyPage', () => {
                 referenceLinks: [],
                 progressType: 'single',
                 status: 'completed',
+            },
+            {
+                id: 'request-product-directed-submitted',
+                title: '전문가 제출 완료 상품 의뢰',
+                description: '전문가가 결과물을 제출하고 승인 대기 중인 의뢰',
+                budget: '65000',
+                deadline: '2026-06-11',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'client-real-submitted',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '전문가 제출 완료 요구사항',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
             },
         ])
         getUserWorks.mockReset()
@@ -782,6 +869,31 @@ describe('MyPage', () => {
         expect(within(groups).getByRole('button', { name: /작업 완료 테스트 상품/ })).toBeInTheDocument()
     })
 
+    it('shows submitted product orders as client review tasks', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+
+        const groups = await screen.findByLabelText('의뢰자 주문 상태 그룹')
+        fireEvent.click(within(groups).getByRole('button', { name: /결과물 검토 요구사항/ }))
+
+        expect(screen.getByRole('heading', { name: '결과물 검토 테스트 상품' })).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 결과물 검토')).toBeInTheDocument()
+        expect(screen.getByText('결과물 검토 대기')).toBeInTheDocument()
+        expect(screen.getByText('전문가가 제출한 결과물을 확인하고 승인 또는 수정 요청을 진행합니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '결과물 확인하기' })).toHaveAttribute(
+            'href',
+            '/workroom/work-client-submitted-order',
+        )
+        expect(
+            within(screen.getByLabelText('결과물 검토 대기 단계 상태: 진행 중')).getAllByText('진행 중').length,
+        ).toBeGreaterThan(0)
+    })
+
     it('groups expert received product work by before, active, and completed states', async () => {
         render(
             <MemoryRouter>
@@ -816,6 +928,28 @@ describe('MyPage', () => {
         expect(within(pendingCompleteStage).getByText('대기')).toBeInTheDocument()
         expect(within(pendingCompleteStage).getAllByText('작업 완료').some((element) => element.getAttribute('data-stage-muted') === 'true')).toBe(true)
         expect(within(pendingCompleteStage).getByText('결과물을 제출하고 의뢰자 확인을 기다립니다.')).toHaveAttribute('data-stage-muted', 'true')
+    })
+
+    it('shows submitted expert work as waiting for client approval', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+
+        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        fireEvent.click(within(groups).getByRole('button', { name: /전문가 제출 완료 요구사항/ }))
+
+        expect(screen.getByRole('heading', { name: '전문가 제출 완료 요구사항' })).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 의뢰자 승인 대기')).toBeInTheDocument()
+        expect(screen.getByText('제출 완료 - 승인 대기')).toBeInTheDocument()
+        expect(screen.getByText('결과물을 제출했고 의뢰자의 승인 또는 수정 요청을 기다립니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '제출물 확인하기' })).toHaveAttribute(
+            'href',
+            '/workroom/work-expert-submitted-order',
+        )
     })
 
     it('keeps the selected my page panel and order in the URL for browser back navigation', async () => {

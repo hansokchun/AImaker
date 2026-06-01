@@ -96,6 +96,44 @@ const allMenuItems = [...profileMenuItems, ...legacyWorkMenuItems]
 const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; label: string }> = allMenuItems): value is MyPagePanel =>
     Boolean(value && items.some((item) => item.id === value))
 
+const getClientWorkStageTitle = (work: Work) => {
+    if (work.status === 'completed') return '작업 완료'
+    if (work.status === 'submitted') return '결과물 검토 대기'
+    if (work.status === 'revision_requested') return '수정 요청 반영'
+    return '작업방 진행'
+}
+
+const getClientWorkStageDescription = (work: Work) => {
+    if (work.status === 'submitted') return '전문가가 제출한 결과물을 확인하고 승인 또는 수정 요청을 진행합니다.'
+    if (work.status === 'revision_requested') return '수정 요청을 보냈고 전문가가 다시 제출할 수 있습니다.'
+    return workStatusText[work.status]
+}
+
+const getClientWorkStageActionLabel = (work: Work) => {
+    if (work.status === 'completed') return '완료 작업 보기'
+    if (work.status === 'submitted') return '결과물 확인하기'
+    return '작업방 열기'
+}
+
+const getExpertWorkStageTitle = (work: Work) => {
+    if (work.status === 'completed') return '작업 완료'
+    if (work.status === 'submitted') return '제출 완료 - 승인 대기'
+    if (work.status === 'revision_requested') return '수정 요청 대응'
+    return '작업 진행'
+}
+
+const getExpertWorkStageDescription = (work: Work) => {
+    if (work.status === 'submitted') return '결과물을 제출했고 의뢰자의 승인 또는 수정 요청을 기다립니다.'
+    if (work.status === 'revision_requested') return '의뢰자가 수정 요청을 보냈습니다. 작업방에서 수정 제출을 진행합니다.'
+    return workStatusText[work.status]
+}
+
+const getExpertWorkStageActionLabel = (work: Work) => {
+    if (work.status === 'completed') return '완료 작업 보기'
+    if (work.status === 'submitted') return '제출물 확인하기'
+    return '작업방 열기'
+}
+
 const cardStyle = {
     background: 'white',
     padding: '2rem',
@@ -255,7 +293,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const selectedClientOrderCurrentStage = selectedClientOrderWork
         ? selectedClientOrderWork.status === 'completed'
             ? '작업 후'
-            : '작업 중'
+            : selectedClientOrderWork.status === 'submitted'
+                ? '결과물 검토'
+                : '작업 중'
         : selectedClientOrderProposal
             ? selectedClientOrderProposal.paymentStatus === 'paid'
                 ? '작업방 생성 대기'
@@ -272,7 +312,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const selectedExpertRequestCurrentStage = selectedExpertRequestWork
         ? selectedExpertRequestWork.status === 'completed'
             ? '작업 완료'
-            : '작업 중'
+            : selectedExpertRequestWork.status === 'submitted'
+                ? '의뢰자 승인 대기'
+                : '작업 중'
         : selectedExpertRequestProposal
             ? selectedExpertRequestProposal.paymentStatus === 'paid'
                 ? '작업방 생성 대기'
@@ -599,10 +641,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 {selectedClientOrderWork
                                     ? renderClientOrderStage(
                                         '작업 중',
-                                        selectedClientOrderWork.status === 'completed' ? '작업 완료' : '작업방 진행',
-                                        workStatusText[selectedClientOrderWork.status],
+                                        getClientWorkStageTitle(selectedClientOrderWork),
+                                        getClientWorkStageDescription(selectedClientOrderWork),
                                         selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
-                                        { label: selectedClientOrderWork.status === 'completed' ? '완료 작업 보기' : '작업방 열기', to: `/workroom/${selectedClientOrderWork.id}` },
+                                        { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
                                     )
                                     : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
                                 {renderClientOrderStage(
@@ -683,10 +725,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 {selectedExpertRequestWork
                                     ? renderClientOrderStage(
                                         '작업 중',
-                                        '작업 진행',
-                                        workStatusText[selectedExpertRequestWork.status],
+                                        getExpertWorkStageTitle(selectedExpertRequestWork),
+                                        getExpertWorkStageDescription(selectedExpertRequestWork),
                                         selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
-                                        { label: selectedExpertRequestWork.status === 'completed' ? '완료 작업 보기' : '작업방 열기', to: `/workroom/${selectedExpertRequestWork.id}` },
+                                        { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
                                     )
                                     : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
                                 {renderClientOrderStage(
