@@ -268,57 +268,6 @@ export default function MyPage() {
         setExpertProposalMessage('제안서를 보냈습니다.')
     }
 
-    const renderProposalCards = (items: Proposal[], emptyText: string) => (
-        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-            {items.length > 0 ? (
-                items.map((proposal) => (
-                    <div
-                        key={proposal.id}
-                        style={{
-                            padding: '1rem',
-                            borderRadius: '0.75rem',
-                            background: '#f8fafc',
-                            border: '1px solid var(--border-color)',
-                        }}
-                    >
-                        <Link
-                            to={`/proposal/${proposal.id}`}
-                            state={myPageReturnState}
-                            style={{
-                                display: 'inline-block',
-                                color: '#0f172a',
-                                fontWeight: 800,
-                                textDecoration: 'none',
-                                marginBottom: '0.45rem',
-                            }}
-                        >
-                            {proposal.title}
-                        </Link>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span style={{ color: '#475569', fontSize: '0.9rem' }}>
-                                {proposal.totalPrice.toLocaleString()}원 · {proposal.deliveryDays}일
-                            </span>
-                            <span
-                                style={{
-                                    padding: '0.25rem 0.55rem',
-                                    borderRadius: '999px',
-                                    background: proposal.status === 'expired' ? '#fee2e2' : '#e0f2fe',
-                                    color: proposal.status === 'expired' ? '#b91c1c' : '#0369a1',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 800,
-                                }}
-                            >
-                                {proposalStatusText[proposal.status]}
-                            </span>
-                        </div>
-                    </div>
-                ))
-            ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
-            )}
-        </div>
-    )
-
     const renderWorkCards = (items: Work[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
@@ -377,71 +326,6 @@ export default function MyPage() {
                 ))
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
-            )}
-        </div>
-    )
-
-    const renderProductCards = (items: ExpertProduct[]) => (
-        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-            {items.length > 0 ? (
-                items.map((product) => (
-                    <div
-                        key={product.id}
-                        style={{
-                            padding: '1rem',
-                            borderRadius: '0.75rem',
-                            background: '#f8fafc',
-                            border: '1px solid var(--border-color)',
-                        }}
-                    >
-                        <Link
-                            to={`/expert/${product.id}`}
-                            state={myPageReturnState}
-                            style={{
-                                display: 'inline-block',
-                                color: '#0f172a',
-                                fontWeight: 800,
-                                textDecoration: 'none',
-                                marginBottom: '0.45rem',
-                            }}
-                        >
-                            {product.title}
-                        </Link>
-                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            {product.startingPrice.toLocaleString()}원부터 · {product.deliveryDays}일
-                        </p>
-                    </div>
-                ))
-            ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 등록한 상품이 없습니다.</p>
-            )}
-        </div>
-    )
-
-    const renderRequestCards = (items: ServiceRequestData[]) => (
-        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-            {items.length > 0 ? (
-                items.map((request) => (
-                    <div
-                        key={request.id}
-                        style={{
-                            padding: '1rem',
-                            borderRadius: '0.75rem',
-                            background: '#f8fafc',
-                            border: '1px solid var(--border-color)',
-                        }}
-                    >
-                        <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.45rem' }}>
-                            {request.desiredResult || request.title}
-                        </strong>
-                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            {request.budget ? `${Number(request.budget).toLocaleString()}원 · ` : ''}
-                            마감 {request.deadline || '미정'}
-                        </p>
-                    </div>
-                ))
-            ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 상품 의뢰가 없습니다.</p>
             )}
         </div>
     )
@@ -758,7 +642,7 @@ export default function MyPage() {
                     <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
                         상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
                     </p>
-                    <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 보기</Link>
+                    <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판 보기</Link>
                     {renderClientProductOrderManager()}
                 </section>
             )
@@ -776,7 +660,7 @@ export default function MyPage() {
                     </p>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
-                        <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>
+                        <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판에서 제안할 일 찾기</Link>
                         {sentProposal ? (
                             <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
                         ) : (
@@ -791,13 +675,6 @@ export default function MyPage() {
 
                     {renderExpertReceivedWorkManager()}
 
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>내가 등록한 상품</h3>
-                    {renderProductCards(myProducts)}
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>전문가 응답 필요</h3>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem', color: '#334155' }}>받은 상품 의뢰</h4>
-                    {renderRequestCards(receivedProductRequests)}
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '1.5rem 0 0.75rem' }}>보낸 제안서</h3>
-                    {renderProposalCards(sentProposals, '아직 보낸 제안서가 없습니다.')}
                 </section>
             )
         }
