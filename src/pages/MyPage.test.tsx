@@ -616,19 +616,40 @@ describe('MyPage', () => {
     it('opens profile management from the left menu instead of the top edit button', async () => {
         render(
             <MemoryRouter>
-                <MyPage />
+                <MyPage mode="profile" />
                 <LocationProbe />
             </MemoryRouter>,
         )
 
         expect(screen.queryByRole('link', { name: '프로필 수정하기' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: '마이 프로필' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '의뢰자 홈' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '전문가 홈' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '작업방' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '완료 / 리뷰' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '마이 프로필' }))
 
         expect(await screen.findByLabelText('마이 프로필 편집')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '프로필 저장하기' })).toBeInTheDocument()
         await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=profile'))
+    })
+
+    it('shows work management panels in the separated work page mode', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage mode="work" />
+            </MemoryRouter>,
+        )
+
+        expect(screen.getByRole('heading', { name: '내 작업' })).toBeInTheDocument()
+        expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '의뢰자 홈' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('button', { name: '전문가 홈' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '작업방' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '완료 / 리뷰' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
     })
 
     it('shows client and expert sections with transaction links', async () => {

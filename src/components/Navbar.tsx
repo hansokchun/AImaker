@@ -14,6 +14,7 @@ import { getStoredProfile } from '../lib/storage';
 const NAV_LINKS = [
     { path: ROUTES.CATEGORY, label: 'AI 작업 찾기' },
     { path: ROUTES.REQUEST_BOARD, label: '요청 게시판' },
+    { path: ROUTES.WORK_DASHBOARD, label: '내 작업' },
 ] as const;
 
 export default function Navbar() {

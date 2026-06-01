@@ -24,6 +24,7 @@ const workStatusText: Record<Work['status'], string> = {
 }
 
 type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'workroom' | 'reviews'
+type MyPageMode = 'profile' | 'work' | 'all'
 type WorkPhase = 'before' | 'active' | 'completed'
 type StageVisualState = 'done' | 'current' | 'pending'
 
@@ -63,17 +64,22 @@ const stageVisualConfig: Record<StageVisualState, { label: string; border: strin
     },
 }
 
-const menuItems: Array<{ id: MyPagePanel; label: string }> = [
+const profileMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'overview', label: '개요' },
     { id: 'profile', label: '마이 프로필' },
+]
+
+const workMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '의뢰자 홈' },
     { id: 'expert', label: '전문가 홈' },
     { id: 'workroom', label: '작업방' },
     { id: 'reviews', label: '완료 / 리뷰' },
 ]
 
-const isMyPagePanel = (value: string | null): value is MyPagePanel =>
-    Boolean(value && menuItems.some((item) => item.id === value))
+const allMenuItems = [...profileMenuItems, ...workMenuItems]
+
+const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; label: string }> = allMenuItems): value is MyPagePanel =>
+    Boolean(value && items.some((item) => item.id === value))
 
 const cardStyle = {
     background: 'white',
@@ -84,13 +90,19 @@ const cardStyle = {
 
 const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as const
 
-export default function MyPage() {
+type MyPageProps = {
+    mode?: MyPageMode
+}
+
+export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const { session, user, loading, signOut } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
+    const menuItems = mode === 'profile' ? profileMenuItems : mode === 'work' ? workMenuItems : allMenuItems
+    const defaultPanel = menuItems[0].id
     const [activePanel, setActivePanel] = useState<MyPagePanel>(
-        isMyPagePanel(searchParams.get('panel')) ? searchParams.get('panel') : 'overview',
+        isMyPagePanel(searchParams.get('panel'), menuItems) ? searchParams.get('panel') : defaultPanel,
     )
     const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(searchParams.get('clientOrder'))
     const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(searchParams.get('expertRequest'))
@@ -127,15 +139,21 @@ export default function MyPage() {
     }, [session, loading, navigate])
 
     useEffect(() => {
+        if (!menuItems.some((item) => item.id === activePanel)) {
+            setActivePanel(defaultPanel)
+        }
+    }, [activePanel, defaultPanel, menuItems])
+
+    useEffect(() => {
         const nextParams = new URLSearchParams()
-        if (activePanel !== 'overview') nextParams.set('panel', activePanel)
+        if (activePanel !== defaultPanel) nextParams.set('panel', activePanel)
         if (selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
         if (selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
 
         if (searchParams.toString() !== nextParams.toString()) {
             setSearchParams(nextParams, { replace: true })
         }
-    }, [activePanel, selectedClientOrderId, selectedExpertRequestId, searchParams, setSearchParams])
+    }, [activePanel, defaultPanel, selectedClientOrderId, selectedExpertRequestId, searchParams, setSearchParams])
 
     useEffect(() => {
         if (user && supabase) {
@@ -175,6 +193,11 @@ export default function MyPage() {
     const completedWorks = works.filter((work) => work.status === 'completed')
     const sentProposal = sentProposals[0] || null
     const publicProduct = myProducts[0] || null
+    const pageTitle = mode === 'work' ? '내 작업' : '마이페이지'
+    const pageDescription = mode === 'profile'
+        ? '프로필과 계정 기본 정보를 확인합니다.'
+        : '의뢰, 제안, 작업방, 완료 리뷰를 한 곳에서 관리합니다.'
+    const menuLabel = mode === 'work' ? '내 작업 메뉴' : '마이페이지 메뉴'
 
     const getProposalForRequest = (request: ServiceRequestData) =>
         proposals.find((proposal) => proposal.requestId === request.id)
@@ -717,9 +740,9 @@ export default function MyPage() {
             <main className="container">
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
                     <div>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>마이페이지</h1>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{pageTitle}</h1>
                         <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            왼쪽 메뉴에서 필요한 업무 영역을 선택해 확인합니다.
+                            {pageDescription}
                         </p>
                     </div>
                 </div>
@@ -743,7 +766,7 @@ export default function MyPage() {
                             </div>
                         </div>
 
-                        <nav aria-label="마이페이지 메뉴" style={{ display: 'grid', gap: '0.45rem' }}>
+                        <nav aria-label={menuLabel} style={{ display: 'grid', gap: '0.45rem' }}>
                             {menuItems.map((item) => {
                                 const selected = activePanel === item.id
                                 return (

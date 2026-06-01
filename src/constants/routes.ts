@@ -12,6 +12,7 @@ export const ROUTES = {
     PROPOSAL: '/proposal/:proposalId',
     WORKROOM: '/workroom/:workId',
     REQUEST_BOARD: '/requests',
+    WORK_DASHBOARD: '/my-work',
     LOGIN: '/login',
     ONBOARDING: '/onboarding',
     MY_PAGE: '/mypage',
