@@ -32,13 +32,15 @@ const workPhaseLabels: Record<WorkPhase, string> = {
     completed: '작업 완료',
 }
 
-const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string }> = {
+const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
     done: {
         label: '완료됨',
         border: '#16a34a',
         background: '#f0fdf4',
         badgeBackground: '#dcfce7',
         badgeColor: '#166534',
+        textColor: '#0f172a',
+        bodyColor: '#475569',
     },
     current: {
         label: '진행 중',
@@ -46,6 +48,8 @@ const stageVisualConfig: Record<StageVisualState, { label: string; border: strin
         background: '#eff6ff',
         badgeBackground: '#dbeafe',
         badgeColor: '#1d4ed8',
+        textColor: '#0f172a',
+        bodyColor: '#475569',
     },
     pending: {
         label: '대기',
@@ -53,6 +57,8 @@ const stageVisualConfig: Record<StageVisualState, { label: string; border: strin
         background: '#f8fafc',
         badgeBackground: '#e2e8f0',
         badgeColor: '#475569',
+        textColor: '#94a3b8',
+        bodyColor: '#94a3b8',
     },
 }
 
@@ -391,6 +397,7 @@ export default function MyPage() {
         action?: { label: string; to: string },
     ) => {
         const visual = stageVisualConfig[state]
+        const mutedProps = state === 'pending' ? { 'data-stage-muted': 'true' } : {}
         return (
             <div
                 aria-label={`${title} 단계 상태: ${visual.label}`}
@@ -403,7 +410,10 @@ export default function MyPage() {
                 }}
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '0.35rem' }}>
-                    <span style={{ display: 'block', color: visual.border, fontSize: '0.82rem', fontWeight: 800 }}>
+                    <span
+                        {...mutedProps}
+                        style={{ display: 'block', color: state === 'pending' ? visual.textColor : visual.border, fontSize: '0.82rem', fontWeight: 800 }}
+                    >
                         {phase}
                     </span>
                     <span
@@ -420,8 +430,8 @@ export default function MyPage() {
                         {visual.label}
                     </span>
                 </div>
-                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>{title}</strong>
-            <p style={{ color: 'var(--text-secondary)', margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
+                <strong {...mutedProps} style={{ display: 'block', color: visual.textColor, marginBottom: '0.4rem' }}>{title}</strong>
+            <p {...mutedProps} style={{ color: visual.bodyColor, margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
             {action && (
                 <Link className="btn-text" to={action.to}>
                     {action.label}

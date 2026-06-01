@@ -671,7 +671,10 @@ describe('MyPage', () => {
         expect(within(screen.getByLabelText('의뢰서 작성/요구사항 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('제안서 검토 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
-        expect(within(screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
+        const pendingReviewStage = screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')
+        expect(within(pendingReviewStage).getByText('대기')).toBeInTheDocument()
+        expect(within(pendingReviewStage).getByText('완료 확인/리뷰')).toHaveAttribute('data-stage-muted', 'true')
+        expect(within(pendingReviewStage).getByText('작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.')).toHaveAttribute('data-stage-muted', 'true')
     })
 
     it('groups client product orders by before, active, and completed work states', async () => {
@@ -723,7 +726,10 @@ describe('MyPage', () => {
         expect(within(screen.getByLabelText('받은 의뢰 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('제안서 작성/수정 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
         expect(within(screen.getByLabelText('작업 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
-        expect(within(screen.getByLabelText('작업 완료 단계 상태: 대기')).getByText('대기')).toBeInTheDocument()
+        const pendingCompleteStage = screen.getByLabelText('작업 완료 단계 상태: 대기')
+        expect(within(pendingCompleteStage).getByText('대기')).toBeInTheDocument()
+        expect(within(pendingCompleteStage).getAllByText('작업 완료').some((element) => element.getAttribute('data-stage-muted') === 'true')).toBe(true)
+        expect(within(pendingCompleteStage).getByText('결과물을 제출하고 의뢰자 확인을 기다립니다.')).toHaveAttribute('data-stage-muted', 'true')
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {
