@@ -871,10 +871,13 @@ export async function getWorkroomData(workId: string): Promise<{
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
         const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
+        const workDeliverables = deliverables
+            .filter((deliverable) => deliverable.workId === workId)
+            .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
         return {
             work: works.find((work) => work.id === workId) || null,
             steps: steps.filter((step) => step.workId === workId),
-            deliverables: deliverables.filter((deliverable) => deliverable.workId === workId),
+            deliverables: workDeliverables,
         };
     }
 

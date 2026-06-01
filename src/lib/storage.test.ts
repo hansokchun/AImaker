@@ -656,6 +656,109 @@ describe('transaction storage', () => {
         expect(proposalUpdate).not.toHaveBeenCalled()
     })
 
+    it('keeps the full local paid work lifecycle ordered around the latest deliverable', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem(
+            'ai_requests',
+            JSON.stringify([
+                {
+                    id: request.id,
+                    title: request.desiredResult,
+                    description: request.purpose,
+                    budget: '70000',
+                    deadline: request.deadline,
+                    categories: ['AI 영상/숏폼'],
+                    createdAt: '2026. 5. 17.',
+                    clientId: request.clientId,
+                    expertId: request.expertId,
+                    status: 'pending',
+                    productId: request.productId,
+                    selectedPackage: request.selectedPackage,
+                    desiredResult: request.desiredResult,
+                    purpose: request.purpose,
+                    referenceText: request.referenceText,
+                    referenceLinks: request.referenceLinks,
+                    progressType: request.progressType,
+                },
+            ]),
+        )
+        localStorage.setItem('ai_proposals', JSON.stringify([proposal]))
+
+        const {
+            acceptProposal,
+            approveWorkDeliverable,
+            getStoredRequests,
+            getUserProposals,
+            getWorkroomData,
+            requestWorkRevision,
+            saveDeliverable,
+        } = await import('./storage')
+
+        const workId = await acceptProposal(proposal)
+
+        await expect(getUserProposals(proposal.clientId)).resolves.toEqual([
+            expect.objectContaining({ id: proposal.id, status: 'accepted', paymentStatus: 'paid' }),
+        ])
+
+        let workroom = await getWorkroomData(workId)
+        expect(workroom.work).toEqual(
+            expect.objectContaining({
+                id: workId,
+                status: 'in_progress',
+                settlementStatus: 'held',
+                totalPrice: proposal.totalPrice,
+                platformFee: 8400,
+                expertPayout: 61600,
+            }),
+        )
+
+        const firstStep = workroom.steps[0]
+        const firstDeliverable: Deliverable = {
+            id: 'deliverable-first-flow',
+            workId,
+            stepId: firstStep.id,
+            expertId: proposal.expertId,
+            description: '1차 제출물 링크',
+            externalUrl: 'https://example.com/first-flow',
+            status: 'submitted',
+            submittedAt: '2026-06-01T00:00:00.000Z',
+        }
+        await saveDeliverable(firstDeliverable)
+        await requestWorkRevision(workId, firstDeliverable.id, firstStep.id)
+
+        workroom = await getWorkroomData(workId)
+        expect(workroom.work).toEqual(expect.objectContaining({ status: 'revision_requested' }))
+        expect(workroom.deliverables[0]).toEqual(expect.objectContaining({ id: firstDeliverable.id, status: 'revision_requested' }))
+
+        const revisedDeliverable: Deliverable = {
+            ...firstDeliverable,
+            id: 'deliverable-revision-flow',
+            description: '수정본 링크',
+            externalUrl: 'https://example.com/revision-flow',
+            submittedAt: '2026-06-02T00:00:00.000Z',
+            status: 'submitted',
+        }
+        await saveDeliverable(revisedDeliverable)
+
+        workroom = await getWorkroomData(workId)
+        expect(workroom.work).toEqual(expect.objectContaining({ status: 'submitted' }))
+        expect(workroom.steps[0]).toEqual(expect.objectContaining({ status: 'submitted' }))
+        expect(workroom.deliverables[0]).toEqual(
+            expect.objectContaining({ id: revisedDeliverable.id, description: '수정본 링크', status: 'submitted' }),
+        )
+
+        await approveWorkDeliverable(workId, revisedDeliverable.id, proposal.requestId, firstStep.id)
+
+        workroom = await getWorkroomData(workId)
+        expect(workroom.work).toEqual(expect.objectContaining({ status: 'completed', settlementStatus: 'pending' }))
+        await expect(getStoredRequests()).resolves.toEqual([])
+        expect(JSON.parse(localStorage.getItem('ai_requests') || '[]')).toEqual([
+            expect.objectContaining({ id: proposal.requestId, status: 'completed' }),
+        ])
+    })
+
     it('marks revised local work as submitted again after resubmission', async () => {
         vi.resetModules()
         localStorage.clear()
