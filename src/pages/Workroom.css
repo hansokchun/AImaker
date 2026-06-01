@@ -77,6 +77,24 @@
     line-height: 1.55;
 }
 
+.workroom-payment-panel {
+    display: grid;
+    gap: 0.55rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.workroom-payment-panel strong {
+    color: var(--text-primary);
+    font-size: 1.35rem;
+}
+
+.workroom-payment-panel span {
+    color: var(--text-secondary);
+    font-weight: 800;
+}
+
 .work-status-badge {
     align-self: flex-start;
     padding: 0.65rem 0.9rem;

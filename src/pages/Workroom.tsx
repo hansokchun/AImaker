@@ -65,6 +65,15 @@ const statusLabels: Record<WorkStep['status'], string> = {
     approved: '승인됨',
 }
 
+const currency = new Intl.NumberFormat('ko-KR')
+
+const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string> = {
+    held: '작업 진행 중 보관',
+    pending: '정산 대기',
+    settled: '정산 완료',
+    refunded: '환불 처리',
+}
+
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
     const location = useLocation()
@@ -134,7 +143,7 @@ export default function Workroom() {
                 step.id === activeDeliverable.stepId ? { ...step, status: 'approved' } : step,
             ),
         )
-        setWork((current) => ({ ...current, status: 'completed' }))
+        setWork((current) => ({ ...current, status: 'completed', settlementStatus: 'pending' }))
         setStatusMessage('결과물을 승인했습니다. 작업이 완료되었습니다.')
     }
 
@@ -262,6 +271,15 @@ export default function Workroom() {
                 </div>
 
                 <aside className="workroom-side-card">
+                    <section className="workroom-payment-panel">
+                        <h2>결제/정산</h2>
+                        <p>결제 완료</p>
+                        <strong>{currency.format(work.totalPrice || 0)}원</strong>
+                        <span>AIConnect 수수료 {currency.format(work.platformFee || 0)}원</span>
+                        <span>전문가 정산 예정 {currency.format(work.expertPayout || 0)}원</span>
+                        <span>{settlementStatusText[work.settlementStatus || 'held']}</span>
+                    </section>
+
                     <h2>의뢰자 확인</h2>
                     <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
                     <div className="review-actions">

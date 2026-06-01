@@ -23,6 +23,15 @@ const workStatusText: Record<Work['status'], string> = {
     cancelled: '취소',
 }
 
+const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string> = {
+    held: '작업 진행 중 보관',
+    pending: '정산 대기',
+    settled: '정산 완료',
+    refunded: '환불 처리',
+}
+
+const currency = new Intl.NumberFormat('ko-KR')
+
 type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type WorkPhase = 'before' | 'active' | 'completed'
@@ -330,6 +339,14 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         <p style={{ color: 'var(--text-secondary)', margin: '0 0 0.8rem' }}>
                             {workStatusText[work.status]}
                         </p>
+                        {work.settlementStatus && (
+                            <div style={{ display: 'grid', gap: '0.25rem', marginBottom: '0.8rem', color: '#475569', fontWeight: 800 }}>
+                                <span>{settlementStatusText[work.settlementStatus]}</span>
+                                {typeof work.expertPayout === 'number' && work.expertPayout > 0 && (
+                                    <span>전문가 정산 예정 {currency.format(work.expertPayout)}원</span>
+                                )}
+                            </div>
+                        )}
                         {work.status === 'completed' && work.clientId === user?.id && !reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
                             <button
                                 type="button"

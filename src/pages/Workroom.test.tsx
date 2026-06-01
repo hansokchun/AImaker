@@ -15,6 +15,10 @@ const work: Work = {
     title: mockWorkTitle,
     progressType: 'milestone',
     status: 'submitted',
+    totalPrice: 70000,
+    platformFee: 8400,
+    expertPayout: 61600,
+    settlementStatus: 'held',
     stepIds: ['step-concept'],
 }
 
@@ -81,6 +85,12 @@ describe('Workroom', () => {
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
         expect(screen.getByText('콘셉트 확인')).toBeInTheDocument()
         expect(screen.getByText('1차 시안 링크')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '결제/정산' })).toBeInTheDocument()
+        expect(screen.getByText('결제 완료')).toBeInTheDocument()
+        expect(screen.getByText('70,000원')).toBeInTheDocument()
+        expect(screen.getByText('AIConnect 수수료 8,400원')).toBeInTheDocument()
+        expect(screen.getByText('전문가 정산 예정 61,600원')).toBeInTheDocument()
+        expect(screen.getByText('작업 진행 중 보관')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'https://example.com/new-deliverable' },
@@ -166,6 +176,7 @@ describe('Workroom', () => {
         )
         expect(screen.getByText('결과물을 승인했습니다. 작업이 완료되었습니다.')).toBeInTheDocument()
         expect(screen.getByText('완료')).toBeInTheDocument()
+        expect(screen.getByText('정산 대기')).toBeInTheDocument()
         expect(screen.getAllByText('승인됨').length).toBeGreaterThan(0)
     })
 
