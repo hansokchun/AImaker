@@ -372,12 +372,13 @@ npm.cmd run build
 
 작업:
 
-- [x] 제안서 화면의 승인 버튼을 `승인하고 결제하기` 흐름으로 변경한다.
+- [x] 제안서 화면의 승인 버튼을 MVP 테스트용 `테스트 결제 완료 처리` 흐름으로 변경한다.
 - [x] 결제 완료 상태를 `proposals.payment_status = paid`로 저장한다.
 - [x] 작업방 생성 시 총액, 플랫폼 수수료, 전문가 정산 예정액을 저장한다.
 - [x] 플랫폼 수수료율은 MVP 기준 `12%`로 고정한다.
 - [x] 작업 완료 승인 시 `works.settlement_status = pending`으로 변경한다.
 - [x] 기존 테이블에도 반영할 수 있도록 `alter table ... add column if not exists`를 포함한다.
+- [x] 실제 PG 연동 전까지 모의 결제임을 제안서 화면과 문구 문서에 명확히 표시한다.
 
 검증:
 
