@@ -197,6 +197,33 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
     {
+        id: 'product-client-revision',
+        expertId: 'expert-real-revision',
+        expertName: 'Revision expert',
+        title: '수정 요청 테스트 상품',
+        category: 'ai-video-shortform',
+        summary: 'Revision summary',
+        description: 'Revision description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 55000,
+        deliveryDays: 3,
+        revisionCount: 2,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 55000,
+                deliveryDays: 3,
+                revisionCount: 2,
+                included: ['Revision'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'published',
+    },
+    {
         id: 'product-other-01',
         expertId: 'other-user',
         expertName: 'Other expert',
@@ -485,6 +512,17 @@ const defaultWorks = () => [
         stepIds: [],
     },
     {
+        id: 'work-client-revision-order',
+        proposalId: 'proposal-client-revision-order',
+        requestId: 'request-product-client-revision',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-revision',
+        title: '수정 요청 테스트 상품',
+        progressType: 'single' as const,
+        status: 'revision_requested' as const,
+        stepIds: [],
+    },
+    {
         id: 'work-client-completed-order',
         proposalId: 'proposal-client-completed-order',
         requestId: 'request-product-client-completed',
@@ -515,6 +553,17 @@ const defaultWorks = () => [
         title: '전문가 제출 완료 상품',
         progressType: 'single' as const,
         status: 'submitted' as const,
+        stepIds: [],
+    },
+    {
+        id: 'work-expert-revision-order',
+        proposalId: 'proposal-expert-revision-order',
+        requestId: 'request-product-directed-revision',
+        clientId: 'client-real-revision',
+        expertId: 'user-demo-01',
+        title: '전문가 수정 요청 상품',
+        progressType: 'single' as const,
+        status: 'revision_requested' as const,
         stepIds: [],
     },
     {
@@ -628,6 +677,25 @@ describe('MyPage', () => {
                 status: 'in_progress',
             },
             {
+                id: 'request-product-client-revision',
+                title: '수정 요청 상품 주문',
+                description: '의뢰자가 수정 요청을 보낸 주문',
+                budget: '55000',
+                deadline: '2026-06-08',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-revision',
+                productId: 'product-client-revision',
+                selectedPackage: 'standard',
+                desiredResult: '수정 요청 요구사항',
+                purpose: '수정 확인',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
+            },
+            {
                 id: 'request-product-directed-01',
                 title: 'Owned AI product',
                 description: '상품 지정 의뢰 상세',
@@ -697,6 +765,25 @@ describe('MyPage', () => {
                 productId: 'product-owned-01',
                 selectedPackage: 'standard',
                 desiredResult: '전문가 제출 완료 요구사항',
+                purpose: 'SNS 홍보',
+                referenceText: '',
+                referenceLinks: [],
+                progressType: 'single',
+                status: 'in_progress',
+            },
+            {
+                id: 'request-product-directed-revision',
+                title: '전문가 수정 요청 상품 의뢰',
+                description: '의뢰자가 수정 요청을 보낸 상품 지정 의뢰',
+                budget: '68000',
+                deadline: '2026-06-12',
+                categories: ['AI 영상/숏폼'],
+                createdAt: '2026. 6. 1.',
+                clientId: 'client-real-revision',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                selectedPackage: 'standard',
+                desiredResult: '전문가 수정 요청 요구사항',
                 purpose: 'SNS 홍보',
                 referenceText: '',
                 referenceLinks: [],
@@ -894,6 +981,28 @@ describe('MyPage', () => {
         ).toBeGreaterThan(0)
     })
 
+    it('shows revision requested product orders as waiting for expert fixes', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+
+        const groups = await screen.findByLabelText('의뢰자 주문 상태 그룹')
+        fireEvent.click(within(groups).getByRole('button', { name: /수정 요청 요구사항/ }))
+
+        expect(screen.getByRole('heading', { name: '수정 요청 테스트 상품' })).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 수정 요청 보냄')).toBeInTheDocument()
+        expect(screen.getByText('수정 요청 보냄')).toBeInTheDocument()
+        expect(screen.getByText('전문가에게 수정 요청을 보냈고 재제출을 기다립니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '수정 요청 확인하기' })).toHaveAttribute(
+            'href',
+            '/workroom/work-client-revision-order',
+        )
+    })
+
     it('groups expert received product work by before, active, and completed states', async () => {
         render(
             <MemoryRouter>
@@ -949,6 +1058,28 @@ describe('MyPage', () => {
         expect(screen.getByRole('link', { name: '제출물 확인하기' })).toHaveAttribute(
             'href',
             '/workroom/work-expert-submitted-order',
+        )
+    })
+
+    it('shows revision requested expert work as needing expert action', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+
+        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        fireEvent.click(within(groups).getByRole('button', { name: /전문가 수정 요청 요구사항/ }))
+
+        expect(screen.getByRole('heading', { name: '전문가 수정 요청 요구사항' })).toBeInTheDocument()
+        expect(screen.getByText('현재 단계: 수정 대응 필요')).toBeInTheDocument()
+        expect(screen.getByText('수정 대응 필요')).toBeInTheDocument()
+        expect(screen.getByText('의뢰자가 수정 요청을 보냈습니다. 작업방에서 수정본을 다시 제출합니다.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '수정본 제출하기' })).toHaveAttribute(
+            'href',
+            '/workroom/work-expert-revision-order',
         )
     })
 

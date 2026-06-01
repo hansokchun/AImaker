@@ -99,38 +99,40 @@ const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; lab
 const getClientWorkStageTitle = (work: Work) => {
     if (work.status === 'completed') return '작업 완료'
     if (work.status === 'submitted') return '결과물 검토 대기'
-    if (work.status === 'revision_requested') return '수정 요청 반영'
+    if (work.status === 'revision_requested') return '수정 요청 보냄'
     return '작업방 진행'
 }
 
 const getClientWorkStageDescription = (work: Work) => {
     if (work.status === 'submitted') return '전문가가 제출한 결과물을 확인하고 승인 또는 수정 요청을 진행합니다.'
-    if (work.status === 'revision_requested') return '수정 요청을 보냈고 전문가가 다시 제출할 수 있습니다.'
+    if (work.status === 'revision_requested') return '전문가에게 수정 요청을 보냈고 재제출을 기다립니다.'
     return workStatusText[work.status]
 }
 
 const getClientWorkStageActionLabel = (work: Work) => {
     if (work.status === 'completed') return '완료 작업 보기'
     if (work.status === 'submitted') return '결과물 확인하기'
+    if (work.status === 'revision_requested') return '수정 요청 확인하기'
     return '작업방 열기'
 }
 
 const getExpertWorkStageTitle = (work: Work) => {
     if (work.status === 'completed') return '작업 완료'
     if (work.status === 'submitted') return '제출 완료 - 승인 대기'
-    if (work.status === 'revision_requested') return '수정 요청 대응'
+    if (work.status === 'revision_requested') return '수정 대응 필요'
     return '작업 진행'
 }
 
 const getExpertWorkStageDescription = (work: Work) => {
     if (work.status === 'submitted') return '결과물을 제출했고 의뢰자의 승인 또는 수정 요청을 기다립니다.'
-    if (work.status === 'revision_requested') return '의뢰자가 수정 요청을 보냈습니다. 작업방에서 수정 제출을 진행합니다.'
+    if (work.status === 'revision_requested') return '의뢰자가 수정 요청을 보냈습니다. 작업방에서 수정본을 다시 제출합니다.'
     return workStatusText[work.status]
 }
 
 const getExpertWorkStageActionLabel = (work: Work) => {
     if (work.status === 'completed') return '완료 작업 보기'
     if (work.status === 'submitted') return '제출물 확인하기'
+    if (work.status === 'revision_requested') return '수정본 제출하기'
     return '작업방 열기'
 }
 
@@ -295,7 +297,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ? '작업 후'
             : selectedClientOrderWork.status === 'submitted'
                 ? '결과물 검토'
-                : '작업 중'
+                : selectedClientOrderWork.status === 'revision_requested'
+                    ? '수정 요청 보냄'
+                    : '작업 중'
         : selectedClientOrderProposal
             ? selectedClientOrderProposal.paymentStatus === 'paid'
                 ? '작업방 생성 대기'
@@ -314,7 +318,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ? '작업 완료'
             : selectedExpertRequestWork.status === 'submitted'
                 ? '의뢰자 승인 대기'
-                : '작업 중'
+                : selectedExpertRequestWork.status === 'revision_requested'
+                    ? '수정 대응 필요'
+                    : '작업 중'
         : selectedExpertRequestProposal
             ? selectedExpertRequestProposal.paymentStatus === 'paid'
                 ? '작업방 생성 대기'
