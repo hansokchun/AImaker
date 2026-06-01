@@ -130,7 +130,77 @@ create trigger set_expert_products_updated_at
   before update on public.expert_products
   for each row execute function public.set_updated_at();
 
--- 3. service_requests
+-- 3. consultations
+create table if not exists public.consultations (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid references public.profiles(id) on delete cascade,
+  expert_id uuid references public.profiles(id) on delete cascade,
+  product_id uuid references public.expert_products(id) on delete cascade,
+  title text not null,
+  status text not null default 'open' check (status in ('open', 'proposal_sent', 'closed')),
+  last_message_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.consultations enable row level security;
+
+drop policy if exists "Consultation participants can view consultations" on public.consultations;
+create policy "Consultation participants can view consultations"
+  on public.consultations for select
+  using (auth.uid() = client_id or auth.uid() = expert_id);
+
+drop policy if exists "Clients can insert own consultations" on public.consultations;
+create policy "Clients can insert own consultations"
+  on public.consultations for insert
+  with check (auth.uid() = client_id);
+
+drop policy if exists "Consultation participants can update consultations" on public.consultations;
+create policy "Consultation participants can update consultations"
+  on public.consultations for update
+  using (auth.uid() = client_id or auth.uid() = expert_id)
+  with check (auth.uid() = client_id or auth.uid() = expert_id);
+
+drop trigger if exists set_consultations_updated_at on public.consultations;
+create trigger set_consultations_updated_at
+  before update on public.consultations
+  for each row execute function public.set_updated_at();
+
+create table if not exists public.consultation_messages (
+  id uuid primary key default gen_random_uuid(),
+  consultation_id uuid references public.consultations(id) on delete cascade,
+  sender_id uuid references public.profiles(id) on delete cascade,
+  body text not null,
+  attachment_urls text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+alter table public.consultation_messages enable row level security;
+
+drop policy if exists "Consultation participants can view messages" on public.consultation_messages;
+create policy "Consultation participants can view messages"
+  on public.consultation_messages for select
+  using (
+    exists (
+      select 1 from public.consultations
+      where consultations.id = consultation_messages.consultation_id
+      and (consultations.client_id = auth.uid() or consultations.expert_id = auth.uid())
+    )
+  );
+
+drop policy if exists "Consultation participants can insert messages" on public.consultation_messages;
+create policy "Consultation participants can insert messages"
+  on public.consultation_messages for insert
+  with check (
+    sender_id = auth.uid()
+    and exists (
+      select 1 from public.consultations
+      where consultations.id = consultation_messages.consultation_id
+      and (consultations.client_id = auth.uid() or consultations.expert_id = auth.uid())
+    )
+  );
+
+-- 4. service_requests
 create table if not exists public.service_requests (
   id uuid primary key default gen_random_uuid(),
   client_id uuid references public.profiles(id) on delete cascade,
@@ -189,10 +259,11 @@ create trigger set_service_requests_updated_at
   before update on public.service_requests
   for each row execute function public.set_updated_at();
 
--- 4. proposals
+-- 5. proposals
 create table if not exists public.proposals (
   id uuid primary key default gen_random_uuid(),
   request_id uuid references public.service_requests(id) on delete cascade,
+  consultation_id uuid references public.consultations(id) on delete cascade,
   client_id uuid references public.profiles(id) on delete cascade,
   expert_id uuid references public.profiles(id) on delete cascade,
   title text not null,
@@ -220,6 +291,7 @@ alter table public.proposals add column if not exists payment_status text not nu
 alter table public.proposals add column if not exists platform_fee_rate numeric(5,4) not null default 0.12;
 alter table public.proposals add column if not exists paid_at timestamptz;
 alter table public.proposals add column if not exists refunded_at timestamptz;
+alter table public.proposals add column if not exists consultation_id uuid references public.consultations(id) on delete cascade;
 
 alter table public.proposals enable row level security;
 
@@ -234,14 +306,23 @@ create policy "Experts can insert proposal for submitted request"
   on public.proposals for insert
   with check (
     auth.uid() = expert_id
-    and exists (
-      select 1 from public.service_requests
-      where service_requests.id = proposals.request_id
-      and service_requests.client_id = proposals.client_id
-      and service_requests.status in ('submitted', 'pending')
-      and (
-        service_requests.expert_id is null
-        or service_requests.expert_id = proposals.expert_id
+    and (
+      exists (
+        select 1 from public.service_requests
+        where service_requests.id = proposals.request_id
+        and service_requests.client_id = proposals.client_id
+        and service_requests.status in ('submitted', 'pending')
+        and (
+          service_requests.expert_id is null
+          or service_requests.expert_id = proposals.expert_id
+        )
+      )
+      or exists (
+        select 1 from public.consultations
+        where consultations.id = proposals.consultation_id
+        and consultations.client_id = proposals.client_id
+        and consultations.expert_id = proposals.expert_id
+        and consultations.status in ('open', 'proposal_sent')
       )
     )
   );
@@ -258,7 +339,7 @@ create trigger set_proposals_updated_at
   before update on public.proposals
   for each row execute function public.set_updated_at();
 
--- 5. works
+-- 6. works
 create table if not exists public.works (
   id uuid primary key default gen_random_uuid(),
   proposal_id uuid references public.proposals(id) on delete cascade,
@@ -317,7 +398,7 @@ create trigger set_works_updated_at
   before update on public.works
   for each row execute function public.set_updated_at();
 
--- 6. work_steps
+-- 7. work_steps
 create table if not exists public.work_steps (
   id uuid primary key default gen_random_uuid(),
   work_id uuid references public.works(id) on delete cascade,
@@ -374,7 +455,7 @@ create trigger set_work_steps_updated_at
   before update on public.work_steps
   for each row execute function public.set_updated_at();
 
--- 7. deliverables
+-- 8. deliverables
 create table if not exists public.deliverables (
   id uuid primary key default gen_random_uuid(),
   work_id uuid references public.works(id) on delete cascade,
@@ -430,7 +511,7 @@ create trigger set_deliverables_updated_at
   before update on public.deliverables
   for each row execute function public.set_updated_at();
 
--- 8. reviews
+-- 9. reviews
 create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
   work_id uuid references public.works(id) on delete cascade,
@@ -469,7 +550,7 @@ create trigger set_reviews_updated_at
   before update on public.reviews
   for each row execute function public.set_updated_at();
 
--- 9. Storage buckets and policies
+-- 10. Storage buckets and policies
 insert into storage.buckets (id, name, public)
 values
   ('product-samples', 'product-samples', true),

@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getExpertProducts, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveProposal, saveReview } from '../lib/storage'
-import type { ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
+import { getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveProposal, saveReview } from '../lib/storage'
+import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import Profile from './Profile'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
@@ -32,7 +32,7 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 
 const currency = new Intl.NumberFormat('ko-KR')
 
-type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'workroom' | 'reviews'
+type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'consultations' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
 
@@ -73,6 +73,7 @@ const profileMenuItems: Array<{ id: MyPagePanel; label: string }> = [
 
 const workMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '작업 관리' },
+    { id: 'consultations', label: '상담 채팅' },
     { id: 'workroom', label: '작업방' },
     { id: 'reviews', label: '완료 / 리뷰' },
 ]
@@ -154,6 +155,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     )
     const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(searchParams.get('clientOrder'))
     const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(searchParams.get('expertRequest'))
+    const [selectedConsultationId, setSelectedConsultationId] = useState<string | null>(searchParams.get('consultation'))
     const [isExpert, setIsExpert] = useState(false)
     const [name, setName] = useState('')
     const [reviewOpen, setReviewOpen] = useState(false)
@@ -167,6 +169,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [serviceRequests, setServiceRequests] = useState<ServiceRequestData[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
     const [works, setWorks] = useState<Work[]>([])
+    const [consultations, setConsultations] = useState<Consultation[]>([])
+    const [consultationMessages, setConsultationMessages] = useState<ConsultationMessage[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
 
@@ -198,11 +202,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (activePanel !== defaultPanel) nextParams.set('panel', activePanel)
         if (selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
         if (selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
+        if (activePanel === 'consultations' && selectedConsultationId) nextParams.set('consultation', selectedConsultationId)
 
         if (searchParams.toString() !== nextParams.toString()) {
             setSearchParams(nextParams, { replace: true })
         }
-    }, [activePanel, defaultPanel, selectedClientOrderId, selectedExpertRequestId, searchParams, setSearchParams])
+    }, [activePanel, defaultPanel, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParams, setSearchParams])
 
     useEffect(() => {
         if (user && supabase) {
@@ -225,12 +230,36 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 console.error('리뷰 목록 로딩 오류:', error)
                 setReviews([])
             })
+            getUserConsultations(user.id).then(setConsultations).catch((error) => {
+                console.error('상담 목록 로딩 오류:', error)
+                setConsultations([])
+            })
             getExpertProducts().then(setProducts).catch((error) => {
                 console.error('상품 목록 로딩 오류:', error)
                 setProducts([])
             })
         }
     }, [fetchProfile, user])
+
+    useEffect(() => {
+        if (activePanel === 'consultations' && !selectedConsultationId && consultations.length > 0) {
+            setSelectedConsultationId(consultations[0].id)
+        }
+    }, [activePanel, consultations, selectedConsultationId])
+
+    useEffect(() => {
+        if (!selectedConsultationId) {
+            setConsultationMessages([])
+            return
+        }
+
+        getConsultationMessages(selectedConsultationId)
+            .then(setConsultationMessages)
+            .catch((error) => {
+                console.error('상담 메시지 로딩 오류:', error)
+                setConsultationMessages([])
+            })
+    }, [selectedConsultationId])
 
     const completedWork = works.find((work) => work.status === 'completed') || null
     const receivedProposals = proposals.filter((proposal) => proposal.clientId === user?.id)
@@ -298,6 +327,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         ? sentProposals.find((proposal) => proposal.requestId === selectedExpertRequest.id)
         : null
     const selectedExpertRequestWork = selectedExpertRequest ? getWorkForRequest(selectedExpertRequest) : null
+    const selectedConsultation = consultations.find((consultation) => consultation.id === selectedConsultationId) || consultations[0] || null
+    const selectedConsultationProduct = selectedConsultation
+        ? products.find((product) => product.id === selectedConsultation.productId)
+        : null
     const selectedExpertRequestCurrentStage = selectedExpertRequestWork
         ? selectedExpertRequestWork.status === 'completed'
             ? '작업 완료'
@@ -741,6 +774,103 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </div>
     )
 
+    const renderConsultationPanel = () => (
+        <section style={cardStyle}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.5rem' }}>상담 채팅</h2>
+            <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
+                전문가 문의로 시작한 상담을 한 곳에서 확인합니다. 상담 후 제안서를 받아야 결제와 작업방 생성으로 이어집니다.
+            </p>
+
+            {consultations.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.8fr) minmax(0, 1.5fr)', gap: '1rem', alignItems: 'start' }}>
+                    <div aria-label="상담 채팅 목록" style={{ display: 'grid', gap: '0.65rem' }}>
+                        {consultations.map((consultation) => {
+                            const selected = selectedConsultation?.id === consultation.id
+                            const product = products.find((item) => item.id === consultation.productId)
+                            return (
+                                <button
+                                    key={consultation.id}
+                                    type="button"
+                                    aria-pressed={selected}
+                                    onClick={() => {
+                                        setActivePanel('consultations')
+                                        setSelectedConsultationId(consultation.id)
+                                    }}
+                                    style={{
+                                        textAlign: 'left',
+                                        padding: '1rem',
+                                        borderRadius: '0.75rem',
+                                        border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
+                                        background: selected ? '#eff6ff' : '#f8fafc',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem' }}>
+                                        {consultation.title}
+                                    </strong>
+                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                        {product?.title || '상품 상담'} · {consultation.status === 'proposal_sent' ? '제안서 발송됨' : consultation.status === 'closed' ? '종료됨' : '상담 중'}
+                                    </span>
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    <div style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: '#fff' }}>
+                        {selectedConsultation ? (
+                            <>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.35rem' }}>
+                                    {selectedConsultation.title}
+                                </h3>
+                                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                                    {selectedConsultationProduct?.title || '상품 상담'} · {selectedConsultation.status === 'proposal_sent' ? '제안서 발송됨' : selectedConsultation.status === 'closed' ? '종료됨' : '상담 중'}
+                                </p>
+                                <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
+                                    {consultationMessages.length > 0 ? (
+                                        consultationMessages.map((message) => {
+                                            const mine = message.senderId === user?.id
+                                            return (
+                                                <div
+                                                    key={message.id}
+                                                    style={{
+                                                        justifySelf: mine ? 'end' : 'start',
+                                                        maxWidth: '78%',
+                                                        padding: '0.8rem 0.9rem',
+                                                        borderRadius: '0.75rem',
+                                                        background: mine ? '#2563eb' : '#f1f5f9',
+                                                        color: mine ? 'white' : '#0f172a',
+                                                        fontWeight: 700,
+                                                        lineHeight: 1.5,
+                                                    }}
+                                                >
+                                                    {message.body}
+                                                </div>
+                                            )
+                                        })
+                                    ) : (
+                                        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 상담 메시지가 없습니다.</p>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                    <button type="button" className="btn-primary" disabled style={{ padding: '0.75rem 1rem' }}>
+                                        메시지 보내기 준비 중
+                                    </button>
+                                    <button type="button" className="btn-text" disabled>
+                                        제안서 보내기 준비 중
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>상담을 선택해주세요.</p>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 상담 채팅이 없습니다.</p>
+            )}
+        </section>
+    )
+
     const renderPanel = () => {
         if (activePanel === 'overview') {
             return (
@@ -872,6 +1002,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
                 </section>
             )
+        }
+
+        if (activePanel === 'consultations') {
+            return renderConsultationPanel()
         }
 
         if (activePanel === 'workroom') {

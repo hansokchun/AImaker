@@ -888,6 +888,77 @@ describe('transaction storage', () => {
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
     })
 
+    it('loads consultation chats and messages from Supabase', async () => {
+        vi.resetModules()
+        const consultationOrder = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: 'consultation-db-01',
+                    client_id: request.clientId,
+                    expert_id: request.expertId,
+                    product_id: request.productId,
+                    status: 'open',
+                    title: 'AI 숏폼 상담',
+                    last_message_at: '2026-06-02T10:00:00.000Z',
+                    created_at: '2026-06-02T09:00:00.000Z',
+                },
+            ],
+            error: null,
+        })
+        const consultationOr = vi.fn(() => ({ order: consultationOrder }))
+        const consultationSelect = vi.fn(() => ({ or: consultationOr }))
+        const messageOrder = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: 'message-db-01',
+                    consultation_id: 'consultation-db-01',
+                    sender_id: request.clientId,
+                    body: '브랜드 소개용 숏폼 상담 가능할까요?',
+                    attachment_urls: [],
+                    created_at: '2026-06-02T10:00:00.000Z',
+                },
+            ],
+            error: null,
+        })
+        const messageEq = vi.fn(() => ({ order: messageOrder }))
+        const messageSelect = vi.fn(() => ({ eq: messageEq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'consultation_messages') return { select: messageSelect }
+            return { select: consultationSelect }
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getConsultationMessages, getUserConsultations } = await import('./storage')
+
+        await expect(getUserConsultations(request.clientId)).resolves.toEqual([
+            {
+                id: 'consultation-db-01',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: request.productId,
+                status: 'open',
+                title: 'AI 숏폼 상담',
+                lastMessageAt: '2026-06-02T10:00:00.000Z',
+                createdAt: '2026-06-02T09:00:00.000Z',
+            },
+        ])
+        await expect(getConsultationMessages('consultation-db-01')).resolves.toEqual([
+            {
+                id: 'message-db-01',
+                consultationId: 'consultation-db-01',
+                senderId: request.clientId,
+                body: '브랜드 소개용 숏폼 상담 가능할까요?',
+                attachmentUrls: [],
+                createdAt: '2026-06-02T10:00:00.000Z',
+            },
+        ])
+        expect(from).toHaveBeenCalledWith('consultations')
+        expect(consultationOr).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)
+        expect(consultationOrder).toHaveBeenCalledWith('last_message_at', { ascending: false })
+        expect(messageEq).toHaveBeenCalledWith('consultation_id', 'consultation-db-01')
+        expect(messageOrder).toHaveBeenCalledWith('created_at', { ascending: true })
+    })
+
     it('marks expired user proposals from Supabase as expired', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({

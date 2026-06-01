@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
-import type { Proposal, Review, ServiceRequestData } from '../types'
+import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData } from '../types'
 
 vi.mock('./Profile', () => ({
     default: () => (
@@ -375,6 +375,38 @@ const getUserWorks = vi.fn(async (_userId: string) => [
         stepIds: [],
     },
 ])
+const getUserConsultations = vi.fn(async (_userId: string): Promise<Consultation[]> => [
+    {
+        id: 'consult-client-01',
+        clientId: 'user-demo-01',
+        expertId: 'expert-real-01',
+        productId: 'product-client-01',
+        status: 'open',
+        title: 'AI 숏폼 영상 제작 상담',
+        lastMessageAt: '2026-06-02T10:00:00.000Z',
+        createdAt: '2026-06-02T09:30:00.000Z',
+    },
+    {
+        id: 'consult-expert-01',
+        clientId: 'client-real-01',
+        expertId: 'user-demo-01',
+        productId: 'product-owned-01',
+        status: 'proposal_sent',
+        title: 'Owned AI product 상담',
+        lastMessageAt: '2026-06-01T11:00:00.000Z',
+        createdAt: '2026-06-01T10:30:00.000Z',
+    },
+])
+const getConsultationMessages = vi.fn(async (consultationId: string): Promise<ConsultationMessage[]> => [
+    {
+        id: `${consultationId}-message-01`,
+        consultationId,
+        senderId: consultationId === 'consult-client-01' ? 'user-demo-01' : 'client-real-01',
+        body: consultationId === 'consult-client-01' ? '브랜드 소개용 숏폼 상담 가능할까요?' : '작업 범위를 먼저 확인하고 싶습니다.',
+        attachmentUrls: [],
+        createdAt: '2026-06-02T10:00:00.000Z',
+    },
+])
 
 const defaultProposals = () => [
     {
@@ -585,6 +617,8 @@ vi.mock('../lib/storage', () => ({
     getUserReviews: (userId: string) => getUserReviews(userId),
     getUserServiceRequests: (userId: string) => getUserServiceRequests(userId),
     getUserWorks: (userId: string) => getUserWorks(userId),
+    getUserConsultations: (userId: string) => getUserConsultations(userId),
+    getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     saveReview: (review: Review) => saveReview(review),
 }))
@@ -793,6 +827,40 @@ describe('MyPage', () => {
         ])
         getUserWorks.mockReset()
         getUserWorks.mockResolvedValue(defaultWorks())
+        getUserConsultations.mockReset()
+        getUserConsultations.mockResolvedValue([
+            {
+                id: 'consult-client-01',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-01',
+                productId: 'product-client-01',
+                status: 'open',
+                title: 'AI 숏폼 영상 제작 상담',
+                lastMessageAt: '2026-06-02T10:00:00.000Z',
+                createdAt: '2026-06-02T09:30:00.000Z',
+            },
+            {
+                id: 'consult-expert-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                status: 'proposal_sent',
+                title: 'Owned AI product 상담',
+                lastMessageAt: '2026-06-01T11:00:00.000Z',
+                createdAt: '2026-06-01T10:30:00.000Z',
+            },
+        ])
+        getConsultationMessages.mockReset()
+        getConsultationMessages.mockImplementation(async (consultationId: string) => [
+            {
+                id: `${consultationId}-message-01`,
+                consultationId,
+                senderId: consultationId === 'consult-client-01' ? 'user-demo-01' : 'client-real-01',
+                body: consultationId === 'consult-client-01' ? '브랜드 소개용 숏폼 상담 가능할까요?' : '작업 범위를 먼저 확인하고 싶습니다.',
+                attachmentUrls: [],
+                createdAt: '2026-06-02T10:00:00.000Z',
+            },
+        ])
     })
 
     it('opens profile management from the left menu instead of the top edit button', async () => {
@@ -838,6 +906,7 @@ describe('MyPage', () => {
         expect(within(roleSwitch).getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
         expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
         expect(screen.getByRole('button', { name: '작업방' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '상담 채팅' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '완료 / 리뷰' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
@@ -846,6 +915,27 @@ describe('MyPage', () => {
 
         expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
+    })
+
+    it('opens the consultation chat panel with a selected consultation from the query string', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '상담 채팅' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('heading', { name: '상담 채팅' })).toBeInTheDocument()
+        expect(screen.getByLabelText('상담 채팅 목록')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /AI 숏폼 영상 제작 상담/ })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).toBeInTheDocument()
+        expect(await screen.findByText('브랜드 소개용 숏폼 상담 가능할까요?')).toBeInTheDocument()
+        expect(getConsultationMessages).toHaveBeenCalledWith('consult-client-01')
+        expect(screen.getByTestId('location').textContent).toContain('panel=consultations')
+        expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
     })
 
     it('shows client and expert sections with transaction links', async () => {

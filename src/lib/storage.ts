@@ -5,6 +5,8 @@
  */
 import type {
     AiServiceRequest,
+    Consultation,
+    ConsultationMessage,
     Deliverable,
     Expert,
     ExpertProduct,
@@ -30,6 +32,8 @@ const STORAGE_KEYS = {
     WORK_STEPS: 'ai_work_steps',
     DELIVERABLES: 'ai_deliverables',
     REVIEWS: 'ai_reviews',
+    CONSULTATIONS: 'ai_consultations',
+    CONSULTATION_MESSAGES: 'ai_consultation_messages',
 } as const;
 
 const PLATFORM_FEE_RATE = 0.12;
@@ -71,6 +75,26 @@ const toReview = (item: any): Review => ({
     expertId: item.expert_id,
     rating: item.rating,
     content: item.content,
+    createdAt: item.created_at,
+});
+
+const toConsultation = (item: any): Consultation => ({
+    id: item.id,
+    clientId: item.client_id,
+    expertId: item.expert_id,
+    productId: item.product_id,
+    status: item.status || 'open',
+    title: item.title || '상담 채팅',
+    lastMessageAt: item.last_message_at || item.created_at,
+    createdAt: item.created_at,
+});
+
+const toConsultationMessage = (item: any): ConsultationMessage => ({
+    id: item.id,
+    consultationId: item.consultation_id,
+    senderId: item.sender_id,
+    body: item.body || '',
+    attachmentUrls: item.attachment_urls || [],
     createdAt: item.created_at,
 });
 
@@ -299,6 +323,52 @@ export async function getUserServiceRequests(userId: string): Promise<ServiceReq
     }
 
     return (data || []).map(toServiceRequestData);
+}
+
+export async function getUserConsultations(userId: string): Promise<Consultation[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
+        const consultations = raw ? (JSON.parse(raw) as Consultation[]) : [];
+        return consultations
+            .filter((consultation) => consultation.clientId === userId || consultation.expertId === userId)
+            .sort((first, second) => Date.parse(second.lastMessageAt || second.createdAt) - Date.parse(first.lastMessageAt || first.createdAt));
+    }
+
+    const { data, error } = await supabase
+        .from('consultations')
+        .select('*')
+        .or(`client_id.eq.${userId},expert_id.eq.${userId}`)
+        .order('last_message_at', { ascending: false });
+
+    if (error) {
+        console.error('상담 목록 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toConsultation);
+}
+
+export async function getConsultationMessages(consultationId: string): Promise<ConsultationMessage[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
+        const messages = raw ? (JSON.parse(raw) as ConsultationMessage[]) : [];
+        return messages
+            .filter((message) => message.consultationId === consultationId)
+            .sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
+    }
+
+    const { data, error } = await supabase
+        .from('consultation_messages')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error('상담 메시지 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toConsultationMessage);
 }
 
 export async function getServiceRequests(): Promise<AiServiceRequest[]> {

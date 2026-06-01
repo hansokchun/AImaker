@@ -9,6 +9,8 @@ describe('database.sql', () => {
         const tables = [
             'profiles',
             'expert_products',
+            'consultations',
+            'consultation_messages',
             'service_requests',
             'proposals',
             'works',
@@ -21,6 +23,25 @@ describe('database.sql', () => {
             expect(sql).toMatch(new RegExp(`create table(?: if not exists)? public\\.${table}`, 'i'))
             expect(sql).toMatch(new RegExp(`alter table public\\.${table} enable row level security`, 'i'))
         }
+    })
+
+    it('stores consultation chats for expert inquiry transactions', () => {
+        expect(sql).toMatch(/create table(?: if not exists)? public\.consultations/i)
+        expect(sql).toMatch(/create table(?: if not exists)? public\.consultation_messages/i)
+        expect(sql).toMatch(/product_id uuid references public\.expert_products\(id\)/i)
+        expect(sql).toMatch(/consultation_id uuid references public\.consultations\(id\)/i)
+        expect(sql).toMatch(/status text not null default 'open'/i)
+        expect(sql).toMatch(/last_message_at timestamptz/i)
+    })
+
+    it('limits consultation chats to the client and expert participants', () => {
+        const consultationPolicy = sql.match(/create policy "Consultation participants can view consultations"[\s\S]*?;/i)?.[0] || ''
+        const messagePolicy = sql.match(/create policy "Consultation participants can view messages"[\s\S]*?;/i)?.[0] || ''
+
+        expect(consultationPolicy).toMatch(/auth\.uid\(\) = client_id or auth\.uid\(\) = expert_id/i)
+        expect(messagePolicy).toMatch(/exists \([\s\S]*select 1 from public\.consultations/i)
+        expect(messagePolicy).toMatch(/consultations\.id = consultation_messages\.consultation_id/i)
+        expect(messagePolicy).toMatch(/consultations\.client_id = auth\.uid\(\) or consultations\.expert_id = auth\.uid\(\)/i)
     })
 
     it('captures the product, proposal, work, deliverable, and review constraints', () => {

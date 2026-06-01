@@ -110,6 +110,26 @@ export interface Proposal {
     expiresAt: string;
 }
 
+export interface Consultation {
+    id: string;
+    clientId: string;
+    expertId: string;
+    productId: string;
+    status: 'open' | 'proposal_sent' | 'closed';
+    title: string;
+    lastMessageAt: string;
+    createdAt: string;
+}
+
+export interface ConsultationMessage {
+    id: string;
+    consultationId: string;
+    senderId: string;
+    body: string;
+    attachmentUrls: string[];
+    createdAt: string;
+}
+
 export interface Work {
     id: string;
     proposalId: string;
