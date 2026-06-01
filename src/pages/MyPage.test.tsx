@@ -1,8 +1,18 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
 import type { Proposal, Review, ServiceRequestData } from '../types'
+
+function LocationProbe() {
+    const location = useLocation()
+    return <span data-testid="location">{location.search}</span>
+}
+
+function LocationStateProbe() {
+    const location = useLocation()
+    return <span data-testid="location-state">{JSON.stringify(location.state)}</span>
+}
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -733,6 +743,56 @@ describe('MyPage', () => {
         expect(within(pendingCompleteStage).getByText('대기')).toBeInTheDocument()
         expect(within(pendingCompleteStage).getAllByText('작업 완료').some((element) => element.getAttribute('data-stage-muted') === 'true')).toBe(true)
         expect(within(pendingCompleteStage).getByText('결과물을 제출하고 의뢰자 확인을 기다립니다.')).toHaveAttribute('data-stage-muted', 'true')
+    })
+
+    it('keeps the selected my page panel and order in the URL for browser back navigation', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+        const groups = await screen.findByLabelText('전문가 받은 일 상태 그룹')
+        fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
+
+        await waitFor(() => {
+            expect(screen.getByTestId('location').textContent).toContain('panel=expert')
+            expect(screen.getByTestId('location').textContent).toContain('expertRequest=request-product-directed-01')
+        })
+    })
+
+    it('restores the previous my page screen from URL state', async () => {
+        render(
+            <MemoryRouter initialEntries={['/mypage?panel=client&clientOrder=request-product-client-completed']}>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('button', { name: '의뢰자 홈' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.getByRole('button', { name: /작업 완료 요구사항/ })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('heading', { name: /작업 완료 테스트 상품/ })).toBeInTheDocument()
+    })
+
+    it('passes the current my page screen to proposal links as the return location', async () => {
+        render(
+            <MemoryRouter initialEntries={['/mypage']}>
+                <Routes>
+                    <Route path="/mypage" element={<><MyPage /><LocationProbe /></>} />
+                    <Route path="/proposal/:proposalId" element={<LocationStateProbe />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=client'))
+        fireEvent.click(await screen.findByRole('link', { name: '제안서 보기' }))
+
+        await waitFor(() => {
+            expect(screen.getByTestId('location-state').textContent).toContain('"pathname":"/mypage"')
+            expect(screen.getByTestId('location-state').textContent).toContain('panel=client')
+        })
     })
 
     it('lets experts send a proposal from a product-directed request in my page', async () => {

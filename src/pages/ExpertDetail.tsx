@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import ChatModal from '../components/ChatModal'
 import PackageCard from '../components/PackageCard'
 import { AI_CATEGORIES } from '../constants/categories'
@@ -11,6 +11,7 @@ import './ExpertDetail.css'
 
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
+    const location = useLocation()
     const { user } = useAuth()
     const [chatOpen, setChatOpen] = useState<boolean>(false)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
@@ -30,6 +31,8 @@ export default function ExpertDetail() {
     }, [id])
 
     const category = AI_CATEGORIES.find((item) => item.id === product?.category)
+    const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
+    const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ''
 
     if (loading) {
         return (
@@ -45,8 +48,8 @@ export default function ExpertDetail() {
                 <span className="material-symbols-outlined">inventory_2</span>
                 <h2>상품을 찾을 수 없습니다</h2>
                 <p>존재하지 않거나 더 이상 공개되지 않은 AI 작업입니다.</p>
-                <Link to={ROUTES.CATEGORY} className="btn-primary">
-                    AI 작업 찾기로 돌아가기
+                <Link to={myPageReturnTo || ROUTES.CATEGORY} className="btn-primary">
+                    {myPageReturnTo ? '마이페이지로 돌아가기' : 'AI 작업 찾기로 돌아가기'}
                 </Link>
             </main>
         )
@@ -54,6 +57,13 @@ export default function ExpertDetail() {
 
     return (
         <main className="container">
+            {myPageReturnTo && (
+                <div className="detail-owner-actions">
+                    <Link to={myPageReturnTo} className="btn-text">
+                        마이페이지로 돌아가기
+                    </Link>
+                </div>
+            )}
             {user?.id === product.expertId && (
                 <div className="detail-owner-actions">
                     <Link to={ROUTES.PROFILE} className="btn-primary">

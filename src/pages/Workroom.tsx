@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import type { Deliverable, Work, WorkStep } from '../types'
 import { approveWorkDeliverable, getWorkroomData, requestWorkRevision, saveDeliverable } from '../lib/storage'
@@ -67,6 +67,7 @@ const statusLabels: Record<WorkStep['status'], string> = {
 
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
+    const location = useLocation()
     const [work, setWork] = useState<Work>(mockWork)
     const [steps, setSteps] = useState<WorkStep[]>(mockSteps)
     const [deliverables, setDeliverables] = useState<Deliverable[]>(mockDeliverables)
@@ -77,6 +78,8 @@ export default function Workroom() {
     const activeDeliverable = deliverables[0]
     const workStatusLabel =
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
+    const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
+    const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ROUTES.MY_PAGE
 
     useEffect(() => {
         let active = true
@@ -172,7 +175,7 @@ export default function Workroom() {
                     <div className="workroom-main-card">
                         <h1>작업방을 찾을 수 없습니다.</h1>
                         <p>작업이 삭제되었거나 접근할 수 없는 상태입니다.</p>
-                        <Link to={ROUTES.MY_PAGE} className="btn-text">
+                        <Link to={myPageReturnTo} className="btn-text">
                             마이페이지로 돌아가기
                         </Link>
                     </div>
@@ -279,6 +282,9 @@ export default function Workroom() {
                             수정 요청
                         </button>
                     </div>
+                    <Link to={myPageReturnTo} className="btn-text">
+                        마이페이지로 돌아가기
+                    </Link>
                 </aside>
             </section>
         </main>

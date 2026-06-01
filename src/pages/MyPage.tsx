@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -70,6 +70,9 @@ const menuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'reviews', label: '완료 / 리뷰' },
 ]
 
+const isMyPagePanel = (value: string | null): value is MyPagePanel =>
+    Boolean(value && menuItems.some((item) => item.id === value))
+
 const cardStyle = {
     background: 'white',
     padding: '2rem',
@@ -81,10 +84,14 @@ const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as co
 
 export default function MyPage() {
     const { session, user, loading, signOut } = useAuth()
+    const location = useLocation()
     const navigate = useNavigate()
-    const [activePanel, setActivePanel] = useState<MyPagePanel>('overview')
-    const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(null)
-    const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(null)
+    const [searchParams, setSearchParams] = useSearchParams()
+    const [activePanel, setActivePanel] = useState<MyPagePanel>(
+        isMyPagePanel(searchParams.get('panel')) ? searchParams.get('panel') : 'overview',
+    )
+    const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(searchParams.get('clientOrder'))
+    const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(searchParams.get('expertRequest'))
     const [isExpert, setIsExpert] = useState(false)
     const [name, setName] = useState('')
     const [reviewOpen, setReviewOpen] = useState(false)
@@ -98,6 +105,7 @@ export default function MyPage() {
     const [reviews, setReviews] = useState<Review[]>([])
     const [works, setWorks] = useState<Work[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
+    const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
 
     const fetchProfile = useCallback(async () => {
         if (!supabase || !user) return
@@ -115,6 +123,17 @@ export default function MyPage() {
             navigate(ROUTES.LOGIN)
         }
     }, [session, loading, navigate])
+
+    useEffect(() => {
+        const nextParams = new URLSearchParams()
+        if (activePanel !== 'overview') nextParams.set('panel', activePanel)
+        if (selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
+        if (selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
+
+        if (searchParams.toString() !== nextParams.toString()) {
+            setSearchParams(nextParams, { replace: true })
+        }
+    }, [activePanel, selectedClientOrderId, selectedExpertRequestId, searchParams, setSearchParams])
 
     useEffect(() => {
         if (user && supabase) {
@@ -264,6 +283,7 @@ export default function MyPage() {
                     >
                         <Link
                             to={`/proposal/${proposal.id}`}
+                            state={myPageReturnState}
                             style={{
                                 display: 'inline-block',
                                 color: '#0f172a',
@@ -315,6 +335,7 @@ export default function MyPage() {
                     >
                         <Link
                             to={`/workroom/${work.id}`}
+                            state={myPageReturnState}
                             style={{
                                 display: 'inline-block',
                                 color: '#0f172a',
@@ -375,6 +396,7 @@ export default function MyPage() {
                     >
                         <Link
                             to={`/expert/${product.id}`}
+                            state={myPageReturnState}
                             style={{
                                 display: 'inline-block',
                                 color: '#0f172a',
@@ -468,7 +490,7 @@ export default function MyPage() {
                 <strong {...mutedProps} style={{ display: 'block', color: visual.textColor, marginBottom: '0.4rem' }}>{title}</strong>
             <p {...mutedProps} style={{ color: visual.bodyColor, margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
             {action && (
-                <Link className="btn-text" to={action.to}>
+                <Link className="btn-text" to={action.to} state={myPageReturnState}>
                     {action.label}
                 </Link>
             )}
@@ -756,12 +778,12 @@ export default function MyPage() {
                         <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
                         <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>공개 요청 게시판 보기</Link>
                         {sentProposal ? (
-                            <Link className="btn-text" to={`/proposal/${sentProposal.id}`}>보낸 제안서 보기</Link>
+                            <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
                         ) : (
                             <span style={quickLinkStyle}>보낸 제안서 없음</span>
                         )}
                         {publicProduct ? (
-                            <Link className="btn-text" to={`/expert/${publicProduct.id}`}>공개 상품 보기</Link>
+                            <Link className="btn-text" to={`/expert/${publicProduct.id}`} state={myPageReturnState}>공개 상품 보기</Link>
                         ) : (
                             <span style={quickLinkStyle}>공개 상품 없음</span>
                         )}

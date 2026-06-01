@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import type { Proposal as ProposalData } from '../types'
 import { useEffect, useState } from 'react'
@@ -70,10 +70,14 @@ const statusText: Record<ProposalData['status'], string> = {
 
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
+    const location = useLocation()
     const [proposal, setProposal] = useState<ProposalData | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
     const [statusMessage, setStatusMessage] = useState('')
     const [createdWorkId, setCreatedWorkId] = useState('')
+    const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
+    const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ''
+    const myPageReturnState = myPageReturnTo ? { from } : undefined
 
     useEffect(() => {
         let active = true
@@ -105,8 +109,8 @@ export default function Proposal() {
                     <div className="proposal-main-card">
                         <h1>제안서를 찾을 수 없습니다.</h1>
                         <p>제안서가 삭제되었거나 접근할 수 없는 상태입니다.</p>
-                        <Link to={ROUTES.REQUEST_BOARD} className="proposal-back-link">
-                            요청 목록으로 돌아가기
+                        <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="proposal-back-link">
+                            {myPageReturnTo ? '마이페이지로 돌아가기' : '요청 목록으로 돌아가기'}
                         </Link>
                     </div>
                 </section>
@@ -205,7 +209,7 @@ export default function Proposal() {
                     <p className="proposal-start-notice">승인 전에는 작업이 시작되지 않습니다.</p>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
                     {createdWorkId && (
-                        <Link to={`/workroom/${createdWorkId}`} className="proposal-back-link">
+                        <Link to={`/workroom/${createdWorkId}`} className="proposal-back-link" state={myPageReturnState}>
                             작업방으로 이동
                         </Link>
                     )}
@@ -222,8 +226,8 @@ export default function Proposal() {
                         </button>
                     </div>
 
-                    <Link to={ROUTES.REQUEST_BOARD} className="proposal-back-link">
-                        요청 목록으로 돌아가기
+                    <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="proposal-back-link">
+                        {myPageReturnTo ? '마이페이지로 돌아가기' : '요청 목록으로 돌아가기'}
                     </Link>
                 </aside>
             </section>
