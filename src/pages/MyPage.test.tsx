@@ -938,6 +938,27 @@ describe('MyPage', () => {
         expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
     })
 
+    it('switches between consultation chats and workrooms without restoring a stale panel from the URL', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '상담 채팅' })).toHaveAttribute('aria-pressed', 'true')
+
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
+        await waitFor(() => expect(screen.getByRole('button', { name: '작업방' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.getByTestId('location').textContent).toBe('?panel=workroom')
+
+        fireEvent.click(screen.getByRole('button', { name: '상담 채팅' }))
+        await waitFor(() => expect(screen.getByRole('button', { name: '상담 채팅' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.getByTestId('location').textContent).toContain('panel=consultations')
+    })
+
     it('shows expert inquiry orders in work management and links their chat stage to the selected consultation', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work']}>

@@ -201,14 +201,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     useEffect(() => {
         const panel = searchParams.get('panel')
         const consultation = searchParams.get('consultation')
+        const nextPanel = isMyPagePanel(panel, menuItems) ? panel : defaultPanel
 
-        if (isMyPagePanel(panel, menuItems) && panel !== activePanel) {
-            setActivePanel(panel)
+        setActivePanel((currentPanel) => (currentPanel === nextPanel ? currentPanel : nextPanel))
+        if (consultation) {
+            setSelectedConsultationId((currentId) => (currentId === consultation ? currentId : consultation))
         }
-        if (consultation && consultation !== selectedConsultationId) {
-            setSelectedConsultationId(consultation)
-        }
-    }, [activePanel, menuItems, searchParamString, selectedConsultationId])
+    }, [defaultPanel, menuItems, searchParamString])
 
     useEffect(() => {
         const nextParams = new URLSearchParams()
@@ -220,7 +219,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (searchParams.toString() !== nextParams.toString()) {
             setSearchParams(nextParams, { replace: true })
         }
-    }, [activePanel, defaultPanel, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParams, setSearchParams])
+    }, [activePanel, defaultPanel, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams])
 
     useEffect(() => {
         if (user && supabase) {
