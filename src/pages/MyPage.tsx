@@ -387,19 +387,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const selectedClientOrderWork = selectedClientOrder
         ? works.find((work) => work.requestId === selectedClientOrder.id || work.proposalId === selectedClientOrderProposal?.id)
         : null
-    const selectedClientOrderCurrentStage = selectedClientOrderWork
-        ? selectedClientOrderWork.status === 'completed'
-            ? '작업 후'
-            : selectedClientOrderWork.status === 'submitted'
-                ? '결과물 검토'
-                : selectedClientOrderWork.status === 'revision_requested'
-                    ? '수정 요청 보냄'
-                    : '작업 중'
-        : selectedClientOrderProposal
-            ? selectedClientOrderProposal.paymentStatus === 'paid'
-                ? '작업방 생성 대기'
-                : '테스트 결제 대기'
-            : '작업 전'
     const selectedExpertRequest = receivedProductRequestsByCreatedAt.find((request) => request.id === selectedExpertRequestId) || receivedProductRequestsByCreatedAt[0] || null
     const selectedExpertRequestProduct = selectedExpertRequest
         ? products.find((product) => product.id === selectedExpertRequest.productId)
@@ -447,20 +434,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             setConsultationMessageSubmitting(false)
         }
     }
-    const selectedExpertRequestCurrentStage = selectedExpertRequestWork
-        ? selectedExpertRequestWork.status === 'completed'
-            ? '작업 완료'
-            : selectedExpertRequestWork.status === 'submitted'
-                ? '의뢰자 승인 대기'
-                : selectedExpertRequestWork.status === 'revision_requested'
-                    ? '수정 대응 필요'
-                    : '작업 중'
-        : selectedExpertRequestProposal
-            ? selectedExpertRequestProposal.paymentStatus === 'paid'
-                ? '작업방 생성 대기'
-                : '의뢰자 결제 대기'
-            : '작업 전'
-
     const handleSendProductProposal = async () => {
         if (!selectedExpertRequest || !user) return
 
@@ -907,9 +880,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 {selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}
                                 마감 {selectedClientOrder.deadline || '미정'}
                             </p>
-                            <p style={{ color: '#1d4ed8', fontWeight: 800, margin: '0 0 1rem' }}>
-                                현재 단계: {selectedClientOrderCurrentStage}
-                            </p>
                             <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
                                 {renderClientOrderStage(
@@ -924,24 +894,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 {selectedClientOrderProposal
                                     ? renderClientOrderStage(
                                         '검토 단계',
-                                        '제안서 검토',
-                                        `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]}`,
-                                        'done',
-                                        { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
-                                    )
-                                    : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.', 'current')}
-                                {selectedClientOrderProposal
-                                    ? renderClientOrderStage(
-                                        '결제',
-                                        selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '테스트 결제 대기',
+                                        '제안서 검토 및 결제',
                                         selectedClientOrderWork
                                             ? '결제 완료 후 작업방이 생성되었습니다.'
                                             : selectedClientOrderProposal.paymentStatus === 'paid'
-                                                ? '결제 완료 처리된 제안서입니다. 작업방 생성을 기다립니다.'
-                                                : '제안서 화면에서 테스트 결제 완료 처리를 진행해야 작업방이 생성됩니다.',
+                                                ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                                                : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
                                         selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
+                                        { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                                     )
-                                    : renderClientOrderStage('결제', '테스트 결제 대기', '제안서를 받은 뒤 결제 완료 처리를 할 수 있습니다.', 'pending')}
+                                    : renderClientOrderStage('검토 단계', '제안서 검토 및 결제', '전문가가 제안서를 보내면 이 단계에서 검토와 결제를 진행합니다.', 'current')}
                                 {selectedClientOrderWork
                                     ? renderClientOrderStage(
                                         '작업 중',
@@ -1003,9 +965,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 {selectedExpertRequestProduct?.title || '상품 의뢰'} · {selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}
                                 마감 {selectedExpertRequest.deadline || '미정'}
                             </p>
-                            <p style={{ color: '#166534', fontWeight: 800, margin: '0 0 1rem' }}>
-                                현재 단계: {selectedExpertRequestCurrentStage}
-                            </p>
                             <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
                                 {renderClientOrderStage(
@@ -1027,15 +986,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 {selectedExpertRequestProposal
                                     ? renderClientOrderStage(
                                         '결제',
-                                        selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '의뢰자 결제 대기',
+                                        selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '제안서 승인 및 결제 대기',
                                         selectedExpertRequestWork
                                             ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
                                             : selectedExpertRequestProposal.paymentStatus === 'paid'
                                                 ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                                                : '의뢰자가 제안서에서 테스트 결제 완료 처리를 하면 작업방이 생성됩니다.',
+                                                : '의뢰자가 제안서를 승인하고 결제를 완료하면 작업방이 생성됩니다.',
                                         selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
                                     )
-                                    : renderClientOrderStage('결제', '의뢰자 결제 대기', '제안서를 보낸 뒤 의뢰자 결제 완료를 기다립니다.', 'pending')}
+                                    : renderClientOrderStage('결제', '제안서 승인 및 결제 대기', '제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.', 'pending')}
                                 {selectedExpertRequestWork
                                     ? renderClientOrderStage(
                                         '작업 중',
@@ -1088,9 +1047,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     {selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}
                     마감 {selectedClientOrder.deadline || '미정'}
                 </p>
-                <p style={{ color: '#1d4ed8', fontWeight: 800, margin: '0 0 1rem' }}>
-                    현재 단계: {selectedClientOrderCurrentStage}
-                </p>
                 <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                     {renderClientOrderStage(
@@ -1105,24 +1061,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     {selectedClientOrderProposal
                         ? renderClientOrderStage(
                             '검토 단계',
-                            '제안서 검토',
-                            `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]}`,
-                            'done',
-                            { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
-                        )
-                        : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.', 'current')}
-                    {selectedClientOrderProposal
-                        ? renderClientOrderStage(
-                            '결제',
-                            selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '테스트 결제 대기',
+                            '제안서 검토 및 결제',
                             selectedClientOrderWork
                                 ? '결제 완료 후 작업방이 생성되었습니다.'
                                 : selectedClientOrderProposal.paymentStatus === 'paid'
                                     ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                                    : '제안서 화면에서 테스트 결제 완료 처리를 진행해야 작업방이 생성됩니다.',
+                                    : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
                             selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
+                            { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                         )
-                        : renderClientOrderStage('결제', '테스트 결제 대기', '제안서를 받은 뒤 결제 완료 처리를 할 수 있습니다.', 'pending')}
+                        : renderClientOrderStage('검토 단계', '제안서 검토 및 결제', '전문가가 제안서를 보내면 이 단계에서 검토와 결제를 진행합니다.', 'current')}
                     {selectedClientOrderWork
                         ? renderClientOrderStage(
                             '작업 중',
@@ -1155,9 +1103,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     {selectedExpertRequestProduct?.title || '상품 의뢰'} · {selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}
                     마감 {selectedExpertRequest.deadline || '미정'}
                 </p>
-                <p style={{ color: '#166534', fontWeight: 800, margin: '0 0 1rem' }}>
-                    현재 단계: {selectedExpertRequestCurrentStage}
-                </p>
                 <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                     {renderClientOrderStage(
@@ -1179,15 +1124,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     {selectedExpertRequestProposal
                         ? renderClientOrderStage(
                             '결제',
-                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '의뢰자 결제 대기',
+                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '제안서 승인 및 결제 대기',
                             selectedExpertRequestWork
                                 ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
                                 : selectedExpertRequestProposal.paymentStatus === 'paid'
                                     ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                                    : '의뢰자가 제안서에서 테스트 결제 완료 처리를 하면 작업방이 생성됩니다.',
+                                    : '의뢰자가 제안서를 승인하고 결제를 완료하면 작업방이 생성됩니다.',
                             selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
                         )
-                        : renderClientOrderStage('결제', '의뢰자 결제 대기', '제안서를 보낸 뒤 의뢰자 결제 완료를 기다립니다.', 'pending')}
+                        : renderClientOrderStage('결제', '제안서 승인 및 결제 대기', '제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.', 'pending')}
                     {selectedExpertRequestWork
                         ? renderClientOrderStage(
                             '작업 중',
