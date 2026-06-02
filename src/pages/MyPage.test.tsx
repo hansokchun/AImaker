@@ -1749,6 +1749,41 @@ describe('MyPage', () => {
         expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(3)
     })
 
+    it('filters consultations, workrooms, and reviews by the selected work role', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage mode="work" />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(await screen.findByRole('button', { name: '상담 채팅' }))
+        expect(screen.getAllByText('AI 숏폼 영상 제작 상담').length).toBeGreaterThan(0)
+        expect(screen.queryByText('Owned AI product 상담')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
+        expect(await screen.findByRole('link', { name: '진행 중인 실제 작업' })).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '전문가 진행 중 상품' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
+        expect(await screen.findByRole('link', { name: 'Second completed work' })).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '전문가 완료 상품' })).not.toBeInTheDocument()
+
+        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+
+        fireEvent.click(screen.getByRole('button', { name: '상담 채팅' }))
+        await waitFor(() => expect(screen.getAllByText('Owned AI product 상담').length).toBeGreaterThan(0))
+        expect(screen.queryByText('AI 숏폼 영상 제작 상담')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
+        expect(await screen.findByRole('link', { name: '전문가 진행 중 상품' })).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '진행 중인 실제 작업' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
+        expect(await screen.findByRole('link', { name: '전문가 완료 상품' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
+    })
+
     it('does not offer another review for work already reviewed by the client', async () => {
         getUserReviews.mockResolvedValue([
             {

@@ -300,6 +300,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const myProducts = products.filter((product) => product.expertId === user?.id)
     const activeWorks = works.filter((work) => work.status !== 'completed')
     const completedWorks = works.filter((work) => work.status === 'completed')
+    const clientActiveWorks = activeWorks.filter((work) => work.clientId === user?.id)
+    const expertActiveWorks = activeWorks.filter((work) => work.expertId === user?.id)
+    const clientCompletedWorks = completedWorks.filter((work) => work.clientId === user?.id)
+    const expertCompletedWorks = completedWorks.filter((work) => work.expertId === user?.id)
+    const roleFilteredActiveWorks = mode === 'work'
+        ? workRole === 'client' ? clientActiveWorks : expertActiveWorks
+        : activeWorks
+    const roleFilteredCompletedWorks = mode === 'work'
+        ? workRole === 'client' ? clientCompletedWorks : expertCompletedWorks
+        : completedWorks
     const pageTitle = mode === 'work' ? '내 작업' : '마이페이지'
     const pageDescription = mode === 'profile'
         ? '프로필과 계정 기본 정보를 확인합니다.'
@@ -334,6 +344,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const receivedProductRequestsByCreatedAt = sortRequestsByCreatedAtDesc(receivedProductRequests)
     const clientConsultationsByCreatedAt = sortConsultationsByCreatedAtDesc(clientConsultations)
     const expertConsultationsByCreatedAt = sortConsultationsByCreatedAtDesc(expertConsultations)
+    const roleFilteredConsultations = mode === 'work'
+        ? workRole === 'client' ? clientConsultationsByCreatedAt : expertConsultationsByCreatedAt
+        : consultations
 
     type UnifiedWorkItem =
         | { kind: 'product'; id: string | number; createdTime: number; request: ServiceRequestData }
@@ -402,12 +415,31 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         ? sentProposals.find((proposal) => proposal.requestId === selectedExpertRequest.id)
         : null
     const selectedExpertRequestWork = selectedExpertRequest ? getWorkForRequest(selectedExpertRequest) : null
-    const selectedConsultation = consultations.find((consultation) => consultation.id === selectedConsultationId) || consultations[0] || null
+    const selectedPanelConsultation = roleFilteredConsultations.find((consultation) => consultation.id === selectedConsultationId) || roleFilteredConsultations[0] || null
+    const selectedConsultation = consultations.find((consultation) => consultation.id === selectedConsultationId) || selectedPanelConsultation || consultations[0] || null
     const selectedClientConsultation = clientConsultationsByCreatedAt.find((consultation) => consultation.id === selectedConsultationId) || clientConsultationsByCreatedAt[0] || null
     const selectedExpertConsultation = expertConsultationsByCreatedAt.find((consultation) => consultation.id === selectedConsultationId) || expertConsultationsByCreatedAt[0] || null
     const selectedConsultationProduct = selectedConsultation
         ? products.find((product) => product.id === selectedConsultation.productId)
         : null
+    const selectedPanelConsultationProduct = selectedPanelConsultation
+        ? products.find((product) => product.id === selectedPanelConsultation.productId)
+        : null
+
+    useEffect(() => {
+        if (mode !== 'work' || activePanel !== 'consultations' || !selectedConsultationId || !user) return
+        const selected = consultations.find((consultation) => consultation.id === selectedConsultationId)
+        if (!selected) return
+
+        if (selected.clientId === user.id && workRole !== 'client') {
+            setWorkRole('client')
+            return
+        }
+
+        if (selected.expertId === user.id && selected.clientId !== user.id && workRole !== 'expert') {
+            setWorkRole('expert')
+        }
+    }, [activePanel, consultations, mode, selectedConsultationId, user, workRole])
 
     const handleSendConsultationMessage = async () => {
         if (!user || !selectedConsultation) return
@@ -524,17 +556,48 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
     }
 
+    const getRoleConsultationId = () => {
+        if (mode !== 'work') return selectedConsultationId
+        const roleConsultations = workRole === 'client' ? clientConsultationsByCreatedAt : expertConsultationsByCreatedAt
+        if (selectedConsultationId && roleConsultations.some((consultation) => consultation.id === selectedConsultationId)) {
+            return selectedConsultationId
+        }
+        return roleConsultations[0]?.id || null
+    }
+
     const getPanelSearchParams = (panel: MyPagePanel) => {
         const nextParams = new URLSearchParams()
         if (panel !== defaultPanel) nextParams.set('panel', panel)
         if (panel === 'client' && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
         if (panel === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
-        if (panel === 'consultations' && selectedConsultationId) nextParams.set('consultation', selectedConsultationId)
+        if (panel === 'consultations') {
+            const consultationId = getRoleConsultationId()
+            if (consultationId) nextParams.set('consultation', consultationId)
+        }
         return nextParams
     }
 
     const handlePanelChange = (panel: MyPagePanel) => {
+        if (panel === 'consultations') {
+            setSelectedConsultationId(getRoleConsultationId())
+        }
         setSearchParams(getPanelSearchParams(panel))
+    }
+
+    const handleWorkRoleChange = (nextRole: 'client' | 'expert') => {
+        setWorkRole(nextRole)
+        if (activePanel !== 'consultations') return
+
+        const nextConsultation = nextRole === 'client'
+            ? clientConsultationsByCreatedAt[0] || null
+            : expertConsultationsByCreatedAt[0] || null
+
+        setSelectedConsultationId(nextConsultation?.id || null)
+
+        const nextParams = new URLSearchParams()
+        nextParams.set('panel', 'consultations')
+        if (nextConsultation) nextParams.set('consultation', nextConsultation.id)
+        setSearchParams(nextParams)
     }
 
     const renderWorkCards = (items: Work[], emptyText: string) => (
@@ -622,7 +685,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             <button
                 type="button"
                 aria-pressed={workRole === 'client'}
-                onClick={() => setWorkRole('client')}
+                onClick={() => handleWorkRoleChange('client')}
                 style={{
                     padding: '0.75rem 0.9rem',
                     borderRadius: '0.55rem',
@@ -639,7 +702,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             <button
                 type="button"
                 aria-pressed={workRole === 'expert'}
-                onClick={() => setWorkRole('expert')}
+                onClick={() => handleWorkRoleChange('expert')}
                 style={{
                     padding: '0.75rem 0.9rem',
                     borderRadius: '0.55rem',
@@ -1286,11 +1349,11 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 전문가 문의로 시작한 상담을 한 곳에서 확인합니다. 상담 후 제안서를 받아야 결제와 작업방 생성으로 이어집니다.
             </p>
 
-            {consultations.length > 0 ? (
+            {roleFilteredConsultations.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.8fr) minmax(0, 1.5fr)', gap: '1rem', alignItems: 'start' }}>
                     <div aria-label="상담 채팅 목록" style={{ display: 'grid', gap: '0.65rem' }}>
-                        {consultations.map((consultation) => {
-                            const selected = selectedConsultation?.id === consultation.id
+                        {roleFilteredConsultations.map((consultation) => {
+                            const selected = selectedPanelConsultation?.id === consultation.id
                             const product = products.find((item) => item.id === consultation.productId)
                             return (
                                 <button
@@ -1322,13 +1385,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     </div>
 
                     <div style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: '#fff' }}>
-                        {selectedConsultation ? (
+                        {selectedPanelConsultation ? (
                             <>
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.35rem' }}>
-                                    {selectedConsultation.title}
+                                    {selectedPanelConsultation.title}
                                 </h3>
                                 <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                                    {selectedConsultationProduct?.title || '상품 상담'} · {selectedConsultation.status === 'proposal_sent' ? '제안서 발송됨' : selectedConsultation.status === 'closed' ? '종료됨' : '상담 중'}
+                                    {selectedPanelConsultationProduct?.title || '상품 상담'} · {selectedPanelConsultation.status === 'proposal_sent' ? '제안서 발송됨' : selectedPanelConsultation.status === 'closed' ? '종료됨' : '상담 중'}
                                 </p>
                                 <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
                                     {consultationMessages.length > 0 ? (
@@ -1395,7 +1458,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         >
                                             {consultationMessageSubmitting ? '전송 중' : '메시지 보내기'}
                                         </button>
-                                        {selectedConsultation.expertId === user?.id && (
+                                        {selectedPanelConsultation.expertId === user?.id && (
                                             <button
                                                 type="button"
                                                 className="btn-text"
@@ -1500,7 +1563,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             return (
                 <section style={cardStyle}>
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>작업방</h2>
-                    {renderWorkCards(activeWorks, '진행 중인 작업이 없습니다.')}
+                    {renderWorkCards(roleFilteredActiveWorks, '진행 중인 작업이 없습니다.')}
                 </section>
             )
         }
@@ -1508,7 +1571,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         return (
             <section style={cardStyle}>
                 <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>완료 / 리뷰</h2>
-                {renderWorkCards(completedWorks, '완료된 작업이 없습니다.')}
+                {renderWorkCards(roleFilteredCompletedWorks, '완료된 작업이 없습니다.')}
             </section>
         )
     }
