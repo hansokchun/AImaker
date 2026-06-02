@@ -5,7 +5,7 @@ import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { createConsultation, getExpertProducts } from '../lib/storage'
-import type { ExpertProduct } from '../types'
+import type { ExpertProduct, ProductPackage } from '../types'
 import './ExpertDetail.css'
 
 export default function ExpertDetail() {
@@ -80,6 +80,20 @@ export default function ExpertDetail() {
         )
     }
 
+    const aiTools = Array.isArray(product.aiTools) ? product.aiTools : []
+    const sampleLinks = Array.isArray(product.sampleLinks) ? product.sampleLinks : []
+    const fallbackPackage: ProductPackage = {
+        name: 'Standard',
+        price: Number(product.startingPrice) || 0,
+        deliveryDays: Number(product.deliveryDays) || 1,
+        revisionCount: Number(product.revisionCount) || 1,
+        included: [product.summary || product.title],
+    }
+    const packages = product.packages?.standard
+        ? product.packages
+        : { standard: fallbackPackage, deluxe: null, premium: null }
+    const sampleImageUrl = product.sampleImageUrl || sampleLinks[0] || ''
+
     return (
         <main className="container">
             {myPageReturnTo && (
@@ -102,7 +116,7 @@ export default function ExpertDetail() {
                 <div className="content-left">
                     <section className="product-detail-hero">
                         <div className="product-detail-image">
-                            <img src={product.sampleImageUrl} alt={`${product.title} 샘플 결과물`} />
+                            <img src={sampleImageUrl} alt={`${product.title} 샘플 결과물`} />
                         </div>
                         <div className="product-detail-copy">
                             <div className="product-detail-category">{category?.name ?? 'AI 작업'}</div>
@@ -133,9 +147,9 @@ export default function ExpertDetail() {
                             샘플 결과물
                         </h2>
                         <div className="section-content sample-result-panel">
-                            <img src={product.sampleImageUrl} alt={`${product.title} 샘플 미리보기`} />
-                            {product.sampleLinks.length > 0 && (
-                                <a href={product.sampleLinks[0]} target="_blank" rel="noreferrer">
+                            <img src={sampleImageUrl} alt={`${product.title} 샘플 미리보기`} />
+                            {sampleLinks.length > 0 && (
+                                <a href={sampleLinks[0]} target="_blank" rel="noreferrer">
                                     샘플 링크 보기
                                 </a>
                             )}
@@ -148,7 +162,7 @@ export default function ExpertDetail() {
                             사용 AI 도구
                         </h2>
                         <div className="section-content tool-chip-list">
-                            {product.aiTools.map((tool) => (
+                            {aiTools.map((tool) => (
                                 <span key={tool} className="tool-chip">
                                     {tool}
                                 </span>
@@ -159,7 +173,7 @@ export default function ExpertDetail() {
 
                 <div className="content-right">
                     <PackageCard
-                        packages={product.packages}
+                        packages={packages}
                         productId={product.id}
                         onOpenChat={handleStartConsultation}
                         chatButtonDisabled={creatingConsultation}

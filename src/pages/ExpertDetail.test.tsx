@@ -99,6 +99,32 @@ describe('ExpertDetail', () => {
         expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
     })
 
+    it('opens product details even when stored package data is missing', async () => {
+        const productWithoutPackages = {
+            ...supabaseProduct,
+            id: 'product-without-packages',
+            packages: undefined,
+            sampleLinks: undefined,
+            aiTools: undefined,
+        } as unknown as ExpertProduct
+        getExpertProducts.mockResolvedValue([productWithoutPackages])
+
+        render(
+            <MemoryRouter initialEntries={[`/expert/${productWithoutPackages.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: productWithoutPackages.title })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toHaveAttribute(
+            'href',
+            `/request/${productWithoutPackages.id}`,
+        )
+        expect(screen.queryByText('문제가 발생했습니다')).not.toBeInTheDocument()
+    })
+
     it('creates a consultation from expert inquiry and opens the selected chat in my work', async () => {
         render(
             <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>

@@ -47,6 +47,25 @@ const toOptionalNumber = (value?: string): number | null => {
     return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
 };
 
+const createFallbackProductPackage = (item: any) => ({
+    name: 'Standard' as const,
+    price: Number(item.starting_price) || 0,
+    deliveryDays: Number(item.delivery_days) || 1,
+    revisionCount: Number(item.revision_count) || 1,
+    included: [item.summary || item.title || '상담 후 작업 범위를 확정합니다.'],
+});
+
+const normalizeProductPackages = (item: any) => {
+    const packages = item.packages || {};
+    return packages.standard
+        ? packages
+        : {
+            standard: createFallbackProductPackage(item),
+            deluxe: packages.deluxe || null,
+            premium: packages.premium || null,
+        };
+};
+
 const toServiceRequest = (item: any): AiServiceRequest => ({
     id: item.id,
     clientId: item.client_id,
@@ -863,13 +882,13 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         category: item.category,
         summary: item.summary,
         description: item.description,
-        aiTools: item.ai_tools || [],
-        sampleLinks: item.sample_links || [],
+        aiTools: Array.isArray(item.ai_tools) ? item.ai_tools : [],
+        sampleLinks: Array.isArray(item.sample_links) ? item.sample_links : [],
         sampleImageUrl: item.sample_file_urls?.[0] || item.sample_links?.[0] || '',
-        startingPrice: item.starting_price,
-        deliveryDays: item.delivery_days,
-        revisionCount: item.revision_count,
-        packages: item.packages,
+        startingPrice: Number(item.starting_price) || 0,
+        deliveryDays: Number(item.delivery_days) || 1,
+        revisionCount: Number(item.revision_count) || 1,
+        packages: normalizeProductPackages(item),
         status: item.status,
     })) as ExpertProduct[];
 }

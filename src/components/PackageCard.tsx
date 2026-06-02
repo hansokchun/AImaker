@@ -20,13 +20,23 @@ const packageLabels: Record<PackageTier, string> = {
 const currency = new Intl.NumberFormat('ko-KR')
 
 function getPackageTabs(packages: ProductPackages) {
-    return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages[tab]))
+    return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages?.[tab]))
 }
 
 export default function PackageCard({ packages, productId, onOpenChat, chatButtonDisabled = false }: PackageCardProps) {
-    const tabs = useMemo(() => getPackageTabs(packages), [packages])
+    const fallbackPackage: ProductPackage = {
+        name: 'Standard',
+        price: 0,
+        deliveryDays: 1,
+        revisionCount: 1,
+        included: ['상담 후 작업 범위를 확정합니다.'],
+    }
+    const safePackages = packages?.standard
+        ? packages
+        : { standard: fallbackPackage, deluxe: null, premium: null }
+    const tabs = useMemo(() => getPackageTabs(safePackages), [safePackages])
     const [activeTab, setActiveTab] = useState<PackageTier>('standard')
-    const currentPackage = packages[activeTab] ?? packages.standard
+    const currentPackage = safePackages[activeTab] ?? safePackages.standard
 
     const renderPackage = currentPackage as ProductPackage
 
