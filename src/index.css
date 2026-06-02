@@ -496,6 +496,105 @@ section { padding: 8rem 0; }
     padding-top: 5rem;
 }
 
+.home-page-minimal {
+    background: #ffffff;
+}
+.home-minimal-hero {
+    min-height: 620px;
+    display: flex;
+    align-items: center;
+    padding: 7rem 0 5rem;
+    background: linear-gradient(180deg, #f5f5f7 0%, #ffffff 74%);
+}
+.home-minimal-hero-inner {
+    text-align: center;
+}
+.home-minimal-title {
+    max-width: 820px;
+    margin: 0 auto 1rem;
+    color: #111827;
+    font-size: 4rem;
+    font-weight: 850;
+    line-height: 1.08;
+}
+.home-minimal-subtitle {
+    color: #4b5563;
+    font-size: 1.35rem;
+    line-height: 1.7;
+    margin-bottom: 1.75rem;
+}
+.home-minimal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+.home-minimal-primary,
+.home-minimal-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 999px;
+    font-weight: 750;
+}
+.home-minimal-primary {
+    background: var(--primary);
+    color: white;
+}
+.home-minimal-primary:hover {
+    background: var(--primary-hover);
+}
+.home-minimal-secondary {
+    color: var(--primary);
+}
+.home-minimal-products {
+    padding: 3rem 0 7rem;
+}
+.home-minimal-section-title {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.home-minimal-product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+.home-minimal-product {
+    overflow: hidden;
+    background: #f5f5f7;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.home-minimal-product-image-link {
+    display: block;
+}
+.home-minimal-product-image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    display: block;
+}
+.home-minimal-product-body {
+    padding: 1.5rem;
+}
+.home-minimal-price {
+    color: #111827;
+    font-weight: 800;
+    margin-bottom: 1.25rem;
+}
+.home-minimal-product-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+.home-minimal-order,
+.home-minimal-detail {
+    color: var(--primary);
+    font-weight: 750;
+}
+
 /* Expert Profile (Clean Rollback) */
 .detail-layout {
     display: grid;
@@ -642,6 +741,33 @@ section { padding: 8rem 0; }
     }
     .home-progress-band {
         padding: 2rem;
+    }
+    .home-minimal-hero {
+        min-height: 520px;
+        padding: 5rem 0 3rem;
+    }
+    .home-minimal-title {
+        font-size: 2.6rem;
+    }
+    .home-minimal-subtitle {
+        font-size: 1.1rem;
+    }
+    .home-minimal-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    .home-minimal-primary,
+    .home-minimal-secondary {
+        width: min(100%, 280px);
+    }
+    .home-minimal-products {
+        padding: 2rem 0 5rem;
+    }
+    .home-minimal-product-grid {
+        grid-template-columns: 1fr;
+    }
+    .home-minimal-product-actions {
+        justify-content: space-between;
     }
     .floating-badge {
         position: static;

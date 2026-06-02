@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Home from './Home'
 import { mockExpertProducts } from '../data/mockData'
 import { getExpertProducts } from '../lib/storage'
+import Home from './Home'
 
 vi.mock('../lib/storage', () => ({
   getExpertProducts: vi.fn(async () => mockExpertProducts),
@@ -14,24 +14,26 @@ describe('Home', () => {
     vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
   })
 
-  it('shows the upgraded product-first home page', async () => {
+  it('shows a minimal Apple-like product-first home without process explanations', async () => {
     render(
       <MemoryRouter>
         <Home />
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: /AI 작업을 고르고 바로 주문하세요/ })).toBeInTheDocument()
-    expect(screen.getByText('상품 탐색')).toBeInTheDocument()
-    expect(screen.getByText('요구사항 작성')).toBeInTheDocument()
-    expect(screen.getByText('제안서 확인')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /AI 작업 둘러보기/ })).toHaveAttribute('href', '/category')
-    expect(screen.getByRole('link', { name: /전문가 상품 등록/ })).toHaveAttribute('href', '/profile')
+    expect(screen.getByRole('heading', { name: 'AI 작업, 더 간단하게.' })).toBeInTheDocument()
+    expect(screen.getByText('원하는 상품을 고르고 바로 주문하세요.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '상품 둘러보기' })).toHaveAttribute('href', '/category')
+    expect(screen.getByRole('link', { name: '전문가로 시작하기' })).toHaveAttribute('href', '/profile')
 
-    expect(screen.getByRole('heading', { name: '필요한 작업을 빠르게 좁혀보세요' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '바로 주문 가능한 AI 상품' })).toBeInTheDocument()
-    expect(await screen.findAllByRole('link', { name: /상품 자세히 보기/ })).toHaveLength(3)
-    expect(screen.getByText('주문 후에도 단계가 보입니다')).toBeInTheDocument()
+    expect(screen.queryByText('상품 탐색')).not.toBeInTheDocument()
+    expect(screen.queryByText('요구사항 작성')).not.toBeInTheDocument()
+    expect(screen.queryByText('제안서 확인')).not.toBeInTheDocument()
+    expect(screen.queryByText('주문 후에도 단계가 보입니다')).not.toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: '추천 AI 상품' })).toBeInTheDocument()
+    expect(await screen.findAllByRole('link', { name: /주문 시작/ })).toHaveLength(3)
+    expect(screen.getAllByRole('link', { name: /자세히 보기/ })).toHaveLength(3)
   })
 
   it('shows recommended products from shared product storage', async () => {
