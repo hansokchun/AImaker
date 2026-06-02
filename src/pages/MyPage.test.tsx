@@ -407,6 +407,14 @@ const getConsultationMessages = vi.fn(async (consultationId: string): Promise<Co
         createdAt: '2026-06-02T10:00:00.000Z',
     },
 ])
+const saveConsultationMessage = vi.fn(async (message: { consultationId: string; senderId: string; body: string }): Promise<ConsultationMessage> => ({
+    id: 'message-saved-01',
+    consultationId: message.consultationId,
+    senderId: message.senderId,
+    body: message.body,
+    attachmentUrls: [],
+    createdAt: '2026-06-02T10:05:00.000Z',
+}))
 
 const defaultProposals = () => [
     {
@@ -619,6 +627,7 @@ vi.mock('../lib/storage', () => ({
     getUserWorks: (userId: string) => getUserWorks(userId),
     getUserConsultations: (userId: string) => getUserConsultations(userId),
     getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
+    saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     saveReview: (review: Review) => saveReview(review),
 }))
@@ -861,6 +870,15 @@ describe('MyPage', () => {
                 createdAt: '2026-06-02T10:00:00.000Z',
             },
         ])
+        saveConsultationMessage.mockClear()
+        saveConsultationMessage.mockImplementation(async (message: { consultationId: string; senderId: string; body: string }) => ({
+            id: 'message-saved-01',
+            consultationId: message.consultationId,
+            senderId: message.senderId,
+            body: message.body,
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:05:00.000Z',
+        }))
     })
 
     it('opens profile management from the left menu instead of the top edit button', async () => {
@@ -936,6 +954,28 @@ describe('MyPage', () => {
         expect(getConsultationMessages).toHaveBeenCalledWith('consult-client-01')
         expect(screen.getByTestId('location').textContent).toContain('panel=consultations')
         expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
+    })
+
+    it('sends a consultation message from the selected chat panel', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const input = await screen.findByLabelText('상담 메시지 입력')
+        fireEvent.change(input, { target: { value: '추가 문의드립니다.' } })
+        fireEvent.click(screen.getByRole('button', { name: '메시지 보내기' }))
+
+        await waitFor(() => expect(saveConsultationMessage).toHaveBeenCalledWith({
+            consultationId: 'consult-client-01',
+            senderId: 'user-demo-01',
+            body: '추가 문의드립니다.',
+        }))
+        expect(await screen.findByText('추가 문의드립니다.')).toBeInTheDocument()
+        expect(input).toHaveValue('')
     })
 
     it('switches between consultation chats and workrooms without restoring a stale panel from the URL', async () => {

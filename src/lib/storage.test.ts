@@ -1018,6 +1018,55 @@ describe('transaction storage', () => {
         })
     })
 
+    it('saves a consultation message and refreshes the consultation timestamp in Supabase', async () => {
+        vi.resetModules()
+        const messageSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: 'message-created-02',
+                consultation_id: 'consultation-db-01',
+                sender_id: request.clientId,
+                body: '추가 메시지입니다.',
+                attachment_urls: [],
+                created_at: '2026-06-02T10:05:00.000Z',
+            },
+            error: null,
+        })
+        const messageSelect = vi.fn(() => ({ single: messageSingle }))
+        const messageInsert = vi.fn(() => ({ select: messageSelect }))
+        const consultationEq = vi.fn().mockResolvedValue({ error: null })
+        const consultationUpdate = vi.fn(() => ({ eq: consultationEq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'consultation_messages') return { insert: messageInsert }
+            return { update: consultationUpdate }
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveConsultationMessage } = await import('./storage')
+
+        await expect(saveConsultationMessage({
+            consultationId: 'consultation-db-01',
+            senderId: request.clientId,
+            body: '추가 메시지입니다.',
+        })).resolves.toEqual({
+            id: 'message-created-02',
+            consultationId: 'consultation-db-01',
+            senderId: request.clientId,
+            body: '추가 메시지입니다.',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:05:00.000Z',
+        })
+        expect(from).toHaveBeenCalledWith('consultation_messages')
+        expect(messageInsert).toHaveBeenCalledWith({
+            consultation_id: 'consultation-db-01',
+            sender_id: request.clientId,
+            body: '추가 메시지입니다.',
+            attachment_urls: [],
+        })
+        expect(from).toHaveBeenCalledWith('consultations')
+        expect(consultationUpdate).toHaveBeenCalledWith({ last_message_at: '2026-06-02T10:05:00.000Z' })
+        expect(consultationEq).toHaveBeenCalledWith('id', 'consultation-db-01')
+    })
+
     it('marks expired user proposals from Supabase as expired', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({

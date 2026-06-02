@@ -439,6 +439,73 @@ export async function createConsultation(input: CreateConsultationInput): Promis
     return consultation;
 }
 
+export async function saveConsultationMessage(input: {
+    consultationId: string;
+    senderId: string;
+    body: string;
+}): Promise<ConsultationMessage> {
+    const body = input.body.trim();
+    if (!body) throw new Error('상담 메시지를 입력해주세요.');
+    const now = new Date().toISOString();
+
+    if (!supabase) {
+        const message: ConsultationMessage = {
+            id: `consultation-message-${Date.now()}`,
+            consultationId: input.consultationId,
+            senderId: input.senderId,
+            body,
+            attachmentUrls: [],
+            createdAt: now,
+        };
+        const messageRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
+        const messages = messageRaw ? (JSON.parse(messageRaw) as ConsultationMessage[]) : [];
+        localStorage.setItem(STORAGE_KEYS.CONSULTATION_MESSAGES, JSON.stringify([...messages, message]));
+
+        const consultationRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
+        const consultations = consultationRaw ? (JSON.parse(consultationRaw) as Consultation[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.CONSULTATIONS,
+            JSON.stringify(
+                consultations.map((consultation) =>
+                    consultation.id === input.consultationId
+                        ? { ...consultation, lastMessageAt: message.createdAt }
+                        : consultation,
+                ),
+            ),
+        );
+        return message;
+    }
+
+    const { data, error } = await supabase
+        .from('consultation_messages')
+        .insert({
+            consultation_id: input.consultationId,
+            sender_id: input.senderId,
+            body,
+            attachment_urls: [],
+        })
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('상담 메시지 저장 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 상담 메시지 저장 실패');
+    }
+
+    const message = toConsultationMessage(data);
+    const { error: consultationError } = await supabase
+        .from('consultations')
+        .update({ last_message_at: message.createdAt })
+        .eq('id', input.consultationId);
+
+    if (consultationError) {
+        console.error('상담 최근 메시지 시간 갱신 실패:', consultationError);
+        throw new Error('데이터베이스 통신 오류: 상담 갱신 실패');
+    }
+
+    return message;
+}
+
 export async function getServiceRequests(): Promise<AiServiceRequest[]> {
     if (!supabase) {
         const requests = await getStoredRequestsLegacy();

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveProposal, saveReview } from '../lib/storage'
+import { getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import Profile from './Profile'
 
@@ -172,6 +172,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [works, setWorks] = useState<Work[]>([])
     const [consultations, setConsultations] = useState<Consultation[]>([])
     const [consultationMessages, setConsultationMessages] = useState<ConsultationMessage[]>([])
+    const [consultationMessageBody, setConsultationMessageBody] = useState('')
+    const [consultationMessageSubmitting, setConsultationMessageSubmitting] = useState(false)
+    const [consultationMessageError, setConsultationMessageError] = useState('')
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
 
@@ -271,6 +274,11 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 console.error('상담 메시지 로딩 오류:', error)
                 setConsultationMessages([])
             })
+    }, [selectedConsultationId])
+
+    useEffect(() => {
+        setConsultationMessageBody('')
+        setConsultationMessageError('')
     }, [selectedConsultationId])
 
     const completedWork = works.find((work) => work.status === 'completed') || null
@@ -406,6 +414,39 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const selectedConsultationProduct = selectedConsultation
         ? products.find((product) => product.id === selectedConsultation.productId)
         : null
+
+    const handleSendConsultationMessage = async () => {
+        if (!user || !selectedConsultation) return
+        const body = consultationMessageBody.trim()
+        if (!body) {
+            setConsultationMessageError('메시지를 입력해주세요.')
+            return
+        }
+
+        setConsultationMessageSubmitting(true)
+        setConsultationMessageError('')
+        try {
+            const message = await saveConsultationMessage({
+                consultationId: selectedConsultation.id,
+                senderId: user.id,
+                body,
+            })
+            setConsultationMessages((current) => [...current, message])
+            setConsultations((current) =>
+                current.map((consultation) =>
+                    consultation.id === selectedConsultation.id
+                        ? { ...consultation, lastMessageAt: message.createdAt }
+                        : consultation,
+                ),
+            )
+            setConsultationMessageBody('')
+        } catch (error) {
+            console.error('상담 메시지 전송 오류:', error)
+            setConsultationMessageError('메시지를 보내지 못했습니다. 잠시 후 다시 시도해주세요.')
+        } finally {
+            setConsultationMessageSubmitting(false)
+        }
+    }
     const selectedExpertRequestCurrentStage = selectedExpertRequestWork
         ? selectedExpertRequestWork.status === 'completed'
             ? '작업 완료'
@@ -1329,13 +1370,49 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 상담 메시지가 없습니다.</p>
                                     )}
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                    <button type="button" className="btn-primary" disabled style={{ padding: '0.75rem 1rem' }}>
-                                        메시지 보내기 준비 중
-                                    </button>
-                                    <button type="button" className="btn-text" disabled>
-                                        제안서 보내기 준비 중
-                                    </button>
+                                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                    <label
+                                        htmlFor="consultation-message-input"
+                                        style={{ fontWeight: 800, color: '#0f172a' }}
+                                    >
+                                        메시지
+                                    </label>
+                                    <textarea
+                                        id="consultation-message-input"
+                                        aria-label="상담 메시지 입력"
+                                        value={consultationMessageBody}
+                                        onChange={(event) => setConsultationMessageBody(event.target.value)}
+                                        rows={3}
+                                        placeholder="상담 메시지를 입력하세요."
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.85rem 1rem',
+                                            borderRadius: '0.75rem',
+                                            border: '1px solid var(--border-color)',
+                                            resize: 'vertical',
+                                            font: 'inherit',
+                                            lineHeight: 1.5,
+                                        }}
+                                    />
+                                    {consultationMessageError && (
+                                        <p role="alert" style={{ margin: 0, color: '#e11d48', fontWeight: 700 }}>
+                                            {consultationMessageError}
+                                        </p>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                        <button
+                                            type="button"
+                                            className="btn-primary"
+                                            disabled={consultationMessageSubmitting || !consultationMessageBody.trim()}
+                                            onClick={handleSendConsultationMessage}
+                                            style={{ padding: '0.75rem 1rem' }}
+                                        >
+                                            {consultationMessageSubmitting ? '전송 중' : '메시지 보내기'}
+                                        </button>
+                                        <button type="button" className="btn-text" disabled>
+                                            제안서 보내기 준비 중
+                                        </button>
+                                    </div>
                                 </div>
                             </>
                         ) : (
