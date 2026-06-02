@@ -75,9 +75,15 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Users can view own profile"[\s\S]*?on public\.profiles for select[\s\S]*?using \(auth\.uid\(\) = id\);/i)
     })
 
-    it('does not expose public service requests through a request board policy', () => {
-        expect(sql).toMatch(/drop policy if exists "Authenticated users can view submitted requests" on public\.service_requests;/i)
-        expect(sql).not.toMatch(/create policy "Authenticated users can view submitted requests"/i)
+    it('allows authenticated experts to read submitted service requests for the request board', () => {
+        const policyMatch = sql.match(
+            /create policy "Authenticated users can view submitted requests"[\s\S]*?on public\.service_requests for select[\s\S]*?using \(([\s\S]*?)\);/i,
+        )
+
+        expect(policyMatch?.[1]).toContain("auth.role() = 'authenticated'")
+        expect(policyMatch?.[1]).toMatch(/status in \('submitted', 'pending'\)/i)
+        expect(policyMatch?.[1]).toMatch(/product_id is null/i)
+        expect(policyMatch?.[1]).toMatch(/expert_id is null/i)
     })
 
     it('allows clients to update their own request status during proposal and work flow', () => {
@@ -109,6 +115,7 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/service_requests\.id = proposals\.request_id/i)
         expect(policySql).toMatch(/service_requests\.client_id = proposals\.client_id/i)
         expect(policySql).toMatch(/service_requests\.status in \('submitted', 'pending'\)/i)
+        expect(policySql).toMatch(/service_requests\.expert_id is null/i)
         expect(policySql).toMatch(/service_requests\.expert_id = proposals\.expert_id/i)
     })
 

@@ -1132,7 +1132,7 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
         expect(screen.getByText('상품 주문 관리')).toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '요청 게시판 보기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '요청 게시판 보기' })).toHaveAttribute('href', '/requests')
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
@@ -1157,8 +1157,7 @@ describe('MyPage', () => {
         expect(screen.getByText('내가 맡긴 일')).toBeInTheDocument()
         expect(screen.getByText('상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '상품 주문 관리' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
-        expect(screen.queryByRole('link', { name: '요청 게시판 보기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '요청 게시판 보기' })).toHaveAttribute('href', '/requests')
         const clientList = await screen.findByTestId('client-unified-work-list')
         const clientProductOrder = within(clientList)
             .getAllByRole('button')
@@ -1180,7 +1179,7 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: '받은 일 관리' })).toBeInTheDocument()
         expect(screen.getByText('받은 상품 의뢰와 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
-        expect(screen.queryByRole('link', { name: '요청 게시판에서 제안할 일 찾기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '요청 게시판에서 제안할 일 찾기' })).toHaveAttribute('href', '/requests')
         expect(screen.getAllByText('상품 지정 요구사항').length).toBeGreaterThan(0)
         expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
             'href',

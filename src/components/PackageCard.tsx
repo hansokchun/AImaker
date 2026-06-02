@@ -74,7 +74,7 @@ export default function PackageCard({ packages, productId, onOpenChat, chatButto
                         className="btn-text package-secondary-cta"
                         disabled={chatButtonDisabled}
                     >
-                        {chatButtonDisabled ? '문의 생성 중' : '가격측정 문의하기'}
+                        {chatButtonDisabled ? '상담 생성 중' : '전문가에게 문의하기'}
                     </button>
                 )}
             </div>

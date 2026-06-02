@@ -1481,7 +1481,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
                                     상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
                                 </p>
-                                <Link className="btn-text" to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
+                                <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판 보기</Link>
                                 {renderClientUnifiedWorkManager()}
                             </div>
                         ) : (
@@ -1495,6 +1495,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 </p>
                                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                                     <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
+                                    <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판에서 제안할 일 찾기</Link>
                                     {sentProposal ? (
                                         <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
                                     ) : (
@@ -1521,7 +1522,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
                         상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
                     </p>
-                    <Link className="btn-text" to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
+                    <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판 보기</Link>
                     {renderClientUnifiedWorkManager()}
                 </section>
             )
@@ -1539,6 +1540,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     </p>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
+                        <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판에서 제안할 일 찾기</Link>
                         {sentProposal ? (
                             <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
                         ) : (
