@@ -1828,6 +1828,22 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: '양쪽 역할 상담' })).toBeInTheDocument()
     })
 
+    it('gives the consultation chat room more space than the chat list', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <MyPage mode="work" />
+            </MemoryRouter>,
+        )
+
+        const layout = await screen.findByLabelText('상담 채팅 레이아웃')
+        const list = screen.getByLabelText('상담 채팅 목록')
+        const chatTitle = await screen.findByRole('button', { name: /AI 숏폼 영상 제작 상담/ })
+
+        expect(layout).toHaveStyle({ gridTemplateColumns: 'minmax(150px, 0.42fr) minmax(0, 1.95fr)' })
+        expect(list).toHaveStyle({ gap: '0.45rem' })
+        expect(chatTitle).toHaveStyle({ padding: '0.75rem' })
+    })
+
     it('does not offer another review for work already reviewed by the client', async () => {
         getUserReviews.mockResolvedValue([
             {

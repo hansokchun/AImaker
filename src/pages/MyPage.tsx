@@ -1353,8 +1353,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             </p>
 
             {roleFilteredConsultations.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.8fr) minmax(0, 1.5fr)', gap: '1rem', alignItems: 'start' }}>
-                    <div aria-label="상담 채팅 목록" style={{ display: 'grid', gap: '0.65rem' }}>
+                <div
+                    aria-label="상담 채팅 레이아웃"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(150px, 0.42fr) minmax(0, 1.95fr)',
+                        gap: '1rem',
+                        alignItems: 'start',
+                    }}
+                >
+                    <div aria-label="상담 채팅 목록" style={{ display: 'grid', gap: '0.45rem' }}>
                         {roleFilteredConsultations.map((consultation) => {
                             const selected = selectedPanelConsultation?.id === consultation.id
                             const product = products.find((item) => item.id === consultation.productId)
@@ -1369,17 +1377,17 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     }}
                                     style={{
                                         textAlign: 'left',
-                                        padding: '1rem',
+                                        padding: '0.75rem',
                                         borderRadius: '0.75rem',
                                         border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
                                         background: selected ? '#eff6ff' : '#f8fafc',
                                         cursor: 'pointer',
                                     }}
                                 >
-                                    <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem' }}>
+                                    <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.25rem', fontSize: '0.9rem', lineHeight: 1.35 }}>
                                         {consultation.title}
                                     </strong>
-                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.35 }}>
                                         {product?.title || '상품 상담'} · {consultation.status === 'proposal_sent' ? '제안서 발송됨' : consultation.status === 'closed' ? '종료됨' : '상담 중'}
                                     </span>
                                 </button>
