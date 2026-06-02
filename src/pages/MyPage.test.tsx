@@ -1197,7 +1197,9 @@ describe('MyPage', () => {
             'href',
             '/request/product-client-01?requestId=request-product-client-01',
         )
-        expect(screen.getByText('제안서 검토 및 결제')).toBeInTheDocument()
+        expect(screen.getByText('제안서 승인 및 결제')).toBeInTheDocument()
+        expect(screen.queryByText('제안서 대기')).not.toBeInTheDocument()
+        expect(screen.queryByText('상담 후 제안서 대기')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
         expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
         expect(screen.queryByText('테스트 결제 완료')).not.toBeInTheDocument()
@@ -1208,7 +1210,7 @@ describe('MyPage', () => {
         expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
 
         expect(within(screen.getByLabelText('의뢰서 작성/요구사항 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
-        expect(within(screen.getByLabelText('제안서 검토 및 결제 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
         const pendingReviewStage = screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')
         expect(within(pendingReviewStage).getByText('대기')).toBeInTheDocument()
@@ -1246,9 +1248,9 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('제안서 검토 및 결제')).toBeInTheDocument()
+        expect(await screen.findByText('제안서 승인 및 결제')).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
-        expect(within(screen.getByLabelText('제안서 검토 및 결제 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+        expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
         expect(screen.queryByLabelText('테스트 결제 대기 단계 상태: 진행 중')).not.toBeInTheDocument()
     })
 
@@ -1626,7 +1628,7 @@ describe('MyPage', () => {
             .find((button) => button.getAttribute('data-work-item-id') === 'request-product-client-01')
         expect(clientProductOrder).toBeDefined()
         fireEvent.click(clientProductOrder!)
-        expect(await screen.findByText('제안서 검토 및 결제')).toBeInTheDocument()
+        expect(await screen.findByText('제안서 승인 및 결제')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
         expect(screen.queryByText('테스트 결제 완료')).not.toBeInTheDocument()
         expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()

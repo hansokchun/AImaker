@@ -796,10 +796,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (!consultation) return null
         const product = products.find((item) => item.id === consultation.productId)
         const consultationUrl = `${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`
-        const proposalLabel = role === 'client' ? '상담 후 제안서 대기' : '상담 후 제안서 작성'
-        const proposalDescription = role === 'client'
-            ? '전문가와 상담한 뒤 제안서를 받으면 결제 단계로 진행합니다.'
-            : '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
+        const proposalLabel = '상담 후 제안서 작성'
+        const proposalDescription = '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
 
         return (
             <div data-testid={`${role}-consultation-order-flow`} style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
@@ -830,13 +828,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             },
                         },
                     )}
-                    {renderClientOrderStage(
+                    {role === 'expert' && renderClientOrderStage(
                         '검토 단계',
                         proposalLabel,
                         proposalDescription,
                         consultation.status === 'proposal_sent' ? 'current' : 'pending',
                     )}
-                    {renderClientOrderStage('결제', '테스트 결제 대기', '제안서를 승인하면 테스트 결제 완료 처리 후 작업방이 생성됩니다.', 'pending')}
+                    {renderClientOrderStage('결제', '제안서 승인 및 결제', '제안서를 승인하고 결제하면 작업방이 생성됩니다.', consultation.status === 'proposal_sent' ? 'current' : 'pending')}
                     {renderClientOrderStage('작업 중', '작업방 대기', '결제가 끝나면 작업방에서 제작을 진행합니다.', 'pending')}
                     {renderClientOrderStage('상담 후', '상담 완료/리뷰', '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.', 'pending')}
                 </div>
@@ -893,8 +891,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 )}
                                 {selectedClientOrderProposal
                                     ? renderClientOrderStage(
-                                        '검토 단계',
-                                        '제안서 검토 및 결제',
+                                        '결제',
+                                        '제안서 승인 및 결제',
                                         selectedClientOrderWork
                                             ? '결제 완료 후 작업방이 생성되었습니다.'
                                             : selectedClientOrderProposal.paymentStatus === 'paid'
@@ -903,7 +901,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
                                         { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                                     )
-                                    : renderClientOrderStage('검토 단계', '제안서 검토 및 결제', '전문가가 제안서를 보내면 이 단계에서 검토와 결제를 진행합니다.', 'current')}
+                                    : renderClientOrderStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current')}
                                 {selectedClientOrderWork
                                     ? renderClientOrderStage(
                                         '작업 중',
@@ -1060,8 +1058,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     )}
                     {selectedClientOrderProposal
                         ? renderClientOrderStage(
-                            '검토 단계',
-                            '제안서 검토 및 결제',
+                            '결제',
+                            '제안서 승인 및 결제',
                             selectedClientOrderWork
                                 ? '결제 완료 후 작업방이 생성되었습니다.'
                                 : selectedClientOrderProposal.paymentStatus === 'paid'
@@ -1070,7 +1068,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
                             { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
                         )
-                        : renderClientOrderStage('검토 단계', '제안서 검토 및 결제', '전문가가 제안서를 보내면 이 단계에서 검토와 결제를 진행합니다.', 'current')}
+                        : renderClientOrderStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current')}
                     {selectedClientOrderWork
                         ? renderClientOrderStage(
                             '작업 중',
