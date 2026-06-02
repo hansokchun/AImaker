@@ -1096,6 +1096,31 @@ describe('MyPage', () => {
         )
     })
 
+    it('lets experts create a proposal from the selected consultation chat', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-expert-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                    <Route path="/proposal/:proposalId" element={<LocationStateProbe />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '제안서 작성' }))
+
+        await waitFor(() => {
+            expect(saveProposal).toHaveBeenCalledWith(expect.objectContaining({
+                requestId: 'consultation-consult-expert-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                title: 'Owned AI product 상담 제안서',
+            }))
+        })
+        expect(await screen.findByTestId('location-state')).toHaveTextContent('/my-work')
+    })
+
     it('shows client and expert work sections with current labels', async () => {
         render(
             <MemoryRouter>
@@ -1191,7 +1216,7 @@ describe('MyPage', () => {
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '전체 과정' })).toBeInTheDocument()
         expect(screen.getAllByText('작업 전').length).toBeGreaterThan(0)
-        expect(screen.getByText('의뢰서 작성/요구사항')).toBeInTheDocument()
+        expect(screen.getByText('의뢰서 작성')).toBeInTheDocument()
         expect(screen.getAllByText('제품 홍보 숏폼').length).toBeGreaterThan(0)
         expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute(
             'href',
@@ -1209,7 +1234,7 @@ describe('MyPage', () => {
         expect(screen.getByText('작업 후')).toBeInTheDocument()
         expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
 
-        expect(within(screen.getByLabelText('의뢰서 작성/요구사항 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('의뢰서 작성 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
         const pendingReviewStage = screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')

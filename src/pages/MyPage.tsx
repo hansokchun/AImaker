@@ -175,6 +175,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageBody, setConsultationMessageBody] = useState('')
     const [consultationMessageSubmitting, setConsultationMessageSubmitting] = useState(false)
     const [consultationMessageError, setConsultationMessageError] = useState('')
+    const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
 
@@ -466,6 +467,55 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         const savedProposal = { ...proposal, id: savedProposalId }
         setProposals((current) => [savedProposal, ...current])
         setExpertProposalMessage('제안서를 보냈습니다.')
+    }
+
+    const handleCreateConsultationProposal = async () => {
+        if (!selectedConsultation || !user || selectedConsultation.expertId !== user.id) return
+
+        const product = products.find((item) => item.id === selectedConsultation.productId)
+        const standardPackage = product?.packages?.standard
+        const totalPrice = Number(standardPackage?.price || product?.startingPrice || 0)
+        const deliveryDays = Number(standardPackage?.deliveryDays || product?.deliveryDays || 1)
+        const revisionCount = Number(standardPackage?.revisionCount || product?.revisionCount || 1)
+        const expiresAt = new Date()
+        expiresAt.setDate(expiresAt.getDate() + 3)
+
+        const proposal: Proposal = {
+            id: `proposal-consultation-${selectedConsultation.id}`,
+            requestId: `consultation-${selectedConsultation.id}`,
+            clientId: selectedConsultation.clientId,
+            expertId: user.id,
+            title: `${selectedConsultation.title} 제안서`,
+            scope: consultationMessages[0]?.body || '상담 내용을 바탕으로 작업 범위와 조건을 제안합니다.',
+            deliverables: [product?.title || selectedConsultation.title],
+            totalPrice: Number.isFinite(totalPrice) && totalPrice > 0 ? totalPrice : 0,
+            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
+            revisionCount: Number.isFinite(revisionCount) && revisionCount >= 0 ? revisionCount : 1,
+            progressType: 'single',
+            milestones: [],
+            commercialUseAllowed: true,
+            sourceFileIncluded: false,
+            status: 'sent',
+            paymentStatus: 'unpaid',
+            expiresAt: expiresAt.toISOString(),
+        }
+
+        setConsultationProposalSubmitting(true)
+        try {
+            const savedProposalId = await saveProposal(proposal)
+            const savedProposal = { ...proposal, id: savedProposalId }
+            setProposals((current) => [savedProposal, ...current])
+            setConsultations((current) =>
+                current.map((consultation) =>
+                    consultation.id === selectedConsultation.id
+                        ? { ...consultation, status: 'proposal_sent' }
+                        : consultation,
+                ),
+            )
+            navigate(`/proposal/${savedProposalId}`, { state: myPageReturnState })
+        } finally {
+            setConsultationProposalSubmitting(false)
+        }
     }
 
     const renderWorkCards = (items: Work[], emptyText: string) => (
@@ -882,7 +932,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
                                 {renderClientOrderStage(
                                     '작업 전',
-                                    '의뢰서 작성/요구사항',
+                                    '의뢰서 작성',
                                     selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                                     'done',
                                     selectedClientOrder.productId
@@ -1049,7 +1099,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                     {renderClientOrderStage(
                         '작업 전',
-                        '의뢰서 작성/요구사항',
+                        '의뢰서 작성',
                         selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                         'done',
                         selectedClientOrder.productId
@@ -1352,9 +1402,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         >
                                             {consultationMessageSubmitting ? '전송 중' : '메시지 보내기'}
                                         </button>
-                                        <button type="button" className="btn-text" disabled>
-                                            제안서 보내기 준비 중
-                                        </button>
+                                        {selectedConsultation.expertId === user?.id && (
+                                            <button
+                                                type="button"
+                                                className="btn-text"
+                                                disabled={consultationProposalSubmitting}
+                                                onClick={handleCreateConsultationProposal}
+                                            >
+                                                {consultationProposalSubmitting ? '제안서 작성 중' : '제안서 작성'}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </>
