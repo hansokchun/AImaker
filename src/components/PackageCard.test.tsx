@@ -22,4 +22,29 @@ describe('PackageCard', () => {
             `/request/${product.id}`,
         )
     })
+
+    it('renders a fallback package item when included items are missing', () => {
+        const packages = {
+            standard: {
+                name: 'Standard',
+                price: 50000,
+                deliveryDays: 3,
+                revisionCount: 1,
+            },
+            deluxe: null,
+            premium: null,
+        } as unknown as typeof mockExpertProducts[0]['packages']
+
+        render(
+            <MemoryRouter>
+                <PackageCard productId="product-missing-included" packages={packages} />
+            </MemoryRouter>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Standard' })).toHaveClass('active')
+        expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toHaveAttribute(
+            'href',
+            '/request/product-missing-included',
+        )
+    })
 })

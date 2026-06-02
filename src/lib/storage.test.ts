@@ -105,6 +105,60 @@ describe('expert product storage', () => {
         expect(select).toHaveBeenCalledWith('*')
         expect(eq).toHaveBeenCalledWith('status', 'published')
     })
+
+    it('normalizes Supabase package includes into the UI package shape', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: product.id,
+                    expert_id: product.expertId,
+                    title: product.title,
+                    category: product.category,
+                    summary: product.summary,
+                    description: product.description,
+                    ai_tools: product.aiTools,
+                    sample_links: product.sampleLinks,
+                    sample_file_urls: [],
+                    starting_price: 50000,
+                    delivery_days: 3,
+                    revision_count: 1,
+                    packages: {
+                        standard: {
+                            price: 50000,
+                            includes: ['영상 1편', '썸네일 1장'],
+                            description: '15초 숏폼 영상 1편',
+                            deliveryDays: 3,
+                            revisionCount: 1,
+                        },
+                    },
+                    status: product.status,
+                },
+            ],
+            error: null,
+        })
+        const eq = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ select }))
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { getExpertProducts } = await import('./storage')
+
+        const [loadedProduct] = await getExpertProducts()
+
+        expect(loadedProduct.packages.standard).toEqual({
+            name: 'Standard',
+            price: 50000,
+            deliveryDays: 3,
+            revisionCount: 1,
+            included: ['영상 1편', '썸네일 1장'],
+        })
+        expect(loadedProduct.packages.deluxe).toBeNull()
+        expect(loadedProduct.packages.premium).toBeNull()
+    })
 })
 
 describe('profile storage', () => {

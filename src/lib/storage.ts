@@ -12,7 +12,9 @@ import type {
     Expert,
     ExpertProduct,
     ExpertProfile,
+    PackageTier,
     Proposal,
+    ProductPackage,
     Review,
     ServiceRequestData,
     Work,
@@ -64,6 +66,48 @@ const normalizeProductPackages = (item: any) => {
             deluxe: packages.deluxe || null,
             premium: packages.premium || null,
         };
+};
+
+const packageTierNames: Record<PackageTier, ProductPackage['name']> = {
+    standard: 'Standard',
+    deluxe: 'Deluxe',
+    premium: 'Premium',
+};
+
+const normalizeDbProductPackage = (tier: PackageTier, packageData: any, item: any): ProductPackage | null => {
+    if (!packageData) {
+        return tier === 'standard'
+            ? {
+                name: packageTierNames[tier],
+                price: Number(item.starting_price) || 0,
+                deliveryDays: Number(item.delivery_days) || 1,
+                revisionCount: Number(item.revision_count) || 1,
+                included: [item.summary || item.title || '상담 후 작업 범위를 확정합니다.'],
+            }
+            : null;
+    }
+
+    const included = packageData.included || packageData.includes || packageData.features || [];
+
+    return {
+        name: packageData.name || packageTierNames[tier],
+        price: Number(packageData.price) || Number(item.starting_price) || 0,
+        deliveryDays: Number(packageData.deliveryDays ?? packageData.delivery_days) || Number(item.delivery_days) || 1,
+        revisionCount: Number(packageData.revisionCount ?? packageData.revision_count) || Number(item.revision_count) || 1,
+        included: Array.isArray(included) && included.length > 0
+            ? included
+            : [item.summary || item.title || '상담 후 작업 범위를 확정합니다.'],
+    };
+};
+
+const normalizeDbProductPackages = (item: any): ExpertProduct['packages'] => {
+    const packages = item.packages || {};
+
+    return {
+        standard: normalizeDbProductPackage('standard', packages.standard, item) as ProductPackage,
+        deluxe: normalizeDbProductPackage('deluxe', packages.deluxe, item),
+        premium: normalizeDbProductPackage('premium', packages.premium, item),
+    };
 };
 
 const toServiceRequest = (item: any): AiServiceRequest => ({
@@ -888,7 +932,7 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         startingPrice: Number(item.starting_price) || 0,
         deliveryDays: Number(item.delivery_days) || 1,
         revisionCount: Number(item.revision_count) || 1,
-        packages: normalizeProductPackages(item),
+        packages: normalizeDbProductPackages(item),
         status: item.status,
     })) as ExpertProduct[];
 }

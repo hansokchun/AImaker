@@ -39,6 +39,9 @@ export default function PackageCard({ packages, productId, onOpenChat, chatButto
     const currentPackage = safePackages[activeTab] ?? safePackages.standard
 
     const renderPackage = currentPackage as ProductPackage
+    const included = Array.isArray(renderPackage.included) && renderPackage.included.length > 0
+        ? renderPackage.included
+        : fallbackPackage.included
 
     return (
         <div className="package-card">
@@ -65,7 +68,7 @@ export default function PackageCard({ packages, productId, onOpenChat, chatButto
                 </div>
 
                 <ul className="package-list">
-                    {renderPackage.included.map((feature) => (
+                    {included.map((feature) => (
                         <li key={feature}>{feature}</li>
                     ))}
                 </ul>
