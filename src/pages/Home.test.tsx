@@ -14,24 +14,24 @@ describe('Home', () => {
     vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
   })
 
-  it('shows the launch hero message, initial categories, product section, and CTAs', async () => {
+  it('shows the upgraded product-first home page', async () => {
     render(
       <MemoryRouter>
         <Home />
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: /AI 외주를 더 쉽고\s*저렴하게/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /AI 작업 맡기기/ })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: /AI 전문가로 시작하기/ }).length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: /AI 작업을 고르고 바로 주문하세요/ })).toBeInTheDocument()
+    expect(screen.getByText('상품 탐색')).toBeInTheDocument()
+    expect(screen.getByText('요구사항 작성')).toBeInTheDocument()
+    expect(screen.getByText('제안서 확인')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /AI 작업 둘러보기/ })).toHaveAttribute('href', '/category')
+    expect(screen.getByRole('link', { name: /전문가 상품 등록/ })).toHaveAttribute('href', '/profile')
 
-    expect(screen.getByRole('heading', { name: 'AI 영상/숏폼' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'AI 이미지/캐릭터' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'AI 개발/자동화' })).toBeInTheDocument()
-
-    expect(screen.getByRole('heading', { name: '바로 의뢰할 수 있는 AI 작업' })).toBeInTheDocument()
-    expect(await screen.findAllByRole('link', { name: /패키지로 의뢰하기/ })).toHaveLength(3)
-    expect(screen.getByText('작업이 어디까지 진행됐는지 단계별로 확인하세요.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '필요한 작업을 빠르게 좁혀보세요' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '바로 주문 가능한 AI 상품' })).toBeInTheDocument()
+    expect(await screen.findAllByRole('link', { name: /상품 자세히 보기/ })).toHaveLength(3)
+    expect(screen.getByText('주문 후에도 단계가 보입니다')).toBeInTheDocument()
   })
 
   it('shows recommended products from shared product storage', async () => {
@@ -54,7 +54,7 @@ describe('Home', () => {
 
     expect(await screen.findByRole('heading', { name: 'Home real product' })).toBeInTheDocument()
     expect(screen.getByText('Real product summary')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /패키지로 의뢰하기/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /주문 시작/ })).toHaveAttribute(
       'href',
       '/request/home-product-real-01',
     )

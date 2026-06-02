@@ -1,8 +1,3 @@
-/**
- * Home 페이지
- * - 기존 랜딩 레이아웃과 카드 스타일은 유지하면서 초기 런칭 기획 문구로 개편
- * - 전문가 중심 소개보다 AI 작업 상품 탐색과 의뢰 시작을 우선한다.
- */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AI_CATEGORIES } from '../constants/categories';
@@ -12,10 +7,12 @@ import { getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
 
 const categoryIcons: Record<string, string> = {
-    'ai-video-shortform': '🎬',
-    'ai-image-character': '🎨',
-    'ai-development-automation': '⚙️',
+    'ai-video-shortform': 'movie',
+    'ai-image-character': 'palette',
+    'ai-development-automation': 'smart_toy',
 };
+
+const heroSteps = ['상품 탐색', '요구사항 작성', '제안서 확인'];
 
 export default function Home() {
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
@@ -35,97 +32,63 @@ export default function Home() {
     }, []);
 
     return (
-        <main>
-            <section className="hero container">
-                <div className="hero-content">
-                    <h1 className="hero-title">
-                        AI 외주를 더 쉽고<br />
-                        <span className="highlight">저렴하게</span>
-                    </h1>
-                    <p className="hero-subtitle">
-                        AI 영상, 이미지, 개발/자동화 작업을 원하는 결과물 중심으로 의뢰하세요.
+        <main className="home-page">
+            <section className="home-hero">
+                <div className="home-hero-inner container">
+                    <p className="home-hero-kicker">AI 외주를 상품 단위로</p>
+                    <h1 className="home-hero-title">AI 작업을 고르고 바로 주문하세요</h1>
+                    <p className="home-hero-subtitle">
+                        전문가가 올린 상품의 샘플, 가격, 작업일을 확인하고 요구사항을 보내세요.
+                        제안서 확인과 결제 이후에는 작업방에서 진행 과정을 관리합니다.
                     </p>
                     <div className="home-hero-actions">
                         <Link to={ROUTES.CATEGORY} className="btn-primary">
-                            AI 작업 맡기기
+                            AI 작업 둘러보기
                         </Link>
-                        <Link to={ROUTES.PROFILE} className="btn-text home-secondary-action">
-                            AI 전문가로 시작하기
+                        <Link to={ROUTES.PROFILE} className="home-hero-secondary">
+                            전문가 상품 등록
                         </Link>
                     </div>
-                    <div className="popular-searches">
-                        <span className="popular-label">추천 작업</span>
-                        <div className="tag-group">
-                            <Link to={ROUTES.CATEGORY} className="tag">#AI 숏폼</Link>
-                            <Link to={ROUTES.CATEGORY} className="tag">#AI 이미지</Link>
-                            <Link to={ROUTES.CATEGORY} className="tag">#업무 자동화</Link>
-                        </div>
-                    </div>
-                </div>
-                <div className="hero-image-container">
-                    <img
-                        src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80"
-                        alt="AI 작업 협업"
-                        className="hero-image"
-                    />
-                    <div className="floating-badge badge-1">
-                        <div className="badge-icon" style={{ color: '#2563eb' }}>
-                            <span className="material-symbols-outlined">view_timeline</span>
-                        </div>
-                        <div className="badge-text">
-                            <strong>단계별</strong>
-                            <span>작업 확인</span>
-                        </div>
-                    </div>
-                    <div className="floating-badge badge-2">
-                        <div className="badge-icon" style={{ color: '#10b981' }}>
-                            <span className="material-symbols-outlined">payments</span>
-                        </div>
-                        <div className="badge-text">
-                            <strong>패키지</strong>
-                            <span>간편 의뢰</span>
-                        </div>
-                    </div>
+                    <ol className="home-hero-steps" aria-label="주문 흐름">
+                        {heroSteps.map((step, index) => (
+                            <li className="home-hero-step" key={step}>
+                                <span>{index + 1}</span>
+                                {step}
+                            </li>
+                        ))}
+                    </ol>
                 </div>
             </section>
 
-            <section className="categories container">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
-                    <div>
-                        <h2 className="section-title">어떤 AI 작업이 필요하신가요?</h2>
-                        <p style={{ color: 'var(--text-secondary)' }}>
-                            초기에는 가장 의뢰하기 쉬운 3개 카테고리부터 시작합니다.
-                        </p>
-                    </div>
-                    <Link to={ROUTES.CATEGORY} className="btn-text home-section-link">
-                        전체보기 <span className="material-symbols-outlined">arrow_forward</span>
-                    </Link>
+            <section className="home-section container">
+                <div className="home-section-heading">
+                    <p className="home-section-eyebrow">카테고리</p>
+                    <h2 className="section-title">필요한 작업을 빠르게 좁혀보세요</h2>
+                    <p className="home-section-copy">
+                        영상, 이미지, 개발 자동화처럼 자주 의뢰되는 AI 작업부터 살펴볼 수 있습니다.
+                    </p>
                 </div>
                 <div className="category-grid home-category-grid">
                     {AI_CATEGORIES.map((category) => (
-                        <Link to={ROUTES.CATEGORY} className="category-card" key={category.id}>
-                            <div className="category-icon">{categoryIcons[category.id]}</div>
+                        <Link to={ROUTES.CATEGORY} className="category-card home-category-card" key={category.id}>
+                            <span className="material-symbols-outlined home-category-icon">
+                                {categoryIcons[category.id]}
+                            </span>
                             <h3 className="category-name">{category.name}</h3>
-                            <p className="home-category-description">
-                                {category.examples.join(', ')}
-                            </p>
+                            <p className="home-category-description">{category.examples.join(', ')}</p>
                         </Link>
                     ))}
                 </div>
             </section>
 
-            <section className="recent-requests-section">
+            <section className="home-section home-products-band">
                 <div className="container">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
-                        <div>
-                            <h2 className="section-title">바로 의뢰할 수 있는 AI 작업</h2>
-                            <p style={{ color: 'var(--text-secondary)' }}>
-                                샘플 결과물, 시작 가격, 사용 AI 도구를 보고 원하는 작업을 선택하세요.
-                            </p>
-                        </div>
-                        <Link to={ROUTES.CATEGORY} className="btn-text home-section-link">
-                            상품 더 보기 <span className="material-symbols-outlined">arrow_forward</span>
-                        </Link>
+                    <div className="home-section-heading">
+                        <p className="home-section-eyebrow">상품</p>
+                        <h2 className="section-title">바로 주문 가능한 AI 상품</h2>
+                        <p className="home-section-copy">
+                            가격과 작업일이 정리된 상품을 선택하면 요구사항 작성으로 이어집니다.
+                        </p>
                     </div>
                     <div className="request-mini-grid">
                         {products.slice(0, 3).map((product) => (
@@ -135,25 +98,19 @@ export default function Home() {
                                     alt={`${product.title} 샘플`}
                                     className="home-product-image"
                                 />
-                                <div className="home-product-tools">
-                                    {product.aiTools.join(' · ')}
-                                </div>
-                                <h3 className="home-product-title">
-                                    {product.title}
-                                </h3>
-                                <p className="home-product-summary">
-                                    {product.summary}
-                                </p>
+                                <div className="home-product-tools">{product.aiTools.join(' · ')}</div>
+                                <h3 className="home-product-title">{product.title}</h3>
+                                <p className="home-product-summary">{product.summary}</p>
                                 <div className="home-product-meta">
-                                    <span>시작가 {product.startingPrice.toLocaleString()}원</span>
-                                    <span>작업 {product.deliveryDays}일</span>
+                                    <span>{product.startingPrice.toLocaleString()}원부터</span>
+                                    <span>{product.deliveryDays}일</span>
                                 </div>
                                 <div className="home-product-actions">
                                     <Link to={`/request/${product.id}`} className="btn-primary home-product-primary">
-                                        패키지로 의뢰하기
+                                        주문 시작
                                     </Link>
                                     <Link to={`/expert/${product.id}`} className="btn-text home-product-secondary">
-                                        상세 보기
+                                        상품 자세히 보기
                                     </Link>
                                 </div>
                             </article>
@@ -162,36 +119,33 @@ export default function Home() {
                 </div>
             </section>
 
-            <section className="container">
-                <div className="expert-header home-progress-panel">
-                    <div className="home-progress-copy">
-                        <h2 className="section-title">작업 진행표로 결과물을 확인하세요</h2>
-                        <p className="section-subtitle" style={{ marginBottom: '2rem' }}>
-                            작업이 어디까지 진행됐는지 단계별로 확인하세요.
+            <section className="home-section container">
+                <div className="home-progress-band">
+                    <div>
+                        <p className="home-section-eyebrow">진행 관리</p>
+                        <h2 className="section-title">주문 후에도 단계가 보입니다</h2>
+                        <p className="home-section-copy">
+                            의뢰서, 제안서 승인과 결제, 작업방, 완료 확인을 한 흐름으로 이어서 확인합니다.
                         </p>
-                        <div className="tag-group">
-                            <span className="tag">요구사항 작성</span>
-                            <span className="tag">1차 결과물 확인</span>
-                            <span className="tag">수정 요청 또는 승인</span>
-                            <span className="tag">최종 완료</span>
-                        </div>
                     </div>
-                    <div className="home-progress-note">
-                        <strong style={{ display: 'block', marginBottom: '0.75rem' }}>진행 방식</strong>
-                        <p style={{ color: 'var(--text-secondary)' }}>
-                            간단한 작업은 단일 진행으로, 복잡한 작업은 단계별 진행으로 확인할 수 있습니다.
-                        </p>
+                    <div className="home-progress-steps" aria-label="작업 진행 단계">
+                        {['의뢰서 작성', '제안서 승인 및 결제', '작업방 진행', '완료 확인'].map((step) => (
+                            <div className="home-progress-step" key={step}>
+                                <span className="material-symbols-outlined">check_circle</span>
+                                {step}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            <section className="featured-experts container">
-                <h2 className="section-title">AI 도구를 다룰 줄 안다면 시작할 수 있습니다</h2>
+            <section className="featured-experts container home-expert-cta">
+                <h2 className="section-title">AI 상품을 등록하고 전문가로 시작하세요</h2>
                 <p className="section-subtitle">
-                    샘플 결과물 1개와 서비스 상품 1개만 등록하면 AI 전문가로 활동할 수 있습니다.
+                    샘플 결과물과 패키지 가격을 정리하면 의뢰자가 상품을 보고 바로 주문할 수 있습니다.
                 </p>
                 <Link to={ROUTES.PROFILE} className="btn-primary">
-                    AI 전문가로 시작하기
+                    전문가로 시작하기
                 </Link>
             </section>
         </main>

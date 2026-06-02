@@ -23,20 +23,17 @@ describe('Navbar', () => {
         mockGetStoredProfile.mockResolvedValue(null)
     })
 
-    it('keeps matching centered on product purchase navigation', () => {
+    it('removes the single top navigation link and keeps account actions only', () => {
         render(
             <MemoryRouter>
                 <Navbar />
             </MemoryRouter>,
         )
 
-        expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
-        expect(screen.queryByRole('link', { name: '요청 게시판' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '내 작업' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: 'AI 작업 요청' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '커뮤니티' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '전문가 찾기' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '서비스 요청' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'AIConnect' })).toHaveAttribute('href', '/')
+        expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
     })
 
     it('opens my page and logout actions from the profile image menu', async () => {
