@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockExpertProducts } from '../data/mockData'
@@ -60,5 +60,31 @@ describe('Home', () => {
       'href',
       '/request/home-product-real-01',
     )
+  })
+
+  it('keeps a visible product thumbnail when the external image fails', async () => {
+    vi.mocked(getExpertProducts).mockResolvedValue([
+      {
+        ...mockExpertProducts[0],
+        id: 'home-product-broken-image',
+        title: 'Broken image product',
+        sampleImageUrl: 'https://example.com/missing-image.jpg',
+      },
+    ])
+
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    )
+
+    const thumbnail = await screen.findByRole('img', { name: 'Broken image product 썸네일' })
+    const image = screen.getByTestId('home-product-image-home-product-broken-image')
+
+    fireEvent.error(image)
+
+    expect(thumbnail).toBeInTheDocument()
+    expect(screen.getByText('Broken image product')).toBeInTheDocument()
+    expect(image).not.toBeInTheDocument()
   })
 })

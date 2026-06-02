@@ -5,6 +5,34 @@ import { mockExpertProducts } from '../data/mockData';
 import { getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
 
+function ProductThumbnail({ product }: { product: ExpertProduct }) {
+    const [imageFailed, setImageFailed] = useState(false);
+    const imageUrl = product.sampleImageUrl.trim();
+    const showImage = imageUrl && !imageFailed;
+
+    return (
+        <div
+            className="home-minimal-product-thumbnail"
+            role="img"
+            aria-label={`${product.title} 썸네일`}
+        >
+            <span className="home-minimal-thumbnail-label" aria-hidden="true">
+                AIConnect
+            </span>
+            {showImage && (
+                <img
+                    src={imageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    data-testid={`home-product-image-${product.id}`}
+                    className="home-minimal-product-image"
+                    onError={() => setImageFailed(true)}
+                />
+            )}
+        </div>
+    );
+}
+
 export default function Home() {
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
 
@@ -47,11 +75,7 @@ export default function Home() {
                     {products.slice(0, 3).map((product) => (
                         <article className="home-minimal-product" key={product.id}>
                             <Link to={`/expert/${product.id}`} className="home-minimal-product-image-link">
-                                <img
-                                    src={product.sampleImageUrl}
-                                    alt={`${product.title} 샘플`}
-                                    className="home-minimal-product-image"
-                                />
+                                <ProductThumbnail product={product} />
                             </Link>
                             <div className="home-minimal-product-body">
                                 <h3 className="home-product-title">{product.title}</h3>

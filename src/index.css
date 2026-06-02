@@ -570,8 +570,28 @@ section { padding: 8rem 0; }
 .home-minimal-product-image-link {
     display: block;
 }
-.home-minimal-product-image {
+.home-minimal-product-thumbnail {
+    position: relative;
     width: 100%;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(16, 185, 129, 0.16)),
+        #eef2ff;
+}
+.home-minimal-thumbnail-label {
+    color: rgba(17, 24, 39, 0.36);
+    font-size: 0.95rem;
+    font-weight: 850;
+}
+.home-minimal-product-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     aspect-ratio: 16 / 10;
     object-fit: cover;
     display: block;
