@@ -959,6 +959,19 @@ describe('MyPage', () => {
         expect(screen.getByTestId('location').textContent).toContain('panel=consultations')
     })
 
+    it('removes stale order parameters when opening a consultation chat from a work process', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&clientOrder=request-product-client-01&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=consultations&consultation=consult-client-01'))
+    })
+
     it('shows expert inquiry orders in work management and links their chat stage to the selected consultation', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work']}>

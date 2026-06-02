@@ -212,8 +212,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     useEffect(() => {
         const nextParams = new URLSearchParams()
         if (activePanel !== defaultPanel) nextParams.set('panel', activePanel)
-        if (selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
-        if (selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
+        if (activePanel === 'client' && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
+        if (activePanel === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
         if (activePanel === 'consultations' && selectedConsultationId) nextParams.set('consultation', selectedConsultationId)
 
         if (searchParams.toString() !== nextParams.toString()) {
