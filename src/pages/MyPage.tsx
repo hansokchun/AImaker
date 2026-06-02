@@ -578,7 +578,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         title: string,
         description: string,
         state: StageVisualState,
-        action?: { label: string; to: string },
+        action?: { label: string; to: string; onClick?: () => void },
     ) => {
         const visual = stageVisualConfig[state]
         const mutedProps = state === 'pending' ? { 'data-stage-muted': 'true' } : {}
@@ -617,7 +617,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 <strong {...mutedProps} style={{ display: 'block', color: visual.textColor, marginBottom: '0.4rem' }}>{title}</strong>
             <p {...mutedProps} style={{ color: visual.bodyColor, margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
             {action && (
-                <Link className="btn-text" to={action.to} state={myPageReturnState}>
+                <Link className="btn-text" to={action.to} state={myPageReturnState} onClick={action.onClick}>
                     {action.label}
                 </Link>
             )}
@@ -805,7 +805,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         '상담 채팅',
                         '전문가 문의로 시작한 거래입니다. 채팅에서 범위와 조건을 먼저 협의합니다.',
                         consultation.status === 'open' ? 'current' : 'done',
-                        { label: '상담 채팅 보기', to: consultationUrl },
+                        {
+                            label: '상담 채팅 보기',
+                            to: consultationUrl,
+                            onClick: () => {
+                                setActivePanel('consultations')
+                                setSelectedConsultationId(consultation.id)
+                                setSelectedClientOrderId(null)
+                                setSelectedExpertRequestId(null)
+                            },
+                        },
                     )}
                     {renderClientOrderStage(
                         '검토 단계',

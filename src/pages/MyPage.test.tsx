@@ -1012,6 +1012,31 @@ describe('MyPage', () => {
         expect(screen.queryByTestId('client-consultation-order-flow')).not.toBeInTheDocument()
     })
 
+    it('opens consultation chat from the selected work process without being restored to work management', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        const list = await screen.findByTestId('client-unified-work-list')
+        const consultationItem = within(list).getByRole('button', { pressed: true })
+        expect(consultationItem).toHaveAttribute('data-work-item-kind', 'consultation')
+
+        const chatLink = screen.getAllByRole('link').find((link) =>
+            link.getAttribute('href')?.includes('panel=consultations&consultation=consult-client-01'),
+        )
+        expect(chatLink).toBeTruthy()
+
+        fireEvent.click(chatLink!)
+
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=consultations&consultation=consult-client-01'))
+        expect(await screen.findByRole('button', { name: '상담 채팅' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
     it('shows received expert inquiry chats in expert work management', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work']}>
