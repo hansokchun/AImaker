@@ -137,8 +137,6 @@ const cardStyle = {
     border: '1px solid var(--border-color)',
 } as const
 
-const quickLinkStyle = { color: 'var(--text-secondary)', fontWeight: 700 } as const
-
 type MyPageProps = {
     mode?: MyPageMode
 }
@@ -292,8 +290,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const myProducts = products.filter((product) => product.expertId === user?.id)
     const activeWorks = works.filter((work) => work.status !== 'completed')
     const completedWorks = works.filter((work) => work.status === 'completed')
-    const sentProposal = sentProposals[0] || null
-    const publicProduct = myProducts[0] || null
     const pageTitle = mode === 'work' ? '내 작업' : '마이페이지'
     const pageDescription = mode === 'profile'
         ? '프로필과 계정 기본 정보를 확인합니다.'
@@ -894,13 +890,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderClientProductOrderManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>상품 주문 관리</h3>
-                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                    상품별로 요구사항, 제안서, 작업방 단계를 한 곳에서 확인합니다.
-                </p>
-            </div>
-
             {clientConsultationsByCreatedAt.length > 0 && (
                 <div>
                     <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전문가 문의</h4>
@@ -979,13 +968,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderExpertReceivedWorkManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
-                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                    받은 상품 의뢰를 최신순으로 확인하고, 선택한 의뢰의 진행 단계를 관리합니다.
-                </p>
-            </div>
-
             {expertConsultationsByCreatedAt.length > 0 && (
                 <div>
                     <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전문가 문의</h4>
@@ -1218,12 +1200,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderClientUnifiedWorkManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>상품 주문 관리</h3>
-                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                    상품 주문과 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.
-                </p>
-            </div>
             {clientUnifiedWorkItems.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
                     {renderUnifiedWorkList(
@@ -1253,12 +1229,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderExpertUnifiedWorkManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
-                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                    받은 상품 의뢰와 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.
-                </p>
-            </div>
             {expertUnifiedWorkItems.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
                     {renderUnifiedWorkList(
@@ -1474,38 +1444,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     <section style={cardStyle}>
                         {workRole === 'client' ? (
                             <div>
-                                <span style={{ display: 'inline-block', color: '#1d4ed8', fontWeight: 800, marginBottom: '0.6rem' }}>
-                                    내가 맡긴 일
-                                </span>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 작업</h3>
-                                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                                    상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
-                                </p>
-                                <Link className="btn-text" to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
                                 {renderClientUnifiedWorkManager()}
                             </div>
                         ) : (
                             <div>
-                                <span style={{ display: 'inline-block', color: '#166534', fontWeight: 800, marginBottom: '0.6rem' }}>
-                                    내가 수행할 일
-                                </span>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 작업</h3>
-                                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                                    상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.
-                                </p>
-                                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                    <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
-                                    {sentProposal ? (
-                                        <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
-                                    ) : (
-                                        <span style={quickLinkStyle}>보낸 제안서 없음</span>
-                                    )}
-                                    {publicProduct ? (
-                                        <Link className="btn-text" to={`/expert/${publicProduct.id}`} state={myPageReturnState}>공개 상품 보기</Link>
-                                    ) : (
-                                        <span style={quickLinkStyle}>공개 상품 없음</span>
-                                    )}
-                                </div>
                                 {renderExpertUnifiedWorkManager()}
                             </div>
                         )}
@@ -1514,14 +1456,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             }
             return (
                 <section style={cardStyle}>
-                    <span style={{ display: 'inline-block', color: '#1d4ed8', fontWeight: 800, marginBottom: '0.6rem' }}>
-                        내가 맡긴 일
-                    </span>
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>의뢰자 홈</h2>
-                    <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                        상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
-                    </p>
-                    <Link className="btn-text" to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
                     {renderClientUnifiedWorkManager()}
                 </section>
             )
@@ -1530,29 +1464,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (activePanel === 'expert') {
             return (
                 <section style={cardStyle}>
-                    <span style={{ display: 'inline-block', color: '#166534', fontWeight: 800, marginBottom: '0.6rem' }}>
-                        내가 수행할 일
-                    </span>
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>전문가 홈</h2>
-                    <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                        내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.
-                    </p>
-                    <div style={{ display: 'grid', gap: '0.75rem' }}>
-                        <Link className="btn-text" to={ROUTES.PROFILE}>내가 등록한 상품</Link>
-                        {sentProposal ? (
-                            <Link className="btn-text" to={`/proposal/${sentProposal.id}`} state={myPageReturnState}>보낸 제안서 보기</Link>
-                        ) : (
-                            <span style={quickLinkStyle}>보낸 제안서 없음</span>
-                        )}
-                        {publicProduct ? (
-                            <Link className="btn-text" to={`/expert/${publicProduct.id}`} state={myPageReturnState}>공개 상품 보기</Link>
-                        ) : (
-                            <span style={quickLinkStyle}>공개 상품 없음</span>
-                        )}
-                    </div>
-
                     {renderExpertUnifiedWorkManager()}
-
                 </section>
             )
         }

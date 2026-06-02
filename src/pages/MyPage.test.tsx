@@ -932,7 +932,7 @@ describe('MyPage', () => {
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
 
         expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
+        expect(screen.queryByText('받은 일 관리')).not.toBeInTheDocument()
     })
 
     it('opens the consultation chat panel with a selected consultation from the query string', async () => {
@@ -1131,12 +1131,12 @@ describe('MyPage', () => {
         expect(screen.getByText('마이페이지')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
-        expect(screen.getByText('상품 주문 관리')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
+        expect(screen.queryByText('상품 주문 관리')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
-        expect(screen.getByText('받은 일 관리')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
+        expect(screen.queryByText('받은 일 관리')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '내가 등록한 상품' })).not.toBeInTheDocument()
     })
 
     it('shows client and expert sections with transaction links', async () => {
@@ -1154,10 +1154,11 @@ describe('MyPage', () => {
         expect(screen.getByText('전문가 영역은 내가 받거나 제안한 일을 관리하는 곳입니다.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
-        expect(screen.getByText('내가 맡긴 일')).toBeInTheDocument()
-        expect(screen.getByText('상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '상품 주문 관리' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
+        expect(screen.queryByText('내가 맡긴 일')).not.toBeInTheDocument()
+        expect(screen.queryByText('의뢰자 작업')).not.toBeInTheDocument()
+        expect(screen.queryByText('상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.')).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '상품 주문 관리' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
         const clientList = await screen.findByTestId('client-unified-work-list')
         const clientProductOrder = within(clientList)
             .getAllByRole('button')
@@ -1174,21 +1175,16 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
-        expect(screen.getByText('내가 수행할 일')).toBeInTheDocument()
-        expect(screen.getByText('내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: '받은 일 관리' })).toBeInTheDocument()
-        expect(screen.getByText('받은 상품 의뢰와 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '내가 등록한 상품' })).toHaveAttribute('href', '/profile')
+        expect(screen.queryByText('내가 수행할 일')).not.toBeInTheDocument()
+        expect(screen.queryByText('전문가 작업')).not.toBeInTheDocument()
+        expect(screen.queryByText('내 상품으로 들어온 의뢰와 내가 보낸 제안서를 확인합니다.')).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '받은 일 관리' })).not.toBeInTheDocument()
+        expect(screen.queryByText('받은 상품 의뢰와 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '내가 등록한 상품' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '요청 게시판에서 제안할 일 찾기' })).not.toBeInTheDocument()
         expect(screen.getAllByText('상품 지정 요구사항').length).toBeGreaterThan(0)
-        expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
-            'href',
-            '/expert/product-owned-01',
-        )
-        expect(await screen.findByRole('link', { name: '보낸 제안서 보기' })).toHaveAttribute(
-            'href',
-            '/proposal/proposal-real-expert',
-        )
+        expect(screen.queryByRole('link', { name: '공개 상품 보기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '전문가 응답 필요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '보낸 제안서' })).not.toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '내가 등록한 상품' })).not.toBeInTheDocument()
@@ -1203,10 +1199,11 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '의뢰자 홈' }))
 
-        expect(await screen.findByRole('heading', { name: '상품 주문 관리' })).toBeInTheDocument()
-        expect(screen.getByText('상품 주문과 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.')).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '상품 주문 관리' })).not.toBeInTheDocument()
+        expect(screen.queryByText('상품 주문과 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.')).not.toBeInTheDocument()
 
-        const productOrderButton = within(screen.getByTestId('client-unified-work-list'))
+        const clientUnifiedWorkList = await screen.findByTestId('client-unified-work-list')
+        const productOrderButton = within(clientUnifiedWorkList)
             .getAllByRole('button')
             .find((button) => button.getAttribute('data-work-item-id') === 'request-product-client-01')
         expect(productOrderButton).toBeDefined()
@@ -1640,6 +1637,14 @@ describe('MyPage', () => {
     })
 
     it('shows received and sent proposals through the order stage manager', async () => {
+        getUserProposals.mockResolvedValue([
+            ...defaultProposals(),
+            {
+                ...defaultProposals()[1],
+                requestId: 'request-product-directed-01',
+            },
+        ])
+
         render(
             <MemoryRouter>
                 <MyPage />
@@ -1662,12 +1667,11 @@ describe('MyPage', () => {
         const groups = await screen.findByTestId('expert-unified-work-list')
         fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
         expect(screen.getByText('제안서 승인 및 결제 대기')).toBeInTheDocument()
-        expect(screen.getByText('제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '보낸 제안서 보기' })).toHaveAttribute(
-            'href',
-            '/proposal/proposal-real-expert',
-        )
-        expect(screen.queryByText('Second sent proposal')).not.toBeInTheDocument()
+        expect(
+            screen
+                .getAllByRole('link')
+                .some((link) => link.getAttribute('href') === '/proposal/proposal-real-expert'),
+        ).toBe(true)
     })
 
     it('shows every active and completed work as workroom cards', async () => {
@@ -1728,10 +1732,7 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
-        expect(await screen.findByRole('link', { name: '공개 상품 보기' })).toHaveAttribute(
-            'href',
-            '/expert/product-owned-01',
-        )
+        expect(screen.queryByRole('link', { name: '공개 상품 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'Owned AI product' })).not.toBeInTheDocument()
         expect(screen.queryByText('Other AI product')).not.toBeInTheDocument()
     })
