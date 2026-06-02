@@ -978,6 +978,27 @@ describe('MyPage', () => {
         expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
     })
 
+    it('shows client product orders and expert inquiries in one newest-first list with one selected flow', async () => {
+        render(
+            <MemoryRouter initialEntries={['/mypage?panel=client']}>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        const list = await screen.findByTestId('client-unified-work-list')
+        const items = within(list).getAllByRole('button')
+
+        expect(items[0]).toHaveAttribute('data-work-item-kind', 'consultation')
+        expect(items[0]).toHaveAttribute('data-work-item-id', 'consult-client-01')
+        expect(items[1]).toHaveAttribute('data-work-item-kind', 'product')
+        expect(items[1]).toHaveAttribute('data-work-item-id', 'request-product-client-01')
+
+        fireEvent.click(items[1])
+
+        expect(screen.getByTestId('client-product-order-flow')).toBeInTheDocument()
+        expect(screen.queryByTestId('client-consultation-order-flow')).not.toBeInTheDocument()
+    })
+
     it('shows received expert inquiry chats in expert work management', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work']}>

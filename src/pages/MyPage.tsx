@@ -320,6 +320,55 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const clientConsultationsByCreatedAt = sortConsultationsByCreatedAtDesc(clientConsultations)
     const expertConsultationsByCreatedAt = sortConsultationsByCreatedAtDesc(expertConsultations)
 
+    type UnifiedWorkItem =
+        | { kind: 'product'; id: string | number; createdTime: number; request: ServiceRequestData }
+        | { kind: 'consultation'; id: string; createdTime: number; consultation: Consultation }
+
+    const sortUnifiedWorkItems = (items: UnifiedWorkItem[]) =>
+        [...items].sort((first, second) => second.createdTime - first.createdTime)
+
+    const clientUnifiedWorkItems = sortUnifiedWorkItems([
+        ...clientProductRequestsByCreatedAt.map((request): UnifiedWorkItem => ({
+            kind: 'product',
+            id: request.id,
+            createdTime: getRequestCreatedTime(request),
+            request,
+        })),
+        ...clientConsultationsByCreatedAt.map((consultation): UnifiedWorkItem => ({
+            kind: 'consultation',
+            id: consultation.id,
+            createdTime: getConsultationCreatedTime(consultation),
+            consultation,
+        })),
+    ])
+
+    const expertUnifiedWorkItems = sortUnifiedWorkItems([
+        ...receivedProductRequestsByCreatedAt.map((request): UnifiedWorkItem => ({
+            kind: 'product',
+            id: request.id,
+            createdTime: getRequestCreatedTime(request),
+            request,
+        })),
+        ...expertConsultationsByCreatedAt.map((consultation): UnifiedWorkItem => ({
+            kind: 'consultation',
+            id: consultation.id,
+            createdTime: getConsultationCreatedTime(consultation),
+            consultation,
+        })),
+    ])
+
+    const selectedClientUnifiedWorkItem =
+        clientUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedClientOrderId) ||
+        clientUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId) ||
+        clientUnifiedWorkItems[0] ||
+        null
+
+    const selectedExpertUnifiedWorkItem =
+        expertUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedExpertRequestId) ||
+        expertUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId) ||
+        expertUnifiedWorkItems[0] ||
+        null
+
     const selectedClientOrder = clientProductRequestsByCreatedAt.find((request) => request.id === selectedClientOrderId) || clientProductRequestsByCreatedAt[0] || null
     const selectedClientOrderProduct = selectedClientOrder
         ? products.find((product) => product.id === selectedClientOrder.productId)
@@ -663,6 +712,72 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </section>
     )
 
+    const renderUnifiedWorkList = (
+        items: UnifiedWorkItem[],
+        selectedItem: UnifiedWorkItem | null,
+        testId: string,
+        emptyText: string,
+        onSelect: (item: UnifiedWorkItem) => void,
+    ) => (
+        <section data-testid={testId}>
+            {items.length > 0 ? (
+                <div style={{ display: 'grid', gap: '0.65rem' }}>
+                    {items.map((item) => {
+                        const product = item.kind === 'product'
+                            ? products.find((entry) => entry.id === item.request.productId)
+                            : products.find((entry) => entry.id === item.consultation.productId)
+                        const selected = selectedItem?.kind === item.kind && selectedItem.id === item.id
+                        const title = item.kind === 'product'
+                            ? product?.title || item.request.desiredResult || item.request.title
+                            : product?.title || item.consultation.title
+                        const subtitle = item.kind === 'product'
+                            ? item.request.desiredResult || item.request.title
+                            : item.consultation.title
+
+                        return (
+                            <button
+                                key={`${item.kind}-${item.id}`}
+                                type="button"
+                                data-work-item-kind={item.kind}
+                                data-work-item-id={String(item.id)}
+                                aria-pressed={selected}
+                                onClick={() => onSelect(item)}
+                                style={{
+                                    textAlign: 'left',
+                                    padding: '1rem',
+                                    borderRadius: '0.75rem',
+                                    border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
+                                    background: selected ? '#eff6ff' : '#f8fafc',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        marginBottom: '0.45rem',
+                                        color: item.kind === 'consultation' ? '#7c3aed' : '#1d4ed8',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 800,
+                                    }}
+                                >
+                                    {item.kind === 'consultation' ? '전문가 문의' : '상품 주문'}
+                                </span>
+                                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>
+                                    {title}
+                                </strong>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    {subtitle}
+                                </span>
+                            </button>
+                        )
+                    })}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
+            )}
+        </section>
+    )
+
     const renderConsultationFlow = (consultation: Consultation | null, role: 'client' | 'expert') => {
         if (!consultation) return null
         const product = products.find((item) => item.id === consultation.productId)
@@ -673,7 +788,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             : '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
 
         return (
-            <div style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
+            <div data-testid={`${role}-consultation-order-flow`} style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
                     전문가 문의 - {product?.title || consultation.title}
                 </h3>
@@ -911,6 +1026,223 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </div>
     )
 
+    const renderClientSelectedProductFlow = () => {
+        if (!selectedClientOrder) return null
+
+        return (
+            <div data-testid="client-product-order-flow" style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
+                    {selectedClientOrderProduct?.title || selectedClientOrder.title}
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                    {selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}
+                    마감 {selectedClientOrder.deadline || '미정'}
+                </p>
+                <p style={{ color: '#1d4ed8', fontWeight: 800, margin: '0 0 1rem' }}>
+                    현재 단계: {selectedClientOrderCurrentStage}
+                </p>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {renderClientOrderStage(
+                        '작업 전',
+                        '의뢰서 작성/요구사항',
+                        selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
+                        'done',
+                        selectedClientOrder.productId
+                            ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` }
+                            : undefined,
+                    )}
+                    {selectedClientOrderProposal
+                        ? renderClientOrderStage(
+                            '검토 단계',
+                            '제안서 검토',
+                            `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]}`,
+                            'done',
+                            { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
+                        )
+                        : renderClientOrderStage('검토 단계', '제안서 대기', '전문가가 아직 제안서를 보내지 않았습니다.', 'current')}
+                    {selectedClientOrderProposal
+                        ? renderClientOrderStage(
+                            '결제',
+                            selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '테스트 결제 대기',
+                            selectedClientOrderWork
+                                ? '결제 완료 후 작업방이 생성되었습니다.'
+                                : selectedClientOrderProposal.paymentStatus === 'paid'
+                                    ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                                    : '제안서 화면에서 테스트 결제 완료 처리를 진행해야 작업방이 생성됩니다.',
+                            selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
+                        )
+                        : renderClientOrderStage('결제', '테스트 결제 대기', '제안서를 받은 뒤 결제 완료 처리를 할 수 있습니다.', 'pending')}
+                    {selectedClientOrderWork
+                        ? renderClientOrderStage(
+                            '작업 중',
+                            getClientWorkStageTitle(selectedClientOrderWork),
+                            getClientWorkStageDescription(selectedClientOrderWork),
+                            selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
+                            { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
+                        )
+                        : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
+                    {renderClientOrderStage(
+                        '작업 후',
+                        '완료 확인/리뷰',
+                        selectedClientOrderWork?.status === 'completed' ? '결과물을 확인하고 리뷰를 남길 수 있습니다.' : '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.',
+                        selectedClientOrderWork?.status === 'completed' ? 'current' : 'pending',
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    const renderExpertSelectedProductFlow = () => {
+        if (!selectedExpertRequest) return null
+
+        return (
+            <div data-testid="expert-product-order-flow" style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
+                    {selectedExpertRequest.desiredResult || selectedExpertRequestProduct?.title || selectedExpertRequest.title}
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
+                    {selectedExpertRequestProduct?.title || '상품 의뢰'} · {selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}
+                    마감 {selectedExpertRequest.deadline || '미정'}
+                </p>
+                <p style={{ color: '#166534', fontWeight: 800, margin: '0 0 1rem' }}>
+                    현재 단계: {selectedExpertRequestCurrentStage}
+                </p>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {renderClientOrderStage(
+                        '작업 전',
+                        '받은 의뢰',
+                        selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
+                        'done',
+                        selectedExpertRequest.productId ? { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` } : undefined,
+                    )}
+                    {selectedExpertRequestProposal
+                        ? renderClientOrderStage(
+                            '검토 단계',
+                            '제안서 작성/수정',
+                            `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
+                            selectedExpertRequestWork ? 'done' : 'current',
+                            { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
+                        )
+                        : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.', selectedExpertRequestWork ? 'pending' : 'current')}
+                    {selectedExpertRequestProposal
+                        ? renderClientOrderStage(
+                            '결제',
+                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '의뢰자 결제 대기',
+                            selectedExpertRequestWork
+                                ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
+                                : selectedExpertRequestProposal.paymentStatus === 'paid'
+                                    ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                                    : '의뢰자가 제안서에서 테스트 결제 완료 처리를 하면 작업방이 생성됩니다.',
+                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
+                        )
+                        : renderClientOrderStage('결제', '의뢰자 결제 대기', '제안서를 보낸 뒤 의뢰자 결제 완료를 기다립니다.', 'pending')}
+                    {selectedExpertRequestWork
+                        ? renderClientOrderStage(
+                            '작업 중',
+                            getExpertWorkStageTitle(selectedExpertRequestWork),
+                            getExpertWorkStageDescription(selectedExpertRequestWork),
+                            selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
+                            { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
+                        )
+                        : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
+                    {renderClientOrderStage(
+                        '작업 완료',
+                        '작업 완료',
+                        selectedExpertRequestWork?.status === 'completed' ? '의뢰자에게 결과물을 전달한 완료 작업입니다.' : '결과물을 제출하고 의뢰자 확인을 기다립니다.',
+                        selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
+                    )}
+                </div>
+                {!selectedExpertRequestProposal && !selectedExpertRequestWork && (
+                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button type="button" className="btn-primary" onClick={handleSendProductProposal}>
+                            제안서 보내기
+                        </button>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                            받은 상품 의뢰에 바로 제안서를 보냅니다.
+                        </span>
+                    </div>
+                )}
+                {expertProposalMessage && (
+                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{expertProposalMessage}</p>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    const renderClientUnifiedWorkManager = () => (
+        <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
+            <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>상품 주문 관리</h3>
+                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                    상품 주문과 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.
+                </p>
+            </div>
+            {clientUnifiedWorkItems.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                    {renderUnifiedWorkList(
+                        clientUnifiedWorkItems,
+                        selectedClientUnifiedWorkItem,
+                        'client-unified-work-list',
+                        '작업 내역이 없습니다.',
+                        (item) => {
+                            if (item.kind === 'product') {
+                                setSelectedClientOrderId(item.id)
+                                setSelectedConsultationId(null)
+                            } else {
+                                setSelectedConsultationId(item.id)
+                                setSelectedClientOrderId(null)
+                            }
+                        },
+                    )}
+                    {selectedClientUnifiedWorkItem?.kind === 'consultation'
+                        ? renderConsultationFlow(selectedClientUnifiedWorkItem.consultation, 'client')
+                        : renderClientSelectedProductFlow()}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 작업 내역이 없습니다.</p>
+            )}
+        </div>
+    )
+
+    const renderExpertUnifiedWorkManager = () => (
+        <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
+            <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.35rem' }}>받은 일 관리</h3>
+                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                    받은 상품 의뢰와 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.
+                </p>
+            </div>
+            {expertUnifiedWorkItems.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                    {renderUnifiedWorkList(
+                        expertUnifiedWorkItems,
+                        selectedExpertUnifiedWorkItem,
+                        'expert-unified-work-list',
+                        '받은 작업 내역이 없습니다.',
+                        (item) => {
+                            if (item.kind === 'product') {
+                                setSelectedExpertRequestId(item.id)
+                                setSelectedConsultationId(null)
+                            } else {
+                                setSelectedConsultationId(item.id)
+                                setSelectedExpertRequestId(null)
+                            }
+                        },
+                    )}
+                    {selectedExpertUnifiedWorkItem?.kind === 'consultation'
+                        ? renderConsultationFlow(selectedExpertUnifiedWorkItem.consultation, 'expert')
+                        : renderExpertSelectedProductFlow()}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
+            )}
+        </div>
+    )
+
     const renderConsultationPanel = () => (
         <section style={cardStyle}>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.5rem' }}>상담 채팅</h2>
@@ -1064,7 +1396,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
                                 </p>
                                 <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판 보기</Link>
-                                {renderClientProductOrderManager()}
+                                {renderClientUnifiedWorkManager()}
                             </div>
                         ) : (
                             <div>
@@ -1089,7 +1421,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         <span style={quickLinkStyle}>공개 상품 없음</span>
                                     )}
                                 </div>
-                                {renderExpertReceivedWorkManager()}
+                                {renderExpertUnifiedWorkManager()}
                             </div>
                         )}
                     </section>
@@ -1105,7 +1437,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         상품을 주문한 경우 상품 단위로 들어가 진행 단계를 확인합니다.
                     </p>
                     <Link className="btn-text" to={ROUTES.REQUEST_BOARD}>요청 게시판 보기</Link>
-                    {renderClientProductOrderManager()}
+                    {renderClientUnifiedWorkManager()}
                 </section>
             )
         }
@@ -1135,7 +1467,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         )}
                     </div>
 
-                    {renderExpertReceivedWorkManager()}
+                    {renderExpertUnifiedWorkManager()}
 
                 </section>
             )
