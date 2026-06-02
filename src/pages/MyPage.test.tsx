@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
 import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData } from '../types'
@@ -21,6 +21,11 @@ function LocationProbe() {
 function LocationStateProbe() {
     const location = useLocation()
     return <span data-testid="location-state">{JSON.stringify(location.state)}</span>
+}
+
+function BackButton() {
+    const navigate = useNavigate()
+    return <button type="button" onClick={() => navigate(-1)}>뒤로가기</button>
 }
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -997,6 +1002,53 @@ describe('MyPage', () => {
         fireEvent.click(screen.getByRole('button', { name: '상담 채팅' }))
         await waitFor(() => expect(screen.getByRole('button', { name: '상담 채팅' })).toHaveAttribute('aria-pressed', 'true'))
         expect(screen.getByTestId('location').textContent).toContain('panel=consultations')
+    })
+
+    it('keeps work menu visits in browser history so back returns to the previous work panel', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<><MyPage mode="work" /><LocationProbe /><BackButton /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '상담 채팅' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '상담 채팅' }))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=consultations'))
+
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=workroom'))
+
+        fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=consultations'))
+        expect(screen.getByRole('button', { name: '상담 채팅' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('restores the selected client order from browser history when going back', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<><MyPage mode="work" /><LocationProbe /><BackButton /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const list = await screen.findByTestId('client-unified-work-list')
+        const productOrderButton = within(list)
+            .getAllByRole('button')
+            .find((button) => button.getAttribute('data-work-item-id') === 'request-product-client-01')
+        expect(productOrderButton).toBeDefined()
+        fireEvent.click(productOrderButton!)
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('clientOrder=request-product-client-01'))
+
+        fireEvent.click(screen.getByRole('button', { name: '상담 채팅' }))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=consultations'))
+
+        fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('clientOrder=request-product-client-01'))
+        expect(screen.getByTestId('client-product-order-flow')).toBeInTheDocument()
     })
 
     it('removes stale order parameters when opening a consultation chat from a work process', async () => {

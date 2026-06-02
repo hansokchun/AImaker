@@ -201,27 +201,35 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }, [activePanel, defaultPanel, menuItems])
 
     useEffect(() => {
-        const panel = searchParams.get('panel')
-        const consultation = searchParams.get('consultation')
+        const currentParams = new URLSearchParams(searchParamString)
+        const panel = currentParams.get('panel')
+        const clientOrder = currentParams.get('clientOrder')
+        const expertRequest = currentParams.get('expertRequest')
+        const consultation = currentParams.get('consultation')
         const nextPanel = isMyPagePanel(panel, menuItems) ? panel : defaultPanel
 
         setActivePanel((currentPanel) => (currentPanel === nextPanel ? currentPanel : nextPanel))
-        if (consultation) {
-            setSelectedConsultationId((currentId) => (currentId === consultation ? currentId : consultation))
-        }
+        setSelectedClientOrderId((currentId) => (currentId === clientOrder ? currentId : clientOrder))
+        setSelectedExpertRequestId((currentId) => (currentId === expertRequest ? currentId : expertRequest))
+        setSelectedConsultationId((currentId) => (currentId === consultation ? currentId : consultation))
     }, [defaultPanel, menuItems, searchParamString])
 
     useEffect(() => {
+        const currentParams = new URLSearchParams(searchParamString)
+        const panel = currentParams.get('panel')
+        const panelFromUrl = isMyPagePanel(panel, menuItems) ? panel : defaultPanel
+        if (panelFromUrl !== activePanel) return
+
         const nextParams = new URLSearchParams()
         if (activePanel !== defaultPanel) nextParams.set('panel', activePanel)
         if (activePanel === 'client' && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
         if (activePanel === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
         if (activePanel === 'consultations' && selectedConsultationId) nextParams.set('consultation', selectedConsultationId)
 
-        if (searchParams.toString() !== nextParams.toString()) {
+        if (currentParams.toString() !== nextParams.toString()) {
             setSearchParams(nextParams, { replace: true })
         }
-    }, [activePanel, defaultPanel, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams])
+    }, [activePanel, defaultPanel, menuItems, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams])
 
     useEffect(() => {
         if (user && supabase) {
@@ -256,10 +264,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }, [fetchProfile, user])
 
     useEffect(() => {
-        if (activePanel === 'consultations' && !selectedConsultationId && consultations.length > 0) {
+        const currentParams = new URLSearchParams(searchParamString)
+        const panel = currentParams.get('panel')
+        if (panel === 'consultations' && activePanel === 'consultations' && !selectedConsultationId && consultations.length > 0) {
             setSelectedConsultationId(consultations[0].id)
         }
-    }, [activePanel, consultations, selectedConsultationId])
+    }, [activePanel, consultations, searchParamString, selectedConsultationId])
 
     useEffect(() => {
         if (!selectedConsultationId) {
@@ -512,6 +522,19 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         } finally {
             setConsultationProposalSubmitting(false)
         }
+    }
+
+    const getPanelSearchParams = (panel: MyPagePanel) => {
+        const nextParams = new URLSearchParams()
+        if (panel !== defaultPanel) nextParams.set('panel', panel)
+        if (panel === 'client' && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
+        if (panel === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
+        if (panel === 'consultations' && selectedConsultationId) nextParams.set('consultation', selectedConsultationId)
+        return nextParams
+    }
+
+    const handlePanelChange = (panel: MyPagePanel) => {
+        setSearchParams(getPanelSearchParams(panel))
     }
 
     const renderWorkCards = (items: Work[], emptyText: string) => (
@@ -1545,7 +1568,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         key={item.id}
                                         type="button"
                                         aria-pressed={selected}
-                                        onClick={() => setActivePanel(item.id)}
+                                        onClick={() => handlePanelChange(item.id)}
                                         style={{
                                             width: '100%',
                                             textAlign: 'left',
