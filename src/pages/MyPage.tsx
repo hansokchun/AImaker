@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
@@ -175,6 +175,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageError, setConsultationMessageError] = useState('')
     const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
+    const workRoleSelectedByUserRef = useRef(false)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
 
     const fetchProfile = useCallback(async () => {
@@ -428,6 +429,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     useEffect(() => {
         if (mode !== 'work' || activePanel !== 'consultations' || !selectedConsultationId || !user) return
+        if (workRoleSelectedByUserRef.current) return
         const selected = consultations.find((consultation) => consultation.id === selectedConsultationId)
         if (!selected) return
 
@@ -585,6 +587,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }
 
     const handleWorkRoleChange = (nextRole: 'client' | 'expert') => {
+        workRoleSelectedByUserRef.current = true
         setWorkRole(nextRole)
         if (activePanel !== 'consultations') return
 

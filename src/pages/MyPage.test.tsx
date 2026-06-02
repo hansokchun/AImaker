@@ -1784,6 +1784,50 @@ describe('MyPage', () => {
         expect(screen.queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
     })
 
+    it('switches the consultation chat role even when a client chat is selected in the URL', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <MyPage mode="work" />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).toBeInTheDocument()
+
+        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+
+        expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
+        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.queryByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).not.toBeInTheDocument()
+    })
+
+    it('keeps the manually selected consultation role when a chat belongs to both sides', async () => {
+        getUserConsultations.mockResolvedValue([
+            {
+                id: 'consult-both-01',
+                clientId: 'user-demo-01',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                status: 'open',
+                title: '양쪽 역할 상담',
+                lastMessageAt: '2026-06-03T10:00:00.000Z',
+                createdAt: '2026-06-03T09:30:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-both-01']}>
+                <MyPage mode="work" />
+            </MemoryRouter>,
+        )
+
+        const roleSwitch = await screen.findByLabelText('내 작업 역할 전환')
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+
+        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('heading', { name: '양쪽 역할 상담' })).toBeInTheDocument()
+    })
+
     it('does not offer another review for work already reviewed by the client', async () => {
         getUserReviews.mockResolvedValue([
             {
