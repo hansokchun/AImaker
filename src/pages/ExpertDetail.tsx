@@ -48,7 +48,7 @@ export default function ExpertDetail() {
                 expertId: product.expertId,
                 productId: product.id,
                 title: `${product.title} 상담`,
-                initialMessage: `${product.title} 작업 범위를 상담하고 싶습니다.`,
+                initialMessage: `${product.title} 작업 범위와 예상 가격을 상담하고 싶습니다.`,
             })
             navigate(`${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`)
         } catch (error) {

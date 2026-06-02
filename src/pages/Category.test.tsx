@@ -37,6 +37,7 @@ describe('Category', () => {
     fireEvent.change(screen.getByLabelText('최대 가격'), { target: { value: '10000' } })
 
     expect(screen.getByText('아직 등록된 AI 작업이 없습니다.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'AI 작업 요청하기' })).toBeInTheDocument()
+    expect(screen.getByText('조건을 조금 넓히거나 다른 카테고리의 상품을 확인해보세요.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'AI 작업 요청하기' })).not.toBeInTheDocument()
   })
 })

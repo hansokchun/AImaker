@@ -116,8 +116,8 @@ export default function Proposal() {
                     <div className="proposal-main-card">
                         <h1>제안서를 찾을 수 없습니다.</h1>
                         <p>제안서가 삭제되었거나 접근할 수 없는 상태입니다.</p>
-                        <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="proposal-back-link">
-                            {myPageReturnTo ? '마이페이지로 돌아가기' : '요청 목록으로 돌아가기'}
+                        <Link to={myPageReturnTo || ROUTES.CATEGORY} className="proposal-back-link">
+                            {myPageReturnTo ? '마이페이지로 돌아가기' : 'AI 작업 찾기로 돌아가기'}
                         </Link>
                     </div>
                 </section>
@@ -236,13 +236,13 @@ export default function Proposal() {
                         <button type="button" className="btn-text danger" disabled={isClosed} onClick={handleCancel}>
                             거절하기
                         </button>
-                        <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="btn-text" state={myPageReturnState}>
+                        <Link to={myPageReturnTo || ROUTES.CATEGORY} className="btn-text" state={myPageReturnState}>
                             취소
                         </Link>
                     </div>
 
-                    <Link to={myPageReturnTo || ROUTES.REQUEST_BOARD} className="proposal-back-link">
-                        {myPageReturnTo ? '마이페이지로 돌아가기' : '요청 목록으로 돌아가기'}
+                    <Link to={myPageReturnTo || ROUTES.CATEGORY} className="proposal-back-link">
+                        {myPageReturnTo ? '마이페이지로 돌아가기' : 'AI 작업 찾기로 돌아가기'}
                     </Link>
                 </aside>
             </section>

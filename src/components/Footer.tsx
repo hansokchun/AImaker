@@ -16,9 +16,8 @@ export default function Footer() {
                 </div>
                 <div className="link-column">
                     <h4>서비스</h4>
-                    <Link to={ROUTES.CATEGORY}>전문가 찾기</Link>
-                    <Link to={ROUTES.SERVICE_REQUEST}>서비스 요청</Link>
-                    <Link to={ROUTES.REQUEST_BOARD}>요청 게시판</Link>
+                    <Link to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
+                    <Link to={ROUTES.WORK_DASHBOARD}>내 작업</Link>
                 </div>
                 <div className="link-column">
                     <h4>고객지원</h4>

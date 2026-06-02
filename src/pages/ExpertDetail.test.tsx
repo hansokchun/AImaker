@@ -99,7 +99,7 @@ describe('ExpertDetail', () => {
         expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
     })
 
-    it('creates a consultation from expert inquiry and opens the selected chat in my work', async () => {
+    it('creates a price estimate consultation and opens the selected chat in my work', async () => {
         render(
             <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
                 <Routes>
@@ -119,14 +119,14 @@ describe('ExpertDetail', () => {
 
         expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '전문가에게 문의하기' }))
+        fireEvent.click(screen.getByRole('button', { name: '가격측정 문의하기' }))
 
         await waitFor(() => expect(createConsultation).toHaveBeenCalledWith({
             clientId: 'client-real-01',
             expertId: supabaseProduct.expertId,
             productId: supabaseProduct.id,
             title: `${supabaseProduct.title} 상담`,
-            initialMessage: `${supabaseProduct.title} 작업 범위를 상담하고 싶습니다.`,
+            initialMessage: `${supabaseProduct.title} 작업 범위와 예상 가격을 상담하고 싶습니다.`,
         }))
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work?panel=consultations&consultation=consultation-created-01'))
     })

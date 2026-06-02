@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
-import { ROUTES } from '../constants/routes'
 import { getExpertProducts } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct } from '../types'
 import './Category.css'
@@ -155,10 +153,7 @@ export default function Category() {
                         ) : (
                             <section className="empty-products">
                                 <h2>아직 등록된 AI 작업이 없습니다.</h2>
-                                <p>조건을 조금 넓히거나 원하는 결과물을 직접 요청해보세요.</p>
-                                <Link className="btn-primary" to={ROUTES.SERVICE_REQUEST}>
-                                    AI 작업 요청하기
-                                </Link>
+                                <p>조건을 조금 넓히거나 다른 카테고리의 상품을 확인해보세요.</p>
                             </section>
                         )}
                     </div>

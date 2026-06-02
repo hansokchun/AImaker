@@ -107,7 +107,7 @@ describe('Proposal', () => {
         await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith(activeProposal.id))
         expect(screen.getByText('제안서를 거절했습니다.')).toBeInTheDocument()
         expect(screen.getByText('취소됨')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '취소' })).toHaveAttribute('href', '/requests')
+        expect(screen.getByRole('link', { name: '취소' })).toHaveAttribute('href', '/category')
     })
 
     it('shows the existing workroom link when reopening a paid accepted proposal', async () => {
@@ -170,7 +170,7 @@ describe('Proposal', () => {
         )
 
         expect(await screen.findByText('제안서를 찾을 수 없습니다.')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '요청 목록으로 돌아가기' })).toHaveAttribute('href', '/requests')
+        expect(screen.getByRole('link', { name: 'AI 작업 찾기로 돌아가기' })).toHaveAttribute('href', '/category')
         expect(screen.queryByText(activeProposal.title)).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '승인 및 결제하기' })).not.toBeInTheDocument()
     })

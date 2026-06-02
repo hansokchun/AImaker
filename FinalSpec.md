@@ -186,13 +186,25 @@ PG 연동
 ```text
 profiles
 → expert_products
-→ service_requests
+→ service_requests (상품 지정 의뢰서)
 → proposals
 → works
 → work_steps
 → deliverables
 → reviews
 ```
+
+매칭 방식은 초기 MVP에서 상품 중심으로 단순화한다.
+
+```text
+전문가가 상품을 등록한다.
+의뢰자가 상품을 찾는다.
+의뢰자가 패키지로 의뢰하거나 가격측정문의를 보낸다.
+전문가가 의뢰서 또는 상담 내용을 바탕으로 제안서를 보낸다.
+의뢰자가 제안서를 승인하고 결제하면 작업방이 생성된다.
+```
+
+상품 없이 공개 요청을 올리고 여러 전문가가 접근하는 공개요청 게시판 방식은 초기 범위에서 제외한다.
 
 초기에는 mock data로 화면 흐름을 먼저 완성하고, 이후 Supabase 연결로 전환한다.
 

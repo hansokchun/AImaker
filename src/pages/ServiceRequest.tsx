@@ -90,8 +90,8 @@ export default function ServiceRequest() {
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
-        if (!selectedProduct && selectedCategories.length === 0) {
-            alert('최소 하나 이상의 카테고리를 선택해주세요.')
+        if (!selectedProduct) {
+            alert('상품을 먼저 선택한 뒤 의뢰서를 작성해주세요.')
             return
         }
 
@@ -139,25 +139,20 @@ export default function ServiceRequest() {
             }
 
             await saveRequest(newRequest, user.id)
-            if (selectedProduct) {
-                alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
-                navigate(ROUTES.MY_PAGE)
-            } else {
-                alert('요청 게시판에 등록되었습니다. 전문가 제안을 기다려주세요.')
-                navigate(ROUTES.REQUEST_BOARD)
-            }
+            alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
+            navigate(ROUTES.MY_PAGE)
         } catch (error) {
             alert(error instanceof Error ? error.message : '요구사항 저장에 실패했습니다.')
         }
     }
 
-    if (productId && productsLoaded && !selectedProduct) {
+    if ((!productId || !selectedProduct) && productsLoaded) {
         return (
             <div className="request-page">
                 <main className="container request-main">
                     <section className="content-card request-form-card">
-                        <h1>상품을 찾을 수 없습니다</h1>
-                        <p>존재하지 않거나 더 이상 공개되지 않은 AI 작업입니다.</p>
+                        <h1>{productId ? '상품을 찾을 수 없습니다' : '상품을 먼저 선택해주세요'}</h1>
+                        <p>{productId ? '존재하지 않거나 더 이상 공개되지 않은 AI 작업입니다.' : 'AI 작업 찾기에서 원하는 상품을 선택한 뒤 의뢰서를 작성할 수 있습니다.'}</p>
                         <Link to={ROUTES.CATEGORY} className="btn-primary">
                             AI 작업 찾기로 돌아가기
                         </Link>
