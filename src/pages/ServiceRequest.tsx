@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import CategorySelector from '../components/CategorySelector'
 import { AI_CATEGORIES } from '../constants/categories'
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies'
 import { ROUTES } from '../constants/routes'
@@ -90,8 +89,8 @@ export default function ServiceRequest() {
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
-        if (!selectedProduct && selectedCategories.length === 0) {
-            alert('최소 하나 이상의 카테고리를 선택해주세요.')
+        if (!selectedProduct) {
+            alert('상품 상세 화면에서 의뢰를 시작해주세요.')
             return
         }
 
@@ -122,7 +121,7 @@ export default function ServiceRequest() {
             status: 'pending',
             productId: selectedProduct?.id,
             expertId: selectedProduct?.expertId,
-            selectedPackage: selectedProduct ? 'standard' : undefined,
+            selectedPackage: 'standard',
             desiredResult,
             purpose,
             referenceText,
@@ -139,16 +138,23 @@ export default function ServiceRequest() {
             }
 
             await saveRequest(newRequest, user.id)
-            if (selectedProduct) {
-                alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
-                navigate(ROUTES.MY_PAGE)
-            } else {
-                alert('요청 게시판에 등록되었습니다. 전문가 제안을 기다려주세요.')
-                navigate(ROUTES.REQUEST_BOARD)
-            }
+            alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
+            navigate(ROUTES.MY_PAGE)
         } catch (error) {
             alert(error instanceof Error ? error.message : '요구사항 저장에 실패했습니다.')
         }
+    }
+
+    if (productId && !productsLoaded && !selectedProduct) {
+        return (
+            <div className="request-page">
+                <main className="container request-main">
+                    <section className="content-card request-form-card">
+                        <h1>상품 정보를 불러오는 중입니다</h1>
+                    </section>
+                </main>
+            </div>
+        )
     }
 
     if (productId && productsLoaded && !selectedProduct) {
@@ -200,18 +206,7 @@ export default function ServiceRequest() {
                                     </div>
                                 </dl>
                             </div>
-                        ) : (
-                            <div className="form-group">
-                                <label>
-                                    <span className="material-symbols-outlined">category</span>
-                                    카테고리 선택
-                                </label>
-                                <CategorySelector
-                                    selected={selectedCategories}
-                                    onChange={setSelectedCategories}
-                                />
-                            </div>
-                        )}
+                        ) : null}
 
                         <div className="form-group">
                             <label htmlFor="desired-result">
@@ -284,25 +279,6 @@ export default function ServiceRequest() {
                                 />
                             </div>
 
-                            {!selectedPackage && (
-                                <div className="form-group">
-                                    <label htmlFor="budget">
-                                        <span className="material-symbols-outlined">payments</span>
-                                        희망 예산
-                                    </label>
-                                    <input
-                                        id="budget"
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="예: 500,000"
-                                        required
-                                        value={budget ? Number(budget).toLocaleString() : ''}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                            setBudget(e.target.value.replace(/[^\d]/g, ''))
-                                        }
-                                    />
-                                </div>
-                            )}
                         </div>
 
                         <fieldset className="progress-fieldset">

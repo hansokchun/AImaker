@@ -23,7 +23,7 @@ describe('Navbar', () => {
         mockGetStoredProfile.mockResolvedValue(null)
     })
 
-    it('keeps request creation inside the request board navigation', () => {
+    it('keeps matching centered on product purchase navigation', () => {
         render(
             <MemoryRouter>
                 <Navbar />
@@ -31,7 +31,7 @@ describe('Navbar', () => {
         )
 
         expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
-        expect(screen.getByRole('link', { name: '요청 게시판' })).toHaveAttribute('href', '/requests')
+        expect(screen.queryByRole('link', { name: '요청 게시판' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '내 작업' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 요청' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '커뮤니티' })).not.toBeInTheDocument()

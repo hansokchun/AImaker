@@ -14,7 +14,6 @@ import ExpertDetail from './pages/ExpertDetail';
 import ServiceRequest from './pages/ServiceRequest';
 import Proposal from './pages/Proposal';
 import Workroom from './pages/Workroom';
-import RequestBoard from './pages/RequestBoard';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import MyPage from './pages/MyPage';
@@ -31,11 +30,9 @@ function App() {
                     <Route path={ROUTES.HOME} element={<Home />} />
                     <Route path={ROUTES.CATEGORY} element={<Category />} />
                     <Route path={ROUTES.EXPERT_DETAIL} element={<ExpertDetail />} />
-                    <Route path={ROUTES.SERVICE_REQUEST} element={<ServiceRequest />} />
                     <Route path={ROUTES.SERVICE_REQUEST_PRODUCT} element={<ServiceRequest />} />
                     <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
                     <Route path={ROUTES.WORKROOM} element={<Workroom />} />
-                    <Route path={ROUTES.REQUEST_BOARD} element={<RequestBoard />} />
                     <Route path={ROUTES.LOGIN} element={<Login />} />
                     <Route path={ROUTES.ONBOARDING} element={<Onboarding />} />
                     <Route path={ROUTES.MY_PAGE} element={<MyPage mode="profile" />} />
