@@ -93,4 +93,28 @@ describe('Navbar', () => {
             'https://example.com/basic-avatar.jpg',
         )
     })
+
+    it('prefers the basic profile avatar so recent profile edits update the top menu', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'user-demo-01', email: 'demo@example.com', user_metadata: {} },
+            signOut: vi.fn(),
+        })
+        mockGetStoredProfile.mockResolvedValue({
+            imageUrl: 'https://example.com/old-expert-avatar.jpg',
+        })
+        mockGetUserDisplayProfile.mockResolvedValue({
+            imageUrl: 'https://example.com/new-basic-avatar.jpg',
+        })
+
+        render(
+            <MemoryRouter>
+                <Navbar />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
+            'src',
+            'https://example.com/new-basic-avatar.jpg',
+        )
+    })
 })

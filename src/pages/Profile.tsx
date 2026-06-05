@@ -32,6 +32,7 @@ export default function Profile() {
     const [profile, setProfile] = useState<ExpertProfile>(createDefaultProfile());
     const [saving, setSaving] = useState<boolean>(false);
     const [uploading, setUploading] = useState<boolean>(false);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
     const [aiToolInput, setAiToolInput] = useState<string>('');
@@ -57,7 +58,7 @@ export default function Profile() {
                     setIsExpert(userProfile.is_expert);
                     setClientName(userProfile.name || '');
                     if (userProfile.avatar_url) {
-                        setProfile((current) => ({ ...current, imageUrl: userProfile.avatar_url }));
+                        setProfile((current) => ({ ...current, imageUrl: current.imageUrl || userProfile.avatar_url }));
                     }
                 }
             }
@@ -65,9 +66,10 @@ export default function Profile() {
             // 2. 전문가 프로필 상세 로드 (전문가든 의뢰자든 일단 시도)
             const stored = await getStoredProfile(user.id);
             if (stored) {
-                setProfile({
+                setProfile((current) => ({
                     ...createDefaultProfile(),
                     ...stored,
+                    imageUrl: current.imageUrl || stored.imageUrl || '',
                     activities: stored.activities?.length ? stored.activities : [''],
                     awards: stored.awards?.length ? stored.awards : [''],
                     packages: {
@@ -75,7 +77,7 @@ export default function Profile() {
                         deluxe: { ...createDefaultProfile().packages.deluxe, ...stored.packages?.deluxe },
                         premium: { ...createDefaultProfile().packages.premium, ...stored.packages?.premium },
                     },
-                });
+                }));
             }
         };
         
@@ -110,11 +112,13 @@ export default function Profile() {
 
     /** 단순 텍스트 필드 변경 */
     const handleChange = (field: keyof ExpertProfile, value: string) => {
+        setValidationErrors((prev) => ({ ...prev, [field]: '' }));
         setProfile((prev) => ({ ...prev, [field]: value }));
     };
 
     /** 전문분야 다중 선택 토글 핸들러 */
     const handleProfessionToggle = (cat: string) => {
+        setValidationErrors((prev) => ({ ...prev, profession: '' }));
         const currentSelected = profile.profession.split(',').map(s => s.trim()).filter(s => s);
         let newSelected;
         if (currentSelected.includes(cat)) {
@@ -222,6 +226,7 @@ export default function Profile() {
         }
 
         setProfile((prev) => ({ ...prev, [field]: [...prev[field], trimmed] }));
+        setValidationErrors((prev) => ({ ...prev, [field]: '' }));
         setInputValue('');
     };
 
@@ -245,7 +250,10 @@ export default function Profile() {
         // 의뢰자 모드: 이름만 저장
         if (!isExpert) {
             const trimmedName = clientName.trim();
-            if (!trimmedName) { alert('이름을 입력해 주세요.'); return; }
+            if (!trimmedName) {
+                setValidationErrors({ clientName: '이름을 입력해 주세요.' });
+                return;
+            }
 
             setSaving(true);
             try {
@@ -259,10 +267,12 @@ export default function Profile() {
             return;
         }
 
-        // 전문가 모드: 전체 프로필 저장
-        if (!profile.name.trim()) { alert('이름을 입력해 주세요.'); return; }
-        if (!profile.profession.trim()) { alert('전문 분야를 입력해 주세요.'); return; }
-        if (profile.aiTools.length === 0) { alert('사용 AI 도구를 하나 이상 입력해 주세요.'); return; }
+        const nextErrors: Record<string, string> = {};
+        if (!profile.name.trim()) nextErrors.name = '이름을 입력해 주세요.';
+        if (!profile.profession.trim()) nextErrors.profession = '전문 분야를 선택해 주세요.';
+        if (profile.aiTools.length === 0) nextErrors.aiTools = '사용 AI 도구를 하나 이상 입력해 주세요.';
+        setValidationErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) return;
         const policyFields = [
             profile.name,
             profile.oneLiner,
@@ -399,7 +409,7 @@ export default function Profile() {
             </div>
 
             <main className="container">
-                <form className="profile-layout" onSubmit={handleSave}>
+                <form className="profile-layout" onSubmit={handleSave} noValidate>
 
                     {/* ===== 0. 회원 유형 선택 (공통) ===== */}
                     <div className="profile-section">
@@ -469,7 +479,20 @@ export default function Profile() {
                             </div>
                             <div className="profile-form-group">
                                 <label>이름 <span className="label-hint">(필수)</span></label>
-                                <input type="text" className="profile-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="닉네임을 입력하세요" required />
+                                <input
+                                    type="text"
+                                    className={`profile-input ${validationErrors.clientName ? 'profile-input-error' : ''}`}
+                                    value={clientName}
+                                    onChange={(e) => {
+                                        setClientName(e.target.value);
+                                        setValidationErrors((prev) => ({ ...prev, clientName: '' }));
+                                    }}
+                                    placeholder="닉네임을 입력하세요"
+                                    required
+                                />
+                                {validationErrors.clientName && (
+                                    <p className="profile-field-error">{validationErrors.clientName}</p>
+                                )}
                             </div>
                         </div>
                     )}
@@ -517,12 +540,15 @@ export default function Profile() {
                             <label>이름 <span className="label-hint">(필수)</span></label>
                             <input
                                 type="text"
-                                className="profile-input"
+                                className={`profile-input ${validationErrors.name ? 'profile-input-error' : ''}`}
                                 value={profile.name}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('name', e.target.value)}
                                 placeholder="예: 김디자인 전문가"
                                 required
                             />
+                            {validationErrors.name && (
+                                <p className="profile-field-error">{validationErrors.name}</p>
+                            )}
                         </div>
                         <div className="profile-form-group">
                             <label>전문 분야 <span className="label-hint">(필수, 다중 선택 가능)</span></label>
@@ -617,6 +643,9 @@ export default function Profile() {
                                 onChange={() => {}}
                                 required
                             />
+                            {validationErrors.profession && (
+                                <p className="profile-field-error">{validationErrors.profession}</p>
+                            )}
                         </div>
                     </div>
 
@@ -676,6 +705,9 @@ export default function Profile() {
                                 <span className="label-hint">(입력 후 Enter로 추가)</span>
                             </label>
                             {renderTagInput('aiTools', aiToolInput, setAiToolInput, '예: Midjourney, Stable Diffusion...')}
+                            {validationErrors.aiTools && (
+                                <p className="profile-field-error">{validationErrors.aiTools}</p>
+                            )}
                         </div>
                         <div className="profile-form-group" style={{ marginTop: '1.5rem' }}>
                             <label>

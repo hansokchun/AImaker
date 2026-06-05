@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { useAuth } from '../contexts/AuthContext';
 import { mockExpertProducts } from '../data/mockData';
-import { getExpertProducts, getUserDisplayProfile } from '../lib/storage';
+import { getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
 
 function ProductThumbnail({ product }: { product: ExpertProduct }) {
@@ -35,9 +34,7 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
 }
 
 export default function Home() {
-    const { user } = useAuth();
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
-    const [profileImageUrl, setProfileImageUrl] = useState('');
 
     useEffect(() => {
         let active = true;
@@ -53,39 +50,10 @@ export default function Home() {
         };
     }, []);
 
-    useEffect(() => {
-        let active = true;
-        const metadataImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '';
-
-        if (!user) {
-            setProfileImageUrl('');
-            return;
-        }
-
-        setProfileImageUrl(metadataImage);
-        getUserDisplayProfile(user.id)
-            .then((profile) => {
-                if (active) setProfileImageUrl(profile?.imageUrl || metadataImage);
-            })
-            .catch(() => {
-                if (active) setProfileImageUrl(metadataImage);
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [user]);
-
     return (
         <main className="home-page home-page-minimal">
             <section className="home-minimal-hero">
                 <div className="container home-minimal-hero-inner">
-                    {user && profileImageUrl && (
-                        <Link to={`${ROUTES.MY_PAGE}?panel=profile`} className="home-profile-chip">
-                            <img src={profileImageUrl} alt="내 프로필 이미지" />
-                            <span>내 프로필</span>
-                        </Link>
-                    )}
                     <h1 className="home-minimal-title">AI 작업, 더 간단하게.</h1>
                     <p className="home-minimal-subtitle">원하는 상품을 고르고 바로 주문하세요.</p>
                     <div className="home-minimal-actions">

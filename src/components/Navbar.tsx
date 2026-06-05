@@ -23,7 +23,7 @@ export default function Navbar() {
         setProfileImageUrl(metadataImage);
         Promise.all([getStoredProfile(user.id), getUserDisplayProfile(user.id)])
             .then(([profile, displayProfile]) => {
-                if (active) setProfileImageUrl(profile?.imageUrl || displayProfile?.imageUrl || metadataImage);
+                if (active) setProfileImageUrl(displayProfile?.imageUrl || profile?.imageUrl || metadataImage);
             })
             .catch(() => {
                 if (active) setProfileImageUrl(metadataImage);
