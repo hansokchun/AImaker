@@ -115,6 +115,47 @@
     color: var(--primary);
 }
 
+.seller-info-section {
+    padding: 2rem;
+}
+
+.seller-info-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.seller-info-card img,
+.seller-avatar-fallback {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eef2ff;
+    color: var(--primary);
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    font-weight: 900;
+}
+
+.seller-info-card strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.seller-info-card p {
+    margin: 0 0 0.5rem;
+    color: var(--text-secondary);
+}
+
+.seller-info-card a {
+    color: var(--primary);
+    font-weight: 800;
+}
+
 .sample-result-panel {
     display: grid;
     gap: 1rem;

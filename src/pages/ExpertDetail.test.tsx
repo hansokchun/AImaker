@@ -14,6 +14,11 @@ const supabaseProduct: ExpertProduct = {
 }
 
 const getExpertProducts = vi.fn(async () => [supabaseProduct])
+const getUserDisplayProfile = vi.fn(async () => ({
+    name: '검증된 AI 전문가',
+    imageUrl: 'https://example.com/avatar.jpg',
+    isExpert: true,
+}))
 const createConsultation = vi.fn(async () => ({
     id: 'consultation-created-01',
     clientId: 'client-real-01',
@@ -32,6 +37,7 @@ let mockUser: { id: string; email: string } | null = {
 
 vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
+    getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
     createConsultation: (input: unknown) => createConsultation(input),
 }))
 
@@ -48,6 +54,11 @@ describe('ExpertDetail', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         getExpertProducts.mockResolvedValue([supabaseProduct])
+        getUserDisplayProfile.mockResolvedValue({
+            name: '검증된 AI 전문가',
+            imageUrl: 'https://example.com/avatar.jpg',
+            isExpert: true,
+        })
         mockUser = { id: 'client-real-01', email: 'client@example.com' }
     })
 
@@ -63,6 +74,13 @@ describe('ExpertDetail', () => {
         expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
         expect(screen.getByText(supabaseProduct.description)).toBeInTheDocument()
         expect(screen.getByText(supabaseProduct.summary)).toBeInTheDocument()
+        expect(getUserDisplayProfile).toHaveBeenCalledWith(supabaseProduct.expertId)
+        expect(screen.getByRole('heading', { name: '판매자 정보' })).toBeInTheDocument()
+        expect(screen.getByText('검증된 AI 전문가')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '판매자 프로필 보기' })).toHaveAttribute(
+            'href',
+            `/expert/${supabaseProduct.expertId}`,
+        )
         expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toHaveAttribute(
             'href',
             `/request/${supabaseProduct.id}`,
@@ -79,7 +97,7 @@ describe('ExpertDetail', () => {
         )
 
         expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
-        expect(screen.getByText(supabaseProduct.expertName)).toBeInTheDocument()
+        expect(screen.getByText('검증된 AI 전문가')).toBeInTheDocument()
     })
 
     it('shows a not found state without demo product content for unknown product ids', async () => {
