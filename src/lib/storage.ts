@@ -1579,6 +1579,29 @@ export async function getUserReviews(userId: string): Promise<Review[]> {
     return (data || []).map(toReview);
 }
 
+export async function getExpertReviews(expertId: string): Promise<Review[]> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+        const reviews = raw ? (JSON.parse(raw) as Review[]) : [];
+        return reviews
+            .filter((review) => review.expertId === expertId)
+            .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
+    }
+
+    const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('expert_id', expertId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('전문가 공개 리뷰 로딩 실패:', error);
+        return [];
+    }
+
+    return (data || []).map(toReview);
+}
+
 export async function getExpertList(): Promise<Expert[]> {
     if (!supabase) {
         return [];

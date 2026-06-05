@@ -1559,4 +1559,33 @@ describe('transaction storage', () => {
         expect(or).toHaveBeenCalledWith(`client_id.eq.${review.clientId},expert_id.eq.${review.clientId}`)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
     })
+
+    it('loads public reviews for an expert from Supabase', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: review.id,
+                    work_id: review.workId,
+                    client_id: review.clientId,
+                    expert_id: review.expertId,
+                    rating: review.rating,
+                    content: review.content,
+                    created_at: review.createdAt,
+                },
+            ],
+            error: null,
+        })
+        const eq = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getExpertReviews } = await import('./storage')
+
+        await expect(getExpertReviews(review.expertId)).resolves.toEqual([review])
+        expect(from).toHaveBeenCalledWith('reviews')
+        expect(eq).toHaveBeenCalledWith('expert_id', review.expertId)
+        expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+    })
 })

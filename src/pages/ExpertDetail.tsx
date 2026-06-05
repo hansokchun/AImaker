@@ -1,11 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import PackageCard from '../components/PackageCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { useEffect, useState } from 'react'
-import { createConsultation, getExpertProducts, getUserDisplayProfile } from '../lib/storage'
-import type { ExpertProduct, ProductPackage } from '../types'
+import { createConsultation, getExpertProducts, getExpertReviews, getUserDisplayProfile } from '../lib/storage'
+import type { ExpertProduct, ProductPackage, Review } from '../types'
 import './ExpertDetail.css'
 
 type SellerProfile = {
@@ -14,32 +14,53 @@ type SellerProfile = {
     isExpert: boolean
 }
 
+const getAverageRating = (reviews: Review[]) => {
+    if (reviews.length === 0) return 0
+    return reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+}
+
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
     const location = useLocation()
     const navigate = useNavigate()
     const { user } = useAuth()
-    const [creatingConsultation, setCreatingConsultation] = useState<boolean>(false)
+    const [creatingConsultation, setCreatingConsultation] = useState(false)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
+    const [sellerProducts, setSellerProducts] = useState<ExpertProduct[]>([])
     const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null)
+    const [expertReviews, setExpertReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         let active = true
         setLoading(true)
+
         getExpertProducts().then(async (products) => {
             if (!active) return
-            const foundProduct = products.find((item) => item.id === id || item.expertId === id) ?? null
+
+            const foundProduct = products.find((item) => item.id === id) ?? null
+            const sellerId = foundProduct?.expertId || id || ''
+            const productsBySeller = products.filter((item) => item.expertId === sellerId)
+
             setProduct(foundProduct)
-            if (foundProduct) {
-                const profile = await getUserDisplayProfile(foundProduct.expertId)
+            setSellerProducts(productsBySeller)
+
+            if (foundProduct || productsBySeller.length > 0) {
+                const [profile, reviews] = await Promise.all([
+                    getUserDisplayProfile(sellerId),
+                    getExpertReviews(sellerId),
+                ])
                 if (!active) return
                 setSellerProfile(profile)
+                setExpertReviews(reviews)
             } else {
                 setSellerProfile(null)
+                setExpertReviews([])
             }
+
             setLoading(false)
         })
+
         return () => {
             active = false
         }
@@ -48,6 +69,13 @@ export default function ExpertDetail() {
     const category = AI_CATEGORIES.find((item) => item.id === product?.category)
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
     const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ''
+    const isSellerProfile = !product && sellerProducts.length > 0
+    const sellerName = sellerProfile?.name || product?.expertName || sellerProducts[0]?.expertName || 'AI 전문가'
+    const sellerImageUrl = sellerProfile?.imageUrl || ''
+    const averageRating = getAverageRating(expertReviews)
+    const reviewSummary = expertReviews.length > 0
+        ? `평점 ${averageRating.toFixed(1)} · 리뷰 ${expertReviews.length}개`
+        : '아직 받은 리뷰가 없습니다'
 
     const handleStartConsultation = async () => {
         if (!product) return
@@ -82,7 +110,7 @@ export default function ExpertDetail() {
         )
     }
 
-    if (!product) {
+    if (!product && !isSellerProfile) {
         return (
             <main className="container detail-empty-state">
                 <span className="material-symbols-outlined">inventory_2</span>
@@ -94,6 +122,69 @@ export default function ExpertDetail() {
             </main>
         )
     }
+
+    if (isSellerProfile) {
+        return (
+            <main className="container seller-profile-page">
+                <section className="seller-profile-hero">
+                    {sellerImageUrl ? (
+                        <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
+                    ) : (
+                        <div className="seller-profile-avatar-fallback" aria-hidden="true">
+                            {sellerName.slice(0, 1)}
+                        </div>
+                    )}
+                    <div>
+                        <div className="product-detail-category">판매자 프로필</div>
+                        <h1>{sellerName}</h1>
+                        <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
+                        <strong>{reviewSummary}</strong>
+                    </div>
+                </section>
+
+                <section className="detail-section">
+                    <h2>등록한 상품</h2>
+                    <div className="seller-product-list">
+                        {sellerProducts.map((sellerProduct) => (
+                            <Link
+                                key={sellerProduct.id}
+                                to={`/expert/${sellerProduct.id}`}
+                                className="seller-product-card"
+                                aria-label={sellerProduct.title}
+                            >
+                                {sellerProduct.sampleImageUrl && (
+                                    <img src={sellerProduct.sampleImageUrl} alt={`${sellerProduct.title} 대표 이미지`} />
+                                )}
+                                <div>
+                                    <strong>{sellerProduct.title}</strong>
+                                    <span>{sellerProduct.summary}</span>
+                                    <small>{sellerProduct.startingPrice.toLocaleString()}원부터 · {sellerProduct.deliveryDays}일</small>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="detail-section">
+                    <h2>받은 리뷰</h2>
+                    {expertReviews.length > 0 ? (
+                        <div className="seller-review-list">
+                            {expertReviews.map((review) => (
+                                <article key={review.id} className="seller-review-card">
+                                    <strong>평점 {review.rating}.0</strong>
+                                    <p>{review.content}</p>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="seller-empty-copy">아직 받은 리뷰가 없습니다.</p>
+                    )}
+                </section>
+            </main>
+        )
+    }
+
+    if (!product) return null
 
     const aiTools = Array.isArray(product.aiTools) ? product.aiTools : []
     const sampleLinks = Array.isArray(product.sampleLinks) ? product.sampleLinks : []
@@ -131,7 +222,11 @@ export default function ExpertDetail() {
                 <div className="content-left">
                     <section className="product-detail-hero">
                         <div className="product-detail-image">
-                            <img src={sampleImageUrl} alt={`${product.title} 샘플 결과물`} />
+                            {sampleImageUrl ? (
+                                <img src={sampleImageUrl} alt={`${product.title} 샘플 결과물`} />
+                            ) : (
+                                <div className="product-detail-image-empty">대표 이미지 준비 중</div>
+                            )}
                         </div>
                         <div className="product-detail-copy">
                             <div className="product-detail-category">{category?.name ?? 'AI 작업'}</div>
@@ -151,16 +246,17 @@ export default function ExpertDetail() {
                             판매자 정보
                         </h2>
                         <div className="seller-info-card">
-                            {sellerProfile?.imageUrl ? (
-                                <img src={sellerProfile.imageUrl} alt={`${sellerProfile.name || product.expertName} 프로필`} />
+                            {sellerImageUrl ? (
+                                <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
                             ) : (
                                 <div className="seller-avatar-fallback" aria-hidden="true">
-                                    {(sellerProfile?.name || product.expertName).slice(0, 1)}
+                                    {sellerName.slice(0, 1)}
                                 </div>
                             )}
                             <div>
-                                <strong>{sellerProfile?.name || product.expertName}</strong>
+                                <strong>{sellerName}</strong>
                                 <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
+                                <p>{reviewSummary}</p>
                                 <Link to={`/expert/${product.expertId}`}>판매자 프로필 보기</Link>
                             </div>
                         </div>
@@ -177,10 +273,10 @@ export default function ExpertDetail() {
                     </section>
 
                     {sampleImageUrl && (
-                        <section className="detail-section">
+                        <section className="detail-section portfolio-section">
                             <h2>
                                 <span className="material-symbols-outlined">image</span>
-                                샘플 결과물
+                                포트폴리오/상세 이미지
                             </h2>
                             <div className="section-content sample-result-panel">
                                 <img src={sampleImageUrl} alt={`${product.title} 샘플 미리보기`} />
