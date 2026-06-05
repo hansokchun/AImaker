@@ -205,4 +205,23 @@ describe('ExpertDetail', () => {
         }))
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work?panel=consultations&consultation=consultation-created-01'))
     })
+
+    it('shows product editing for the product owner instead of profile editing', async () => {
+        mockUser = { id: supabaseProduct.expertId, email: 'expert@example.com' }
+
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '상품 수정하기' })).toHaveAttribute(
+            'href',
+            `/products/${supabaseProduct.id}/edit`,
+        )
+        expect(screen.queryByRole('link', { name: '프로필 수정하기' })).not.toBeInTheDocument()
+    })
 })

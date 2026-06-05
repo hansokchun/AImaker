@@ -211,9 +211,9 @@ export default function ExpertDetail() {
             )}
             {user?.id === product.expertId && (
                 <div className="detail-owner-actions">
-                    <Link to={ROUTES.PROFILE} className="btn-primary">
-                        <span className="material-symbols-outlined">edit</span>
-                        프로필 수정하기
+                    <Link to={`/products/${product.id}/edit`} className="btn-primary">
+                        <span className="material-symbols-outlined" aria-hidden="true">edit</span>
+                        상품 수정하기
                     </Link>
                 </div>
             )}

@@ -32,6 +32,7 @@ function App() {
                     <Route path={ROUTES.CATEGORY} element={<Category />} />
                     <Route path={ROUTES.EXPERT_DETAIL} element={<ExpertDetail />} />
                     <Route path={ROUTES.PRODUCT_NEW} element={<ProductRegister />} />
+                    <Route path={ROUTES.PRODUCT_EDIT} element={<ProductRegister />} />
                     <Route path={ROUTES.SERVICE_REQUEST_PRODUCT} element={<ServiceRequest />} />
                     <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
                     <Route path={ROUTES.WORKROOM} element={<Workroom />} />

@@ -5,6 +5,34 @@ import ProductRegister from './ProductRegister'
 import type { ExpertProduct } from '../types'
 
 const saveExpertProduct = vi.fn(async (_product: ExpertProduct) => undefined)
+const editableProduct: ExpertProduct = {
+    id: 'editable-product-01',
+    expertId: 'expert-user-01',
+    expertName: 'expert@example.com',
+    title: '기존 AI 상품',
+    category: 'ai-video-shortform',
+    summary: '기존 요약입니다.',
+    description: '기존 상세 설명입니다.',
+    aiTools: [],
+    sampleLinks: ['data:image/png;base64,old-detail'],
+    sampleImageUrl: 'data:image/png;base64,old-main',
+    startingPrice: 50000,
+    deliveryDays: 3,
+    revisionCount: 2,
+    packages: {
+        standard: {
+            name: 'Standard',
+            price: 50000,
+            deliveryDays: 3,
+            revisionCount: 2,
+            included: ['기존 제공 항목'],
+        },
+        deluxe: null,
+        premium: null,
+    },
+    status: 'published',
+}
+const getExpertProducts = vi.fn(async () => [editableProduct])
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -17,6 +45,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../lib/storage', () => ({
     saveExpertProduct: (product: ExpertProduct) => saveExpertProduct(product),
+    getExpertProducts: () => getExpertProducts(),
 }))
 
 function LocationProbe() {
@@ -35,9 +64,22 @@ function renderRegister() {
     )
 }
 
+function renderEditRegister() {
+    render(
+        <MemoryRouter initialEntries={[`/products/${editableProduct.id}/edit`]}>
+            <Routes>
+                <Route path="/products/:productId/edit" element={<><ProductRegister /><LocationProbe /></>} />
+                <Route path="/expert/:id" element={<LocationProbe />} />
+            </Routes>
+        </MemoryRouter>,
+    )
+}
+
 describe('ProductRegister', () => {
     beforeEach(() => {
         saveExpertProduct.mockClear()
+        getExpertProducts.mockClear()
+        getExpertProducts.mockResolvedValue([editableProduct])
         vi.stubGlobal('Image', class {
             width = 800
             height = 600
@@ -180,5 +222,37 @@ describe('ProductRegister', () => {
 
         expect(await screen.findByRole('alert')).toHaveTextContent('상세 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다.')
         expect(saveExpertProduct).not.toHaveBeenCalled()
+    })
+
+    it('loads an owned product for editing and preserves existing images when saving', async () => {
+        renderEditRegister()
+
+        expect(await screen.findByDisplayValue('기존 AI 상품')).toBeInTheDocument()
+        expect(screen.getByDisplayValue('기존 요약입니다.')).toBeInTheDocument()
+        expect(screen.getByDisplayValue('기존 상세 설명입니다.')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: '수정한 AI 상품' } })
+        fireEvent.change(screen.getByLabelText('가격'), { target: { value: '70000' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '수정 저장하기' }))
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: editableProduct.id,
+                    expertId: 'expert-user-01',
+                    title: '수정한 AI 상품',
+                    sampleImageUrl: editableProduct.sampleImageUrl,
+                    sampleLinks: editableProduct.sampleLinks,
+                    startingPrice: 70000,
+                    packages: expect.objectContaining({
+                        standard: expect.objectContaining({
+                            price: 70000,
+                        }),
+                    }),
+                }),
+            ),
+        )
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/expert/${editableProduct.id}`))
     })
 })

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { saveExpertProduct } from '../lib/storage'
+import { getExpertProducts, saveExpertProduct } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '../types'
 
 const currency = new Intl.NumberFormat('ko-KR')
@@ -28,6 +28,13 @@ const createPackageState = (): PackageFormState => ({
     included: '',
 })
 
+const productPackageToFormState = (productPackage?: ProductPackage | null): PackageFormState => ({
+    price: productPackage?.price ? String(productPackage.price) : '',
+    deliveryDays: productPackage?.deliveryDays ? String(productPackage.deliveryDays) : '',
+    revisionCount: productPackage?.revisionCount !== undefined ? String(productPackage.revisionCount) : '',
+    included: productPackage?.included?.join('\n') || '',
+})
+
 const packageNames: Record<PackageTier, ProductPackage['name']> = {
     standard: 'Standard',
     deluxe: 'Deluxe',
@@ -36,6 +43,7 @@ const packageNames: Record<PackageTier, ProductPackage['name']> = {
 
 export default function ProductRegister() {
     const { session, user, loading } = useAuth()
+    const { productId } = useParams<{ productId: string }>()
     const navigate = useNavigate()
     const thumbnailFileRef = useRef<HTMLInputElement | null>(null)
     const referenceFilesRef = useRef<HTMLInputElement | null>(null)
@@ -53,12 +61,61 @@ export default function ProductRegister() {
     const [imageGuideAccepted, setImageGuideAccepted] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
+    const [existingProduct, setExistingProduct] = useState<ExpertProduct | null>(null)
+    const [existingThumbnailDataUrl, setExistingThumbnailDataUrl] = useState('')
+    const [existingReferenceDataUrls, setExistingReferenceDataUrls] = useState<string[]>([])
 
     useEffect(() => {
         if (!loading && !session) {
             navigate(ROUTES.LOGIN)
         }
     }, [loading, navigate, session])
+
+    useEffect(() => {
+        if (!productId || !user) return
+
+        let active = true
+        getExpertProducts()
+            .then((products) => {
+                if (!active) return
+                const targetProduct = products.find((item) => item.id === productId) || null
+                if (!targetProduct) {
+                    setErrorMessage('수정할 상품을 찾을 수 없습니다.')
+                    return
+                }
+                if (targetProduct.expertId !== user.id) {
+                    setErrorMessage('내가 등록한 상품만 수정할 수 있습니다.')
+                    return
+                }
+
+                setExistingProduct(targetProduct)
+                setTitle(targetProduct.title)
+                setCategory(targetProduct.category)
+                setSummary(targetProduct.summary)
+                setDescription(targetProduct.description)
+                setExistingThumbnailDataUrl(targetProduct.sampleImageUrl || '')
+                setExistingReferenceDataUrls(targetProduct.sampleLinks || [])
+
+                const hasPackagePricing = Boolean(targetProduct.packages.deluxe || targetProduct.packages.premium)
+                setUsePackagePricing(hasPackagePricing)
+                if (hasPackagePricing) {
+                    setPackages({
+                        standard: productPackageToFormState(targetProduct.packages.standard),
+                        deluxe: productPackageToFormState(targetProduct.packages.deluxe),
+                        premium: productPackageToFormState(targetProduct.packages.premium),
+                    })
+                } else {
+                    setBasePackage(productPackageToFormState(targetProduct.packages.standard))
+                }
+            })
+            .catch(() => {
+                if (active) setErrorMessage('상품 정보를 불러오지 못했습니다.')
+            })
+
+        return () => {
+            active = false
+        }
+    }, [productId, user])
 
     const updatePackage = (tier: PackageTier, updates: Partial<PackageFormState>) => {
         setPackages((current) => ({
@@ -109,11 +166,12 @@ export default function ProductRegister() {
         setSubmitting(true)
         setErrorMessage('')
         try {
-            const thumbnailDataUrl = await readFirstFileAsDataUrl(thumbnailFileRef.current?.files, 'main')
+            const thumbnailDataUrl = await readFirstFileAsDataUrl(thumbnailFileRef.current?.files, 'main') || existingThumbnailDataUrl
             const referenceDataUrls = await readFilesAsDataUrls(referenceFilesRef.current?.files, 'detail')
-            const productId = crypto.randomUUID()
+            const nextReferenceDataUrls = referenceDataUrls.length > 0 ? referenceDataUrls : existingReferenceDataUrls
+            const nextProductId = existingProduct?.id || crypto.randomUUID()
             const product: ExpertProduct = {
-                id: productId,
+                id: nextProductId,
                 expertId: user.id,
                 expertName: user.email || '전문가',
                 title: title.trim(),
@@ -121,7 +179,7 @@ export default function ProductRegister() {
                 summary: summary.trim(),
                 description: description.trim(),
                 aiTools: [],
-                sampleLinks: referenceDataUrls,
+                sampleLinks: nextReferenceDataUrls,
                 sampleImageUrl: thumbnailDataUrl,
                 startingPrice: standardPackage.price,
                 deliveryDays: standardPackage.deliveryDays,
@@ -135,7 +193,7 @@ export default function ProductRegister() {
             }
 
             await saveExpertProduct(product)
-            navigate(`/expert/${productId}`)
+            navigate(`/expert/${nextProductId}`)
         } catch (error) {
             console.error('상품 등록 실패:', error)
             setErrorMessage(error instanceof Error ? error.message : '상품을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.')
@@ -150,7 +208,7 @@ export default function ProductRegister() {
         <main style={{ background: '#f8fafc', minHeight: 'calc(100vh - 60px)', padding: '4rem 0' }}>
             <section className="container" style={{ maxWidth: '980px' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
-                    <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.6rem' }}>상품 등록</h1>
+                    <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.6rem' }}>{productId ? '상품 수정' : '상품 등록'}</h1>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
                         크몽식 서비스 등록처럼 제목, 설명, 이미지, 가격 정보를 중심으로 등록합니다.
                     </p>
@@ -198,7 +256,7 @@ export default function ProductRegister() {
                         <div style={guideBoxStyle}>
                             <strong>등록 유의사항</strong>
                             <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 이미지는 JPG/PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
+                                이미지 파일 용량은 파일당 1MB 이하여야 합니다. 대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 이미지는 JPG/PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
                             </p>
                             <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
                                 <input
@@ -244,7 +302,7 @@ export default function ProductRegister() {
                     {errorMessage && <p role="alert" style={{ margin: 0, color: '#e11d48', fontWeight: 800 }}>{errorMessage}</p>}
 
                     <button type="submit" className="btn-primary" disabled={submitting} style={{ justifySelf: 'start', padding: '0.85rem 1.1rem' }}>
-                        {submitting ? '등록 중' : '등록하기'}
+                        {submitting ? (productId ? '수정 중' : '등록 중') : (productId ? '수정 저장하기' : '등록하기')}
                     </button>
                 </form>
             </section>
