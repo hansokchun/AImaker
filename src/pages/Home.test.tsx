@@ -5,13 +5,23 @@ import { mockExpertProducts } from '../data/mockData'
 import { getExpertProducts } from '../lib/storage'
 import Home from './Home'
 
+const mockUseAuth = vi.fn()
+const mockGetUserDisplayProfile = vi.fn()
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => mockUseAuth(),
+}))
+
 vi.mock('../lib/storage', () => ({
   getExpertProducts: vi.fn(async () => mockExpertProducts),
+  getUserDisplayProfile: (userId: string) => mockGetUserDisplayProfile(userId),
 }))
 
 describe('Home', () => {
   beforeEach(() => {
     vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
+    mockUseAuth.mockReturnValue({ user: null })
+    mockGetUserDisplayProfile.mockResolvedValue(null)
   })
 
   it('shows a minimal Apple-like product-first home without process explanations', async () => {
@@ -86,5 +96,26 @@ describe('Home', () => {
     expect(thumbnail).toBeInTheDocument()
     expect(screen.getByText('Broken image product')).toBeInTheDocument()
     expect(image).not.toBeInTheDocument()
+  })
+
+  it('shows the logged-in user profile image on the home page', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-demo-01', user_metadata: {} },
+    })
+    mockGetUserDisplayProfile.mockResolvedValue({
+      imageUrl: 'https://example.com/home-avatar.jpg',
+    })
+
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('img', { name: '내 프로필 이미지' })).toHaveAttribute(
+      'src',
+      'https://example.com/home-avatar.jpg',
+    )
+    expect(screen.getByRole('link', { name: /내 프로필/ })).toHaveAttribute('href', '/mypage?panel=profile')
   })
 })

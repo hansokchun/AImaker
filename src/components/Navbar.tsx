@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
-import { getStoredProfile } from '../lib/storage';
+import { getStoredProfile, getUserDisplayProfile } from '../lib/storage';
 
 export default function Navbar() {
     const navigate = useNavigate();
@@ -21,9 +21,9 @@ export default function Navbar() {
         }
 
         setProfileImageUrl(metadataImage);
-        getStoredProfile(user.id)
-            .then((profile) => {
-                if (active) setProfileImageUrl(profile?.imageUrl || metadataImage);
+        Promise.all([getStoredProfile(user.id), getUserDisplayProfile(user.id)])
+            .then(([profile, displayProfile]) => {
+                if (active) setProfileImageUrl(profile?.imageUrl || displayProfile?.imageUrl || metadataImage);
             })
             .catch(() => {
                 if (active) setProfileImageUrl(metadataImage);

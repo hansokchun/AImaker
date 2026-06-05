@@ -5,6 +5,7 @@ import Navbar from './Navbar'
 
 const mockUseAuth = vi.fn()
 const mockGetStoredProfile = vi.fn()
+const mockGetUserDisplayProfile = vi.fn()
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => mockUseAuth(),
@@ -12,6 +13,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../lib/storage', () => ({
     getStoredProfile: (userId: string) => mockGetStoredProfile(userId),
+    getUserDisplayProfile: (userId: string) => mockGetUserDisplayProfile(userId),
 }))
 
 describe('Navbar', () => {
@@ -21,6 +23,7 @@ describe('Navbar', () => {
             signOut: vi.fn(),
         })
         mockGetStoredProfile.mockResolvedValue(null)
+        mockGetUserDisplayProfile.mockResolvedValue(null)
     })
 
     it('removes the single top navigation link and keeps account actions only', () => {
@@ -67,5 +70,27 @@ describe('Navbar', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: '로그아웃' }))
 
         await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1))
+    })
+
+    it('uses the basic profile avatar when an expert profile image is not available', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'user-demo-01', email: 'demo@example.com', user_metadata: {} },
+            signOut: vi.fn(),
+        })
+        mockGetStoredProfile.mockResolvedValue(null)
+        mockGetUserDisplayProfile.mockResolvedValue({
+            imageUrl: 'https://example.com/basic-avatar.jpg',
+        })
+
+        render(
+            <MemoryRouter>
+                <Navbar />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
+            'src',
+            'https://example.com/basic-avatar.jpg',
+        )
     })
 })

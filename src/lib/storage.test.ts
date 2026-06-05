@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AiServiceRequest, Deliverable, ExpertProduct, Proposal, Review, Work, WorkStep } from '../types'
 
+const futureIsoDate = (daysFromNow = 7) => {
+    const date = new Date()
+    date.setDate(date.getDate() + daysFromNow)
+    return date.toISOString()
+}
+
 const user = {
     id: 'user-test-01',
     email: 'tester@example.com',
@@ -181,9 +187,83 @@ describe('profile storage', () => {
                 id: user.id,
                 email: user.email,
                 display_name: '테스터',
+                avatar_url: null,
             }),
             { onConflict: 'id' },
         )
+    })
+
+    it('stores OAuth avatar metadata on the basic user profile row', async () => {
+        vi.resetModules()
+        const upsert = vi.fn().mockResolvedValue({ error: null })
+        const from = vi.fn(() => ({ upsert }))
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { ensureUserProfile } = await import('./storage')
+
+        await ensureUserProfile({
+            ...user,
+            user_metadata: { display_name: '테스터', avatar_url: 'https://example.com/oauth-avatar.jpg' },
+        })
+
+        expect(upsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                avatar_url: 'https://example.com/oauth-avatar.jpg',
+            }),
+            { onConflict: 'id' },
+        )
+    })
+
+    it('loads the basic user profile image for shared profile display', async () => {
+        vi.resetModules()
+        const single = vi.fn().mockResolvedValue({
+            data: {
+                name: '테스터',
+                display_name: 'Tester',
+                avatar_url: 'https://example.com/basic-avatar.jpg',
+                is_expert: false,
+            },
+            error: null,
+        })
+        const eq = vi.fn(() => ({ single }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ select }))
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { getUserDisplayProfile } = await import('./storage')
+
+        await expect(getUserDisplayProfile('user-test-01')).resolves.toEqual({
+            name: '테스터',
+            imageUrl: 'https://example.com/basic-avatar.jpg',
+            isExpert: false,
+        })
+        expect(from).toHaveBeenCalledWith('profiles')
+        expect(select).toHaveBeenCalledWith('name, display_name, avatar_url, is_expert')
+    })
+
+    it('deletes the current public profile row for account withdrawal', async () => {
+        vi.resetModules()
+        const eq = vi.fn().mockResolvedValue({ error: null })
+        const deleteQuery = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ delete: deleteQuery }))
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { deleteUserPublicAccountData } = await import('./storage')
+
+        await deleteUserPublicAccountData('user-test-01')
+
+        expect(from).toHaveBeenCalledWith('profiles')
+        expect(deleteQuery).toHaveBeenCalledTimes(1)
+        expect(eq).toHaveBeenCalledWith('id', 'user-test-01')
     })
 })
 
@@ -225,7 +305,7 @@ const proposal: Proposal = {
     commercialUseAllowed: true,
     sourceFileIncluded: false,
     status: 'sent',
-    expiresAt: '2026-06-04T00:00:00.000Z',
+    expiresAt: futureIsoDate(),
 }
 
 const work: Work = {

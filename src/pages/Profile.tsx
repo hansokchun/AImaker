@@ -75,13 +75,16 @@ export default function Profile() {
             if (supabase) {
                 const { data: userProfile } = await supabase
                     .from('profiles')
-                    .select('is_expert, name')
+                    .select('is_expert, name, avatar_url')
                     .eq('id', user.id)
                     .single();
 
                 if (userProfile) {
                     setIsExpert(userProfile.is_expert);
                     setClientName(userProfile.name || '');
+                    if (userProfile.avatar_url) {
+                        setProfile((current) => ({ ...current, imageUrl: userProfile.avatar_url }));
+                    }
                 }
             }
 
@@ -374,7 +377,7 @@ export default function Profile() {
             setSaving(true);
             try {
                 if (supabase) {
-                    await supabase.from('profiles').update({ name: trimmedName }).eq('id', user.id);
+                    await supabase.from('profiles').update({ name: trimmedName, avatar_url: profile.imageUrl }).eq('id', user.id);
                 }
                 alert('프로필이 저장되었습니다!');
                 navigate(ROUTES.MY_PAGE);
@@ -430,7 +433,7 @@ export default function Profile() {
             
             // profiles 테이블 이름도 동기화
             if (supabase) {
-                await supabase.from('profiles').update({ name: profile.name }).eq('id', user.id);
+                await supabase.from('profiles').update({ name: profile.name, avatar_url: profile.imageUrl }).eq('id', user.id);
             }
 
             alert('프로필이 성공적으로 저장되었습니다!');
@@ -588,6 +591,30 @@ export default function Profile() {
                     {!isExpert && (
                         <div className="profile-section">
                             <h2><span className="material-symbols-outlined">person</span>기본 정보</h2>
+                            <div className="avatar-upload-area">
+                                {profile.imageUrl ? (
+                                    <img src={profile.imageUrl} alt="프로필 미리보기" className="avatar-preview" />
+                                ) : (
+                                    <div className="avatar-placeholder">
+                                        <span className="material-symbols-outlined">add_photo_alternate</span>
+                                        이미지 없음
+                                    </div>
+                                )}
+                                <div className="avatar-url-input">
+                                    <div className="profile-form-group">
+                                        <label>프로필 이미지 업로드</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            disabled={uploading}
+                                            className="profile-input"
+                                            style={{ padding: '0.6rem 1rem' }}
+                                        />
+                                        {uploading && <div style={{ fontSize: '0.85rem', color: 'var(--primary)', marginTop: '0.5rem' }}>업로드 중...</div>}
+                                    </div>
+                                </div>
+                            </div>
                             <div className="profile-form-group">
                                 <label>이름 <span className="label-hint">(필수)</span></label>
                                 <input type="text" className="profile-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="닉네임을 입력하세요" required />

@@ -68,6 +68,7 @@ export default function Onboarding() {
                     id: user.id,
                     name: name.trim(),
                     email: user.email,
+                    avatar_url: imageUrl,
                     is_expert: role === 'expert',
                 });
 

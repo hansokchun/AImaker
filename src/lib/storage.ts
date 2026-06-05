@@ -306,12 +306,54 @@ export async function ensureUserProfile(user: Pick<User, 'id' | 'email' | 'user_
             id: user.id,
             email: user.email,
             display_name: user.user_metadata?.display_name || user.user_metadata?.name || null,
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
         },
         { onConflict: 'id' },
     );
 
     if (error) {
         console.error('profiles 최소 row 보장 실패:', error);
+    }
+}
+
+export async function getUserDisplayProfile(userId: string): Promise<{ name: string; imageUrl: string; isExpert: boolean } | null> {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('name, display_name, avatar_url, is_expert')
+        .eq('id', userId)
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') return null;
+        console.error('profiles 표시 정보 로딩 실패:', error);
+        return null;
+    }
+
+    if (!data) return null;
+
+    return {
+        name: data.name || data.display_name || '',
+        imageUrl: data.avatar_url || '',
+        isExpert: Boolean(data.is_expert),
+    };
+}
+
+export async function deleteUserPublicAccountData(userId: string): Promise<void> {
+    if (!supabase) {
+        localStorage.removeItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
+        return;
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+    if (error) {
+        console.error('회원 public 데이터 삭제 실패:', error);
+        throw new Error('회원 탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     }
 }
 
@@ -853,6 +895,16 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
         packages: profile.packages,
         updated_at: new Date().toISOString(),
     });
+
+    if (!error) {
+        await supabase
+            .from('profiles')
+            .update({
+                name: profile.name,
+                avatar_url: profile.imageUrl,
+            })
+            .eq('id', userId);
+    }
 
     if (error) {
         console.error('Supabase 프로필 저장 실패:', error);

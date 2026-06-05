@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
 import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData } from '../types'
 
+const mockSignOut = vi.fn(async () => undefined)
+
 vi.mock('./Profile', () => ({
     default: () => (
         <section aria-label="마이 프로필 편집">
@@ -33,7 +35,7 @@ vi.mock('../contexts/AuthContext', () => ({
         session: { user: { id: 'user-demo-01', email: 'demo@example.com' } },
         user: { id: 'user-demo-01', email: 'demo@example.com' },
         loading: false,
-        signOut: vi.fn(),
+        signOut: mockSignOut,
     }),
 }))
 
@@ -43,6 +45,7 @@ vi.mock('../lib/supabase', () => ({
 
 const saveReview = vi.fn(async (_review: Review) => undefined)
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-directed-created')
+const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
 const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
 const getUserServiceRequests = vi.fn(async (_userId: string): Promise<ServiceRequestData[]> => [
     {
@@ -635,12 +638,15 @@ vi.mock('../lib/storage', () => ({
     saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     saveReview: (review: Review) => saveReview(review),
+    deleteUserPublicAccountData: (userId: string) => deleteUserPublicAccountData(userId),
 }))
 
 describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
         saveProposal.mockClear()
+        mockSignOut.mockClear()
+        deleteUserPublicAccountData.mockClear()
         getExpertProducts.mockClear()
         getUserProposals.mockReset()
         getUserProposals.mockResolvedValue(defaultProposals())
@@ -906,6 +912,21 @@ describe('MyPage', () => {
         expect(await screen.findByLabelText('마이 프로필 편집')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '프로필 저장하기' })).toBeInTheDocument()
         await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=profile'))
+    })
+
+    it('deletes public account data after withdrawal confirmation', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '탈퇴하기' }))
+
+        await waitFor(() => expect(deleteUserPublicAccountData).toHaveBeenCalledWith('user-demo-01'))
+        expect(mockSignOut).toHaveBeenCalledTimes(1)
     })
 
     it('shows work management panels in the separated work page mode', async () => {

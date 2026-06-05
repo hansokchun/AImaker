@@ -75,6 +75,10 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Users can view own profile"[\s\S]*?on public\.profiles for select[\s\S]*?using \(auth\.uid\(\) = id\);/i)
     })
 
+    it('allows users to delete their own profile for withdrawal cleanup', () => {
+        expect(sql).toMatch(/create policy "Users can delete own profile"[\s\S]*?on public\.profiles for delete[\s\S]*?using \(\(select auth\.uid\(\)\) = id\);/i)
+    })
+
     it('does not expose submitted service requests as a public request board', () => {
         expect(sql).toMatch(/drop policy if exists "Authenticated users can view submitted requests" on public\.service_requests;/i)
         expect(sql).not.toMatch(/create policy "Authenticated users can view submitted requests"/i)

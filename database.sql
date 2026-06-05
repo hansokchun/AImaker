@@ -47,6 +47,11 @@ create policy "Users can update own profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+drop policy if exists "Users can delete own profile" on public.profiles;
+create policy "Users can delete own profile"
+  on public.profiles for delete
+  using ((select auth.uid()) = id);
+
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
   before update on public.profiles

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import Profile from './Profile'
 
@@ -601,6 +601,20 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         nextParams.set('panel', 'consultations')
         if (nextConsultation) nextParams.set('consultation', nextConsultation.id)
         setSearchParams(nextParams)
+    }
+
+    const handleDeleteAccount = async () => {
+        if (!user) return
+        const confirmed = window.confirm('탈퇴하면 프로필, 상품, 상담, 제안서, 작업 데이터가 삭제됩니다. 계속할까요?')
+        if (!confirmed) return
+
+        try {
+            await deleteUserPublicAccountData(user.id)
+            await signOut()
+            navigate(ROUTES.HOME)
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '회원 탈퇴 처리에 실패했습니다.')
+        }
     }
 
     const renderWorkCards = (items: Work[], emptyText: string) => (
@@ -1680,6 +1694,24 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             }}
                         >
                             로그아웃
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDeleteAccount}
+                            style={{
+                                width: '100%',
+                                marginTop: '0.6rem',
+                                padding: '0.8rem 1rem',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.95rem',
+                                background: '#fff',
+                                color: '#991b1b',
+                                border: '1px solid #fecaca',
+                                cursor: 'pointer',
+                                fontWeight: 800,
+                            }}
+                        >
+                            탈퇴하기
                         </button>
                     </aside>
 
