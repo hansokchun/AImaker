@@ -20,17 +20,31 @@ export default function Navbar() {
             return;
         }
 
-        setProfileImageUrl(metadataImage);
-        Promise.all([getStoredProfile(user.id), getUserDisplayProfile(user.id)])
+        const refreshProfileImage = () => {
+            setProfileImageUrl(metadataImage);
+            return Promise.all([getStoredProfile(user.id), getUserDisplayProfile(user.id)])
             .then(([profile, displayProfile]) => {
                 if (active) setProfileImageUrl(displayProfile?.imageUrl || profile?.imageUrl || metadataImage);
             })
             .catch(() => {
                 if (active) setProfileImageUrl(metadataImage);
             });
+        };
+
+        refreshProfileImage();
+
+        const handleProfileUpdated = (event: Event) => {
+            const updatedUserId = (event as CustomEvent<{ userId?: string }>).detail?.userId;
+            if (!updatedUserId || updatedUserId === user.id) {
+                void refreshProfileImage();
+            }
+        };
+
+        window.addEventListener('aiconnect:profile-updated', handleProfileUpdated);
 
         return () => {
             active = false;
+            window.removeEventListener('aiconnect:profile-updated', handleProfileUpdated);
         };
     }, [user]);
 

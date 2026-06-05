@@ -117,4 +117,38 @@ describe('Navbar', () => {
             'https://example.com/new-basic-avatar.jpg',
         )
     })
+
+    it('updates the top-right profile menu image after a profile avatar change event', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'user-demo-01', email: 'demo@example.com', user_metadata: {} },
+            signOut: vi.fn(),
+        })
+        mockGetStoredProfile.mockResolvedValue(null)
+        mockGetUserDisplayProfile.mockResolvedValueOnce({
+            imageUrl: 'https://example.com/old-avatar.jpg',
+        })
+        mockGetUserDisplayProfile.mockResolvedValueOnce({
+            imageUrl: 'https://example.com/updated-avatar.jpg',
+        })
+
+        render(
+            <MemoryRouter>
+                <Navbar />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
+            'src',
+            'https://example.com/old-avatar.jpg',
+        )
+
+        window.dispatchEvent(new CustomEvent('aiconnect:profile-updated', { detail: { userId: 'user-demo-01' } }))
+
+        await waitFor(() =>
+            expect(screen.getByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
+                'src',
+                'https://example.com/updated-avatar.jpg',
+            ),
+        )
+    })
 })

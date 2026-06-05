@@ -34,6 +34,11 @@ export default function Profile() {
     const [uploading, setUploading] = useState<boolean>(false);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+    const notifyProfileUpdated = () => {
+        if (!user) return;
+        window.dispatchEvent(new CustomEvent('aiconnect:profile-updated', { detail: { userId: user.id } }));
+    };
+
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
     const [aiToolInput, setAiToolInput] = useState<string>('');
     const [editToolInput, setEditToolInput] = useState<string>('');
@@ -260,6 +265,7 @@ export default function Profile() {
                 if (supabase) {
                     await supabase.from('profiles').update({ name: trimmedName, avatar_url: profile.imageUrl }).eq('id', user.id);
                 }
+                notifyProfileUpdated();
                 alert('프로필이 저장되었습니다!');
                 navigate(ROUTES.MY_PAGE);
             } catch { alert('저장에 실패했습니다.'); }
@@ -300,6 +306,7 @@ export default function Profile() {
                 await supabase.from('profiles').update({ name: profile.name, avatar_url: profile.imageUrl }).eq('id', user.id);
             }
 
+            notifyProfileUpdated();
             alert('프로필이 성공적으로 저장되었습니다!');
             navigate(`/expert/${user.id}`);
         } catch (error) {
