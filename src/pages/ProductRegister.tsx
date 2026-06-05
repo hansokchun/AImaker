@@ -38,9 +38,6 @@ export default function ProductRegister() {
     const [category, setCategory] = useState<AiCategoryId>('ai-video-shortform')
     const [summary, setSummary] = useState('')
     const [description, setDescription] = useState('')
-    const [thumbnailUrl, setThumbnailUrl] = useState('')
-    const [aiTools, setAiTools] = useState('')
-    const [sampleLinks, setSampleLinks] = useState('')
     const [usePackagePricing, setUsePackagePricing] = useState(false)
     const [basePackage, setBasePackage] = useState<PackageFormState>(createPackageState)
     const [packages, setPackages] = useState<Record<PackageTier, PackageFormState>>({
@@ -118,9 +115,9 @@ export default function ProductRegister() {
                 category,
                 summary: summary.trim(),
                 description: description.trim(),
-                aiTools: parseCommaList(aiTools),
-                sampleLinks: [...parseLineList(sampleLinks), ...referenceDataUrls],
-                sampleImageUrl: thumbnailDataUrl || thumbnailUrl.trim(),
+                aiTools: [],
+                sampleLinks: referenceDataUrls,
+                sampleImageUrl: thumbnailDataUrl,
                 startingPrice: standardPackage.price,
                 deliveryDays: standardPackage.deliveryDays,
                 revisionCount: standardPackage.revisionCount,
@@ -150,7 +147,7 @@ export default function ProductRegister() {
                 <div style={{ marginBottom: '1.5rem' }}>
                     <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.6rem' }}>상품 등록</h1>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                        구매자가 제목, 설명, 이미지, 가격을 빠르게 비교할 수 있게 등록합니다.
+                        크몽식 서비스 등록처럼 제목, 설명, 이미지, 가격 정보를 중심으로 등록합니다.
                     </p>
                 </div>
 
@@ -168,7 +165,7 @@ export default function ProductRegister() {
                                 </select>
                             </Field>
                         </div>
-                        <Field label="한 줄 설명">
+                        <Field label="서비스 요약">
                             <input value={summary} onChange={(event) => setSummary(event.target.value)} required placeholder="검색 목록에서 보일 짧은 설명" style={inputStyle} />
                         </Field>
                     </Section>
@@ -184,24 +181,13 @@ export default function ProductRegister() {
                                 style={{ ...inputStyle, resize: 'vertical' }}
                             />
                         </Field>
-                        <Field label="사용 도구">
-                            <input value={aiTools} onChange={(event) => setAiTools(event.target.value)} placeholder="ChatGPT, Runway, Premiere Pro" style={inputStyle} />
-                        </Field>
                     </Section>
 
-                    <Section title="이미지와 샘플">
-                        <div style={twoColumnStyle}>
-                            <Field label="대표 이미지 URL">
-                                <input value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder="https://example.com/sample.jpg" style={inputStyle} />
-                            </Field>
-                            <Field label="대표 이미지 첨부">
-                                <input ref={thumbnailFileRef} type="file" accept="image/*" onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
-                            </Field>
-                        </div>
-                        <Field label="샘플 링크">
-                            <textarea value={sampleLinks} onChange={(event) => setSampleLinks(event.target.value)} rows={3} placeholder="한 줄에 하나씩 포트폴리오 링크를 입력" style={{ ...inputStyle, resize: 'vertical' }} />
+                    <Section title="이미지와 포트폴리오">
+                        <Field label="대표 이미지 첨부">
+                            <input ref={thumbnailFileRef} type="file" accept="image/*" onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
                         </Field>
-                        <Field label="참고자료 첨부">
+                        <Field label="상세 이미지/포트폴리오 첨부">
                             <input ref={referenceFilesRef} type="file" multiple onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
                         </Field>
                         <div style={guideBoxStyle}>

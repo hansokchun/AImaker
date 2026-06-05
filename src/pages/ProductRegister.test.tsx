@@ -39,22 +39,22 @@ describe('ProductRegister', () => {
         saveExpertProduct.mockClear()
     })
 
-    it('keeps pricing compact by default and publishes a single-price product', async () => {
+    it('keeps the form close to Kmong service registration and publishes a single-price product', async () => {
         renderRegister()
 
         expect(screen.queryByTestId('package-standard')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('대표 이미지 URL')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('사용 도구')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('샘플 링크')).not.toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
         fireEvent.change(screen.getByLabelText('카테고리'), { target: { value: 'ai-video-shortform' } })
-        fireEvent.change(screen.getByLabelText('한 줄 설명'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
         fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '브랜드 홍보용 숏폼 영상의 기획, 콘셉트, 편집 방향을 제공합니다.\n\n작업 범위와 준비 자료를 함께 안내합니다.' } })
-        fireEvent.change(screen.getByLabelText('사용 도구'), { target: { value: 'ChatGPT, Runway, Premiere Pro' } })
-        fireEvent.change(screen.getByLabelText('샘플 링크'), { target: { value: 'https://example.com/samples/shortform\nhttps://example.com/portfolio' } })
-        fireEvent.change(screen.getByLabelText('대표 이미지 URL'), { target: { value: 'https://example.com/thumb.jpg' } })
         fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
             target: { files: [new File(['tiny-image'], 'thumb.png', { type: 'image/png' })] },
         })
-        fireEvent.change(screen.getByLabelText('참고자료 첨부'), {
+        fireEvent.change(screen.getByLabelText('상세 이미지/포트폴리오 첨부'), {
             target: { files: [new File(['brief'], 'brief.txt', { type: 'text/plain' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
@@ -73,13 +73,9 @@ describe('ProductRegister', () => {
                     category: 'ai-video-shortform',
                     summary: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.',
                     description: expect.stringContaining('브랜드 홍보용 숏폼 영상의 기획'),
-                    aiTools: ['ChatGPT', 'Runway', 'Premiere Pro'],
+                    aiTools: [],
                     sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
-                    sampleLinks: expect.arrayContaining([
-                        'https://example.com/samples/shortform',
-                        'https://example.com/portfolio',
-                        expect.stringMatching(/^data:text\/plain;base64,/),
-                    ]),
+                    sampleLinks: [expect.stringMatching(/^data:text\/plain;base64,/)],
                     startingPrice: 30000,
                     deliveryDays: 2,
                     revisionCount: 1,
