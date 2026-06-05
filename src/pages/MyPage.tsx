@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveExpertProduct, saveProposal, saveReview } from '../lib/storage'
+import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import Profile from './Profile'
 
@@ -182,13 +182,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageSubmitting, setConsultationMessageSubmitting] = useState(false)
     const [consultationMessageError, setConsultationMessageError] = useState('')
     const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
-    const [productTitle, setProductTitle] = useState('')
-    const [productSummary, setProductSummary] = useState('')
-    const [productDescription, setProductDescription] = useState('')
-    const [productThumbnailUrl, setProductThumbnailUrl] = useState('')
-    const [productStartingPrice, setProductStartingPrice] = useState('')
-    const [productDeliveryDays, setProductDeliveryDays] = useState('')
-    const [productSubmitMessage, setProductSubmitMessage] = useState('')
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const workRoleSelectedByUserRef = useRef(false)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
@@ -573,57 +566,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         } finally {
             setConsultationProposalSubmitting(false)
         }
-    }
-
-    const handleRegisterProduct = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault()
-        if (!user) return
-
-        const title = productTitle.trim()
-        const summary = productSummary.trim()
-        const description = productDescription.trim()
-        const sampleImageUrl = productThumbnailUrl.trim()
-        const startingPrice = Number(productStartingPrice)
-        const deliveryDays = Number(productDeliveryDays)
-
-        const standardPackage = {
-            name: 'Standard' as const,
-            price: Number.isFinite(startingPrice) && startingPrice > 0 ? startingPrice : 0,
-            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
-            revisionCount: 1,
-            included: [summary || title],
-        }
-        const product: ExpertProduct = {
-            id: `product-${user.id}-${Date.now()}`,
-            expertId: user.id,
-            expertName: myProducts[0]?.expertName || name || user.email || '전문가',
-            title,
-            category: 'ai-video-shortform',
-            summary,
-            description,
-            aiTools: [],
-            sampleLinks: [],
-            sampleImageUrl,
-            startingPrice: standardPackage.price,
-            deliveryDays: standardPackage.deliveryDays,
-            revisionCount: 1,
-            packages: {
-                standard: standardPackage,
-                deluxe: null,
-                premium: null,
-            },
-            status: 'published',
-        }
-
-        await saveExpertProduct(product)
-        setProducts((current) => [product, ...current.filter((item) => item.id !== product.id)])
-        setProductTitle('')
-        setProductSummary('')
-        setProductDescription('')
-        setProductThumbnailUrl('')
-        setProductStartingPrice('')
-        setProductDeliveryDays('')
-        setProductSubmitMessage('상품을 등록했습니다.')
     }
 
     const getRoleConsultationId = () => {
@@ -1424,86 +1366,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderProductManagementPanel = () => (
         <section style={cardStyle}>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>내 상품관리</h2>
-            <form onSubmit={handleRegisterProduct} style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
-                    <div style={{ display: 'grid', gap: '0.45rem' }}>
-                        <label htmlFor="product-title" style={{ fontWeight: 800 }}>상품명</label>
-                        <input
-                            id="product-title"
-                            value={productTitle}
-                            onChange={(event) => setProductTitle(event.target.value)}
-                            required
-                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
-                        />
-                    </div>
-                    <div style={{ display: 'grid', gap: '0.45rem' }}>
-                        <label htmlFor="product-thumbnail-url" style={{ fontWeight: 800 }}>썸네일 이미지 URL</label>
-                        <input
-                            id="product-thumbnail-url"
-                            value={productThumbnailUrl}
-                            onChange={(event) => setProductThumbnailUrl(event.target.value)}
-                            placeholder="https://example.com/sample.jpg"
-                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
-                        />
-                    </div>
-                </div>
-                <div style={{ display: 'grid', gap: '0.45rem' }}>
-                    <label htmlFor="product-summary" style={{ fontWeight: 800 }}>상품 요약</label>
-                    <input
-                        id="product-summary"
-                        value={productSummary}
-                        onChange={(event) => setProductSummary(event.target.value)}
-                        required
-                        style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
-                    />
-                </div>
-                <div style={{ display: 'grid', gap: '0.45rem' }}>
-                    <label htmlFor="product-description" style={{ fontWeight: 800 }}>상품 설명</label>
-                    <textarea
-                        id="product-description"
-                        value={productDescription}
-                        onChange={(event) => setProductDescription(event.target.value)}
-                        rows={4}
-                        required
-                        style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', resize: 'vertical' }}
-                    />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
-                    <div style={{ display: 'grid', gap: '0.45rem' }}>
-                        <label htmlFor="product-starting-price" style={{ fontWeight: 800 }}>시작 가격</label>
-                        <input
-                            id="product-starting-price"
-                            type="number"
-                            min="0"
-                            value={productStartingPrice}
-                            onChange={(event) => setProductStartingPrice(event.target.value)}
-                            required
-                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
-                        />
-                    </div>
-                    <div style={{ display: 'grid', gap: '0.45rem' }}>
-                        <label htmlFor="product-delivery-days" style={{ fontWeight: 800 }}>작업 기간</label>
-                        <input
-                            id="product-delivery-days"
-                            type="number"
-                            min="1"
-                            value={productDeliveryDays}
-                            onChange={(event) => setProductDeliveryDays(event.target.value)}
-                            required
-                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
-                        />
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button type="submit" className="btn-primary" style={{ padding: '0.85rem 1.1rem' }}>
-                        상품 등록하기
-                    </button>
-                    {productSubmitMessage && (
-                        <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{productSubmitMessage}</p>
-                    )}
-                </div>
-            </form>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>내 상품관리</h2>
+                <Link to={ROUTES.PRODUCT_NEW} className="btn-primary" style={{ padding: '0.85rem 1.1rem', textDecoration: 'none' }}>
+                    상품 등록하기
+                </Link>
+            </div>
 
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem' }}>내가 올린 상품</h3>
             {myProducts.length > 0 ? (

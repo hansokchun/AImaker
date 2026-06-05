@@ -7,6 +7,7 @@ export const ROUTES = {
     HOME: '/',
     CATEGORY: '/category',
     EXPERT_DETAIL: '/expert/:id',
+    PRODUCT_NEW: '/products/new',
     SERVICE_REQUEST_PRODUCT: '/request/:productId',
     PROPOSAL: '/proposal/:proposalId',
     WORKROOM: '/workroom/:workId',

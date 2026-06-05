@@ -1835,7 +1835,7 @@ describe('MyPage', () => {
         expect(screen.queryByRole('button', { name: '리뷰' })).not.toBeInTheDocument()
     })
 
-    it('lets experts register a product and open owned products from product management', async () => {
+    it('links experts to product registration and opens owned products from product management', async () => {
         render(
             <MemoryRouter>
                 <MyPage mode="work" />
@@ -1847,33 +1847,11 @@ describe('MyPage', () => {
         fireEvent.click(await screen.findByRole('button', { name: '내 상품관리' }))
 
         expect(screen.getByRole('heading', { name: '내 상품관리' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '상품 등록하기' })).toHaveAttribute('href', '/products/new')
         expect(screen.getByRole('link', { name: /Owned AI product/ })).toHaveAttribute('href', '/expert/product-owned-01')
         expect(screen.queryByText('Other AI product')).not.toBeInTheDocument()
-
-        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'New AI product' } })
-        fireEvent.change(screen.getByLabelText('상품 요약'), { target: { value: 'New summary' } })
-        fireEvent.change(screen.getByLabelText('상품 설명'), { target: { value: 'New product description' } })
-        fireEvent.change(screen.getByLabelText('썸네일 이미지 URL'), { target: { value: 'https://example.com/new.jpg' } })
-        fireEvent.change(screen.getByLabelText('시작 가격'), { target: { value: '45000' } })
-        fireEvent.change(screen.getByLabelText('작업 기간'), { target: { value: '3' } })
-        fireEvent.click(screen.getByRole('button', { name: '상품 등록하기' }))
-
-        await waitFor(() =>
-            expect(saveExpertProduct).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    expertId: 'user-demo-01',
-                    expertName: 'Demo expert',
-                    title: 'New AI product',
-                    summary: 'New summary',
-                    description: 'New product description',
-                    sampleImageUrl: 'https://example.com/new.jpg',
-                    startingPrice: 45000,
-                    deliveryDays: 3,
-                    status: 'published',
-                }),
-            ),
-        )
-        expect(await screen.findByText('상품을 등록했습니다.')).toBeInTheDocument()
+        expect(screen.queryByLabelText('상품명')).not.toBeInTheDocument()
+        expect(saveExpertProduct).not.toHaveBeenCalled()
     })
 
     it('switches the consultation chat role even when a client chat is selected in the URL', async () => {

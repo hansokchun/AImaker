@@ -19,6 +19,7 @@ import Onboarding from './pages/Onboarding';
 import MyPage from './pages/MyPage';
 import WorkDashboard from './pages/WorkDashboard';
 import Profile from './pages/Profile';
+import ProductRegister from './pages/ProductRegister';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
                     <Route path={ROUTES.HOME} element={<Home />} />
                     <Route path={ROUTES.CATEGORY} element={<Category />} />
                     <Route path={ROUTES.EXPERT_DETAIL} element={<ExpertDetail />} />
+                    <Route path={ROUTES.PRODUCT_NEW} element={<ProductRegister />} />
                     <Route path={ROUTES.SERVICE_REQUEST_PRODUCT} element={<ServiceRequest />} />
                     <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
                     <Route path={ROUTES.WORKROOM} element={<Workroom />} />
