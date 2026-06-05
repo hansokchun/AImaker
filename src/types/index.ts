@@ -295,6 +295,8 @@ export interface ExpertProfile {
     aiTools: string[];
     /** 편집/후반 작업 도구 목록 */
     editTools: string[];
+    /** 대표 포트폴리오/샘플 링크 목록 */
+    sampleLinks?: string[];
     /** 3단계 요금 패키지 */
     packages: {
         standard: PackageInfo;

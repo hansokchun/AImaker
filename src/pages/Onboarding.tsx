@@ -16,6 +16,9 @@ export default function Onboarding() {
     // 역할 선택 상태
     const [role, setRole] = useState<'client' | 'expert'>('client');
     const [name, setName] = useState<string>('');
+    const [interests, setInterests] = useState<string>('');
+    const [requestPurposes, setRequestPurposes] = useState<string>('');
+    const [aiTools, setAiTools] = useState<string>('');
     const [imageUrl, setImageUrl] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
     const [uploading, setUploading] = useState<boolean>(false);
@@ -47,6 +50,12 @@ export default function Onboarding() {
         }
     };
 
+    const parseCommaList = (value: string) =>
+        value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+
     /** 온보딩 완료 — profiles 테이블에 저장 */
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -54,6 +63,18 @@ export default function Onboarding() {
 
         if (!name.trim()) {
             setError('닉네임을 입력해주세요.');
+            return;
+        }
+        if (role === 'client' && parseCommaList(interests).length === 0) {
+            setError('관심 작업 분야를 입력해 주세요.');
+            return;
+        }
+        if (role === 'client' && parseCommaList(requestPurposes).length === 0) {
+            setError('주로 맡기려는 목적을 입력해 주세요.');
+            return;
+        }
+        if (role === 'expert' && parseCommaList(aiTools).length === 0) {
+            setError('사용 도구를 입력해 주세요.');
             return;
         }
 
@@ -70,6 +91,8 @@ export default function Onboarding() {
                     email: user.email,
                     avatar_url: imageUrl,
                     is_expert: role === 'expert',
+                    interests: role === 'client' ? parseCommaList(interests) : [],
+                    request_purposes: role === 'client' ? parseCommaList(requestPurposes) : [],
                 });
 
             if (profileError) throw profileError;
@@ -83,6 +106,7 @@ export default function Onboarding() {
                         name: name.trim(),
                         image_url: imageUrl,
                         profession: '',
+                        ai_tools: parseCommaList(aiTools),
                     });
             }
 
@@ -151,19 +175,65 @@ export default function Onboarding() {
                         </div>
                     </div>
 
-                    {/* 닉네임 입력 */}
+                    {/* 역할별 필수 정보 입력 */}
                     <div className="onboarding-section">
-                        <label className="section-label" htmlFor="nickname">닉네임(활동명)</label>
+                        <label className="section-label" htmlFor="nickname">
+                            {role === 'expert' ? '전문가 이름/닉네임' : '표시 이름/닉네임'}
+                        </label>
                         <input
                             id="nickname"
                             type="text"
                             className="onboarding-input"
-                            placeholder="예: 홍길동, 디자인깎는노인"
+                            placeholder={role === 'expert' ? '예: AI 영상 스튜디오' : '예: 홍길동'}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
                         />
                     </div>
+
+                    {role === 'client' && (
+                        <>
+                            <div className="onboarding-section">
+                                <label className="section-label" htmlFor="client-interests">관심 작업 분야</label>
+                                <input
+                                    id="client-interests"
+                                    type="text"
+                                    className="onboarding-input"
+                                    placeholder="예: 영상, 이미지, 자동화, 글쓰기"
+                                    value={interests}
+                                    onChange={(e) => setInterests(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="onboarding-section">
+                                <label className="section-label" htmlFor="client-purposes">주로 맡기려는 목적</label>
+                                <input
+                                    id="client-purposes"
+                                    type="text"
+                                    className="onboarding-input"
+                                    placeholder="예: 홍보, 쇼핑몰, 유튜브, 업무 자동화"
+                                    value={requestPurposes}
+                                    onChange={(e) => setRequestPurposes(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {role === 'expert' && (
+                        <div className="onboarding-section">
+                            <label className="section-label" htmlFor="expert-tools">사용 도구</label>
+                            <input
+                                id="expert-tools"
+                                type="text"
+                                className="onboarding-input"
+                                placeholder="예: ChatGPT, Midjourney, Runway"
+                                value={aiTools}
+                                onChange={(e) => setAiTools(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
 
                     {/* 프로필 이미지 (선택) */}
                     <div className="onboarding-section">

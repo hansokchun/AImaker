@@ -795,6 +795,7 @@ export function createDefaultProfile(): ExpertProfile {
         awards: [''],
         aiTools: [],
         editTools: [],
+        sampleLinks: [],
         packages: {
             standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
             deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -852,6 +853,7 @@ export async function getStoredProfile(userId: string): Promise<ExpertProfile | 
         awards: Array.isArray(data.awards) && data.awards.length ? data.awards : [''],
         aiTools: Array.isArray(data.ai_tools) ? data.ai_tools : [],
         editTools: Array.isArray(data.edit_tools) ? data.edit_tools : [],
+        sampleLinks: Array.isArray(data.sample_links) ? data.sample_links : [],
         packages: data.packages || {
             standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
             deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -892,6 +894,7 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
         awards: profile.awards,
         ai_tools: profile.aiTools,
         edit_tools: profile.editTools,
+        sample_links: profile.sampleLinks || [],
         packages: profile.packages,
         updated_at: new Date().toISOString(),
     });

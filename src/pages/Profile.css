@@ -20,6 +20,18 @@
     z-index: 10;
 }
 
+.profile-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0;
+}
+
+.profile-subtitle {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 1.05rem;
+}
+
 /* ===== 편집 섹션 카드 ===== */
 .profile-section {
     background: white;
@@ -45,6 +57,46 @@
 .profile-section h2 .material-symbols-outlined {
     color: var(--primary);
     font-size: 1.5rem;
+}
+
+.profile-role-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.profile-role-card {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: start;
+    padding: 1.2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-family);
+    transition: var(--transition);
+}
+
+.profile-role-card.active {
+    border-color: var(--primary);
+    background: #f0f7ff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.profile-role-card .material-symbols-outlined {
+    color: var(--primary);
+}
+
+.profile-role-card strong {
+    font-size: 1rem;
+}
+
+.profile-role-card small {
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
 
 /* ===== 프로필 이미지 업로드 영역 ===== */
@@ -81,6 +133,13 @@
 }
 .avatar-url-input {
     flex: 1;
+}
+
+.profile-help-text {
+    margin: 0.45rem 0 0;
+    color: var(--primary);
+    font-size: 0.88rem;
+    font-weight: 700;
 }
 
 /* ===== 폼 요소 ===== */

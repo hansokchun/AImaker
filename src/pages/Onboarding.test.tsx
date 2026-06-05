@@ -51,6 +51,12 @@ describe('Onboarding', () => {
         fireEvent.change(document.querySelector('#nickname') as HTMLInputElement, {
             target: { value: '새 사용자' },
         })
+        fireEvent.change(document.querySelector('#client-interests') as HTMLInputElement, {
+            target: { value: 'video' },
+        })
+        fireEvent.change(document.querySelector('#client-purposes') as HTMLInputElement, {
+            target: { value: 'promotion' },
+        })
         fireEvent.click(screen.getByRole('button', { name: /AIConnect/ }))
 
         await waitFor(() =>
@@ -62,6 +68,62 @@ describe('Onboarding', () => {
                     avatar_url: 'https://example.com/uploaded-profile.jpg',
                 }),
             ),
+        )
+    })
+
+    it('requires and stores client profile details for new clients', async () => {
+        render(<Onboarding />)
+
+        fireEvent.change(screen.getByLabelText('표시 이름/닉네임'), {
+            target: { value: '의뢰자 테스트' },
+        })
+        fireEvent.change(screen.getByLabelText('관심 작업 분야'), {
+            target: { value: '영상, 자동화' },
+        })
+        fireEvent.change(screen.getByLabelText('주로 맡기려는 목적'), {
+            target: { value: '홍보, 업무 자동화' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /AIConnect/ }))
+
+        await waitFor(() =>
+            expect(mockUpsert).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: '의뢰자 테스트',
+                    interests: ['영상', '자동화'],
+                    request_purposes: ['홍보', '업무 자동화'],
+                    is_expert: false,
+                }),
+            ),
+        )
+    })
+
+    it('requires and stores expert profile details for new experts', async () => {
+        render(<Onboarding />)
+
+        fireEvent.click(screen.getByRole('button', { name: /전문가로 활동하기/ }))
+        fireEvent.change(screen.getByLabelText('전문가 이름/닉네임'), {
+            target: { value: '전문가 테스트' },
+        })
+        fireEvent.change(screen.getByLabelText('사용 도구'), {
+            target: { value: 'ChatGPT, Midjourney' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /AIConnect/ }))
+
+        await waitFor(() =>
+            expect(mockUpsert).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 'user-onboarding-01',
+                    name: '전문가 테스트',
+                    is_expert: true,
+                }),
+            ),
+        )
+        expect(mockUpsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                user_id: 'user-onboarding-01',
+                name: '전문가 테스트',
+                ai_tools: ['ChatGPT', 'Midjourney'],
+            }),
         )
     })
 })

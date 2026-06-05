@@ -18,14 +18,15 @@ const supabaseMocks = vi.hoisted(() => ({
 
 const makeProfile = (overrides: Partial<ExpertProfile> = {}): ExpertProfile => ({
     imageUrl: 'https://example.com/profile.jpg',
-    profession: 'AI 영상/숏폼',
-    name: '루미 AI 스튜디오',
+    profession: 'AI video',
+    name: 'Rumi AI Studio',
     oneLiner: '',
     greeting: '',
     activities: [''],
     awards: [''],
     aiTools: ['ChatGPT'],
     editTools: [],
+    sampleLinks: [],
     packages: {
         standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
         deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -67,7 +68,13 @@ describe('Profile editing', () => {
         supabaseMocks.upload.mockResolvedValue({ error: null })
         supabaseMocks.getPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.com/updated-avatar.jpg' } })
         supabaseMocks.profileSingle.mockResolvedValue({
-            data: { is_expert: true, name: '루미 AI 스튜디오', avatar_url: 'https://example.com/profile.jpg' },
+            data: {
+                is_expert: true,
+                name: 'Rumi AI Studio',
+                avatar_url: 'https://example.com/profile.jpg',
+                interests: [],
+                request_purposes: [],
+            },
             error: null,
         })
         supabaseMocks.profileEq.mockReturnValue({ single: supabaseMocks.profileSingle })
@@ -146,7 +153,7 @@ describe('Profile editing', () => {
         )
     })
 
-    it('shows required profile errors inline instead of only alerting', async () => {
+    it('shows required expert profile errors inline without requiring profession', async () => {
         mockProfile = makeProfile({ name: '', profession: '', aiTools: [] })
 
         const { container } = render(
@@ -159,8 +166,76 @@ describe('Profile editing', () => {
         fireEvent.submit(container.querySelector('form') as HTMLFormElement)
 
         expect(await screen.findByText('이름을 입력해 주세요.')).toHaveClass('profile-field-error')
-        expect(screen.getByText('전문 분야를 선택해 주세요.')).toHaveClass('profile-field-error')
-        expect(screen.getByText('사용 AI 도구를 하나 이상 입력해 주세요.')).toHaveClass('profile-field-error')
+        expect(screen.getByText('사용 도구를 하나 이상 입력해 주세요.')).toHaveClass('profile-field-error')
+        expect(screen.queryByText('전문 분야를 선택해 주세요.')).not.toBeInTheDocument()
         expect(saveProfile).not.toHaveBeenCalled()
+    })
+
+    it('saves client interests and request purposes from the client profile section', async () => {
+        supabaseMocks.profileSingle.mockResolvedValue({
+            data: {
+                is_expert: false,
+                name: 'Client User',
+                avatar_url: 'https://example.com/client.jpg',
+                interests: ['image'],
+                request_purposes: ['shop'],
+            },
+            error: null,
+        })
+
+        const { container } = render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(container.querySelector('#client-interests')).toBeInTheDocument())
+        fireEvent.change(container.querySelector('#client-name') as HTMLInputElement, {
+            target: { value: 'Client User' },
+        })
+        fireEvent.change(container.querySelector('#client-interests') as HTMLInputElement, {
+            target: { value: 'video, automation' },
+        })
+        fireEvent.change(container.querySelector('#client-purposes') as HTMLInputElement, {
+            target: { value: 'promotion, youtube' },
+        })
+        fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(supabaseMocks.profileUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'Client User',
+                    interests: ['video', 'automation'],
+                    request_purposes: ['promotion', 'youtube'],
+                }),
+            ),
+        )
+    })
+
+    it('saves optional expert samples with the expert profile', async () => {
+        mockProfile = makeProfile({
+            sampleLinks: ['https://example.com/old-sample'],
+        } as Partial<ExpertProfile>)
+
+        const { container } = render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(container.querySelector('#expert-samples')).toBeInTheDocument())
+        fireEvent.change(container.querySelector('#expert-samples') as HTMLInputElement, {
+            target: { value: 'https://example.com/sample-a, https://example.com/sample-b' },
+        })
+        fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(saveProfile).toHaveBeenCalledWith(
+                'expert-video-01',
+                expect.objectContaining({
+                    sampleLinks: ['https://example.com/sample-a', 'https://example.com/sample-b'],
+                }),
+            ),
+        )
     })
 })

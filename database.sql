@@ -24,9 +24,15 @@ create table if not exists public.profiles (
   expert_intro text,
   ai_tools text[] not null default '{}',
   sample_links text[] not null default '{}',
+  interests text[] not null default '{}',
+  request_purposes text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles
+  add column if not exists interests text[] not null default '{}',
+  add column if not exists request_purposes text[] not null default '{}';
 
 alter table public.profiles enable row level security;
 
@@ -67,11 +73,15 @@ create table if not exists public.expert_profiles (
   greeting text,
   activities jsonb not null default '[]'::jsonb,
   awards jsonb not null default '[]'::jsonb,
+  sample_links jsonb not null default '[]'::jsonb,
   ai_tools jsonb not null default '[]'::jsonb,
   edit_tools jsonb not null default '[]'::jsonb,
   packages jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+alter table public.expert_profiles
+  add column if not exists sample_links jsonb not null default '[]'::jsonb;
 
 alter table public.expert_profiles enable row level security;
 
