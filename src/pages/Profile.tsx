@@ -9,33 +9,16 @@
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getStoredProfile, saveProfile, createDefaultProfile, saveExpertProduct } from '../lib/storage';
+import { getStoredProfile, saveProfile, createDefaultProfile } from '../lib/storage';
 import { ROUTES } from '../constants/routes';
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies';
 import { supabase } from '../lib/supabase';
 import { CATEGORIES } from '../data/mockData';
-import { AI_CATEGORIES } from '../constants/categories';
-import type { ExpertProfile, ExpertProduct, PackageInfo, ProductPackage } from '../types';
+import type { ExpertProfile } from '../types';
 import './Profile.css';
 
 /** 패키지 탭 종류 (PackageCard와 동일) */
-type PackageTab = 'standard' | 'deluxe' | 'premium';
-
-interface ProductDraft {
-    title: string;
-    description: string;
-    sampleImageUrl: string;
-    startingPrice: string;
-    deliveryDays: string;
-}
-
 /** 패키지 탭 한글 라벨 */
-const PACKAGE_LABELS: Record<PackageTab, string> = {
-    standard: 'Standard',
-    deluxe: 'Deluxe',
-    premium: 'Premium',
-};
-
 export default function Profile() {
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -47,21 +30,12 @@ export default function Profile() {
 
     // 프로필 폼 상태 — createDefaultProfile()로 초기화하여 빈 폼 제공
     const [profile, setProfile] = useState<ExpertProfile>(createDefaultProfile());
-    const [activePackageTab, setActivePackageTab] = useState<PackageTab>('standard');
     const [saving, setSaving] = useState<boolean>(false);
     const [uploading, setUploading] = useState<boolean>(false);
 
     // 태그 입력 필드 상태 (AI 도구, 편집 도구 각각)
     const [aiToolInput, setAiToolInput] = useState<string>('');
     const [editToolInput, setEditToolInput] = useState<string>('');
-    const [productDraft, setProductDraft] = useState<ProductDraft>({
-        title: '',
-        description: '',
-        sampleImageUrl: '',
-        startingPrice: '',
-        deliveryDays: '',
-    });
-
     // 전문분야 '기타' 상태 관리
     const [showCustomProfession, setShowCustomProfession] = useState<boolean>(false);
     const [customProfessionInput, setCustomProfessionInput] = useState<string>('');
@@ -137,10 +111,6 @@ export default function Profile() {
     /** 단순 텍스트 필드 변경 */
     const handleChange = (field: keyof ExpertProfile, value: string) => {
         setProfile((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleProductDraftChange = (field: keyof ProductDraft, value: string) => {
-        setProductDraft((prev) => ({ ...prev, [field]: value }));
     };
 
     /** 전문분야 다중 선택 토글 핸들러 */
@@ -266,104 +236,7 @@ export default function Profile() {
     // ===== 패키지 변경 핸들러 =====
 
     /** 패키지 단순 필드 변경 (price, description 등) */
-    const handlePackageChange = (tab: PackageTab, field: keyof PackageInfo, value: string) => {
-        setProfile((prev) => ({
-            ...prev,
-            packages: {
-                ...prev.packages,
-                [tab]: { ...prev.packages[tab], [field]: value },
-            },
-        }));
-    };
-
     /** 패키지 features 리스트 항목 변경 */
-    const toProductPackage = (name: ProductPackage['name'], packageInfo: PackageInfo): ProductPackage | null => {
-        const included = packageInfo.features.map((feature) => feature.trim()).filter(Boolean);
-        if (!packageInfo.price.trim() && !packageInfo.workDays.trim() && included.length === 0) {
-            return null;
-        }
-
-        return {
-            name,
-            price: Number(packageInfo.price.replace(/[^\d]/g, '')) || 0,
-            deliveryDays: Number(packageInfo.workDays.replace(/[^\d]/g, '')) || 0,
-            revisionCount: Number(packageInfo.revisions.replace(/[^\d]/g, '')) || 0,
-            included,
-        };
-    };
-
-    const buildExpertProduct = (userId: string, profileData: ExpertProfile): ExpertProduct => {
-        const category =
-            AI_CATEGORIES.find((item) => profileData.profession.includes(item.name))?.id ?? AI_CATEGORIES[0].id;
-        const standardPackage = toProductPackage('Standard', profileData.packages.standard);
-
-        return {
-            id: userId,
-            expertId: userId,
-            expertName: profileData.name,
-            title: productDraft.title.trim(),
-            category,
-            summary: productDraft.description.trim(),
-            description: productDraft.description.trim(),
-            aiTools: profileData.aiTools,
-            sampleLinks: [productDraft.sampleImageUrl.trim()],
-            sampleImageUrl: productDraft.sampleImageUrl.trim(),
-            startingPrice: Number(productDraft.startingPrice) || 0,
-            deliveryDays: Number(productDraft.deliveryDays) || 0,
-            revisionCount: standardPackage?.revisionCount ?? 0,
-            packages: {
-                standard: standardPackage as ProductPackage,
-                deluxe: toProductPackage('Deluxe', profileData.packages.deluxe),
-                premium: toProductPackage('Premium', profileData.packages.premium),
-            },
-            status: 'published',
-        };
-    };
-
-    const handlePackageFeatureChange = (tab: PackageTab, index: number, value: string) => {
-        setProfile((prev) => {
-            const features = [...prev.packages[tab].features];
-            features[index] = value;
-            return {
-                ...prev,
-                packages: {
-                    ...prev.packages,
-                    [tab]: { ...prev.packages[tab], features },
-                },
-            };
-        });
-    };
-
-    /** 패키지 feature 추가 */
-    const handleAddPackageFeature = (tab: PackageTab) => {
-        setProfile((prev) => {
-            const features = prev.packages[tab].features;
-            if (features.length >= 8) return prev;
-            return {
-                ...prev,
-                packages: {
-                    ...prev.packages,
-                    [tab]: { ...prev.packages[tab], features: [...features, ''] },
-                },
-            };
-        });
-    };
-
-    /** 패키지 feature 삭제 */
-    const handleRemovePackageFeature = (tab: PackageTab, index: number) => {
-        setProfile((prev) => {
-            const features = prev.packages[tab].features;
-            if (features.length <= 1) return prev;
-            return {
-                ...prev,
-                packages: {
-                    ...prev.packages,
-                    [tab]: { ...prev.packages[tab], features: features.filter((_, i) => i !== index) },
-                },
-            };
-        });
-    };
-
     // ===== 저장 =====
 
     const handleSave = async (e: FormEvent<HTMLFormElement>) => {
@@ -389,31 +262,13 @@ export default function Profile() {
         // 전문가 모드: 전체 프로필 저장
         if (!profile.name.trim()) { alert('이름을 입력해 주세요.'); return; }
         if (!profile.profession.trim()) { alert('전문 분야를 입력해 주세요.'); return; }
-        if (!productDraft.title.trim()) { alert('상품명을 입력해 주세요.'); return; }
-        if (!productDraft.description.trim()) { alert('상품 설명을 입력해 주세요.'); return; }
-        if (!productDraft.sampleImageUrl.trim()) { alert('샘플 결과물을 입력해 주세요.'); return; }
-        if (!productDraft.startingPrice.trim()) { alert('시작 가격을 입력해 주세요.'); return; }
-        if (!productDraft.deliveryDays.trim()) { alert('작업 기간을 입력해 주세요.'); return; }
         if (profile.aiTools.length === 0) { alert('사용 AI 도구를 하나 이상 입력해 주세요.'); return; }
-
-        const standardPackage = profile.packages.standard;
-        const hasStandardFeature = standardPackage.features.some((feature) => feature.trim());
-        if (!standardPackage.price.trim() || !standardPackage.workDays.trim() || !hasStandardFeature) {
-            alert('Standard 패키지는 가격, 작업 기간, 포함 항목이 필요합니다.');
-            return;
-        }
         const policyFields = [
             profile.name,
             profile.oneLiner,
             profile.greeting,
-            productDraft.title,
-            productDraft.description,
             ...profile.activities,
-            ...profile.awards,
-            ...Object.values(profile.packages).flatMap((pkg) => [
-                pkg.description,
-                ...pkg.features,
-            ]),
+            ...profile.awards
         ];
         if (hasExternalContactInFields(policyFields)) {
             alert(EXTERNAL_CONTACT_WARNING);
@@ -429,7 +284,6 @@ export default function Profile() {
             };
 
             await saveProfile(user.id, cleanedProfile);
-            await saveExpertProduct(buildExpertProduct(user.id, cleanedProfile));
             
             // profiles 테이블 이름도 동기화
             if (supabase) {
@@ -513,8 +367,6 @@ export default function Profile() {
             </button>
         </div>
     );
-
-    const currentPkg = profile.packages[activePackageTab];
 
     // 회원 유형 변경 핸들러 — DB 즉시 반영
     const handleRoleChange = async (newRole: boolean) => {
@@ -831,211 +683,6 @@ export default function Profile() {
                                 <span className="label-hint">(입력 후 Enter로 추가)</span>
                             </label>
                             {renderTagInput('editTools', editToolInput, setEditToolInput, '예: Premiere Pro, After Effects...')}
-                        </div>
-                    </div>
-
-                    {/* ===== 5. 상품 등록 ===== */}
-                    <div className="profile-section product-register-section">
-                        <h2>
-                            <span className="material-symbols-outlined">inventory_2</span>
-                            상품 등록
-                        </h2>
-                        <p className="product-register-help">
-                            공개할 AI 작업 상품의 최소 정보를 입력하세요. Standard 패키지와 샘플 결과물은 필수입니다.
-                        </p>
-
-                        <div className="profile-form-group">
-                            <label htmlFor="product-title">상품명</label>
-                            <input
-                                id="product-title"
-                                aria-label="상품명"
-                                type="text"
-                                className="profile-input"
-                                value={productDraft.title}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                    handleProductDraftChange('title', e.target.value)
-                                }
-                                placeholder="예: AI 숏폼 영상 콘셉트와 1차 시안을 제작해드립니다"
-                            />
-                        </div>
-
-                        <div className="profile-form-group">
-                            <label htmlFor="product-description">상품 설명</label>
-                            <textarea
-                                id="product-description"
-                                aria-label="상품 설명"
-                                className="profile-input"
-                                rows={4}
-                                value={productDraft.description}
-                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                                    handleProductDraftChange('description', e.target.value)
-                                }
-                                placeholder="상품에 포함되는 작업 범위와 적합한 의뢰 상황을 설명해 주세요."
-                            />
-                        </div>
-
-                        <div className="profile-form-group">
-                            <label htmlFor="sample-image-url">샘플 결과물</label>
-                            <input
-                                id="sample-image-url"
-                                aria-label="샘플 결과물"
-                                type="url"
-                                className="profile-input"
-                                value={productDraft.sampleImageUrl}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                    handleProductDraftChange('sampleImageUrl', e.target.value)
-                                }
-                                placeholder="https://example.com/sample"
-                            />
-                        </div>
-
-                        <div className="package-row">
-                            <div className="profile-form-group">
-                                <label htmlFor="starting-price">시작 가격</label>
-                                <input
-                                    id="starting-price"
-                                    aria-label="시작 가격"
-                                    type="text"
-                                    className="profile-input"
-                                    value={productDraft.startingPrice}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                        handleProductDraftChange('startingPrice', e.target.value.replace(/[^\d]/g, ''))
-                                    }
-                                    placeholder="예: 30000"
-                                />
-                            </div>
-                            <div className="profile-form-group">
-                                <label htmlFor="delivery-days">작업 기간</label>
-                                <input
-                                    id="delivery-days"
-                                    aria-label="작업 기간"
-                                    type="text"
-                                    className="profile-input"
-                                    value={productDraft.deliveryDays}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                        handleProductDraftChange('deliveryDays', e.target.value.replace(/[^\d]/g, ''))
-                                    }
-                                    placeholder="예: 2"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ===== 6. 요금 패키지 ===== */}
-                    <div className="profile-section">
-                        <h2>
-                            <span className="material-symbols-outlined">payments</span>
-                            요금 패키지
-                        </h2>
-
-                        {/* 패키지 탭 */}
-                        <div className="package-edit-tabs">
-                            {(Object.keys(PACKAGE_LABELS) as PackageTab[]).map((tab) => (
-                                <button
-                                    key={tab}
-                                    type="button"
-                                    className={`package-edit-tab ${activePackageTab === tab ? 'active' : ''}`}
-                                    onClick={() => setActivePackageTab(tab)}
-                                >
-                                    {PACKAGE_LABELS[tab]}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* 선택된 패키지 편집 폼 */}
-                        <div className="package-edit-form">
-                            <div className="package-row">
-                                <div className="profile-form-group">
-                                    <label>가격</label>
-                                    <input
-                                        type="text"
-                                        className="profile-input"
-                                        value={currentPkg.price}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                            handlePackageChange(activePackageTab, 'price', e.target.value)
-                                        }
-                                        placeholder="예: ₩50,000"
-                                    />
-                                </div>
-                                <div className="profile-form-group">
-                                    <label>작업일</label>
-                                    <input
-                                        type="text"
-                                        className="profile-input"
-                                        value={currentPkg.workDays}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                            handlePackageChange(activePackageTab, 'workDays', e.target.value)
-                                        }
-                                        placeholder="예: ⏲️ 작업일 2일"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="package-row">
-                                <div className="profile-form-group">
-                                    <label>수정 횟수</label>
-                                    <input
-                                        type="text"
-                                        className="profile-input"
-                                        value={currentPkg.revisions}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                            handlePackageChange(activePackageTab, 'revisions', e.target.value)
-                                        }
-                                        placeholder="예: 🔄 수정 1회"
-                                    />
-                                </div>
-                                <div className="profile-form-group">
-                                    {/* 빈 칸 — 레이아웃 정렬용 */}
-                                </div>
-                            </div>
-
-                            <div className="profile-form-group">
-                                <label>패키지 설명</label>
-                                <textarea
-                                    className="profile-input"
-                                    rows={3}
-                                    value={currentPkg.description}
-                                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                                        handlePackageChange(activePackageTab, 'description', e.target.value)
-                                    }
-                                    placeholder="이 패키지에 포함된 서비스를 설명해 주세요."
-                                />
-                            </div>
-
-                            <div className="profile-form-group">
-                                <label>포함 항목</label>
-                                <div className="dynamic-list">
-                                    {currentPkg.features.map((feature, idx) => (
-                                        <div key={idx} className="dynamic-list-item">
-                                            <input
-                                                type="text"
-                                                className="profile-input"
-                                                value={feature}
-                                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                                    handlePackageFeatureChange(activePackageTab, idx, e.target.value)
-                                                }
-                                                placeholder="예: ✔️ 고해상도 이미지 (PNG)"
-                                            />
-                                            <button
-                                                type="button"
-                                                className="btn-remove-item"
-                                                onClick={() => handleRemovePackageFeature(activePackageTab, idx)}
-                                                title="삭제"
-                                            >
-                                                <span className="material-symbols-outlined">close</span>
-                                            </button>
-                                        </div>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        className="btn-add-item"
-                                        onClick={() => handleAddPackageFeature(activePackageTab)}
-                                    >
-                                        <span className="material-symbols-outlined">add</span>
-                                        항목 추가
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                         </>
