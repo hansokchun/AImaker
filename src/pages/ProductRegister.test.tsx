@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ProductRegister from './ProductRegister'
 import type { ExpertProduct } from '../types'
 
@@ -38,6 +38,32 @@ function renderRegister() {
 describe('ProductRegister', () => {
     beforeEach(() => {
         saveExpertProduct.mockClear()
+        vi.stubGlobal('Image', class {
+            width = 800
+            height = 600
+            onload: (() => void) | null = null
+            onerror: (() => void) | null = null
+
+            set src(value: string) {
+                if (value.includes('small-main')) {
+                    this.width = 500
+                    this.height = 400
+                }
+                if (value.includes('too-tall-detail')) {
+                    this.width = 652
+                    this.height = 3200
+                }
+                setTimeout(() => this.onload?.(), 0)
+            }
+        })
+        vi.stubGlobal('URL', {
+            createObjectURL: (file: File) => `blob:${file.name}`,
+            revokeObjectURL: vi.fn(),
+        })
+    })
+
+    afterEach(() => {
+        vi.unstubAllGlobals()
     })
 
     it('keeps the form close to Kmong service registration and publishes a single-price product', async () => {
@@ -56,7 +82,7 @@ describe('ProductRegister', () => {
             target: { files: [new File(['tiny-image'], 'thumb.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('상세 이미지/포트폴리오 첨부'), {
-            target: { files: [new File(['brief'], 'brief.txt', { type: 'text/plain' })] },
+            target: { files: [new File(['portfolio'], 'portfolio.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
         fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '2' } })
@@ -77,7 +103,7 @@ describe('ProductRegister', () => {
                     description: expect.stringContaining('브랜드 홍보용 숏폼 영상의 기획'),
                     aiTools: [],
                     sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
-                    sampleLinks: [expect.stringMatching(/^data:text\/plain;base64,/)],
+                    sampleLinks: [expect.stringMatching(/^data:image\/png;base64,/)],
                     startingPrice: 30000,
                     deliveryDays: 2,
                     revisionCount: 1,
@@ -111,5 +137,48 @@ describe('ProductRegister', () => {
         expect(within(standard).getByLabelText('가격')).toBeInTheDocument()
         expect(within(deluxe).getByLabelText('가격')).toBeInTheDocument()
         expect(within(premium).getByLabelText('가격')).toBeInTheDocument()
+    })
+
+    it('blocks main images below the Kmong minimum size before publishing', async () => {
+        renderRegister()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
+        fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 설명입니다.' } })
+        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+            target: { files: [new File(['small'], 'small-main.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
+        fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '2' } })
+        fireEvent.change(screen.getByLabelText('수정 횟수'), { target: { value: '1' } })
+        fireEvent.change(screen.getByLabelText('기본 제공 항목'), { target: { value: 'AI 영상 시안 1개' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('대표 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 최소 652x488px 이상이어야 합니다.')
+        expect(saveExpertProduct).not.toHaveBeenCalled()
+    })
+
+    it('blocks detail images taller than the Kmong detail image limit before publishing', async () => {
+        renderRegister()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
+        fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 설명입니다.' } })
+        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+            target: { files: [new File(['ok'], 'main.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('상세 이미지/포트폴리오 첨부'), {
+            target: { files: [new File(['tall'], 'too-tall-detail.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
+        fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '2' } })
+        fireEvent.change(screen.getByLabelText('수정 횟수'), { target: { value: '1' } })
+        fireEvent.change(screen.getByLabelText('기본 제공 항목'), { target: { value: 'AI 영상 시안 1개' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('상세 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다.')
+        expect(saveExpertProduct).not.toHaveBeenCalled()
     })
 })
