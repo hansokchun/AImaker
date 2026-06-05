@@ -5,6 +5,7 @@ import ProductRegister from './ProductRegister'
 import type { ExpertProduct } from '../types'
 
 const saveExpertProduct = vi.fn(async (_product: ExpertProduct) => undefined)
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -67,6 +68,7 @@ describe('ProductRegister', () => {
         await waitFor(() =>
             expect(saveExpertProduct).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    id: expect.stringMatching(uuidPattern),
                     expertId: 'expert-user-01',
                     expertName: 'expert@example.com',
                     title: 'AI 숏폼 영상 패키지',
@@ -94,7 +96,7 @@ describe('ProductRegister', () => {
                 }),
             ),
         )
-        await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(/^\/expert\/product-expert-user-01-/))
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(new RegExp(`^/expert/${uuidPattern.source.slice(1, -1)}$`, 'i')))
     })
 
     it('shows Standard, Deluxe, and Premium fields only when package pricing is enabled', async () => {

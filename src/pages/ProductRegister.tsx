@@ -106,7 +106,7 @@ export default function ProductRegister() {
         try {
             const thumbnailDataUrl = await readFirstFileAsDataUrl(thumbnailFileRef.current?.files)
             const referenceDataUrls = await readFilesAsDataUrls(referenceFilesRef.current?.files)
-            const productId = `product-${user.id}-${Date.now()}`
+            const productId = crypto.randomUUID()
             const product: ExpertProduct = {
                 id: productId,
                 expertId: user.id,
