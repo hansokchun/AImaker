@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveExpertProduct, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import Profile from './Profile'
 
@@ -32,7 +32,7 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 
 const currency = new Intl.NumberFormat('ko-KR')
 
-type MyPagePanel = 'overview' | 'profile' | 'client' | 'expert' | 'consultations' | 'workroom' | 'reviews'
+type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'consultations' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
 
@@ -71,11 +71,19 @@ const profileMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'profile', label: '마이 프로필' },
 ]
 
-const workMenuItems: Array<{ id: MyPagePanel; label: string }> = [
-    { id: 'client', label: '작업 관리' },
-    { id: 'consultations', label: '상담 채팅' },
+const clientWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
+    { id: 'client', label: '거래관리' },
+    { id: 'consultations', label: '상담채팅' },
     { id: 'workroom', label: '작업방' },
-    { id: 'reviews', label: '완료 / 리뷰' },
+    { id: 'reviews', label: '리뷰' },
+]
+
+const expertWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
+    { id: 'products', label: '내 상품관리' },
+    { id: 'client', label: '거래관리' },
+    { id: 'consultations', label: '상담채팅' },
+    { id: 'workroom', label: '작업방' },
+    { id: 'reviews', label: '완료' },
 ]
 
 const legacyWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
@@ -146,7 +154,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const location = useLocation()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
-    const menuItems = mode === 'profile' ? profileMenuItems : mode === 'work' ? workMenuItems : allMenuItems
+    const [workRole, setWorkRole] = useState<'client' | 'expert'>('client')
+    const menuItems = mode === 'profile' ? profileMenuItems : mode === 'work' ? (workRole === 'expert' ? expertWorkMenuItems : clientWorkMenuItems) : allMenuItems
     const defaultPanel = menuItems[0].id
     const searchParamString = searchParams.toString()
     const [activePanel, setActivePanel] = useState<MyPagePanel>(
@@ -162,7 +171,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
     const [expertProposalMessage, setExpertProposalMessage] = useState('')
-    const [workRole, setWorkRole] = useState<'client' | 'expert'>('client')
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [serviceRequests, setServiceRequests] = useState<ServiceRequestData[]>([])
@@ -174,6 +182,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageSubmitting, setConsultationMessageSubmitting] = useState(false)
     const [consultationMessageError, setConsultationMessageError] = useState('')
     const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
+    const [productTitle, setProductTitle] = useState('')
+    const [productSummary, setProductSummary] = useState('')
+    const [productDescription, setProductDescription] = useState('')
+    const [productThumbnailUrl, setProductThumbnailUrl] = useState('')
+    const [productStartingPrice, setProductStartingPrice] = useState('')
+    const [productDeliveryDays, setProductDeliveryDays] = useState('')
+    const [productSubmitMessage, setProductSubmitMessage] = useState('')
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const workRoleSelectedByUserRef = useRef(false)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
@@ -212,8 +227,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         setActivePanel((currentPanel) => (currentPanel === nextPanel ? currentPanel : nextPanel))
         setSelectedClientOrderId((currentId) => (currentId === clientOrder ? currentId : clientOrder))
         setSelectedExpertRequestId((currentId) => (currentId === expertRequest ? currentId : expertRequest))
-        setSelectedConsultationId((currentId) => (currentId === consultation ? currentId : consultation))
-    }, [defaultPanel, menuItems, searchParamString])
+        if (!(mode === 'work' && nextPanel === 'consultations' && workRoleSelectedByUserRef.current)) {
+            setSelectedConsultationId((currentId) => (currentId === consultation ? currentId : consultation))
+        }
+    }, [defaultPanel, menuItems, mode, searchParamString])
 
     useEffect(() => {
         const currentParams = new URLSearchParams(searchParamString)
@@ -558,6 +575,57 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
     }
 
+    const handleRegisterProduct = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        if (!user) return
+
+        const title = productTitle.trim()
+        const summary = productSummary.trim()
+        const description = productDescription.trim()
+        const sampleImageUrl = productThumbnailUrl.trim()
+        const startingPrice = Number(productStartingPrice)
+        const deliveryDays = Number(productDeliveryDays)
+
+        const standardPackage = {
+            name: 'Standard' as const,
+            price: Number.isFinite(startingPrice) && startingPrice > 0 ? startingPrice : 0,
+            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
+            revisionCount: 1,
+            included: [summary || title],
+        }
+        const product: ExpertProduct = {
+            id: `product-${user.id}-${Date.now()}`,
+            expertId: user.id,
+            expertName: myProducts[0]?.expertName || name || user.email || '전문가',
+            title,
+            category: 'ai-video-shortform',
+            summary,
+            description,
+            aiTools: [],
+            sampleLinks: [],
+            sampleImageUrl,
+            startingPrice: standardPackage.price,
+            deliveryDays: standardPackage.deliveryDays,
+            revisionCount: 1,
+            packages: {
+                standard: standardPackage,
+                deluxe: null,
+                premium: null,
+            },
+            status: 'published',
+        }
+
+        await saveExpertProduct(product)
+        setProducts((current) => [product, ...current.filter((item) => item.id !== product.id)])
+        setProductTitle('')
+        setProductSummary('')
+        setProductDescription('')
+        setProductThumbnailUrl('')
+        setProductStartingPrice('')
+        setProductDeliveryDays('')
+        setProductSubmitMessage('상품을 등록했습니다.')
+    }
+
     const getRoleConsultationId = () => {
         if (mode !== 'work') return selectedConsultationId
         const roleConsultations = workRole === 'client' ? clientConsultationsByCreatedAt : expertConsultationsByCreatedAt
@@ -596,11 +664,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             : expertConsultationsByCreatedAt[0] || null
 
         setSelectedConsultationId(nextConsultation?.id || null)
-
-        const nextParams = new URLSearchParams()
-        nextParams.set('panel', 'consultations')
-        if (nextConsultation) nextParams.set('consultation', nextConsultation.id)
-        setSearchParams(nextParams)
     }
 
     const handleDeleteAccount = async () => {
@@ -1359,6 +1422,136 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </div>
     )
 
+    const renderProductManagementPanel = () => (
+        <section style={cardStyle}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>내 상품관리</h2>
+            <form onSubmit={handleRegisterProduct} style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gap: '0.45rem' }}>
+                        <label htmlFor="product-title" style={{ fontWeight: 800 }}>상품명</label>
+                        <input
+                            id="product-title"
+                            value={productTitle}
+                            onChange={(event) => setProductTitle(event.target.value)}
+                            required
+                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
+                        />
+                    </div>
+                    <div style={{ display: 'grid', gap: '0.45rem' }}>
+                        <label htmlFor="product-thumbnail-url" style={{ fontWeight: 800 }}>썸네일 이미지 URL</label>
+                        <input
+                            id="product-thumbnail-url"
+                            value={productThumbnailUrl}
+                            onChange={(event) => setProductThumbnailUrl(event.target.value)}
+                            placeholder="https://example.com/sample.jpg"
+                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
+                        />
+                    </div>
+                </div>
+                <div style={{ display: 'grid', gap: '0.45rem' }}>
+                    <label htmlFor="product-summary" style={{ fontWeight: 800 }}>상품 요약</label>
+                    <input
+                        id="product-summary"
+                        value={productSummary}
+                        onChange={(event) => setProductSummary(event.target.value)}
+                        required
+                        style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
+                    />
+                </div>
+                <div style={{ display: 'grid', gap: '0.45rem' }}>
+                    <label htmlFor="product-description" style={{ fontWeight: 800 }}>상품 설명</label>
+                    <textarea
+                        id="product-description"
+                        value={productDescription}
+                        onChange={(event) => setProductDescription(event.target.value)}
+                        rows={4}
+                        required
+                        style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', resize: 'vertical' }}
+                    />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gap: '0.45rem' }}>
+                        <label htmlFor="product-starting-price" style={{ fontWeight: 800 }}>시작 가격</label>
+                        <input
+                            id="product-starting-price"
+                            type="number"
+                            min="0"
+                            value={productStartingPrice}
+                            onChange={(event) => setProductStartingPrice(event.target.value)}
+                            required
+                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
+                        />
+                    </div>
+                    <div style={{ display: 'grid', gap: '0.45rem' }}>
+                        <label htmlFor="product-delivery-days" style={{ fontWeight: 800 }}>작업 기간</label>
+                        <input
+                            id="product-delivery-days"
+                            type="number"
+                            min="1"
+                            value={productDeliveryDays}
+                            onChange={(event) => setProductDeliveryDays(event.target.value)}
+                            required
+                            style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}
+                        />
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button type="submit" className="btn-primary" style={{ padding: '0.85rem 1.1rem' }}>
+                        상품 등록하기
+                    </button>
+                    {productSubmitMessage && (
+                        <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{productSubmitMessage}</p>
+                    )}
+                </div>
+            </form>
+
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem' }}>내가 올린 상품</h3>
+            {myProducts.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    {myProducts.map((product) => (
+                        <Link
+                            key={product.id}
+                            to={`/expert/${product.id}`}
+                            state={myPageReturnState}
+                            style={{
+                                display: 'grid',
+                                gap: '0.75rem',
+                                padding: '0.85rem',
+                                borderRadius: '0.85rem',
+                                border: '1px solid var(--border-color)',
+                                background: '#f8fafc',
+                                color: '#0f172a',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <div style={{ overflow: 'hidden', borderRadius: '0.7rem', background: '#e2e8f0', aspectRatio: '4 / 3' }}>
+                                {product.sampleImageUrl ? (
+                                    <img
+                                        src={product.sampleImageUrl}
+                                        alt={`${product.title} 썸네일`}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#64748b', fontWeight: 800 }}>
+                                        이미지 없음
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <strong style={{ display: 'block', marginBottom: '0.35rem', lineHeight: 1.35 }}>{product.title}</strong>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    {currency.format(product.startingPrice)}원부터 · {product.deliveryDays}일
+                                </span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 등록한 상품이 없습니다.</p>
+            )}
+        </section>
+    )
+
     const renderConsultationPanel = () => (
         <section style={cardStyle}>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.5rem' }}>상담 채팅</h2>
@@ -1547,6 +1740,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         if (activePanel === 'profile') {
             return <Profile />
+        }
+
+        if (activePanel === 'products') {
+            return renderProductManagementPanel()
         }
 
         if (activePanel === 'client') {
