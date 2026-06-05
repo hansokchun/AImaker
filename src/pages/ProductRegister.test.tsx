@@ -80,6 +80,28 @@ describe('ProductRegister', () => {
         saveExpertProduct.mockClear()
         getExpertProducts.mockClear()
         getExpertProducts.mockResolvedValue([editableProduct])
+        vi.stubGlobal('Image', class {
+            width = 652
+            height = 488
+            onload: (() => void) | null = null
+            onerror: (() => void) | null = null
+
+            set src(value: string) {
+                if (value.includes('small-main')) {
+                    this.width = 500
+                    this.height = 400
+                }
+                if (value.includes('wrong-ratio-main')) {
+                    this.width = 652
+                    this.height = 600
+                }
+                setTimeout(() => this.onload?.(), 0)
+            }
+        })
+        vi.stubGlobal('URL', {
+            createObjectURL: (file: File) => `blob:${file.name}`,
+            revokeObjectURL: vi.fn(),
+        })
     })
 
     afterEach(() => {
@@ -159,7 +181,7 @@ describe('ProductRegister', () => {
         expect(within(premium).getByLabelText('가격')).toBeInTheDocument()
     })
 
-    it('allows small pixel images when the file storage size is within the Kmong limit', async () => {
+    it('blocks main images below the Kmong pixel size before publishing', async () => {
         renderRegister()
 
         fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
@@ -175,14 +197,11 @@ describe('ProductRegister', () => {
         fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
         fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
 
-        await waitFor(() => expect(saveExpertProduct).toHaveBeenCalledWith(
-            expect.objectContaining({
-                sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
-            }),
-        ))
+        expect(await screen.findByRole('alert')).toHaveTextContent('대표 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 4:3 비율, 최소 652x488px 이상이어야 합니다.')
+        expect(saveExpertProduct).not.toHaveBeenCalled()
     })
 
-    it('blocks image files over the Kmong storage size limit before publishing', async () => {
+    it('allows image files over 1MB when they satisfy the Kmong pixel size standard', async () => {
         renderRegister()
         const overLimitImage = new File([new Uint8Array(1024 * 1024 + 1)], 'large.png', { type: 'image/png' })
 
@@ -199,8 +218,11 @@ describe('ProductRegister', () => {
         fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
         fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('이미지 파일은 크몽 기준에 맞춰 파일당 1MB 이하만 등록할 수 있습니다.')
-        expect(saveExpertProduct).not.toHaveBeenCalled()
+        await waitFor(() => expect(saveExpertProduct).toHaveBeenCalledWith(
+            expect.objectContaining({
+                sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
+            }),
+        ))
     })
 
     it('loads an owned product for editing and preserves existing images when saving', async () => {
