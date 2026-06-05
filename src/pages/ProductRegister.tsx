@@ -4,21 +4,19 @@ import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { saveExpertProduct } from '../lib/storage'
-import type { AiCategoryId, PackageTier, ProductPackage, ExpertProduct } from '../types'
+import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '../types'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const MAX_ATTACHMENT_BYTES = 1024 * 1024
 
 type PackageFormState = {
-    enabled: boolean
     price: string
     deliveryDays: string
     revisionCount: string
     included: string
 }
 
-const createPackageState = (enabled = false): PackageFormState => ({
-    enabled,
+const createPackageState = (): PackageFormState => ({
     price: '',
     deliveryDays: '',
     revisionCount: '',
@@ -40,19 +38,17 @@ export default function ProductRegister() {
     const [category, setCategory] = useState<AiCategoryId>('ai-video-shortform')
     const [summary, setSummary] = useState('')
     const [description, setDescription] = useState('')
-    const [workScope, setWorkScope] = useState('')
-    const [workProcess, setWorkProcess] = useState('')
-    const [buyerRequirements, setBuyerRequirements] = useState('')
-    const [extraOptions, setExtraOptions] = useState('')
     const [thumbnailUrl, setThumbnailUrl] = useState('')
     const [aiTools, setAiTools] = useState('')
     const [sampleLinks, setSampleLinks] = useState('')
-    const [imageGuideAccepted, setImageGuideAccepted] = useState(false)
+    const [usePackagePricing, setUsePackagePricing] = useState(false)
+    const [basePackage, setBasePackage] = useState<PackageFormState>(createPackageState)
     const [packages, setPackages] = useState<Record<PackageTier, PackageFormState>>({
-        standard: createPackageState(true),
-        deluxe: createPackageState(false),
-        premium: createPackageState(false),
+        standard: createPackageState(),
+        deluxe: createPackageState(),
+        premium: createPackageState(),
     })
+    const [imageGuideAccepted, setImageGuideAccepted] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
 
@@ -69,20 +65,14 @@ export default function ProductRegister() {
         }))
     }
 
-    const parsePackage = (tier: PackageTier): ProductPackage | null => {
-        const form = packages[tier]
-        if (!form.enabled) return null
-
+    const parsePackage = (tier: PackageTier, form: PackageFormState): ProductPackage => {
         const price = Number(form.price)
         const deliveryDays = Number(form.deliveryDays)
         const revisionCount = Number(form.revisionCount)
-        const included = form.included
-            .split('\n')
-            .map((item) => item.trim())
-            .filter(Boolean)
+        const included = parseLineList(form.included)
 
         if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(deliveryDays) || deliveryDays <= 0 || !Number.isFinite(revisionCount) || revisionCount < 0 || included.length === 0) {
-            throw new Error(`${packageNames[tier]} 패키지 정보를 모두 입력해 주세요.`)
+            throw new Error(`${packageNames[tier]} 가격 정보를 모두 입력해 주세요.`)
         }
 
         return {
@@ -98,15 +88,19 @@ export default function ProductRegister() {
         event.preventDefault()
         if (!user) return
 
-        let parsedStandard: ProductPackage
-        let parsedDeluxe: ProductPackage | null
-        let parsedPremium: ProductPackage | null
+        let standardPackage: ProductPackage
+        let deluxePackage: ProductPackage | null = null
+        let premiumPackage: ProductPackage | null = null
         try {
-            parsedStandard = parsePackage('standard') as ProductPackage
-            parsedDeluxe = parsePackage('deluxe')
-            parsedPremium = parsePackage('premium')
+            if (usePackagePricing) {
+                standardPackage = parsePackage('standard', packages.standard)
+                deluxePackage = parsePackage('deluxe', packages.deluxe)
+                premiumPackage = parsePackage('premium', packages.premium)
+            } else {
+                standardPackage = parsePackage('standard', basePackage)
+            }
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : '패키지 정보를 확인해 주세요.')
+            setErrorMessage(error instanceof Error ? error.message : '가격 정보를 확인해 주세요.')
             return
         }
 
@@ -123,23 +117,17 @@ export default function ProductRegister() {
                 title: title.trim(),
                 category,
                 summary: summary.trim(),
-                description: composeProductDescription({
-                    description,
-                    workScope,
-                    workProcess,
-                    buyerRequirements,
-                    extraOptions,
-                }),
+                description: description.trim(),
                 aiTools: parseCommaList(aiTools),
                 sampleLinks: [...parseLineList(sampleLinks), ...referenceDataUrls],
                 sampleImageUrl: thumbnailDataUrl || thumbnailUrl.trim(),
-                startingPrice: parsedStandard.price,
-                deliveryDays: parsedStandard.deliveryDays,
-                revisionCount: parsedStandard.revisionCount,
+                startingPrice: standardPackage.price,
+                deliveryDays: standardPackage.deliveryDays,
+                revisionCount: standardPackage.revisionCount,
                 packages: {
-                    standard: parsedStandard,
-                    deluxe: parsedDeluxe,
-                    premium: parsedPremium,
+                    standard: standardPackage,
+                    deluxe: deluxePackage,
+                    premium: premiumPackage,
                 },
                 status: 'published',
             }
@@ -162,16 +150,15 @@ export default function ProductRegister() {
                 <div style={{ marginBottom: '1.5rem' }}>
                     <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.6rem' }}>상품 등록</h1>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                        구매자가 작업 범위와 패키지 차이를 바로 이해할 수 있게 구성합니다.
+                        구매자가 제목, 설명, 이미지, 가격을 빠르게 비교할 수 있게 등록합니다.
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} style={formStyle}>
-                    <section style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>기본 정보</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+                    <Section title="기본 정보">
+                        <div style={twoColumnStyle}>
                             <Field label="상품명">
-                                <input value={title} onChange={(event) => setTitle(event.target.value)} required style={inputStyle} />
+                                <input value={title} onChange={(event) => setTitle(event.target.value)} required placeholder="예: AI 숏폼 영상 콘셉트와 1차 시안을 제작해드립니다" style={inputStyle} />
                             </Field>
                             <Field label="카테고리">
                                 <select value={category} onChange={(event) => setCategory(event.target.value as AiCategoryId)} required style={inputStyle}>
@@ -181,55 +168,47 @@ export default function ProductRegister() {
                                 </select>
                             </Field>
                         </div>
-                        <Field label="상품 요약">
-                            <input value={summary} onChange={(event) => setSummary(event.target.value)} required style={inputStyle} />
+                        <Field label="한 줄 설명">
+                            <input value={summary} onChange={(event) => setSummary(event.target.value)} required placeholder="검색 목록에서 보일 짧은 설명" style={inputStyle} />
                         </Field>
-                        <Field label="상품 설명">
-                            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} required style={{ ...inputStyle, resize: 'vertical' }} />
-                        </Field>
-                        <Field label="작업 범위">
-                            <textarea value={workScope} onChange={(event) => setWorkScope(event.target.value)} rows={4} required placeholder="한 줄에 하나씩 입력: 제공하는 작업 범위, 결과물 개수, 제외되는 작업" style={{ ...inputStyle, resize: 'vertical' }} />
-                        </Field>
-                        <Field label="작업 절차">
-                            <textarea value={workProcess} onChange={(event) => setWorkProcess(event.target.value)} rows={4} required placeholder="요구사항 확인, 초안 제작, 수정 반영, 최종 전달" style={{ ...inputStyle, resize: 'vertical' }} />
-                        </Field>
-                        <Field label="구매 전 준비사항">
-                            <textarea value={buyerRequirements} onChange={(event) => setBuyerRequirements(event.target.value)} rows={3} required placeholder="구매자가 준비해야 하는 자료, 브랜드 정보, 참고 이미지, 원하는 분위기" style={{ ...inputStyle, resize: 'vertical' }} />
-                        </Field>
-                        <Field label="추가 옵션">
-                            <textarea value={extraOptions} onChange={(event) => setExtraOptions(event.target.value)} rows={3} placeholder="긴급 작업, 추가 수정, 원본 파일 제공 등 선택형 옵션" style={{ ...inputStyle, resize: 'vertical' }} />
+                    </Section>
+
+                    <Section title="상세 설명">
+                        <Field label="상세 설명">
+                            <textarea
+                                value={description}
+                                onChange={(event) => setDescription(event.target.value)}
+                                rows={8}
+                                required
+                                placeholder={'작업 범위, 진행 방식, 구매자가 준비할 자료, 제외되는 작업을 한 곳에 적어 주세요.\n\n예:\n- 15초 숏폼 콘셉트와 대본 초안을 제공합니다.\n- 참고 영상과 브랜드 톤을 보내주시면 반영합니다.\n- 성우 녹음과 광고 집행은 포함되지 않습니다.'}
+                                style={{ ...inputStyle, resize: 'vertical' }}
+                            />
                         </Field>
                         <Field label="사용 도구">
                             <input value={aiTools} onChange={(event) => setAiTools(event.target.value)} placeholder="ChatGPT, Runway, Premiere Pro" style={inputStyle} />
                         </Field>
-                    </section>
+                    </Section>
 
-                    <section style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>샘플과 참고자료</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
-                            <Field label="썸네일 이미지 URL">
+                    <Section title="이미지와 샘플">
+                        <div style={twoColumnStyle}>
+                            <Field label="대표 이미지 URL">
                                 <input value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder="https://example.com/sample.jpg" style={inputStyle} />
                             </Field>
-                            <Field label="썸네일 이미지 첨부">
+                            <Field label="대표 이미지 첨부">
                                 <input ref={thumbnailFileRef} type="file" accept="image/*" onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
                             </Field>
                         </div>
                         <Field label="샘플 링크">
-                            <textarea value={sampleLinks} onChange={(event) => setSampleLinks(event.target.value)} rows={3} placeholder="https://example.com/samples/ai-shortform" style={{ ...inputStyle, resize: 'vertical' }} />
+                            <textarea value={sampleLinks} onChange={(event) => setSampleLinks(event.target.value)} rows={3} placeholder="한 줄에 하나씩 포트폴리오 링크를 입력" style={{ ...inputStyle, resize: 'vertical' }} />
                         </Field>
                         <Field label="참고자료 첨부">
                             <input ref={referenceFilesRef} type="file" multiple onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
                         </Field>
-                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 700 }}>
-                            첨부 파일은 파일당 1MB 이하의 작은 이미지, 텍스트, PDF 등 참고용 자료만 등록합니다.
-                        </p>
                         <div style={guideBoxStyle}>
-                            <strong>이미지/설명 유의사항</strong>
-                            <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.2rem', color: 'var(--text-secondary)' }}>
-                                <li>외부 연락처, 이메일, SNS 계정, 직접 결제 안내는 넣지 않습니다.</li>
-                                <li>최저가, 무조건 보장, 100% 만족 같은 과장 표현은 피합니다.</li>
-                                <li>타인의 로고, 초상권, 저작권을 침해하는 이미지는 등록하지 않습니다.</li>
-                            </ul>
+                            <strong>등록 유의사항</strong>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다. 첨부 파일은 파일당 1MB 이하만 등록할 수 있습니다.
+                            </p>
                             <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
                                 <input
                                     type="checkbox"
@@ -240,18 +219,35 @@ export default function ProductRegister() {
                                 이미지와 설명 등록 유의사항을 확인했습니다
                             </label>
                         </div>
-                    </section>
+                    </Section>
 
-                    <section style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>요금 패키지</h2>
-                        <PackageFields tier="standard" state={packages.standard} onChange={updatePackage} locked />
-                        <PackageFields tier="deluxe" state={packages.deluxe} onChange={updatePackage} />
-                        <PackageFields tier="premium" state={packages.premium} onChange={updatePackage} />
-                    </section>
+                    <Section title="가격 정보">
+                        <label style={toggleStyle}>
+                            <input
+                                type="checkbox"
+                                checked={usePackagePricing}
+                                onChange={(event) => setUsePackagePricing(event.target.checked)}
+                            />
+                            패키지 가격 사용
+                        </label>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                            기본은 단일 가격입니다. 작업 범위가 난이도별로 명확히 나뉘는 경우에만 패키지를 켜서 Standard, Deluxe, Premium을 작성하세요.
+                        </p>
 
-                    {packages.standard.price && Number(packages.standard.price) > 0 && (
+                        {usePackagePricing ? (
+                            <div style={{ display: 'grid', gap: '1rem' }}>
+                                <PackageFields tier="standard" state={packages.standard} onChange={updatePackage} />
+                                <PackageFields tier="deluxe" state={packages.deluxe} onChange={updatePackage} />
+                                <PackageFields tier="premium" state={packages.premium} onChange={updatePackage} />
+                            </div>
+                        ) : (
+                            <SinglePriceFields state={basePackage} onChange={(updates) => setBasePackage((current) => ({ ...current, ...updates }))} />
+                        )}
+                    </Section>
+
+                    {(usePackagePricing ? packages.standard.price : basePackage.price) && (
                         <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 700 }}>
-                            시작가 {currency.format(Number(packages.standard.price))}원
+                            시작가 {currency.format(Number(usePackagePricing ? packages.standard.price : basePackage.price))}원
                         </p>
                     )}
                     {errorMessage && <p role="alert" style={{ margin: 0, color: '#e11d48', fontWeight: 800 }}>{errorMessage}</p>}
@@ -265,49 +261,71 @@ export default function ProductRegister() {
     )
 }
 
+function SinglePriceFields({
+    state,
+    onChange,
+}: {
+    state: PackageFormState
+    onChange: (updates: Partial<PackageFormState>) => void
+}) {
+    return (
+        <div style={{ display: 'grid', gap: '0.9rem' }}>
+            <div style={threeColumnStyle}>
+                <Field label="가격">
+                    <input type="number" min="1" value={state.price} onChange={(event) => onChange({ price: event.target.value })} required style={inputStyle} />
+                </Field>
+                <Field label="작업일">
+                    <input type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange({ deliveryDays: event.target.value })} required style={inputStyle} />
+                </Field>
+                <Field label="수정 횟수">
+                    <input type="number" min="0" value={state.revisionCount} onChange={(event) => onChange({ revisionCount: event.target.value })} required style={inputStyle} />
+                </Field>
+            </div>
+            <Field label="기본 제공 항목">
+                <textarea value={state.included} onChange={(event) => onChange({ included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" style={{ ...inputStyle, resize: 'vertical' }} />
+            </Field>
+        </div>
+    )
+}
+
 function PackageFields({
     tier,
     state,
     onChange,
-    locked = false,
 }: {
     tier: PackageTier
     state: PackageFormState
     onChange: (tier: PackageTier, updates: Partial<PackageFormState>) => void
-    locked?: boolean
 }) {
     const name = packageNames[tier]
-    const disabled = !state.enabled
 
     return (
-        <fieldset data-testid={`package-${tier}`} style={{ display: 'grid', gap: '0.9rem', padding: '1rem', borderRadius: '0.85rem', border: '1px solid var(--border-color)' }}>
+        <fieldset data-testid={`package-${tier}`} style={fieldsetStyle}>
             <legend style={{ padding: '0 0.4rem', fontWeight: 900 }}>{name}</legend>
-            {!locked && (
-                <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontWeight: 800 }}>
-                    <input
-                        type="checkbox"
-                        checked={state.enabled}
-                        onChange={(event) => onChange(tier, { enabled: event.target.checked })}
-                    />
-                    {name} 사용
-                </label>
-            )}
-            {locked && <input type="hidden" value="true" readOnly />}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem' }}>
+            <div style={threeColumnStyle}>
                 <Field label="가격">
-                    <input type="number" min="1" value={state.price} onChange={(event) => onChange(tier, { price: event.target.value })} disabled={disabled} required={state.enabled} style={inputStyle} />
+                    <input type="number" min="1" value={state.price} onChange={(event) => onChange(tier, { price: event.target.value })} required style={inputStyle} />
                 </Field>
                 <Field label="작업일">
-                    <input type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange(tier, { deliveryDays: event.target.value })} disabled={disabled} required={state.enabled} style={inputStyle} />
+                    <input type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange(tier, { deliveryDays: event.target.value })} required style={inputStyle} />
                 </Field>
                 <Field label="수정 횟수">
-                    <input type="number" min="0" value={state.revisionCount} onChange={(event) => onChange(tier, { revisionCount: event.target.value })} disabled={disabled} required={state.enabled} style={inputStyle} />
+                    <input type="number" min="0" value={state.revisionCount} onChange={(event) => onChange(tier, { revisionCount: event.target.value })} required style={inputStyle} />
                 </Field>
             </div>
             <Field label="포함 항목">
-                <textarea value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} disabled={disabled} required={state.enabled} rows={3} placeholder="한 줄에 하나씩 입력" style={{ ...inputStyle, resize: 'vertical' }} />
+                <textarea value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" style={{ ...inputStyle, resize: 'vertical' }} />
             </Field>
         </fieldset>
+    )
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <section style={sectionStyle}>
+            <h2 style={sectionTitleStyle}>{title}</h2>
+            {children}
+        </section>
     )
 }
 
@@ -325,35 +343,6 @@ const parseCommaList = (value: string) =>
 
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
-
-const composeProductDescription = ({
-    description,
-    workScope,
-    workProcess,
-    buyerRequirements,
-    extraOptions,
-}: {
-    description: string
-    workScope: string
-    workProcess: string
-    buyerRequirements: string
-    extraOptions: string
-}) => {
-    const sections = [
-        description.trim(),
-        formatDescriptionSection('작업 범위', parseLineList(workScope)),
-        formatDescriptionSection('작업 절차', parseLineList(workProcess)),
-        formatDescriptionSection('구매 전 준비사항', [buyerRequirements.trim()].filter(Boolean)),
-        formatDescriptionSection('추가 옵션', parseLineList(extraOptions)),
-    ].filter(Boolean)
-
-    return sections.join('\n\n')
-}
-
-const formatDescriptionSection = (title: string, items: string[]) => {
-    if (items.length === 0) return ''
-    return [`## ${title}`, ...items.map((item) => `- ${item}`)].join('\n')
-}
 
 const clearErrorOnFileChange = (setErrorMessage: (message: string) => void) => (_event: ChangeEvent<HTMLInputElement>) => {
     setErrorMessage('')
@@ -403,6 +392,25 @@ const sectionTitleStyle = {
     margin: 0,
 } as const
 
+const twoColumnStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '1rem',
+} as const
+
+const threeColumnStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: '0.75rem',
+} as const
+
+const toggleStyle = {
+    display: 'flex',
+    gap: '0.55rem',
+    alignItems: 'center',
+    fontWeight: 900,
+} as const
+
 const guideBoxStyle = {
     display: 'grid',
     gap: '0.7rem',
@@ -410,6 +418,14 @@ const guideBoxStyle = {
     borderRadius: '0.85rem',
     border: '1px solid #bfdbfe',
     background: '#eff6ff',
+} as const
+
+const fieldsetStyle = {
+    display: 'grid',
+    gap: '0.9rem',
+    padding: '1rem',
+    borderRadius: '0.85rem',
+    border: '1px solid var(--border-color)',
 } as const
 
 const inputStyle = {
