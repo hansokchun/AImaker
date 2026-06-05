@@ -9,10 +9,6 @@ import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '.
 const currency = new Intl.NumberFormat('ko-KR')
 const MAX_ATTACHMENT_BYTES = 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
-const MAIN_IMAGE_MIN_WIDTH = 652
-const MAIN_IMAGE_MIN_HEIGHT = 488
-const DETAIL_IMAGE_MIN_WIDTH = 652
-const DETAIL_IMAGE_MAX_HEIGHT = 3000
 
 type PackageFormState = {
     price: string
@@ -256,7 +252,7 @@ export default function ProductRegister() {
                         <div style={guideBoxStyle}>
                             <strong>등록 유의사항</strong>
                             <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                이미지 파일 용량은 파일당 1MB 이하여야 합니다. 대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 이미지는 JPG/PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
+                                이미지 파일 용량은 크몽 기준에 맞춰 파일당 1MB 이하여야 합니다. 형식은 JPG 또는 PNG만 등록할 수 있습니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
                             </p>
                             <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
                                 <input
@@ -413,10 +409,6 @@ const readFileAsDataUrl = async (file: File, kind: ProductImageKind) => {
     await validateProductImageFile(file, kind)
 
     return new Promise<string>((resolve, reject) => {
-        if (file.size > MAX_ATTACHMENT_BYTES) {
-            reject(new Error('첨부 파일은 파일당 1MB 이하만 등록할 수 있습니다.'))
-            return
-        }
         const reader = new FileReader()
         reader.onload = () => resolve(String(reader.result || ''))
         reader.onerror = () => reject(new Error('첨부 파일을 읽지 못했습니다.'))
@@ -424,37 +416,15 @@ const readFileAsDataUrl = async (file: File, kind: ProductImageKind) => {
     })
 }
 
-const validateProductImageFile = async (file: File, kind: ProductImageKind) => {
+const validateProductImageFile = async (file: File, _kind: ProductImageKind) => {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        throw new Error(kind === 'main'
-            ? '대표 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 최소 652x488px 이상이어야 합니다.'
-            : '상세 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다.')
+        throw new Error('이미지는 JPG 또는 PNG 파일만 등록할 수 있습니다.')
     }
 
-    const { width, height } = await readImageDimensions(file)
-    if (kind === 'main' && (width < MAIN_IMAGE_MIN_WIDTH || height < MAIN_IMAGE_MIN_HEIGHT)) {
-        throw new Error('대표 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 최소 652x488px 이상이어야 합니다.')
-    }
-
-    if (kind === 'detail' && (width < DETAIL_IMAGE_MIN_WIDTH || height > DETAIL_IMAGE_MAX_HEIGHT)) {
-        throw new Error('상세 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 가로 652px 이상, 세로 3000px 이하여야 합니다.')
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+        throw new Error('이미지 파일은 크몽 기준에 맞춰 파일당 1MB 이하만 등록할 수 있습니다.')
     }
 }
-
-const readImageDimensions = (file: File) =>
-    new Promise<{ width: number; height: number }>((resolve, reject) => {
-        const image = new Image()
-        const objectUrl = URL.createObjectURL(file)
-        image.onload = () => {
-            URL.revokeObjectURL(objectUrl)
-            resolve({ width: image.width, height: image.height })
-        }
-        image.onerror = () => {
-            URL.revokeObjectURL(objectUrl)
-            reject(new Error('이미지 파일을 확인하지 못했습니다. JPG 또는 PNG 파일을 다시 선택해 주세요.'))
-        }
-        image.src = objectUrl
-    })
 
 const formStyle = {
     display: 'grid',
