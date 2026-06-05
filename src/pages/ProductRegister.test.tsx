@@ -42,6 +42,10 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('카테고리'), { target: { value: 'ai-video-shortform' } })
         fireEvent.change(screen.getByLabelText('상품 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
         fireEvent.change(screen.getByLabelText('상품 설명'), { target: { value: '브랜드 홍보용 숏폼 영상의 기획, 콘셉트, 편집 방향을 제공합니다.' } })
+        fireEvent.change(screen.getByLabelText('작업 범위'), { target: { value: '기획 방향 정리\nAI 영상 시안 제작\n짧은 편집 가이드 제공' } })
+        fireEvent.change(screen.getByLabelText('작업 절차'), { target: { value: '요구사항 확인\n초안 제작\n수정 반영\n최종 전달' } })
+        fireEvent.change(screen.getByLabelText('구매 전 준비사항'), { target: { value: '브랜드명, 참고 영상, 원하는 분위기를 준비해 주세요.' } })
+        fireEvent.change(screen.getByLabelText('추가 옵션'), { target: { value: '긴급 작업 +20,000원\n추가 수정 1회 +10,000원' } })
         fireEvent.change(screen.getByLabelText('사용 도구'), { target: { value: 'ChatGPT, Runway, Premiere Pro' } })
         fireEvent.change(screen.getByLabelText('샘플 링크'), { target: { value: 'https://example.com/samples/shortform\nhttps://example.com/portfolio' } })
         fireEvent.change(screen.getByLabelText('썸네일 이미지 URL'), { target: { value: 'https://example.com/thumb.jpg' } })
@@ -51,6 +55,7 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('참고자료 첨부'), {
             target: { files: [new File(['brief'], 'brief.txt', { type: 'text/plain' })] },
         })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
 
         const standard = screen.getByTestId('package-standard')
         fireEvent.change(within(standard).getByLabelText('가격'), { target: { value: '30000' } })
@@ -82,7 +87,7 @@ describe('ProductRegister', () => {
                     title: 'AI 숏폼 영상 패키지',
                     category: 'ai-video-shortform',
                     summary: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.',
-                    description: '브랜드 홍보용 숏폼 영상의 기획, 콘셉트, 편집 방향을 제공합니다.',
+                    description: expect.stringContaining('브랜드 홍보용 숏폼 영상의 기획, 콘셉트, 편집 방향을 제공합니다.'),
                     aiTools: ['ChatGPT', 'Runway', 'Premiere Pro'],
                     sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
                     sampleLinks: expect.arrayContaining([
@@ -120,6 +125,15 @@ describe('ProductRegister', () => {
                 }),
             ),
         )
+        const savedProduct = saveExpertProduct.mock.calls[0][0]
+        expect(savedProduct.description).toContain('## 작업 범위')
+        expect(savedProduct.description).toContain('기획 방향 정리')
+        expect(savedProduct.description).toContain('## 작업 절차')
+        expect(savedProduct.description).toContain('초안 제작')
+        expect(savedProduct.description).toContain('## 구매 전 준비사항')
+        expect(savedProduct.description).toContain('브랜드명, 참고 영상, 원하는 분위기')
+        expect(savedProduct.description).toContain('## 추가 옵션')
+        expect(savedProduct.description).toContain('긴급 작업 +20,000원')
         await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(/^\/expert\/product-expert-user-01-/))
     })
 })

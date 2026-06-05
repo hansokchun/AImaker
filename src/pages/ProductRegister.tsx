@@ -40,9 +40,14 @@ export default function ProductRegister() {
     const [category, setCategory] = useState<AiCategoryId>('ai-video-shortform')
     const [summary, setSummary] = useState('')
     const [description, setDescription] = useState('')
+    const [workScope, setWorkScope] = useState('')
+    const [workProcess, setWorkProcess] = useState('')
+    const [buyerRequirements, setBuyerRequirements] = useState('')
+    const [extraOptions, setExtraOptions] = useState('')
     const [thumbnailUrl, setThumbnailUrl] = useState('')
     const [aiTools, setAiTools] = useState('')
     const [sampleLinks, setSampleLinks] = useState('')
+    const [imageGuideAccepted, setImageGuideAccepted] = useState(false)
     const [packages, setPackages] = useState<Record<PackageTier, PackageFormState>>({
         standard: createPackageState(true),
         deluxe: createPackageState(false),
@@ -118,7 +123,13 @@ export default function ProductRegister() {
                 title: title.trim(),
                 category,
                 summary: summary.trim(),
-                description: description.trim(),
+                description: composeProductDescription({
+                    description,
+                    workScope,
+                    workProcess,
+                    buyerRequirements,
+                    extraOptions,
+                }),
                 aiTools: parseCommaList(aiTools),
                 sampleLinks: [...parseLineList(sampleLinks), ...referenceDataUrls],
                 sampleImageUrl: thumbnailDataUrl || thumbnailUrl.trim(),
@@ -151,7 +162,7 @@ export default function ProductRegister() {
                 <div style={{ marginBottom: '1.5rem' }}>
                     <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.6rem' }}>상품 등록</h1>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                        샘플 상품과 같은 수준으로 AI 도구, 결과물, 패키지 옵션을 등록합니다.
+                        구매자가 작업 범위와 패키지 차이를 바로 이해할 수 있게 구성합니다.
                     </p>
                 </div>
 
@@ -175,6 +186,18 @@ export default function ProductRegister() {
                         </Field>
                         <Field label="상품 설명">
                             <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} required style={{ ...inputStyle, resize: 'vertical' }} />
+                        </Field>
+                        <Field label="작업 범위">
+                            <textarea value={workScope} onChange={(event) => setWorkScope(event.target.value)} rows={4} required placeholder="한 줄에 하나씩 입력: 제공하는 작업 범위, 결과물 개수, 제외되는 작업" style={{ ...inputStyle, resize: 'vertical' }} />
+                        </Field>
+                        <Field label="작업 절차">
+                            <textarea value={workProcess} onChange={(event) => setWorkProcess(event.target.value)} rows={4} required placeholder="요구사항 확인, 초안 제작, 수정 반영, 최종 전달" style={{ ...inputStyle, resize: 'vertical' }} />
+                        </Field>
+                        <Field label="구매 전 준비사항">
+                            <textarea value={buyerRequirements} onChange={(event) => setBuyerRequirements(event.target.value)} rows={3} required placeholder="구매자가 준비해야 하는 자료, 브랜드 정보, 참고 이미지, 원하는 분위기" style={{ ...inputStyle, resize: 'vertical' }} />
+                        </Field>
+                        <Field label="추가 옵션">
+                            <textarea value={extraOptions} onChange={(event) => setExtraOptions(event.target.value)} rows={3} placeholder="긴급 작업, 추가 수정, 원본 파일 제공 등 선택형 옵션" style={{ ...inputStyle, resize: 'vertical' }} />
                         </Field>
                         <Field label="사용 도구">
                             <input value={aiTools} onChange={(event) => setAiTools(event.target.value)} placeholder="ChatGPT, Runway, Premiere Pro" style={inputStyle} />
@@ -200,6 +223,23 @@ export default function ProductRegister() {
                         <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 700 }}>
                             첨부 파일은 파일당 1MB 이하의 작은 이미지, 텍스트, PDF 등 참고용 자료만 등록합니다.
                         </p>
+                        <div style={guideBoxStyle}>
+                            <strong>이미지/설명 유의사항</strong>
+                            <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.2rem', color: 'var(--text-secondary)' }}>
+                                <li>외부 연락처, 이메일, SNS 계정, 직접 결제 안내는 넣지 않습니다.</li>
+                                <li>최저가, 무조건 보장, 100% 만족 같은 과장 표현은 피합니다.</li>
+                                <li>타인의 로고, 초상권, 저작권을 침해하는 이미지는 등록하지 않습니다.</li>
+                            </ul>
+                            <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={imageGuideAccepted}
+                                    onChange={(event) => setImageGuideAccepted(event.target.checked)}
+                                    required
+                                />
+                                이미지와 설명 등록 유의사항을 확인했습니다
+                            </label>
+                        </div>
                     </section>
 
                     <section style={sectionStyle}>
@@ -286,6 +326,35 @@ const parseCommaList = (value: string) =>
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
 
+const composeProductDescription = ({
+    description,
+    workScope,
+    workProcess,
+    buyerRequirements,
+    extraOptions,
+}: {
+    description: string
+    workScope: string
+    workProcess: string
+    buyerRequirements: string
+    extraOptions: string
+}) => {
+    const sections = [
+        description.trim(),
+        formatDescriptionSection('작업 범위', parseLineList(workScope)),
+        formatDescriptionSection('작업 절차', parseLineList(workProcess)),
+        formatDescriptionSection('구매 전 준비사항', [buyerRequirements.trim()].filter(Boolean)),
+        formatDescriptionSection('추가 옵션', parseLineList(extraOptions)),
+    ].filter(Boolean)
+
+    return sections.join('\n\n')
+}
+
+const formatDescriptionSection = (title: string, items: string[]) => {
+    if (items.length === 0) return ''
+    return [`## ${title}`, ...items.map((item) => `- ${item}`)].join('\n')
+}
+
 const clearErrorOnFileChange = (setErrorMessage: (message: string) => void) => (_event: ChangeEvent<HTMLInputElement>) => {
     setErrorMessage('')
 }
@@ -332,6 +401,15 @@ const sectionTitleStyle = {
     fontSize: '1.2rem',
     fontWeight: 900,
     margin: 0,
+} as const
+
+const guideBoxStyle = {
+    display: 'grid',
+    gap: '0.7rem',
+    padding: '1rem',
+    borderRadius: '0.85rem',
+    border: '1px solid #bfdbfe',
+    background: '#eff6ff',
 } as const
 
 const inputStyle = {
