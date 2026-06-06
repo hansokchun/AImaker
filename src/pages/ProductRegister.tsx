@@ -10,8 +10,6 @@ const currency = new Intl.NumberFormat('ko-KR')
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 const MAIN_IMAGE_MIN_WIDTH = 652
 const MAIN_IMAGE_MIN_HEIGHT = 488
-const MAIN_IMAGE_RATIO = 4 / 3
-const IMAGE_RATIO_TOLERANCE = 0.03
 
 type PackageFormState = {
     price: string
@@ -255,7 +253,7 @@ export default function ProductRegister() {
                         <div style={guideBoxStyle}>
                             <strong>등록 유의사항</strong>
                             <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                대표 이미지는 크몽 기준에 맞춰 JPG/PNG, 4:3 비율, 최소 652x488px 이상이어야 합니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
+                                대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 4:3 비율은 권장입니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
                             </p>
                             <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
                                 <input
@@ -426,13 +424,11 @@ const validateProductImageFile = async (file: File, _kind: ProductImageKind) => 
 
     if (_kind === 'main') {
         const { width, height } = await readImageDimensions(file)
-        const ratio = width / height
         if (
             width < MAIN_IMAGE_MIN_WIDTH ||
-            height < MAIN_IMAGE_MIN_HEIGHT ||
-            Math.abs(ratio - MAIN_IMAGE_RATIO) > IMAGE_RATIO_TOLERANCE
+            height < MAIN_IMAGE_MIN_HEIGHT
         ) {
-            throw new Error('대표 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 4:3 비율, 최소 652x488px 이상이어야 합니다.')
+            throw new Error('대표 이미지는 크몽 기준에 맞춰 JPG 또는 PNG, 최소 652x488px 이상이어야 합니다.')
         }
     }
 }
