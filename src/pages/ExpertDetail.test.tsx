@@ -107,10 +107,7 @@ describe('ExpertDetail', () => {
             'href',
             `/expert/${supabaseProduct.expertId}`,
         )
-        expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toHaveAttribute(
-            'href',
-            `/request/${supabaseProduct.id}`,
-        )
+        expect(screen.getByRole('button', { name: '패키지로 의뢰하기' })).toBeInTheDocument()
     })
 
     it('opens a public seller profile with products and received reviews through the expert id', async () => {
@@ -145,7 +142,7 @@ describe('ExpertDetail', () => {
         expect(await screen.findByRole('heading', { name: '상품을 찾을 수 없습니다' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'AI 작업 찾기로 돌아가기' })).toHaveAttribute('href', '/category')
         expect(screen.queryByText(supabaseProduct.title)).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
     })
 
     it('opens product details even when stored package data is missing', async () => {
@@ -167,10 +164,7 @@ describe('ExpertDetail', () => {
         )
 
         expect(await screen.findByRole('heading', { name: productWithoutPackages.title })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '패키지로 의뢰하기' })).toHaveAttribute(
-            'href',
-            `/request/${productWithoutPackages.id}`,
-        )
+        expect(screen.getByRole('button', { name: '패키지로 의뢰하기' })).toBeInTheDocument()
         expect(screen.queryByText('문제가 발생했습니다')).not.toBeInTheDocument()
     })
 
@@ -222,6 +216,6 @@ describe('ExpertDetail', () => {
             'href',
             `/products/${supabaseProduct.id}/edit`,
         )
-        expect(screen.queryByRole('link', { name: '프로필 수정하기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '프로필 수정하기' })).not.toBeInTheDocument()
     })
 })

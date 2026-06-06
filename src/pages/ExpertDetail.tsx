@@ -312,6 +312,8 @@ export default function ExpertDetail() {
                         productId={product.id}
                         onOpenChat={handleStartConsultation}
                         chatButtonDisabled={creatingConsultation}
+                        isOwner={user?.id === product.expertId}
+                        requireLogin={!user}
                     />
                 </div>
             </div>

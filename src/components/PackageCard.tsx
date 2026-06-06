@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
 import type { ExpertProduct, PackageTier, ProductPackage } from '../types'
 
 type ProductPackages = ExpertProduct['packages']
@@ -9,6 +10,8 @@ interface PackageCardProps {
     productId: string
     onOpenChat?: () => void
     chatButtonDisabled?: boolean
+    isOwner?: boolean
+    requireLogin?: boolean
 }
 
 const packageLabels: Record<PackageTier, string> = {
@@ -23,7 +26,16 @@ function getPackageTabs(packages: ProductPackages) {
     return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages?.[tab]))
 }
 
-export default function PackageCard({ packages, productId, onOpenChat, chatButtonDisabled = false }: PackageCardProps) {
+export default function PackageCard({
+    packages,
+    productId,
+    onOpenChat,
+    chatButtonDisabled = false,
+    isOwner = false,
+    requireLogin = false,
+}: PackageCardProps) {
+    const navigate = useNavigate()
+    const location = useLocation()
     const fallbackPackage: ProductPackage = {
         name: 'Standard',
         price: 0,
@@ -42,6 +54,24 @@ export default function PackageCard({ packages, productId, onOpenChat, chatButto
     const included = Array.isArray(renderPackage.included) && renderPackage.included.length > 0
         ? renderPackage.included
         : fallbackPackage.included
+    const goToLogin = () => {
+        window.alert('로그인 후 이용할 수 있습니다.')
+        navigate(ROUTES.LOGIN, { state: { from: { pathname: location.pathname, search: location.search } } })
+    }
+    const handlePackageRequest = () => {
+        if (requireLogin) {
+            goToLogin()
+            return
+        }
+        navigate(`/request/${productId}`)
+    }
+    const handleOpenChat = () => {
+        if (requireLogin) {
+            goToLogin()
+            return
+        }
+        onOpenChat?.()
+    }
 
     return (
         <div className="package-card">
@@ -73,22 +103,30 @@ export default function PackageCard({ packages, productId, onOpenChat, chatButto
                     ))}
                 </ul>
 
-                <p className="package-request-note">
-                    결제 전 요구사항을 먼저 작성하고 전문가 제안을 받습니다.
-                </p>
-                <Link className="btn-primary package-primary-cta" to={`/request/${productId}`}>
-                    패키지로 의뢰하기
-                </Link>
+                {isOwner ? (
+                    <p className="package-request-note">
+                        내가 등록한 상품입니다. 상품 수정에서 가격과 패키지 정보를 관리할 수 있습니다.
+                    </p>
+                ) : (
+                    <>
+                        <p className="package-request-note">
+                            결제 전 요구사항을 먼저 작성하고 전문가 제안을 받습니다.
+                        </p>
+                        <button type="button" className="btn-primary package-primary-cta" onClick={handlePackageRequest}>
+                            패키지로 의뢰하기
+                        </button>
 
-                {onOpenChat && (
-                    <button
-                        type="button"
-                        onClick={onOpenChat}
-                        className="btn-text package-secondary-cta"
-                        disabled={chatButtonDisabled}
-                    >
-                        {chatButtonDisabled ? '상담 생성 중' : '전문가에게 문의하기'}
-                    </button>
+                        {onOpenChat && (
+                            <button
+                                type="button"
+                                onClick={handleOpenChat}
+                                className="btn-text package-secondary-cta"
+                                disabled={chatButtonDisabled}
+                            >
+                                {chatButtonDisabled ? '상담 생성 중' : '전문가에게 문의하기'}
+                            </button>
+                        )}
+                    </>
                 )}
             </div>
         </div>
