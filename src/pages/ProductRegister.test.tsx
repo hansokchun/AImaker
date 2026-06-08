@@ -279,4 +279,37 @@ describe('ProductRegister', () => {
         )
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/expert/${editableProduct.id}`))
     })
+
+    it('shows existing images while editing and appends newly selected detail images', async () => {
+        renderEditRegister()
+
+        expect(await screen.findByAltText('현재 대표 이미지')).toHaveAttribute('src', editableProduct.sampleImageUrl)
+        expect(screen.getByAltText('현재 상세 이미지 1')).toHaveAttribute('src', editableProduct.sampleLinks[0])
+
+        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+            target: { files: [new File(['new-main'], 'new-main.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('상세 이미지/포트폴리오 첨부'), {
+            target: { files: [new File(['new-detail'], 'new-detail.png', { type: 'image/png' })] },
+        })
+
+        expect(await screen.findByAltText('새 대표 이미지 미리보기')).toHaveAttribute('src', 'blob:new-main.png')
+        expect(screen.getByAltText('새 상세 이미지 1')).toHaveAttribute('src', 'blob:new-detail.png')
+
+        fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '70000' } })
+        fireEvent.click(screen.getAllByRole('checkbox')[0])
+        fireEvent.submit(document.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
+                    sampleLinks: [
+                        editableProduct.sampleLinks[0],
+                        expect.stringMatching(/^data:image\/png;base64,/),
+                    ],
+                }),
+            ),
+        )
+    })
 })

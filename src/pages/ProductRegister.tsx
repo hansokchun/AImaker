@@ -61,6 +61,8 @@ export default function ProductRegister() {
     const [existingProduct, setExistingProduct] = useState<ExpertProduct | null>(null)
     const [existingThumbnailDataUrl, setExistingThumbnailDataUrl] = useState('')
     const [existingReferenceDataUrls, setExistingReferenceDataUrls] = useState<string[]>([])
+    const [selectedThumbnailPreviewUrl, setSelectedThumbnailPreviewUrl] = useState('')
+    const [selectedReferencePreviewUrls, setSelectedReferencePreviewUrls] = useState<string[]>([])
 
     useEffect(() => {
         if (!loading && !session) {
@@ -121,6 +123,16 @@ export default function ProductRegister() {
         }))
     }
 
+    const handleThumbnailFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setErrorMessage('')
+        setSelectedThumbnailPreviewUrl(createFilePreviewUrls(event.target.files)[0] || '')
+    }
+
+    const handleReferenceFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setErrorMessage('')
+        setSelectedReferencePreviewUrls(createFilePreviewUrls(event.target.files))
+    }
+
     const parsePackage = (tier: PackageTier, form: PackageFormState): ProductPackage => {
         const price = Number(form.price)
         const deliveryDays = Number(form.deliveryDays)
@@ -165,7 +177,7 @@ export default function ProductRegister() {
         try {
             const thumbnailDataUrl = await readFirstFileAsDataUrl(thumbnailFileRef.current?.files, 'main') || existingThumbnailDataUrl
             const referenceDataUrls = await readFilesAsDataUrls(referenceFilesRef.current?.files, 'detail')
-            const nextReferenceDataUrls = referenceDataUrls.length > 0 ? referenceDataUrls : existingReferenceDataUrls
+            const nextReferenceDataUrls = referenceDataUrls.length > 0 ? [...existingReferenceDataUrls, ...referenceDataUrls] : existingReferenceDataUrls
             const nextProductId = existingProduct?.id || crypto.randomUUID()
             const product: ExpertProduct = {
                 id: nextProductId,
@@ -245,11 +257,41 @@ export default function ProductRegister() {
 
                     <Section title="이미지와 포트폴리오">
                         <Field label="대표 이미지 첨부">
-                            <input ref={thumbnailFileRef} type="file" accept="image/jpeg,image/png" onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
+                            <input ref={thumbnailFileRef} type="file" accept="image/jpeg,image/png" onChange={handleThumbnailFileChange} style={inputStyle} />
                         </Field>
+                        {(existingThumbnailDataUrl || selectedThumbnailPreviewUrl) && (
+                            <div style={imagePreviewGridStyle}>
+                                {existingThumbnailDataUrl && (
+                                    <ImagePreviewCard src={existingThumbnailDataUrl} alt="현재 대표 이미지" label="현재 대표 이미지" />
+                                )}
+                                {selectedThumbnailPreviewUrl && (
+                                    <ImagePreviewCard src={selectedThumbnailPreviewUrl} alt="새 대표 이미지 미리보기" label="교체 예정 대표 이미지" />
+                                )}
+                            </div>
+                        )}
                         <Field label="상세 이미지/포트폴리오 첨부">
-                            <input ref={referenceFilesRef} type="file" accept="image/jpeg,image/png" multiple onChange={clearErrorOnFileChange(setErrorMessage)} style={inputStyle} />
+                            <input ref={referenceFilesRef} type="file" accept="image/jpeg,image/png" multiple onChange={handleReferenceFilesChange} style={inputStyle} />
                         </Field>
+                        {(existingReferenceDataUrls.length > 0 || selectedReferencePreviewUrls.length > 0) && (
+                            <div style={imagePreviewGridStyle}>
+                                {existingReferenceDataUrls.map((src, index) => (
+                                    <ImagePreviewCard
+                                        key={`existing-reference-${src}-${index}`}
+                                        src={src}
+                                        alt={`현재 상세 이미지 ${index + 1}`}
+                                        label={`현재 상세 이미지 ${index + 1}`}
+                                    />
+                                ))}
+                                {selectedReferencePreviewUrls.map((src, index) => (
+                                    <ImagePreviewCard
+                                        key={`selected-reference-${src}-${index}`}
+                                        src={src}
+                                        alt={`새 상세 이미지 ${index + 1}`}
+                                        label={`추가 예정 상세 이미지 ${index + 1}`}
+                                    />
+                                ))}
+                            </div>
+                        )}
                         <div style={guideBoxStyle}>
                             <strong>등록 유의사항</strong>
                             <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
@@ -390,8 +432,18 @@ const parseCommaList = (value: string) =>
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
 
-const clearErrorOnFileChange = (setErrorMessage: (message: string) => void) => (_event: ChangeEvent<HTMLInputElement>) => {
-    setErrorMessage('')
+const createFilePreviewUrls = (files?: FileList | null) => {
+    if (!files || files.length === 0) return []
+    return Array.from(files).map((file) => URL.createObjectURL(file))
+}
+
+function ImagePreviewCard({ src, alt, label }: { src: string; alt: string; label: string }) {
+    return (
+        <figure style={imagePreviewCardStyle}>
+            <img src={src} alt={alt} style={imagePreviewStyle} />
+            <figcaption style={imagePreviewCaptionStyle}>{label}</figcaption>
+        </figure>
+    )
 }
 
 type ProductImageKind = 'main' | 'detail'
@@ -496,6 +548,36 @@ const guideBoxStyle = {
     borderRadius: '0.85rem',
     border: '1px solid #bfdbfe',
     background: '#eff6ff',
+} as const
+
+const imagePreviewGridStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: '0.75rem',
+} as const
+
+const imagePreviewCardStyle = {
+    margin: 0,
+    display: 'grid',
+    gap: '0.45rem',
+    padding: '0.75rem',
+    borderRadius: '0.85rem',
+    border: '1px solid var(--border-color)',
+    background: '#f8fafc',
+} as const
+
+const imagePreviewStyle = {
+    width: '100%',
+    aspectRatio: '4 / 3',
+    objectFit: 'cover',
+    borderRadius: '0.65rem',
+    background: '#e2e8f0',
+} as const
+
+const imagePreviewCaptionStyle = {
+    color: 'var(--text-secondary)',
+    fontSize: '0.85rem',
+    fontWeight: 800,
 } as const
 
 const fieldsetStyle = {

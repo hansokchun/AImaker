@@ -280,11 +280,6 @@ export default function ExpertDetail() {
                             </h2>
                             <div className="section-content sample-result-panel">
                                 <img src={sampleImageUrl} alt={`${product.title} 샘플 미리보기`} />
-                                {sampleLinks.length > 0 && (
-                                    <a href={sampleLinks[0]} target="_blank" rel="noreferrer">
-                                        샘플 링크 보기
-                                    </a>
-                                )}
                             </div>
                         </section>
                     )}

@@ -218,4 +218,18 @@ describe('ExpertDetail', () => {
         )
         expect(screen.queryByRole('button', { name: '프로필 수정하기' })).not.toBeInTheDocument()
     })
+
+    it('shows portfolio images without a sample link button', async () => {
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+        expect(screen.getByAltText(`${supabaseProduct.title} 샘플 미리보기`)).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '샘플 링크 보기' })).not.toBeInTheDocument()
+    })
 })
