@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import Profile from './Profile'
 
@@ -32,7 +32,7 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 
 const currency = new Intl.NumberFormat('ko-KR')
 
-type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'consultations' | 'workroom' | 'reviews'
+type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'favorites' | 'consultations' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
 type StageAction = { label: string; to: string; onClick?: () => void }
@@ -74,6 +74,7 @@ const profileMenuItems: Array<{ id: MyPagePanel; label: string }> = [
 
 const clientWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '거래관리' },
+    { id: 'favorites', label: '관심 상품' },
     { id: 'consultations', label: '상담채팅' },
     { id: 'workroom', label: '작업방' },
     { id: 'reviews', label: '리뷰' },
@@ -185,6 +186,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [works, setWorks] = useState<Work[]>([])
     const [consultations, setConsultations] = useState<Consultation[]>([])
     const [consultationMessages, setConsultationMessages] = useState<ConsultationMessage[]>([])
+    const [favoriteProductIds, setFavoriteProductIds] = useState<string[]>([])
     const [consultationMessageBody, setConsultationMessageBody] = useState('')
     const [consultationMessageSubmitting, setConsultationMessageSubmitting] = useState(false)
     const [consultationMessageError, setConsultationMessageError] = useState('')
@@ -290,6 +292,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 console.error('상품 목록 로딩 오류:', error)
                 setProducts([])
             })
+            getUserFavoriteProductIds(user.id).then(setFavoriteProductIds).catch(() => {
+                setFavoriteProductIds([])
+            })
         }
     }, [fetchProfile, user])
 
@@ -328,6 +333,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const clientConsultations = consultations.filter((consultation) => consultation.clientId === user?.id)
     const expertConsultations = consultations.filter((consultation) => consultation.expertId === user?.id)
     const myProducts = products.filter((product) => product.expertId === user?.id)
+    const favoriteProducts = favoriteProductIds
+        .map((productId) => products.find((product) => product.id === productId))
+        .filter((product): product is ExpertProduct => Boolean(product))
     const activeWorks = works.filter((work) => work.status !== 'completed')
     const completedWorks = works.filter((work) => work.status === 'completed')
     const clientActiveWorks = activeWorks.filter((work) => work.clientId === user?.id)
@@ -1065,7 +1073,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                                     'done',
                                     selectedClientOrder.productId
-                                        ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` }
+                                        ? [
+                                            { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` },
+                                            { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}` },
+                                        ]
                                         : undefined,
                                 )}
                                 {selectedClientOrderProposal
@@ -1230,7 +1241,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                         'done',
                         selectedClientOrder.productId
-                            ? { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` }
+                            ? [
+                                { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` },
+                                { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}` },
+                            ]
                             : undefined,
                     )}
                     {selectedClientOrderProposal
@@ -1404,6 +1418,77 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
             )}
         </div>
+    )
+
+    const renderFavoriteProductsPanel = () => (
+        <section style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.35rem' }}>관심 상품</h2>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                        나중에 다시 보고 싶은 AI 작업 상품을 모아봅니다.
+                    </p>
+                </div>
+                <Link to={ROUTES.CATEGORY} className="btn-text" style={{ textDecoration: 'none' }}>
+                    AI 작업 찾기
+                </Link>
+            </div>
+
+            {favoriteProducts.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem' }}>
+                    {favoriteProducts.map((product) => (
+                        <Link
+                            key={product.id}
+                            to={`/expert/${product.id}`}
+                            state={myPageReturnState}
+                            aria-label={`${product.title} 상세 보기`}
+                            style={{
+                                display: 'grid',
+                                gap: '0.75rem',
+                                padding: '0.85rem',
+                                borderRadius: '0.85rem',
+                                border: '1px solid var(--border-color)',
+                                background: '#f8fafc',
+                                color: '#0f172a',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <div style={{ overflow: 'hidden', borderRadius: '0.7rem', background: '#e2e8f0', aspectRatio: '4 / 3' }}>
+                                {product.sampleImageUrl ? (
+                                    <img
+                                        src={product.sampleImageUrl}
+                                        alt={`${product.title} 썸네일`}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#64748b', fontWeight: 800 }}>
+                                        이미지 없음
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <strong style={{ display: 'block', marginBottom: '0.35rem', lineHeight: 1.35 }}>{product.title}</strong>
+                                <span style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    {product.expertName}
+                                </span>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                    {currency.format(product.startingPrice)}원부터 · {product.deliveryDays}일
+                                </span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <div style={{ padding: '1.25rem', borderRadius: '0.85rem', background: '#f8fafc', border: '1px solid var(--border-color)' }}>
+                    <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                        아직 관심 상품이 없습니다.
+                    </p>
+                    <Link to={ROUTES.CATEGORY} className="btn-primary" style={{ textDecoration: 'none' }}>
+                        상품 둘러보기
+                    </Link>
+                </div>
+            )}
+        </section>
     )
 
     const renderProductManagementPanel = () => (
@@ -1654,6 +1739,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         if (activePanel === 'products') {
             return renderProductManagementPanel()
+        }
+
+        if (activePanel === 'favorites') {
+            return renderFavoriteProductsPanel()
         }
 
         if (activePanel === 'client') {

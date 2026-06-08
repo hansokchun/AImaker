@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import type { ExpertProduct } from '../types'
+import FavoriteProductButton from './FavoriteProductButton'
 import './ProductCard.css'
 
 interface ProductCardProps {
@@ -28,6 +29,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                 }
             }}
         >
+            <FavoriteProductButton
+                productId={product.id}
+                productTitle={product.title}
+                className="product-card-favorite"
+            />
             <div className="product-card-image">
                 <img src={product.sampleImageUrl} alt={`${product.title} 샘플`} />
             </div>

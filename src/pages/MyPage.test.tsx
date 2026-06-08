@@ -47,6 +47,7 @@ const saveReview = vi.fn(async (_review: Review) => undefined)
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-directed-created')
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
+const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-client-before'])
 const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
 const getUserServiceRequests = vi.fn(async (_userId: string): Promise<ServiceRequestData[]> => [
     {
@@ -639,6 +640,7 @@ vi.mock('../lib/storage', () => ({
     saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
+    getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
     saveReview: (review: Review) => saveReview(review),
     deleteUserPublicAccountData: (userId: string) => deleteUserPublicAccountData(userId),
 }))
@@ -650,6 +652,7 @@ describe('MyPage', () => {
         saveExpertProduct.mockClear()
         mockSignOut.mockClear()
         deleteUserPublicAccountData.mockClear()
+        getUserFavoriteProductIds.mockClear()
         getExpertProducts.mockClear()
         getUserProposals.mockReset()
         getUserProposals.mockResolvedValue(defaultProposals())
@@ -2020,6 +2023,32 @@ describe('MyPage', () => {
         expect(screen.queryByRole('button', { name: '내 상품관리' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: '거래관리' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByTestId('location').textContent).not.toContain('role=expert')
+    })
+
+    it('shows favorite products in the client work menu', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=favorites']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '관심 상품' })).toHaveAttribute('aria-pressed', 'true')
+        expect(getUserFavoriteProductIds).toHaveBeenCalledWith('user-demo-01')
+        expect(screen.getByRole('link', { name: /작업 전 테스트 상품/ })).toHaveAttribute('href', '/expert/product-client-before')
+    })
+
+    it('lets clients open the ordered product from the pre-work stage', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=client&clientOrder=request-product-client-before']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('link', { name: '상품 보기' })).toHaveAttribute('href', '/expert/product-client-before')
     })
 
     it('lets experts open the received request from the pre-work stage', async () => {

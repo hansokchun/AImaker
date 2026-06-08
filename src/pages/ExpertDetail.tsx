@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import FavoriteProductButton from '../components/FavoriteProductButton'
 import PackageCard from '../components/PackageCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
@@ -238,6 +239,13 @@ export default function ExpertDetail() {
                         </div>
                         <div className="product-detail-copy">
                             <div className="product-detail-category">{category?.name ?? 'AI 작업'}</div>
+                            {user?.id !== product.expertId && (
+                                <FavoriteProductButton
+                                    productId={product.id}
+                                    productTitle={product.title}
+                                    className="product-detail-favorite"
+                                />
+                            )}
                             <h1>{product.title}</h1>
                             <p>{product.summary}</p>
                             <div className="product-detail-meta">

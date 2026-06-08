@@ -37,6 +37,7 @@ const STORAGE_KEYS = {
     REVIEWS: 'ai_reviews',
     CONSULTATIONS: 'ai_consultations',
     CONSULTATION_MESSAGES: 'ai_consultation_messages',
+    FAVORITE_PRODUCTS: 'ai_favorite_products',
 } as const;
 
 const PLATFORM_FEE_RATE = 0.12;
@@ -48,6 +49,27 @@ const toOptionalNumber = (value?: string): number | null => {
     const numericValue = Number(String(value || '').replace(/[^\d]/g, ''));
     return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
 };
+
+const getFavoriteProductsStorageKey = (userId: string) => `${STORAGE_KEYS.FAVORITE_PRODUCTS}_${userId}`;
+
+export async function getUserFavoriteProductIds(userId: string): Promise<string[]> {
+    if (!userId) return [];
+    try {
+        const raw = localStorage.getItem(getFavoriteProductsStorageKey(userId));
+        const ids = raw ? (JSON.parse(raw) as string[]) : [];
+        return Array.from(new Set(ids.map(String)));
+    } catch {
+        return [];
+    }
+}
+
+export async function toggleFavoriteProduct(userId: string, productId: string): Promise<string[]> {
+    const currentIds = await getUserFavoriteProductIds(userId);
+    const exists = currentIds.includes(productId);
+    const nextIds = exists ? currentIds.filter((id) => id !== productId) : [productId, ...currentIds];
+    localStorage.setItem(getFavoriteProductsStorageKey(userId), JSON.stringify(nextIds));
+    return nextIds;
+}
 
 const createFallbackProductPackage = (item: any) => ({
     name: 'Standard' as const,

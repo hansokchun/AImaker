@@ -41,6 +41,8 @@ const getUserDisplayProfile = vi.fn(async () => ({
     isExpert: true,
 }))
 const getExpertReviews = vi.fn(async () => expertReviews)
+const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
+const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
 const createConsultation = vi.fn(async () => ({
     id: 'consultation-created-01',
     clientId: 'client-real-01',
@@ -61,6 +63,8 @@ vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
     getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
     getExpertReviews: (expertId: string) => getExpertReviews(expertId),
+    getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
+    toggleFavoriteProduct: (userId: string, productId: string) => toggleFavoriteProduct(userId, productId),
     createConsultation: (input: unknown) => createConsultation(input),
 }))
 
@@ -83,6 +87,8 @@ describe('ExpertDetail', () => {
             isExpert: true,
         })
         getExpertReviews.mockResolvedValue(expertReviews)
+        getUserFavoriteProductIds.mockResolvedValue([])
+        toggleFavoriteProduct.mockImplementation(async (_userId: string, productId: string) => [productId])
         mockUser = { id: 'client-real-01', email: 'client@example.com' }
     })
 

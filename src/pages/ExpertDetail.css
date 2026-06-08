@@ -88,6 +88,11 @@
     font-weight: 800;
 }
 
+.product-detail-favorite {
+    align-self: flex-start;
+    padding: 0.7rem 0.9rem;
+}
+
 .product-detail-copy h1 {
     margin: 0;
     color: var(--text-primary);
