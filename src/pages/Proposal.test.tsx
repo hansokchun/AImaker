@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Proposal from './Proposal'
 import type { Proposal as ProposalData } from '../types'
 
+let currentUserId = 'client-demo-01'
+
 const activeProposal: ProposalData = {
     id: 'proposal-demo-01',
     requestId: 'request-demo-01',
@@ -39,6 +41,13 @@ const getProposal = vi.fn(async (id: string): Promise<ProposalData | null> =>
     id === expiredProposal.id ? expiredProposal : activeProposal,
 )
 
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: () => ({
+        user: { id: currentUserId, email: `${currentUserId}@example.com` },
+        loading: false,
+    }),
+}))
+
 vi.mock('../lib/storage', () => ({
     getProposal: (proposalId: string) => getProposal(proposalId),
     getWorkByProposal: (proposalId: string) => getWorkByProposal(proposalId),
@@ -49,6 +58,7 @@ vi.mock('../lib/storage', () => ({
 
 describe('Proposal', () => {
     beforeEach(() => {
+        currentUserId = 'client-demo-01'
         getProposal.mockReset()
         getProposal.mockImplementation(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal))
         acceptProposal.mockClear()
@@ -56,6 +66,33 @@ describe('Proposal', () => {
         cancelProposal.mockClear()
         getWorkByProposal.mockReset()
         getWorkByProposal.mockResolvedValue(null)
+    })
+
+    it('only lets the expert edit or cancel a sent proposal', async () => {
+        currentUserId = 'expert-video-01'
+
+        render(
+            <MemoryRouter initialEntries={['/proposal/proposal-demo-01']}>
+                <Routes>
+                    <Route path="/proposal/:proposalId" element={<Proposal />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '거래 제안서' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '승인 및 결제하기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '수정요청' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '거절하기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '수정하기' })).toHaveAttribute(
+            'href',
+            '/proposals/new?proposalId=proposal-demo-01',
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '취소하기' }))
+
+        await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith(activeProposal.id))
+        expect(screen.getByText('제안서 발송을 취소했습니다. 같은 의뢰에 다시 제안서를 보낼 수 있습니다.')).toBeInTheDocument()
+        expect(screen.getByText('취소됨')).toBeInTheDocument()
     })
 
     it('shows proposal delivery information and accepts active proposals', async () => {

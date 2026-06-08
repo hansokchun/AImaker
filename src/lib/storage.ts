@@ -1074,6 +1074,40 @@ export async function saveProposal(proposal: Proposal): Promise<string> {
     return data?.id || proposal.id;
 }
 
+export async function updateProposal(proposal: Proposal): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
+        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.PROPOSALS,
+            JSON.stringify(proposals.map((storedProposal) => (storedProposal.id === proposal.id ? proposal : storedProposal))),
+        );
+        return;
+    }
+
+    const { error } = await supabase
+        .from('proposals')
+        .update({
+            title: proposal.title,
+            scope: proposal.scope,
+            deliverables: proposal.deliverables,
+            total_price: proposal.totalPrice,
+            delivery_days: proposal.deliveryDays,
+            revision_count: proposal.revisionCount,
+            progress_type: proposal.progressType,
+            milestones: proposal.milestones,
+            commercial_use_allowed: proposal.commercialUseAllowed,
+            source_file_included: proposal.sourceFileIncluded,
+            status: proposal.status,
+            payment_status: proposal.paymentStatus || 'unpaid',
+            platform_fee_rate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
+            expires_at: proposal.expiresAt,
+        })
+        .eq('id', proposal.id);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 제안서 수정 실패');
+}
+
 export async function getProposal(proposalId: string): Promise<Proposal | null> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
@@ -1370,6 +1404,29 @@ export async function getUserWorks(userId: string): Promise<Work[]> {
     }
 
     return (data || []).map(toWork);
+}
+
+export async function cancelWork(workId: string): Promise<void> {
+    if (!supabase) {
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        localStorage.setItem(
+            STORAGE_KEYS.WORKS,
+            JSON.stringify(
+                works.map((work) =>
+                    work.id === workId ? { ...work, status: 'cancelled', settlementStatus: 'refunded' } : work,
+                ),
+            ),
+        );
+        return;
+    }
+
+    const { error } = await supabase
+        .from('works')
+        .update({ status: 'cancelled', settlement_status: 'refunded' })
+        .eq('id', workId);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 거래 중단 실패');
 }
 
 export async function saveDeliverable(deliverable: Deliverable): Promise<void> {

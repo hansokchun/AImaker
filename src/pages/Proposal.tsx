@@ -3,6 +3,7 @@ import { ROUTES } from '../constants/routes'
 import type { Proposal as ProposalData } from '../types'
 import { useEffect, useState } from 'react'
 import { acceptProposal, cancelProposal, getProposal, getWorkByProposal, requestProposalRevision } from '../lib/storage'
+import { useAuth } from '../contexts/AuthContext'
 import './Proposal.css'
 
 const now = new Date()
@@ -71,6 +72,7 @@ const statusText: Record<ProposalData['status'], string> = {
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
     const location = useLocation()
+    const { user } = useAuth()
     const [proposal, setProposal] = useState<ProposalData | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
     const [statusMessage, setStatusMessage] = useState('')
@@ -127,6 +129,10 @@ export default function Proposal() {
 
     const isExpired = proposal.status === 'expired' || new Date(proposal.expiresAt) < new Date()
     const isClosed = isExpired || proposal.status === 'accepted' || proposal.status === 'cancelled'
+    const isExpertOwner = user?.id === proposal.expertId
+    const isClientOwner = user?.id === proposal.clientId
+    const canExpertManage = isExpertOwner && !isClosed && proposal.paymentStatus !== 'paid'
+    const canClientRespond = isClientOwner && !isClosed
     const handleAccept = async () => {
         const workId = await acceptProposal(proposal)
         setProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid', platformFeeRate: 0.12 })
@@ -141,7 +147,7 @@ export default function Proposal() {
     const handleCancel = async () => {
         await cancelProposal(proposal.id)
         setProposal({ ...proposal, status: 'cancelled' })
-        setStatusMessage('제안서를 거절했습니다.')
+        setStatusMessage(isExpertOwner ? '제안서 발송을 취소했습니다. 같은 의뢰에 다시 제안서를 보낼 수 있습니다.' : '제안서를 거절했습니다.')
     }
 
     return (
@@ -227,15 +233,28 @@ export default function Proposal() {
                     )}
 
                     <div className="proposal-actions">
-                        <button type="button" className="btn-primary" disabled={isClosed} onClick={handleAccept}>
-                            승인 및 결제하기
-                        </button>
-                        <button type="button" className="btn-text" disabled={isClosed} onClick={handleRequestRevision}>
-                            수정요청
-                        </button>
-                        <button type="button" className="btn-text danger" disabled={isClosed} onClick={handleCancel}>
-                            거절하기
-                        </button>
+                        {canExpertManage ? (
+                            <>
+                                <Link to={`${ROUTES.PROPOSAL_NEW}?proposalId=${proposal.id}`} className="btn-primary">
+                                    수정하기
+                                </Link>
+                                <button type="button" className="btn-text danger" onClick={handleCancel}>
+                                    취소하기
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button type="button" className="btn-primary" disabled={!canClientRespond} onClick={handleAccept}>
+                                    승인 및 결제하기
+                                </button>
+                                <button type="button" className="btn-text" disabled={!canClientRespond} onClick={handleRequestRevision}>
+                                    수정요청
+                                </button>
+                                <button type="button" className="btn-text danger" disabled={!canClientRespond} onClick={handleCancel}>
+                                    거절하기
+                                </button>
+                            </>
+                        )}
                         <Link to={myPageReturnTo || ROUTES.WORK_DASHBOARD} className="btn-text" state={myPageReturnState}>
                             취소
                         </Link>

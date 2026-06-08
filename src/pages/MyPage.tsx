@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { cancelWork, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
 import Profile from './Profile'
@@ -328,6 +328,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const completedWork = works.find((work) => work.status === 'completed') || null
     const receivedProposals = proposals.filter((proposal) => proposal.clientId === user?.id)
     const sentProposals = proposals.filter((proposal) => proposal.expertId === user?.id)
+    const activeProposals = proposals.filter((proposal) => proposal.status !== 'cancelled')
     const receivedProductRequests = serviceRequests.filter((request) => request.expertId === user?.id && request.productId)
     const clientProductRequests = serviceRequests.filter((request) => request.clientId === user?.id && request.productId)
     const clientConsultations = consultations.filter((consultation) => consultation.clientId === user?.id)
@@ -336,7 +337,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const favoriteProducts = favoriteProductIds
         .map((productId) => products.find((product) => product.id === productId))
         .filter((product): product is ExpertProduct => Boolean(product))
-    const activeWorks = works.filter((work) => work.status !== 'completed')
+    const activeWorks = works.filter((work) => work.status !== 'completed' && work.status !== 'cancelled')
     const completedWorks = works.filter((work) => work.status === 'completed')
     const clientActiveWorks = activeWorks.filter((work) => work.clientId === user?.id)
     const expertActiveWorks = activeWorks.filter((work) => work.expertId === user?.id)
@@ -355,11 +356,11 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const menuLabel = mode === 'work' ? '내 작업 메뉴' : '마이페이지 메뉴'
 
     const getProposalForRequest = (request: ServiceRequestData) =>
-        proposals.find((proposal) => proposal.requestId === request.id)
+        activeProposals.find((proposal) => proposal.requestId === request.id)
 
     const getWorkForRequest = (request: ServiceRequestData) => {
         const requestProposal = getProposalForRequest(request)
-        return works.find((work) => work.requestId === request.id || work.proposalId === requestProposal?.id) || null
+        return works.find((work) => work.status !== 'cancelled' && (work.requestId === request.id || work.proposalId === requestProposal?.id)) || null
     }
 
     const getRequestCreatedTime = (request: ServiceRequestData) => {
@@ -440,17 +441,17 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         ? products.find((product) => product.id === selectedClientOrder.productId)
         : null
     const selectedClientOrderProposal = selectedClientOrder
-        ? receivedProposals.find((proposal) => proposal.requestId === selectedClientOrder.id)
+        ? receivedProposals.find((proposal) => proposal.requestId === selectedClientOrder.id && proposal.status !== 'cancelled')
         : null
     const selectedClientOrderWork = selectedClientOrder
-        ? works.find((work) => work.requestId === selectedClientOrder.id || work.proposalId === selectedClientOrderProposal?.id)
+        ? works.find((work) => work.status !== 'cancelled' && (work.requestId === selectedClientOrder.id || work.proposalId === selectedClientOrderProposal?.id))
         : null
     const selectedExpertRequest = receivedProductRequestsByCreatedAt.find((request) => request.id === selectedExpertRequestId) || receivedProductRequestsByCreatedAt[0] || null
     const selectedExpertRequestProduct = selectedExpertRequest
         ? products.find((product) => product.id === selectedExpertRequest.productId)
         : null
     const selectedExpertRequestProposal = selectedExpertRequest
-        ? sentProposals.find((proposal) => proposal.requestId === selectedExpertRequest.id)
+        ? sentProposals.find((proposal) => proposal.requestId === selectedExpertRequest.id && proposal.status !== 'cancelled')
         : null
     const selectedExpertRequestWork = selectedExpertRequest ? getWorkForRequest(selectedExpertRequest) : null
     const selectedPanelConsultation = roleFilteredConsultations.find((consultation) => consultation.id === selectedConsultationId) || roleFilteredConsultations[0] || null
@@ -559,6 +560,17 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         } finally {
             setConsultationProposalSubmitting(false)
         }
+    }
+
+    const handleCancelWork = async (work: Work) => {
+        await cancelWork(work.id)
+        setWorks((currentWorks) =>
+            currentWorks.map((currentWork) =>
+                currentWork.id === work.id
+                    ? { ...currentWork, status: 'cancelled', settlementStatus: 'refunded' }
+                    : currentWork,
+            ),
+        )
     }
 
     const getRoleConsultationId = () => {
@@ -978,6 +990,51 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </section>
     )
 
+    const renderStoppedTransactions = (role: 'client' | 'expert') => {
+        const stoppedProposals = proposals.filter((proposal) =>
+            proposal.status === 'cancelled' && (role === 'client' ? proposal.clientId === user?.id : proposal.expertId === user?.id),
+        )
+        const stoppedWorks = works.filter((work) =>
+            work.status === 'cancelled' && (role === 'client' ? work.clientId === user?.id : work.expertId === user?.id),
+        )
+        const stoppedItems = [
+            ...stoppedProposals.map((proposal) => ({
+                id: `proposal-${proposal.id}`,
+                title: proposal.title,
+                meta: '제안 취소',
+            })),
+            ...stoppedWorks.map((work) => ({
+                id: `work-${work.id}`,
+                title: work.title,
+                meta: '거래 중단',
+            })),
+        ]
+
+        if (stoppedItems.length === 0) return null
+
+        return (
+            <section style={{ ...cardStyle, padding: '1.1rem', marginTop: '1rem' }}>
+                <h3 style={{ margin: '0 0 0.85rem', fontSize: '1.05rem' }}>중단된 거래</h3>
+                <div style={{ display: 'grid', gap: '0.65rem' }}>
+                    {stoppedItems.map((item) => (
+                        <div
+                            key={item.id}
+                            style={{
+                                padding: '0.9rem 1rem',
+                                borderRadius: '0.75rem',
+                                border: '1px solid #fecaca',
+                                background: '#fff7f7',
+                            }}
+                        >
+                            <strong style={{ display: 'block', color: '#991b1b', marginBottom: '0.3rem' }}>{item.title}</strong>
+                            <span style={{ color: '#b91c1c', fontWeight: 800 }}>{item.meta}</span>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        )
+    }
+
     const renderConsultationFlow = (consultation: Consultation | null, role: 'client' | 'expert') => {
         if (!consultation) return null
         const product = products.find((item) => item.id === consultation.productId)
@@ -1095,7 +1152,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         getClientWorkStageTitle(selectedClientOrderWork),
                                         getClientWorkStageDescription(selectedClientOrderWork),
                                         selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
-                                        { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
+                                        selectedClientOrderWork.status === 'completed'
+                                            ? { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` }
+                                            : [
+                                                { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
+                                                { label: '거래 중단 요청', onClick: () => handleCancelWork(selectedClientOrderWork), variant: 'secondary' },
+                                            ],
                                     )
                                     : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
                                 {renderClientOrderStage(
@@ -1192,7 +1254,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         getExpertWorkStageTitle(selectedExpertRequestWork),
                                         getExpertWorkStageDescription(selectedExpertRequestWork),
                                         selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
-                                        { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
+                                        selectedExpertRequestWork.status === 'completed'
+                                            ? { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` }
+                                            : [
+                                                { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
+                                                { label: '거래 중단 요청', onClick: () => handleCancelWork(selectedExpertRequestWork), variant: 'secondary' },
+                                            ],
                                     )
                                     : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
                                 {renderClientOrderStage(
@@ -1261,7 +1328,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             getClientWorkStageTitle(selectedClientOrderWork),
                             getClientWorkStageDescription(selectedClientOrderWork),
                             selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
-                            { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
+                            selectedClientOrderWork.status === 'completed'
+                                ? { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` }
+                                : [
+                                    { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
+                                    { label: '거래 중단 요청', onClick: () => handleCancelWork(selectedClientOrderWork), variant: 'secondary' },
+                                ],
                         )
                         : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
                     {renderClientOrderStage(
@@ -1336,7 +1408,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             getExpertWorkStageTitle(selectedExpertRequestWork),
                             getExpertWorkStageDescription(selectedExpertRequestWork),
                             selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
-                            { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
+                            selectedExpertRequestWork.status === 'completed'
+                                ? { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` }
+                                : [
+                                    { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
+                                    { label: '거래 중단 요청', onClick: () => handleCancelWork(selectedExpertRequestWork), variant: 'secondary' },
+                                ],
                         )
                         : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
                     {renderClientOrderStage(
@@ -1376,6 +1453,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 작업 내역이 없습니다.</p>
             )}
+            {renderStoppedTransactions('client')}
         </div>
     )
 
@@ -1405,6 +1483,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
             )}
+            {renderStoppedTransactions('expert')}
         </div>
     )
 

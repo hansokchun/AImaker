@@ -45,6 +45,7 @@ vi.mock('../lib/supabase', () => ({
 
 const saveReview = vi.fn(async (_review: Review) => undefined)
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-directed-created')
+const cancelWork = vi.fn(async (_workId: string) => undefined)
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-client-before'])
@@ -641,6 +642,7 @@ vi.mock('../lib/storage', () => ({
     getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
     saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
+    cancelWork: (workId: string) => cancelWork(workId),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
     getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
@@ -653,6 +655,7 @@ describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
         saveProposal.mockClear()
+        cancelWork.mockClear()
         saveExpertProduct.mockClear()
         mockSignOut.mockClear()
         deleteUserPublicAccountData.mockClear()
@@ -1672,6 +1675,63 @@ describe('MyPage', () => {
 
         expect(saveProposal).not.toHaveBeenCalled()
         expect(screen.getByTestId('location').textContent).toContain('requestId=request-product-directed-01')
+    })
+
+    it('lets experts resend after a cancelled proposal and keeps the stopped transaction visible', async () => {
+        getUserProposals.mockResolvedValue([
+            {
+                id: 'proposal-cancelled-directed',
+                requestId: 'request-product-directed-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                title: '취소된 상품 지정 제안서',
+                scope: '취소된 범위',
+                deliverables: ['결과물'],
+                totalPrice: 30000,
+                deliveryDays: 2,
+                revisionCount: 1,
+                progressType: 'single',
+                milestones: [],
+                commercialUseAllowed: true,
+                sourceFileIncluded: false,
+                status: 'cancelled',
+                paymentStatus: 'unpaid',
+                expiresAt: '2999-01-01T00:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('link', { name: '제안서 보내기' })).toHaveAttribute(
+            'href',
+            '/proposals/new?requestId=request-product-directed-01',
+        )
+        expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '중단된 거래' })).toBeInTheDocument()
+        expect(screen.getByText('취소된 상품 지정 제안서')).toBeInTheDocument()
+        expect(screen.getByText('제안 취소')).toBeInTheDocument()
+    })
+
+    it('lets clients stop an active paid work from transaction management', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=client&panel=client&clientOrder=request-product-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(await screen.findByRole('button', { name: '거래 중단 요청' }))
+
+        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith('work-real-active'))
+        expect(screen.getByRole('heading', { name: '중단된 거래' })).toBeInTheDocument()
+        expect(screen.getByText('거래 중단')).toBeInTheDocument()
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {

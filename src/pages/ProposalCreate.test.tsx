@@ -54,7 +54,27 @@ const product: ExpertProduct = {
 
 const getRequestById = vi.fn(async (_requestId: string) => request)
 const getExpertProducts = vi.fn(async () => [product])
+const getProposal = vi.fn(async (_proposalId: string) => ({
+    id: 'proposal-created-01',
+    requestId: request.id,
+    clientId: request.clientId,
+    expertId: request.expertId,
+    title: '기존 제안서',
+    scope: '기존 작업 범위',
+    deliverables: ['기존 제출물'],
+    totalPrice: 40000,
+    deliveryDays: 2,
+    revisionCount: 1,
+    progressType: 'single' as const,
+    milestones: [],
+    commercialUseAllowed: true,
+    sourceFileIncluded: false,
+    status: 'sent' as const,
+    paymentStatus: 'unpaid' as const,
+    expiresAt: '2999-01-01T00:00:00.000Z',
+}))
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-created-01')
+const updateProposal = vi.fn(async (_proposal: Proposal) => undefined)
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -66,7 +86,9 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../lib/storage', () => ({
     getRequestById: (requestId: string) => getRequestById(requestId),
     getExpertProducts: () => getExpertProducts(),
+    getProposal: (proposalId: string) => getProposal(proposalId),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
+    updateProposal: (proposal: Proposal) => updateProposal(proposal),
 }))
 
 function LocationProbe() {
@@ -78,10 +100,32 @@ describe('ProposalCreate', () => {
     beforeEach(() => {
         getRequestById.mockClear()
         getExpertProducts.mockClear()
+        getProposal.mockClear()
         saveProposal.mockClear()
+        updateProposal.mockClear()
         getRequestById.mockResolvedValue(request)
         getExpertProducts.mockResolvedValue([product])
+        getProposal.mockResolvedValue({
+            id: 'proposal-created-01',
+            requestId: request.id,
+            clientId: request.clientId,
+            expertId: request.expertId,
+            title: '기존 제안서',
+            scope: '기존 작업 범위',
+            deliverables: ['기존 제출물'],
+            totalPrice: 40000,
+            deliveryDays: 2,
+            revisionCount: 1,
+            progressType: 'single',
+            milestones: [],
+            commercialUseAllowed: true,
+            sourceFileIncluded: false,
+            status: 'sent',
+            paymentStatus: 'unpaid',
+            expiresAt: '2999-01-01T00:00:00.000Z',
+        })
         saveProposal.mockResolvedValue('proposal-created-01')
+        updateProposal.mockResolvedValue(undefined)
     })
 
     it('prefills a product-directed request and saves the written proposal', async () => {
@@ -113,6 +157,37 @@ describe('ProposalCreate', () => {
                 status: 'sent',
             })),
         )
+        await waitFor(() => {
+            expect(screen.getAllByTestId('location').some((item) => item.textContent?.includes('/proposal/proposal-created-01'))).toBe(true)
+        })
+    })
+
+    it('loads an existing proposal and updates it as a revised proposal', async () => {
+        render(
+            <MemoryRouter initialEntries={['/proposals/new?proposalId=proposal-created-01']}>
+                <Routes>
+                    <Route path="/proposals/new" element={<><ProposalCreate /><LocationProbe /></>} />
+                    <Route path="/proposal/:proposalId" element={<LocationProbe />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '제안서 수정' })).toBeInTheDocument()
+        expect(screen.getByDisplayValue('기존 제안서')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('작업 범위'), { target: { value: '수정된 작업 범위입니다.' } })
+        fireEvent.click(screen.getByRole('button', { name: '수정해서 보내기' }))
+
+        await waitFor(() =>
+            expect(updateProposal).toHaveBeenCalledWith(expect.objectContaining({
+                id: 'proposal-created-01',
+                requestId: 'request-product-directed-01',
+                scope: '수정된 작업 범위입니다.',
+                status: 'revision_requested',
+                paymentStatus: 'unpaid',
+            })),
+        )
+        expect(saveProposal).not.toHaveBeenCalled()
         await waitFor(() => {
             expect(screen.getAllByTestId('location').some((item) => item.textContent?.includes('/proposal/proposal-created-01'))).toBe(true)
         })

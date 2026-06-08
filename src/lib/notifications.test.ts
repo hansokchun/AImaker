@@ -140,4 +140,39 @@ describe('buildUserNotifications', () => {
         expect(clientNotifications[0].to).toBe('/workroom/work-01')
         expect(clientNotifications[1].to).toBe('/proposal/proposal-01')
     })
+
+    it('does not notify clients about cancelled proposals', () => {
+        const proposals: Proposal[] = [
+            {
+                id: 'proposal-cancelled-01',
+                requestId: 'request-01',
+                clientId: 'client-01',
+                expertId: 'expert-01',
+                title: '취소된 제안서',
+                scope: '작업 범위',
+                deliverables: ['결과물'],
+                totalPrice: 70000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                progressType: 'single',
+                milestones: [],
+                commercialUseAllowed: true,
+                sourceFileIncluded: false,
+                status: 'cancelled',
+                paymentStatus: 'unpaid',
+                expiresAt: '2026-06-30T00:00:00.000Z',
+            },
+        ]
+
+        const notifications = buildUserNotifications({
+            userId: 'client-01',
+            serviceRequests: [],
+            proposals,
+            consultations: [],
+            messagesByConsultation: {},
+            works: [],
+        })
+
+        expect(notifications).toEqual([])
+    })
 })

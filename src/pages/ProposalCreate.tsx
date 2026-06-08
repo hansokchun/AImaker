@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { getExpertProducts, getRequestById, saveProposal } from '../lib/storage'
+import { getExpertProducts, getProposal, getRequestById, saveProposal, updateProposal } from '../lib/storage'
 import type { ExpertProduct, Proposal, ServiceRequestData } from '../types'
 import './ServiceRequest.css'
 
@@ -19,7 +19,9 @@ export default function ProposalCreate() {
     const [searchParams] = useSearchParams()
     const { user, loading } = useAuth()
     const requestId = searchParams.get('requestId') || ''
+    const proposalId = searchParams.get('proposalId') || ''
     const [request, setRequest] = useState<ServiceRequestData | null>(null)
+    const [proposal, setProposal] = useState<Proposal | null>(null)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
@@ -42,8 +44,13 @@ export default function ProposalCreate() {
         setIsLoaded(false)
         setErrorMessage('')
 
-        Promise.all([getRequestById(requestId), getExpertProducts()])
-            .then(([loadedRequest, products]) => {
+        const proposalPromise = proposalId ? getProposal(proposalId) : Promise.resolve(null)
+
+        Promise.all([proposalPromise, getExpertProducts()])
+            .then(async ([loadedProposal, products]) => {
+                if (!active) return
+                const targetRequestId = loadedProposal?.requestId || requestId
+                const loadedRequest = targetRequestId ? await getRequestById(targetRequestId) : null
                 if (!active) return
                 if (!loadedRequest) {
                     setErrorMessage('제안서를 작성할 의뢰서를 찾을 수 없습니다.')
@@ -54,13 +61,14 @@ export default function ProposalCreate() {
                 const standardPackage = loadedProduct?.packages.standard
 
                 setRequest(loadedRequest)
+                setProposal(loadedProposal)
                 setProduct(loadedProduct)
-                setTitle(`${loadedRequest.desiredResult || loadedRequest.title} 제안서`)
-                setScope(loadedRequest.description || loadedRequest.purpose || '의뢰 요구사항에 맞춰 작업 범위와 조건을 제안합니다.')
-                setDeliverables((standardPackage?.included?.length ? standardPackage.included : [loadedRequest.desiredResult || loadedRequest.title]).join('\n'))
-                setTotalPrice(String(standardPackage?.price || loadedRequest.budget || loadedProduct?.startingPrice || ''))
-                setDeliveryDays(String(standardPackage?.deliveryDays || loadedProduct?.deliveryDays || 1))
-                setRevisionCount(String(standardPackage?.revisionCount ?? loadedProduct?.revisionCount ?? 1))
+                setTitle(loadedProposal?.title || `${loadedRequest.desiredResult || loadedRequest.title} 제안서`)
+                setScope(loadedProposal?.scope || loadedRequest.description || loadedRequest.purpose || '의뢰 요구사항에 맞춰 작업 범위와 조건을 제안합니다.')
+                setDeliverables((loadedProposal?.deliverables?.length ? loadedProposal.deliverables : standardPackage?.included?.length ? standardPackage.included : [loadedRequest.desiredResult || loadedRequest.title]).join('\n'))
+                setTotalPrice(String(loadedProposal?.totalPrice || standardPackage?.price || loadedRequest.budget || loadedProduct?.startingPrice || ''))
+                setDeliveryDays(String(loadedProposal?.deliveryDays || standardPackage?.deliveryDays || loadedProduct?.deliveryDays || 1))
+                setRevisionCount(String(loadedProposal?.revisionCount ?? standardPackage?.revisionCount ?? loadedProduct?.revisionCount ?? 1))
             })
             .catch(() => {
                 if (active) setErrorMessage('제안서 작성 정보를 불러오지 못했습니다.')
@@ -72,7 +80,7 @@ export default function ProposalCreate() {
         return () => {
             active = false
         }
-    }, [requestId])
+    }, [proposalId, requestId])
 
     const returnTo = useMemo(() => {
         const params = new URLSearchParams()
@@ -96,8 +104,8 @@ export default function ProposalCreate() {
 
         const expiresAt = new Date()
         expiresAt.setDate(expiresAt.getDate() + 3)
-        const proposal: Proposal = {
-            id: `proposal-${request.id}-${Date.now()}`,
+        const nextProposal: Proposal = {
+            id: proposal?.id || `proposal-${request.id}-${Date.now()}`,
             requestId: String(request.id),
             clientId: request.clientId || '',
             expertId: user.id,
@@ -111,15 +119,16 @@ export default function ProposalCreate() {
             milestones: [],
             commercialUseAllowed: true,
             sourceFileIncluded: false,
-            status: 'sent',
-            paymentStatus: 'unpaid',
+            status: proposal ? 'revision_requested' : 'sent',
+            paymentStatus: proposal?.paymentStatus || 'unpaid',
             expiresAt: expiresAt.toISOString(),
         }
 
         setSubmitting(true)
         setErrorMessage('')
         try {
-            const savedProposalId = await saveProposal(proposal)
+            const savedProposalId = proposal ? nextProposal.id : await saveProposal(nextProposal)
+            if (proposal) await updateProposal(nextProposal)
             navigate(`/proposal/${savedProposalId}`, {
                 state: {
                     from: {
@@ -167,7 +176,7 @@ export default function ProposalCreate() {
         <div className="request-page">
             <main className="container request-main">
                 <form className="content-card request-form-card" onSubmit={handleSubmit}>
-                    <h1>제안서 작성</h1>
+                    <h1>{proposal ? '제안서 수정' : '제안서 작성'}</h1>
                     <p>
                         {product?.title || request?.title} · 예상 금액 {totalPrice ? `${currency.format(Number(totalPrice))}원` : '미정'}
                     </p>
@@ -206,7 +215,7 @@ export default function ProposalCreate() {
 
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <button type="submit" className="btn-primary" disabled={submitting}>
-                            {submitting ? '저장 중' : '제안서 보내기'}
+                            {submitting ? '저장 중' : proposal ? '수정해서 보내기' : '제안서 보내기'}
                         </button>
                         <Link to={returnTo} className="btn-text">
                             취소
