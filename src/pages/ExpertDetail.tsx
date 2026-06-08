@@ -199,6 +199,14 @@ export default function ExpertDetail() {
         ? product.packages
         : { standard: fallbackPackage, deluxe: null, premium: null }
     const sampleImageUrl = product.sampleImageUrl || sampleLinks[0] || ''
+    const detailGalleryImages = [
+        ...(product.sampleImageUrl ? [{ src: product.sampleImageUrl, alt: `${product.title} 메인 이미지`, label: '메인 이미지' }] : []),
+        ...sampleLinks.map((src, index) => ({
+            src,
+            alt: `${product.title} 상세 이미지 ${index + 1}`,
+            label: `상세 이미지 ${index + 1}`,
+        })),
+    ]
 
     return (
         <main className="container">
@@ -272,14 +280,19 @@ export default function ExpertDetail() {
                         </div>
                     </section>
 
-                    {sampleImageUrl && (
+                    {detailGalleryImages.length > 0 && (
                         <section className="detail-section portfolio-section">
                             <h2>
-                                <span className="material-symbols-outlined">image</span>
-                                포트폴리오/상세 이미지
+                                <span className="material-symbols-outlined" aria-hidden="true">image</span>
+                                상세 이미지
                             </h2>
-                            <div className="section-content sample-result-panel">
-                                <img src={sampleImageUrl} alt={`${product.title} 샘플 미리보기`} />
+                            <div className="section-content sample-result-panel" data-testid="product-detail-gallery">
+                                {detailGalleryImages.map((image) => (
+                                    <figure key={`${image.label}-${image.src}`} className="detail-gallery-item">
+                                        <img src={image.src} alt={image.alt} />
+                                        <figcaption>{image.label}</figcaption>
+                                    </figure>
+                                ))}
                             </div>
                         </section>
                     )}

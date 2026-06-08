@@ -120,10 +120,10 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('카테고리'), { target: { value: 'ai-video-shortform' } })
         fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
         fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '브랜드 홍보용 숏폼 영상의 기획, 콘셉트, 편집 방향을 제공합니다.\n\n작업 범위와 준비 자료를 함께 안내합니다.' } })
-        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [new File(['tiny-image'], 'thumb.png', { type: 'image/png' })] },
         })
-        fireEvent.change(screen.getByLabelText('상세 이미지/포트폴리오 첨부'), {
+        fireEvent.change(screen.getByLabelText('상세 이미지 첨부'), {
             target: { files: [new File(['portfolio'], 'portfolio.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
@@ -187,7 +187,7 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
         fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
         fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 설명입니다.' } })
-        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [new File(['small'], 'small-main.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
@@ -207,7 +207,7 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
         fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
         fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 설명입니다.' } })
-        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [new File(['wrong-ratio'], 'wrong-ratio-main.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
@@ -231,7 +231,7 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
         fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.' } })
         fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 설명입니다.' } })
-        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [overLimitImage] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
@@ -286,14 +286,14 @@ describe('ProductRegister', () => {
         expect(await screen.findByAltText('현재 대표 이미지')).toHaveAttribute('src', editableProduct.sampleImageUrl)
         expect(screen.getByAltText('현재 상세 이미지 1')).toHaveAttribute('src', editableProduct.sampleLinks[0])
 
-        fireEvent.change(screen.getByLabelText('대표 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [new File(['new-main'], 'new-main.png', { type: 'image/png' })] },
         })
-        fireEvent.change(screen.getByLabelText('상세 이미지/포트폴리오 첨부'), {
+        fireEvent.change(screen.getByLabelText('상세 이미지 첨부'), {
             target: { files: [new File(['new-detail'], 'new-detail.png', { type: 'image/png' })] },
         })
 
-        expect(await screen.findByAltText('새 대표 이미지 미리보기')).toHaveAttribute('src', 'blob:new-main.png')
+        expect(await screen.findByAltText('새 메인 이미지 미리보기')).toHaveAttribute('src', 'blob:new-main.png')
         expect(screen.getByAltText('새 상세 이미지 1')).toHaveAttribute('src', 'blob:new-detail.png')
 
         fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '70000' } })
@@ -308,6 +308,46 @@ describe('ProductRegister', () => {
                         editableProduct.sampleLinks[0],
                         expect.stringMatching(/^data:image\/png;base64,/),
                     ],
+                }),
+            ),
+        )
+    })
+
+    it('keeps only one main image preview when replacing the main image', async () => {
+        renderEditRegister()
+
+        expect(await screen.findByAltText('현재 대표 이미지')).toHaveAttribute('src', editableProduct.sampleImageUrl)
+        const fileInputs = document.querySelectorAll<HTMLInputElement>(`input[type="file"]`)
+        fireEvent.change(fileInputs[0], {
+            target: { files: [new File(['new-main'], 'new-main.png', { type: 'image/png' })] },
+        })
+
+        await waitFor(() => expect(screen.queryByAltText('현재 대표 이미지')).not.toBeInTheDocument())
+        expect(screen.getByAltText('새 메인 이미지 미리보기')).toHaveAttribute('src', 'blob:new-main.png')
+    })
+
+    it('renames portfolio inputs to detail images and lets editors remove existing and new detail images', async () => {
+        renderEditRegister()
+
+        expect(await screen.findByLabelText('상세 이미지 첨부')).toBeInTheDocument()
+        expect(screen.queryByLabelText('상세 이미지/포트폴리오 첨부')).not.toBeInTheDocument()
+
+        const fileInputs = document.querySelectorAll<HTMLInputElement>(`input[type="file"]`)
+        fireEvent.change(fileInputs[1], {
+            target: { files: [new File(['new-detail'], 'new-detail.png', { type: 'image/png' })] },
+        })
+
+        expect(await screen.findByAltText('새 상세 이미지 1')).toHaveAttribute('src', 'blob:new-detail.png')
+        fireEvent.click(screen.getByRole('button', { name: '현재 상세 이미지 1 삭제' }))
+        fireEvent.click(screen.getByRole('button', { name: '새 상세 이미지 1 삭제' }))
+
+        fireEvent.click(screen.getAllByRole('checkbox')[0])
+        fireEvent.submit(document.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    sampleLinks: [],
                 }),
             ),
         )

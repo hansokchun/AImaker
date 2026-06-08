@@ -61,8 +61,9 @@ export default function ProductRegister() {
     const [existingProduct, setExistingProduct] = useState<ExpertProduct | null>(null)
     const [existingThumbnailDataUrl, setExistingThumbnailDataUrl] = useState('')
     const [existingReferenceDataUrls, setExistingReferenceDataUrls] = useState<string[]>([])
+    const [selectedThumbnailFile, setSelectedThumbnailFile] = useState<File | null>(null)
     const [selectedThumbnailPreviewUrl, setSelectedThumbnailPreviewUrl] = useState('')
-    const [selectedReferencePreviewUrls, setSelectedReferencePreviewUrls] = useState<string[]>([])
+    const [selectedReferenceFiles, setSelectedReferenceFiles] = useState<Array<{ file: File; previewUrl: string }>>([])
 
     useEffect(() => {
         if (!loading && !session) {
@@ -125,12 +126,27 @@ export default function ProductRegister() {
 
     const handleThumbnailFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         setErrorMessage('')
-        setSelectedThumbnailPreviewUrl(createFilePreviewUrls(event.target.files)[0] || '')
+        const file = event.target.files?.[0] || null
+        setSelectedThumbnailFile(file)
+        setSelectedThumbnailPreviewUrl(file ? URL.createObjectURL(file) : '')
     }
 
     const handleReferenceFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
         setErrorMessage('')
-        setSelectedReferencePreviewUrls(createFilePreviewUrls(event.target.files))
+        const nextFiles = Array.from(event.target.files || []).map((file) => ({
+            file,
+            previewUrl: URL.createObjectURL(file),
+        }))
+        setSelectedReferenceFiles((current) => [...current, ...nextFiles])
+        event.target.value = ''
+    }
+
+    const removeExistingReferenceImage = (index: number) => {
+        setExistingReferenceDataUrls((current) => current.filter((_, itemIndex) => itemIndex !== index))
+    }
+
+    const removeSelectedReferenceImage = (index: number) => {
+        setSelectedReferenceFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))
     }
 
     const parsePackage = (tier: PackageTier, form: PackageFormState): ProductPackage => {
@@ -175,8 +191,10 @@ export default function ProductRegister() {
         setSubmitting(true)
         setErrorMessage('')
         try {
-            const thumbnailDataUrl = await readFirstFileAsDataUrl(thumbnailFileRef.current?.files, 'main') || existingThumbnailDataUrl
-            const referenceDataUrls = await readFilesAsDataUrls(referenceFilesRef.current?.files, 'detail')
+            const thumbnailDataUrl = selectedThumbnailFile
+                ? await readFileAsDataUrl(selectedThumbnailFile, 'main')
+                : existingThumbnailDataUrl
+            const referenceDataUrls = await Promise.all(selectedReferenceFiles.map((entry) => readFileAsDataUrl(entry.file, 'detail')))
             const nextReferenceDataUrls = referenceDataUrls.length > 0 ? [...existingReferenceDataUrls, ...referenceDataUrls] : existingReferenceDataUrls
             const nextProductId = existingProduct?.id || crypto.randomUUID()
             const product: ExpertProduct = {
@@ -255,24 +273,23 @@ export default function ProductRegister() {
                         </Field>
                     </Section>
 
-                    <Section title="이미지와 포트폴리오">
-                        <Field label="대표 이미지 첨부">
+                    <Section title="이미지 등록">
+                        <Field label="메인 이미지 첨부">
                             <input ref={thumbnailFileRef} type="file" accept="image/jpeg,image/png" onChange={handleThumbnailFileChange} style={inputStyle} />
                         </Field>
                         {(existingThumbnailDataUrl || selectedThumbnailPreviewUrl) && (
                             <div style={imagePreviewGridStyle}>
-                                {existingThumbnailDataUrl && (
-                                    <ImagePreviewCard src={existingThumbnailDataUrl} alt="현재 대표 이미지" label="현재 대표 이미지" />
-                                )}
-                                {selectedThumbnailPreviewUrl && (
-                                    <ImagePreviewCard src={selectedThumbnailPreviewUrl} alt="새 대표 이미지 미리보기" label="교체 예정 대표 이미지" />
+                                {selectedThumbnailPreviewUrl ? (
+                                    <ImagePreviewCard src={selectedThumbnailPreviewUrl} alt="새 메인 이미지 미리보기" label="교체 예정 메인 이미지" />
+                                ) : existingThumbnailDataUrl && (
+                                    <ImagePreviewCard src={existingThumbnailDataUrl} alt="현재 대표 이미지" label="현재 메인 이미지" />
                                 )}
                             </div>
                         )}
-                        <Field label="상세 이미지/포트폴리오 첨부">
+                        <Field label="상세 이미지 첨부">
                             <input ref={referenceFilesRef} type="file" accept="image/jpeg,image/png" multiple onChange={handleReferenceFilesChange} style={inputStyle} />
                         </Field>
-                        {(existingReferenceDataUrls.length > 0 || selectedReferencePreviewUrls.length > 0) && (
+                        {(existingReferenceDataUrls.length > 0 || selectedReferenceFiles.length > 0) && (
                             <div style={imagePreviewGridStyle}>
                                 {existingReferenceDataUrls.map((src, index) => (
                                     <ImagePreviewCard
@@ -280,14 +297,18 @@ export default function ProductRegister() {
                                         src={src}
                                         alt={`현재 상세 이미지 ${index + 1}`}
                                         label={`현재 상세 이미지 ${index + 1}`}
+                                        onRemove={() => removeExistingReferenceImage(index)}
+                                        removeLabel={`현재 상세 이미지 ${index + 1} 삭제`}
                                     />
                                 ))}
-                                {selectedReferencePreviewUrls.map((src, index) => (
+                                {selectedReferenceFiles.map((entry, index) => (
                                     <ImagePreviewCard
-                                        key={`selected-reference-${src}-${index}`}
-                                        src={src}
+                                        key={`selected-reference-${entry.previewUrl}-${index}`}
+                                        src={entry.previewUrl}
                                         alt={`새 상세 이미지 ${index + 1}`}
                                         label={`추가 예정 상세 이미지 ${index + 1}`}
+                                        onRemove={() => removeSelectedReferenceImage(index)}
+                                        removeLabel={`새 상세 이미지 ${index + 1} 삭제`}
                                     />
                                 ))}
                             </div>
@@ -432,31 +453,35 @@ const parseCommaList = (value: string) =>
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
 
-const createFilePreviewUrls = (files?: FileList | null) => {
-    if (!files || files.length === 0) return []
-    return Array.from(files).map((file) => URL.createObjectURL(file))
-}
-
-function ImagePreviewCard({ src, alt, label }: { src: string; alt: string; label: string }) {
+function ImagePreviewCard({
+    src,
+    alt,
+    label,
+    onRemove,
+    removeLabel,
+}: {
+    src: string
+    alt: string
+    label: string
+    onRemove?: () => void
+    removeLabel?: string
+}) {
     return (
         <figure style={imagePreviewCardStyle}>
             <img src={src} alt={alt} style={imagePreviewStyle} />
-            <figcaption style={imagePreviewCaptionStyle}>{label}</figcaption>
+            <figcaption style={imagePreviewCaptionStyle}>
+                <span>{label}</span>
+                {onRemove && (
+                    <button type="button" aria-label={removeLabel || `${label} 삭제`} onClick={onRemove} style={imageRemoveButtonStyle}>
+                        삭제
+                    </button>
+                )}
+            </figcaption>
         </figure>
     )
 }
 
 type ProductImageKind = 'main' | 'detail'
-
-const readFirstFileAsDataUrl = async (files?: FileList | null, kind: ProductImageKind = 'detail') => {
-    if (!files || files.length === 0) return ''
-    return readFileAsDataUrl(files[0], kind)
-}
-
-const readFilesAsDataUrls = async (files?: FileList | null, kind: ProductImageKind = 'detail') => {
-    if (!files || files.length === 0) return []
-    return Promise.all(Array.from(files).map((file) => readFileAsDataUrl(file, kind)))
-}
 
 const readFileAsDataUrl = async (file: File, kind: ProductImageKind) => {
     await validateProductImageFile(file, kind)
@@ -575,9 +600,25 @@ const imagePreviewStyle = {
 } as const
 
 const imagePreviewCaptionStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '0.5rem',
+    alignItems: 'center',
     color: 'var(--text-secondary)',
     fontSize: '0.85rem',
     fontWeight: 800,
+} as const
+
+const imageRemoveButtonStyle = {
+    border: '1px solid #fecdd3',
+    borderRadius: '999px',
+    background: '#fff1f2',
+    color: '#be123c',
+    font: 'inherit',
+    fontSize: '0.78rem',
+    fontWeight: 900,
+    padding: '0.25rem 0.55rem',
+    cursor: 'pointer',
 } as const
 
 const fieldsetStyle = {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ExpertDetail from './ExpertDetail'
@@ -229,7 +229,25 @@ describe('ExpertDetail', () => {
         )
 
         expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
-        expect(screen.getByAltText(`${supabaseProduct.title} 샘플 미리보기`)).toBeInTheDocument()
+        expect(screen.getByText('상세 이미지')).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '샘플 링크 보기' })).not.toBeInTheDocument()
+    })
+
+    it('shows the main image first and detail images below it in the detail image section', async () => {
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+
+        const imageSection = screen.getByTestId('product-detail-gallery')
+        const images = within(imageSection).getAllByRole('img')
+        expect(images).toHaveLength(2)
+        expect(images[0]).toHaveAttribute(`src`, supabaseProduct.sampleImageUrl)
+        expect(images[1]).toHaveAttribute(`src`, supabaseProduct.sampleLinks[0])
     })
 })
