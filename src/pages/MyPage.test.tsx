@@ -1657,34 +1657,21 @@ describe('MyPage', () => {
         })
     })
 
-    it('lets experts send a proposal from a product-directed request in my page', async () => {
+    it('opens proposal writing from a product-directed request instead of sending immediately', async () => {
         render(
-            <MemoryRouter>
-                <MyPage />
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<><MyPage mode="work" /><LocationProbe /></>} />
+                    <Route path="/proposals/new" element={<LocationProbe />} />
+                </Routes>
             </MemoryRouter>,
         )
 
-        fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
+        const proposalButton = await screen.findByRole('link', { name: '제안서 보내기' })
+        fireEvent.click(proposalButton)
 
-        const groups = await screen.findByTestId('expert-unified-work-list')
-        fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
-        fireEvent.click(screen.getByRole('button', { name: '제안서 보내기' }))
-
-        await waitFor(() => expect(saveProposal).toHaveBeenCalledWith(
-            expect.objectContaining({
-                requestId: 'request-product-directed-01',
-                clientId: 'client-real-01',
-                expertId: 'user-demo-01',
-                title: expect.stringContaining('상품 지정 요구사항'),
-                status: 'sent',
-            }),
-        ))
-        expect(screen.getByText('제안서를 보냈습니다.')).toBeInTheDocument()
-        expect(
-            screen
-                .getAllByRole('link', { name: '보낸 제안서 보기' })
-                .some((link) => link.getAttribute('href') === '/proposal/proposal-product-directed-created'),
-        ).toBe(true)
+        expect(saveProposal).not.toHaveBeenCalled()
+        expect(screen.getByTestId('location').textContent).toContain('requestId=request-product-directed-01')
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {
@@ -2076,7 +2063,8 @@ describe('MyPage', () => {
             'href',
             '/request/product-owned-01?requestId=request-product-directed-01',
         )
-        const proposalButton = screen.getByRole('button', { name: '제안서 보내기' })
+        const proposalButton = screen.getByRole('link', { name: '제안서 보내기' })
+        expect(proposalButton).toHaveAttribute('href', '/proposals/new?requestId=request-product-directed-01')
         expect(proposalButton.closest('[aria-label]')?.getAttribute('aria-label')).toContain('제안서 작성/수정')
         expect(screen.getByRole('link', { name: '상품 보기' })).toHaveAttribute('href', '/expert/product-owned-01')
     })

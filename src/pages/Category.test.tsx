@@ -88,4 +88,25 @@ describe('Category', () => {
     expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: mockExpertProducts[2].title })).not.toBeInTheDocument()
   })
+
+  it('deselects a category when the selected category is clicked again', async () => {
+    render(
+      <MemoryRouter>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: mockExpertProducts[0].title })
+
+    const categoryCheckbox = screen.getByLabelText(AI_CATEGORIES[1].name) as HTMLInputElement
+    fireEvent.click(categoryCheckbox)
+    expect(categoryCheckbox.checked).toBe(true)
+
+    fireEvent.click(categoryCheckbox)
+
+    expect(categoryCheckbox.checked).toBe(false)
+    expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: mockExpertProducts[2].title })).toBeInTheDocument()
+  })
 })

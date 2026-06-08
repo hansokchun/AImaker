@@ -179,7 +179,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const [reviewRating, setReviewRating] = useState('5')
     const [reviewContent, setReviewContent] = useState('')
-    const [expertProposalMessage, setExpertProposalMessage] = useState('')
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [serviceRequests, setServiceRequests] = useState<ServiceRequestData[]>([])
@@ -513,40 +512,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             setConsultationMessageSubmitting(false)
         }
     }
-    const handleSendProductProposal = async () => {
-        if (!selectedExpertRequest || !user) return
-
-        const standardPackage = selectedExpertRequestProduct?.packages?.standard
-        const totalPrice = Number(standardPackage?.price || selectedExpertRequest.budget || selectedExpertRequestProduct?.startingPrice || 0)
-        const deliveryDays = Number(standardPackage?.deliveryDays || selectedExpertRequestProduct?.deliveryDays || 1)
-        const revisionCount = Number(standardPackage?.revisionCount || selectedExpertRequestProduct?.revisionCount || 1)
-        const expiresAt = new Date()
-        expiresAt.setDate(expiresAt.getDate() + 3)
-        const proposal: Proposal = {
-            id: `proposal-${selectedExpertRequest.id}`,
-            requestId: String(selectedExpertRequest.id),
-            clientId: selectedExpertRequest.clientId || '',
-            expertId: user.id,
-            title: `${selectedExpertRequest.desiredResult || selectedExpertRequest.title} 제안서`,
-            scope: selectedExpertRequest.description || selectedExpertRequest.purpose || '의뢰 요구사항에 맞춰 작업합니다.',
-            deliverables: [selectedExpertRequest.desiredResult || selectedExpertRequest.title],
-            totalPrice: Number.isFinite(totalPrice) && totalPrice > 0 ? totalPrice : 0,
-            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
-            revisionCount: Number.isFinite(revisionCount) && revisionCount >= 0 ? revisionCount : 1,
-            progressType: selectedExpertRequest.progressType || 'single',
-            milestones: [],
-            commercialUseAllowed: true,
-            sourceFileIncluded: false,
-            status: 'sent',
-            expiresAt: expiresAt.toISOString(),
-        }
-
-        const savedProposalId = await saveProposal(proposal)
-        const savedProposal = { ...proposal, id: savedProposalId }
-        setProposals((current) => [savedProposal, ...current])
-        setExpertProposalMessage('제안서를 보냈습니다.')
-    }
-
     const handleCreateConsultationProposal = async () => {
         if (!selectedConsultation || !user || selectedConsultation.expertId !== user.id) return
 
@@ -1207,7 +1172,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         selectedExpertRequestWork ? 'pending' : 'current',
                                         selectedExpertRequestWork
                                             ? undefined
-                                            : { label: '제안서 보내기', onClick: handleSendProductProposal },
+                                            : { label: '제안서 보내기', to: `${ROUTES.PROPOSAL_NEW}?requestId=${selectedExpertRequest.id}` },
                                     )}
                                 {selectedExpertRequestProposal
                                     ? renderClientOrderStage(
@@ -1237,11 +1202,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
                                 )}
                             </div>
-                            {expertProposalMessage && (
-                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{expertProposalMessage}</p>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
@@ -1356,7 +1316,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             selectedExpertRequestWork ? 'pending' : 'current',
                             selectedExpertRequestWork
                                 ? undefined
-                                : { label: '제안서 보내기', onClick: handleSendProductProposal },
+                                : { label: '제안서 보내기', to: `${ROUTES.PROPOSAL_NEW}?requestId=${selectedExpertRequest.id}` },
                         )}
                     {selectedExpertRequestProposal
                         ? renderClientOrderStage(
@@ -1386,11 +1346,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
                     )}
                 </div>
-                {expertProposalMessage && (
-                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{expertProposalMessage}</p>
-                    </div>
-                )}
             </div>
         )
     }

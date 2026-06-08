@@ -13,6 +13,7 @@ import Category from './pages/Category';
 import ExpertDetail from './pages/ExpertDetail';
 import ServiceRequest from './pages/ServiceRequest';
 import Proposal from './pages/Proposal';
+import ProposalCreate from './pages/ProposalCreate';
 import Workroom from './pages/Workroom';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
@@ -34,6 +35,7 @@ function App() {
                     <Route path={ROUTES.PRODUCT_NEW} element={<ProductRegister />} />
                     <Route path={ROUTES.PRODUCT_EDIT} element={<ProductRegister />} />
                     <Route path={ROUTES.SERVICE_REQUEST_PRODUCT} element={<ServiceRequest />} />
+                    <Route path={ROUTES.PROPOSAL_NEW} element={<ProposalCreate />} />
                     <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
                     <Route path={ROUTES.WORKROOM} element={<Workroom />} />
                     <Route path={ROUTES.LOGIN} element={<Login />} />

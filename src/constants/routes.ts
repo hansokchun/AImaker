@@ -10,6 +10,7 @@ export const ROUTES = {
     PRODUCT_NEW: '/products/new',
     PRODUCT_EDIT: '/products/:productId/edit',
     SERVICE_REQUEST_PRODUCT: '/request/:productId',
+    PROPOSAL_NEW: '/proposals/new',
     PROPOSAL: '/proposal/:proposalId',
     WORKROOM: '/workroom/:workId',
     WORK_DASHBOARD: '/my-work',

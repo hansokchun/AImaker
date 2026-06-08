@@ -38,7 +38,7 @@ export default function Category() {
         }
 
         if (selectedCategories.length === 1 && selectedCategories.includes(categoryId)) {
-            setSelectedCategories(allCategoryIds)
+            setSelectedCategories([])
             return
         }
 
