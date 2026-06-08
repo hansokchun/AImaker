@@ -96,8 +96,8 @@ describe('buildUserNotifications', () => {
         })
 
         expect(expertNotifications.map((item) => item.title)).toEqual(['새 상담 메시지', '새 상품 의뢰'])
-        expect(expertNotifications[0].to).toBe('/my-work?panel=consultations&consultation=consultation-01')
-        expect(expertNotifications[1].to).toBe('/my-work?panel=expert&expertRequest=request-01')
+        expect(expertNotifications[0].to).toBe('/my-work?role=expert&panel=consultations&consultation=consultation-01')
+        expect(expertNotifications[1].to).toBe('/my-work?role=expert&panel=client&expertRequest=request-01')
         expect(clientNotifications.map((item) => item.title)).toEqual(['작업물 도착', '새 제안서 도착'])
         expect(clientNotifications[0].to).toBe('/workroom/work-01')
         expect(clientNotifications[1].to).toBe('/proposal/proposal-01')

@@ -58,7 +58,7 @@ export function buildUserNotifications({
             kind: 'request',
             title: '새 상품 의뢰',
             body: request.desiredResult || request.title,
-            to: `${ROUTES.WORK_DASHBOARD}?panel=expert&expertRequest=${request.id}`,
+            to: `${ROUTES.WORK_DASHBOARD}?role=expert&panel=client&expertRequest=${request.id}`,
             createdAt: request.createdAt,
         }))
 
@@ -84,7 +84,7 @@ export function buildUserNotifications({
                 kind: 'message',
                 title: '새 상담 메시지',
                 body: latestMessage.body || consultation.title,
-                to: `${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`,
+                to: `${ROUTES.WORK_DASHBOARD}?role=${consultation.expertId === userId ? 'expert' : 'client'}&panel=consultations&consultation=${consultation.id}`,
                 createdAt: latestMessage.createdAt || consultation.lastMessageAt,
             } satisfies UserNotification
         })

@@ -1985,4 +1985,20 @@ describe('MyPage', () => {
         expect(await screen.findByText('리뷰가 등록되었습니다.')).toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '리뷰 작성하기' })).not.toBeInTheDocument()
     })
+    it('opens the expert transaction selected from a notification URL in work mode', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=expert&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<><MyPage mode="work" /><LocationProbe /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.getByRole('button', { name: '거래관리' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByTestId('location').textContent).toContain('role=expert')
+        expect(screen.getByTestId('location').textContent).toContain('panel=client')
+        expect(screen.getByTestId('location').textContent).toContain('expertRequest=request-product-directed-01')
+        expect(screen.getByRole('heading', { name: /상품 지정 요구사항/ })).toBeInTheDocument()
+    })
 })

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Navbar from './Navbar'
 
@@ -21,6 +21,11 @@ vi.mock('../lib/notifications', () => ({
     getUserNotifications: (userId: string) => mockGetUserNotifications(userId),
 }))
 
+function LocationProbe() {
+    const location = useLocation()
+    return <span data-testid="location">{location.pathname}{location.search}</span>
+}
+
 describe('Navbar', () => {
     beforeEach(() => {
         mockUseAuth.mockReturnValue({
@@ -30,6 +35,7 @@ describe('Navbar', () => {
         mockGetStoredProfile.mockResolvedValue(null)
         mockGetUserDisplayProfile.mockResolvedValue(null)
         mockGetUserNotifications.mockResolvedValue([])
+        window.localStorage.clear()
     })
 
     it('removes the single top navigation link and keeps account actions only', () => {
@@ -169,7 +175,7 @@ describe('Navbar', () => {
                 kind: 'request',
                 title: '새 상품 의뢰',
                 body: '숏폼 영상 제작',
-                to: '/my-work?panel=expert&expertRequest=request-01',
+                to: '/my-work?role=expert&panel=client&expertRequest=request-01',
                 createdAt: '2026-06-10T10:00:00.000Z',
             },
             {
@@ -196,8 +202,50 @@ describe('Navbar', () => {
         expect(screen.getByRole('menu', { name: '알림 목록' })).toBeInTheDocument()
         expect(screen.getByRole('menuitem', { name: /새 상품 의뢰/ })).toHaveAttribute(
             'href',
-            '/my-work?panel=expert&expertRequest=request-01',
+            '/my-work?role=expert&panel=client&expertRequest=request-01',
         )
         expect(screen.getByRole('menuitem', { name: /새 제안서 도착/ })).toHaveAttribute('href', '/proposal/proposal-01')
+    })
+    it('marks a notification as read after opening its target screen', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'user-demo-01', email: 'demo@example.com', user_metadata: {} },
+            signOut: vi.fn(),
+        })
+        mockGetUserNotifications.mockResolvedValue([
+            {
+                id: 'request-request-01',
+                kind: 'request',
+                title: '새 상품 의뢰',
+                body: '숏폼 영상 제작',
+                to: '/my-work?role=expert&panel=client&expertRequest=request-01',
+                createdAt: '2026-06-10T10:00:00.000Z',
+            },
+            {
+                id: 'proposal-proposal-01',
+                kind: 'proposal',
+                title: '새 제안서 도착',
+                body: '50,000원',
+                to: '/proposal/proposal-01',
+                createdAt: '2026-06-10T09:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <Routes>
+                    <Route path="*" element={<><Navbar /><LocationProbe /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const notificationButton = await screen.findByRole('button', { name: '알림 2개 열기' })
+        fireEvent.click(notificationButton)
+        fireEvent.click(screen.getByRole('menuitem', { name: /새 상품 의뢰/ }))
+
+        await waitFor(() =>
+            expect(screen.getByTestId('location')).toHaveTextContent('/my-work?role=expert&panel=client&expertRequest=request-01'),
+        )
+        expect(screen.getByRole('button', { name: '알림 1개 열기' })).toHaveTextContent('1')
+        expect(window.localStorage.getItem('aiconnect_read_notifications_user-demo-01')).toContain('request-request-01')
     })
 })

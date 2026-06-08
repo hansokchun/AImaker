@@ -39,7 +39,10 @@ export default function Navbar() {
         refreshProfileImage();
         getUserNotifications(user.id)
             .then((items) => {
-                if (active) setNotifications(items.slice(0, 8));
+                if (active) {
+                    const readIds = getReadNotificationIds(user.id);
+                    setNotifications(items.filter((item) => !readIds.has(item.id)).slice(0, 8));
+                }
             })
             .catch(() => {
                 if (active) setNotifications([]);
@@ -69,6 +72,13 @@ export default function Navbar() {
         } catch (error) {
             console.error('로그아웃 중 오류 발생:', error);
         }
+    };
+
+    const handleNotificationOpen = (notification: UserNotification) => {
+        if (!user) return;
+        markNotificationAsRead(user.id, notification.id);
+        setNotifications((current) => current.filter((item) => item.id !== notification.id));
+        setNotificationMenuOpen(false);
     };
 
     return (
@@ -106,7 +116,7 @@ export default function Navbar() {
                                                 to={notification.to}
                                                 className="nav-notification-item"
                                                 role="menuitem"
-                                                onClick={() => setNotificationMenuOpen(false)}
+                                                onClick={() => handleNotificationOpen(notification)}
                                             >
                                                 <span>{notification.title}</span>
                                                 <small>{notification.body}</small>
@@ -177,3 +187,24 @@ export default function Navbar() {
         </header>
     );
 }
+
+const getReadNotificationStorageKey = (userId: string) => `aiconnect_read_notifications_${userId}`;
+
+const getReadNotificationIds = (userId: string) => {
+    try {
+        const raw = window.localStorage.getItem(getReadNotificationStorageKey(userId));
+        return new Set<string>(raw ? JSON.parse(raw) : []);
+    } catch {
+        return new Set<string>();
+    }
+};
+
+const markNotificationAsRead = (userId: string, notificationId: string) => {
+    try {
+        const readIds = getReadNotificationIds(userId);
+        readIds.add(notificationId);
+        window.localStorage.setItem(getReadNotificationStorageKey(userId), JSON.stringify([...readIds]));
+    } catch {
+        // localStorage를 사용할 수 없는 환경에서는 현재 화면 상태만 갱신합니다.
+    }
+};

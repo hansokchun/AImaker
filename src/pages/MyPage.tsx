@@ -98,6 +98,9 @@ const allMenuItems = [...profileMenuItems, ...legacyWorkMenuItems]
 const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; label: string }> = allMenuItems): value is MyPagePanel =>
     Boolean(value && items.some((item) => item.id === value))
 
+const normalizeWorkPanel = (value: string | null, mode: MyPageMode) =>
+    mode === 'work' && value === 'expert' ? 'client' : value
+
 const getClientWorkStageTitle = (work: Work) => {
     if (work.status === 'completed') return '작업 완료'
     if (work.status === 'submitted') return '결과물 검토 대기'
@@ -154,12 +157,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const location = useLocation()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
-    const [workRole, setWorkRole] = useState<'client' | 'expert'>('client')
+    const [workRole, setWorkRole] = useState<'client' | 'expert'>(() =>
+        searchParams.get('role') === 'expert' || searchParams.get('panel') === 'expert' ? 'expert' : 'client',
+    )
     const menuItems = mode === 'profile' ? profileMenuItems : mode === 'work' ? (workRole === 'expert' ? expertWorkMenuItems : clientWorkMenuItems) : allMenuItems
     const defaultPanel = menuItems[0].id
     const searchParamString = searchParams.toString()
+    const initialPanel = normalizeWorkPanel(searchParams.get('panel'), mode)
     const [activePanel, setActivePanel] = useState<MyPagePanel>(
-        isMyPagePanel(searchParams.get('panel'), menuItems) ? searchParams.get('panel') : defaultPanel,
+        isMyPagePanel(initialPanel, menuItems) ? initialPanel : defaultPanel,
     )
     const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(searchParams.get('clientOrder'))
     const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(searchParams.get('expertRequest'))
@@ -211,36 +217,48 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     useEffect(() => {
         const currentParams = new URLSearchParams(searchParamString)
-        const panel = currentParams.get('panel')
+        const rawPanel = currentParams.get('panel')
+        const requestedRole = currentParams.get('role')
+        const panel = normalizeWorkPanel(rawPanel, mode)
         const clientOrder = currentParams.get('clientOrder')
         const expertRequest = currentParams.get('expertRequest')
         const consultation = currentParams.get('consultation')
         const nextPanel = isMyPagePanel(panel, menuItems) ? panel : defaultPanel
 
+        if (mode === 'work') {
+            const nextRole = requestedRole === 'expert' || rawPanel === 'expert'
+                ? 'expert'
+                : requestedRole === 'client'
+                    ? 'client'
+                    : workRole
+            if (nextRole !== workRole) setWorkRole(nextRole)
+        }
         setActivePanel((currentPanel) => (currentPanel === nextPanel ? currentPanel : nextPanel))
         setSelectedClientOrderId((currentId) => (currentId === clientOrder ? currentId : clientOrder))
         setSelectedExpertRequestId((currentId) => (currentId === expertRequest ? currentId : expertRequest))
         if (!(mode === 'work' && nextPanel === 'consultations' && workRoleSelectedByUserRef.current)) {
             setSelectedConsultationId((currentId) => (currentId === consultation ? currentId : consultation))
         }
-    }, [defaultPanel, menuItems, mode, searchParamString])
+    }, [defaultPanel, menuItems, mode, searchParamString, workRole])
 
     useEffect(() => {
         const currentParams = new URLSearchParams(searchParamString)
-        const panel = currentParams.get('panel')
+        const panel = normalizeWorkPanel(currentParams.get('panel'), mode)
         const panelFromUrl = isMyPagePanel(panel, menuItems) ? panel : defaultPanel
         if (panelFromUrl !== activePanel) return
 
         const nextParams = new URLSearchParams()
+        if (mode === 'work' && workRole === 'expert') nextParams.set('role', 'expert')
         if (activePanel !== defaultPanel) nextParams.set('panel', activePanel)
-        if (activePanel === 'client' && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
+        if (activePanel === 'client' && mode === 'work' && workRole === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
+        if (activePanel === 'client' && !(mode === 'work' && workRole === 'expert') && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
         if (activePanel === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
         if (activePanel === 'consultations' && selectedConsultationId) nextParams.set('consultation', selectedConsultationId)
 
         if (currentParams.toString() !== nextParams.toString()) {
             setSearchParams(nextParams, { replace: true })
         }
-    }, [activePanel, defaultPanel, menuItems, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams])
+    }, [activePanel, defaultPanel, menuItems, mode, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams, workRole])
 
     useEffect(() => {
         if (user && supabase) {
