@@ -1435,7 +1435,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             </div>
 
             {favoriteProducts.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
                     {favoriteProducts.map((product) => (
                         <Link
                             key={product.id}
@@ -1444,6 +1444,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             aria-label={`${product.title} 상세 보기`}
                             style={{
                                 display: 'grid',
+                                gridTemplateColumns: 'minmax(92px, 0.33fr) minmax(0, 1fr)',
+                                alignItems: 'center',
                                 gap: '0.75rem',
                                 padding: '0.85rem',
                                 borderRadius: '0.85rem',
@@ -1453,7 +1455,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 textDecoration: 'none',
                             }}
                         >
-                            <div style={{ overflow: 'hidden', borderRadius: '0.7rem', background: '#e2e8f0', aspectRatio: '4 / 3' }}>
+                            <div style={{ overflow: 'hidden', borderRadius: '0.7rem', background: '#e2e8f0', height: '74px' }}>
                                 {product.sampleImageUrl ? (
                                     <img
                                         src={product.sampleImageUrl}

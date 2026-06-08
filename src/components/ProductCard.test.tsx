@@ -5,6 +5,7 @@ import ProductCard from './ProductCard'
 import { mockExpertProducts } from '../data/mockData'
 
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
+const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
 const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -15,6 +16,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../lib/storage', () => ({
   getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
+  getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
   toggleFavoriteProduct: (userId: string, productId: string) => toggleFavoriteProduct(userId, productId),
 }))
 
@@ -26,8 +28,10 @@ function CurrentPath() {
 describe('ProductCard', () => {
   beforeEach(() => {
     getUserFavoriteProductIds.mockClear()
+    getFavoriteProductCount.mockClear()
     toggleFavoriteProduct.mockClear()
     getUserFavoriteProductIds.mockResolvedValue([])
+    getFavoriteProductCount.mockResolvedValue(0)
     toggleFavoriteProduct.mockImplementation(async (_userId: string, productId: string) => [productId])
   })
 

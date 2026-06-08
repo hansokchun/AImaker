@@ -42,6 +42,7 @@ const getUserDisplayProfile = vi.fn(async () => ({
 }))
 const getExpertReviews = vi.fn(async () => expertReviews)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
+const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
 const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
 const createConsultation = vi.fn(async () => ({
     id: 'consultation-created-01',
@@ -64,6 +65,7 @@ vi.mock('../lib/storage', () => ({
     getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
     getExpertReviews: (expertId: string) => getExpertReviews(expertId),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
+    getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
     toggleFavoriteProduct: (userId: string, productId: string) => toggleFavoriteProduct(userId, productId),
     createConsultation: (input: unknown) => createConsultation(input),
 }))
@@ -88,8 +90,24 @@ describe('ExpertDetail', () => {
         })
         getExpertReviews.mockResolvedValue(expertReviews)
         getUserFavoriteProductIds.mockResolvedValue([])
+        getFavoriteProductCount.mockResolvedValue(0)
         toggleFavoriteProduct.mockImplementation(async (_userId: string, productId: string) => [productId])
         mockUser = { id: 'client-real-01', email: 'client@example.com' }
+    })
+
+    it('shows how many clients saved the product as a favorite', async () => {
+        getFavoriteProductCount.mockResolvedValue(3)
+
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('3명 관심')).toBeInTheDocument()
+        expect(getFavoriteProductCount).toHaveBeenCalledWith(supabaseProduct.id)
     })
 
     it('loads product details from the shared product storage', async () => {

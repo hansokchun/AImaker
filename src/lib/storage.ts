@@ -63,6 +63,23 @@ export async function getUserFavoriteProductIds(userId: string): Promise<string[
     }
 }
 
+export async function getFavoriteProductCount(productId: string): Promise<number> {
+    if (!productId) return 0;
+    try {
+        let count = 0;
+        for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (!key?.startsWith(`${STORAGE_KEYS.FAVORITE_PRODUCTS}_`)) continue;
+            const raw = localStorage.getItem(key);
+            const ids = raw ? (JSON.parse(raw) as string[]) : [];
+            if (ids.map(String).includes(productId)) count += 1;
+        }
+        return count;
+    } catch {
+        return 0;
+    }
+}
+
 export async function toggleFavoriteProduct(userId: string, productId: string): Promise<string[]> {
     const currentIds = await getUserFavoriteProductIds(userId);
     const exists = currentIds.includes(productId);

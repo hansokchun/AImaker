@@ -244,6 +244,7 @@ export default function ExpertDetail() {
                                     productId={product.id}
                                     productTitle={product.title}
                                     className="product-detail-favorite"
+                                    showCount
                                 />
                             )}
                             <h1>{product.title}</h1>

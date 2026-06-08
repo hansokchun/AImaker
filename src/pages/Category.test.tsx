@@ -1,14 +1,26 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Category from './Category'
 import { mockExpertProducts } from '../data/mockData'
 
+const getExpertProducts = vi.fn(async () => mockExpertProducts)
+const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
+const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
+const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
+
 vi.mock('../lib/storage', () => ({
-  getExpertProducts: vi.fn(async () => mockExpertProducts),
+  getExpertProducts: () => getExpertProducts(),
+  getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
+  getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
+  toggleFavoriteProduct: (userId: string, productId: string) => toggleFavoriteProduct(userId, productId),
 }))
 
 describe('Category', () => {
+  beforeEach(() => {
+    getExpertProducts.mockResolvedValue(mockExpertProducts)
+  })
+
   it('renders products instead of expert cards', async () => {
     render(
       <MemoryRouter>
@@ -26,7 +38,7 @@ describe('Category', () => {
     expect(screen.getByText('ChatGPT · Runway · Premiere Pro')).toBeInTheDocument()
   })
 
-  it('shows an empty state when filters remove all products', async () => {
+  it('shows an empty state without an all-products button when filters remove all products', async () => {
     render(
       <MemoryRouter>
         <Category />
@@ -38,6 +50,25 @@ describe('Category', () => {
 
     expect(screen.getByText('아직 등록된 AI 작업이 없습니다.')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'AI 작업 요청하기' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '전체 상품 보기' })).toHaveAttribute('href', '/category')
+    expect(screen.queryByRole('link', { name: '전체 상품 보기' })).not.toBeInTheDocument()
+  })
+
+  it('keeps all products visible by default even when a saved product has an unknown category', async () => {
+    getExpertProducts.mockResolvedValue([
+      {
+        ...mockExpertProducts[0],
+        id: 'product-unknown-category',
+        title: '등록 카테고리 불일치 상품',
+        category: 'custom-category-from-db' as any,
+      },
+    ])
+
+    render(
+      <MemoryRouter>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: '등록 카테고리 불일치 상품' })).toBeInTheDocument()
   })
 })

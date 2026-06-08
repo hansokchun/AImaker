@@ -2,25 +2,35 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { getUserFavoriteProductIds, toggleFavoriteProduct } from '../lib/storage'
+import { getFavoriteProductCount, getUserFavoriteProductIds, toggleFavoriteProduct } from '../lib/storage'
 
 interface FavoriteProductButtonProps {
     productId: string
     productTitle: string
     className?: string
+    showCount?: boolean
 }
 
-export default function FavoriteProductButton({ productId, productTitle, className = '' }: FavoriteProductButtonProps) {
+export default function FavoriteProductButton({ productId, productTitle, className = '', showCount = false }: FavoriteProductButtonProps) {
     const location = useLocation()
     const navigate = useNavigate()
     const { user } = useAuth()
     const [favoriteProductIds, setFavoriteProductIds] = useState<string[]>([])
+    const [favoriteCount, setFavoriteCount] = useState(0)
     const [saving, setSaving] = useState(false)
     const toggledByUserRef = useRef(false)
     const isFavorite = favoriteProductIds.includes(productId)
 
     useEffect(() => {
         let active = true
+        getFavoriteProductCount(productId)
+            .then((count) => {
+                if (active) setFavoriteCount(count)
+            })
+            .catch(() => {
+                if (active) setFavoriteCount(0)
+            })
+
         if (!user) {
             setFavoriteProductIds([])
             toggledByUserRef.current = false
@@ -55,11 +65,14 @@ export default function FavoriteProductButton({ productId, productTitle, classNa
         const optimisticIds = isFavorite
             ? favoriteProductIds.filter((id) => id !== productId)
             : [productId, ...favoriteProductIds]
+        setFavoriteCount((count) => Math.max(0, count + (isFavorite ? -1 : 1)))
         setFavoriteProductIds(optimisticIds)
         try {
             const nextIds = await toggleFavoriteProduct(user.id, productId)
             const nextStateMatchesIntent = isFavorite ? !nextIds.includes(productId) : nextIds.includes(productId)
             setFavoriteProductIds(nextStateMatchesIntent ? nextIds : optimisticIds)
+            const nextCount = await getFavoriteProductCount(productId)
+            setFavoriteCount(nextCount)
         } finally {
             setSaving(false)
         }
@@ -78,6 +91,7 @@ export default function FavoriteProductButton({ productId, productTitle, classNa
                 {isFavorite ? 'favorite' : 'favorite_border'}
             </span>
             <span>{isFavorite ? '관심 상품' : '관심 추가'}</span>
+            {showCount && <small>{favoriteCount.toLocaleString('ko-KR')}명 관심</small>}
         </button>
     )
 }
