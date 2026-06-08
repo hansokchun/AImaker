@@ -2001,4 +2001,40 @@ describe('MyPage', () => {
         expect(screen.getByTestId('location').textContent).toContain('expertRequest=request-product-directed-01')
         expect(screen.getByRole('heading', { name: /상품 지정 요구사항/ })).toBeInTheDocument()
     })
+
+    it('switches work roles from expert view back to client view and updates the menu', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<><MyPage mode="work" /><LocationProbe /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.getByRole('button', { name: '내 상품관리' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '의뢰자로 보기' }))
+
+        await waitFor(() => expect(screen.getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.queryByRole('button', { name: '내 상품관리' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '거래관리' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByTestId('location').textContent).not.toContain('role=expert')
+    })
+
+    it('lets experts open the received request from the pre-work stage', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('link', { name: '받은 의뢰서 보기' })).toHaveAttribute(
+            'href',
+            '/request/product-owned-01?requestId=request-product-directed-01',
+        )
+    })
 })

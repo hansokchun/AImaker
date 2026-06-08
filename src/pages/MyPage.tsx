@@ -225,7 +225,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         const consultation = currentParams.get('consultation')
         const nextPanel = isMyPagePanel(panel, menuItems) ? panel : defaultPanel
 
-        if (mode === 'work') {
+        if (mode === 'work' && !workRoleSelectedByUserRef.current) {
             const nextRole = requestedRole === 'expert' || rawPanel === 'expert'
                 ? 'expert'
                 : requestedRole === 'client'
@@ -597,8 +597,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const getPanelSearchParams = (panel: MyPagePanel) => {
         const nextParams = new URLSearchParams()
+        if (mode === 'work' && workRole === 'expert') nextParams.set('role', 'expert')
         if (panel !== defaultPanel) nextParams.set('panel', panel)
-        if (panel === 'client' && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
+        if (panel === 'client' && mode === 'work' && workRole === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
+        if (panel === 'client' && !(mode === 'work' && workRole === 'expert') && selectedClientOrderId) nextParams.set('clientOrder', String(selectedClientOrderId))
         if (panel === 'expert' && selectedExpertRequestId) nextParams.set('expertRequest', String(selectedExpertRequestId))
         if (panel === 'consultations') {
             const consultationId = getRoleConsultationId()
@@ -617,6 +619,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const handleWorkRoleChange = (nextRole: 'client' | 'expert') => {
         workRoleSelectedByUserRef.current = true
         setWorkRole(nextRole)
+        const nextParams = new URLSearchParams()
+        if (nextRole === 'expert') nextParams.set('role', 'expert')
+        setActivePanel('client')
+        setSearchParams(nextParams)
         if (activePanel !== 'consultations') return
 
         const nextConsultation = nextRole === 'client'
@@ -715,11 +721,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             aria-label="내 작업 역할 전환"
             style={{
                 display: 'grid',
-                padding: '0.3rem',
-                borderRadius: '0.75rem',
-                background: '#f1f5f9',
+                gridTemplateColumns: '1fr 1fr',
+                padding: '0.35rem',
+                borderRadius: '999px',
+                background: 'white',
                 border: '1px solid var(--border-color)',
-                gap: '0.3rem',
+                gap: '0.35rem',
+                boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
             }}
         >
             <button
@@ -727,13 +735,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 aria-pressed={workRole === 'client'}
                 onClick={() => handleWorkRoleChange('client')}
                 style={{
-                    padding: '0.75rem 0.9rem',
-                    borderRadius: '0.55rem',
+                    padding: '0.78rem 1rem',
+                    borderRadius: '999px',
                     border: 'none',
-                    background: workRole === 'client' ? 'white' : 'transparent',
+                    background: workRole === 'client' ? '#eff6ff' : 'transparent',
                     color: workRole === 'client' ? '#1d4ed8' : '#475569',
                     fontWeight: 800,
-                    textAlign: 'left',
+                    textAlign: 'center',
                     cursor: 'pointer',
                 }}
             >
@@ -744,13 +752,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 aria-pressed={workRole === 'expert'}
                 onClick={() => handleWorkRoleChange('expert')}
                 style={{
-                    padding: '0.75rem 0.9rem',
-                    borderRadius: '0.55rem',
+                    padding: '0.78rem 1rem',
+                    borderRadius: '999px',
                     border: 'none',
-                    background: workRole === 'expert' ? 'white' : 'transparent',
+                    background: workRole === 'expert' ? '#ecfdf5' : 'transparent',
                     color: workRole === 'expert' ? '#166534' : '#475569',
                     fontWeight: 800,
-                    textAlign: 'left',
+                    textAlign: 'center',
                     cursor: 'pointer',
                 }}
             >
@@ -1266,7 +1274,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         '받은 의뢰',
                         selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
                         'done',
-                        selectedExpertRequest.productId ? { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` } : undefined,
+                        selectedExpertRequest.productId ? { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` } : undefined,
                     )}
                     {selectedExpertRequestProposal
                         ? renderClientOrderStage(
@@ -1706,13 +1714,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     </div>
                 </div>
 
+                {mode === 'work' && (
+                    <div style={{ marginBottom: '1.25rem', maxWidth: '31rem' }}>
+                        {renderWorkRoleSwitch()}
+                    </div>
+                )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
                     <aside style={{ ...cardStyle, padding: '1.25rem', position: 'sticky', top: '1rem' }}>
-                        {mode === 'work' ? (
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                {renderWorkRoleSwitch()}
-                            </div>
-                        ) : (
+                        {mode !== 'work' && (
                             <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
                                 <div>
                                     <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>닉네임</span>
