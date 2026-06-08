@@ -290,7 +290,6 @@ export default function ExpertDetail() {
                                 {detailGalleryImages.map((image) => (
                                     <figure key={`${image.label}-${image.src}`} className="detail-gallery-item">
                                         <img src={image.src} alt={image.alt} />
-                                        <figcaption>{image.label}</figcaption>
                                     </figure>
                                 ))}
                             </div>

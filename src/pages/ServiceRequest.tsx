@@ -133,13 +133,13 @@ export default function ServiceRequest() {
             if (editingRequest) {
                 await updateRequest(newRequest, user.id)
                 alert('의뢰서를 수정했습니다. 전문가가 수정된 내용을 확인할 수 있습니다.')
-                navigate(ROUTES.MY_PAGE)
+                navigate(`${ROUTES.WORK_DASHBOARD}?panel=client&clientOrder=${newRequest.id}`)
                 return
             }
 
             await saveRequest(newRequest, user.id)
             alert('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
-            navigate(ROUTES.MY_PAGE)
+            navigate(`${ROUTES.WORK_DASHBOARD}?panel=client&clientOrder=${newRequest.id}`)
         } catch (error) {
             alert(error instanceof Error ? error.message : '요구사항 저장에 실패했습니다.')
         }

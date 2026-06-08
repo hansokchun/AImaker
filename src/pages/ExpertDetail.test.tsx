@@ -249,5 +249,7 @@ describe('ExpertDetail', () => {
         expect(images).toHaveLength(2)
         expect(images[0]).toHaveAttribute(`src`, supabaseProduct.sampleImageUrl)
         expect(images[1]).toHaveAttribute(`src`, supabaseProduct.sampleLinks[0])
+        expect(within(imageSection).queryByText('메인 이미지')).not.toBeInTheDocument()
+        expect(within(imageSection).queryByText('상세 이미지 1')).not.toBeInTheDocument()
     })
 })

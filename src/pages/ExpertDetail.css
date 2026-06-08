@@ -316,13 +316,6 @@
     border-radius: 0;
 }
 
-.detail-gallery-item figcaption {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 800;
-    padding: 0 3rem;
-}
-
 .sample-result-panel a {
     color: var(--primary);
     font-weight: 800;

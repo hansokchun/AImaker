@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ServiceRequest from './ServiceRequest'
 import { mockExpertProducts } from '../data/mockData'
@@ -39,6 +39,11 @@ vi.mock('../contexts/AuthContext', () => ({
         user: mockUser,
     }),
 }))
+
+function LocationProbe() {
+    const location = useLocation()
+    return <p data-testid="location">{location.pathname}{location.search}</p>
+}
 
 describe('ServiceRequest', () => {
     beforeEach(() => {
@@ -82,7 +87,7 @@ describe('ServiceRequest', () => {
             <MemoryRouter initialEntries={[`/request/${product.id}`]}>
                 <Routes>
                     <Route path="/request/:productId" element={<ServiceRequest />} />
-                    <Route path="/mypage" element={<h1>마이페이지</h1>} />
+                    <Route path="/my-work" element={<><h1>거래관리</h1><LocationProbe /></>} />
                 </Routes>
             </MemoryRouter>,
         )
@@ -117,7 +122,9 @@ describe('ServiceRequest', () => {
             mockUser?.id,
         )
         expect(window.alert).toHaveBeenCalledWith('요구사항이 상품 등록 전문가에게 전달되었습니다. 제안서를 기다려주세요.')
-        expect(await screen.findByRole('heading', { name: '마이페이지' })).toBeInTheDocument()
+        const savedRequest = vi.mocked(saveRequest).mock.calls[0][0] as ServiceRequestData
+        expect(await screen.findByRole('heading', { name: '거래관리' })).toBeInTheDocument()
+        expect(screen.getByTestId('location')).toHaveTextContent(`/my-work?panel=client&clientOrder=${savedRequest.id}`)
     })
 
     it('loads and updates an existing product request from my page', async () => {
@@ -148,6 +155,7 @@ describe('ServiceRequest', () => {
                 <Routes>
                     <Route path="/request/:productId" element={<ServiceRequest />} />
                     <Route path="/mypage" element={<h1>마이페이지</h1>} />
+                    <Route path="/my-work" element={<h1>거래관리</h1>} />
                 </Routes>
             </MemoryRouter>,
         )
@@ -237,6 +245,7 @@ describe('ServiceRequest', () => {
                 <Routes>
                     <Route path="/request/:productId" element={<ServiceRequest />} />
                     <Route path="/requests" element={<h1>제안 대기</h1>} />
+                    <Route path="/my-work" element={<h1>거래관리</h1>} />
                 </Routes>
             </MemoryRouter>,
         )
