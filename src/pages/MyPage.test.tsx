@@ -2036,5 +2036,6 @@ describe('MyPage', () => {
             'href',
             '/request/product-owned-01?requestId=request-product-directed-01',
         )
+        expect(screen.getByRole('link', { name: '상품 보기' })).toHaveAttribute('href', '/expert/product-owned-01')
     })
 })

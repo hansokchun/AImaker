@@ -53,14 +53,20 @@ export function buildUserNotifications({
 }: UserNotificationSource): UserNotification[] {
     const requestNotifications = serviceRequests
         .filter((request) => request.expertId === userId && request.productId && request.status === 'pending')
-        .map((request): UserNotification => ({
-            id: `request-${request.id}`,
-            kind: 'request',
-            title: '새 상품 의뢰',
-            body: request.desiredResult || request.title,
-            to: `${ROUTES.WORK_DASHBOARD}?role=expert&panel=client&expertRequest=${request.id}`,
-            createdAt: request.createdAt,
-        }))
+        .map((request): UserNotification => {
+            const updatedAt = request.updatedAt || ''
+            const wasUpdated = toTime(updatedAt) > toTime(request.createdAt)
+            const eventTime = wasUpdated ? updatedAt : request.createdAt
+
+            return {
+                id: wasUpdated ? `request-updated-${request.id}-${eventTime}` : `request-${request.id}`,
+                kind: 'request',
+                title: wasUpdated ? '의뢰서 수정됨' : '새 상품 의뢰',
+                body: request.desiredResult || request.title,
+                to: `${ROUTES.WORK_DASHBOARD}?role=expert&panel=client&expertRequest=${request.id}`,
+                createdAt: eventTime,
+            }
+        })
 
     const proposalNotifications = proposals
         .filter((proposal) => proposal.clientId === userId && ['sent', 'revision_requested'].includes(proposal.status))

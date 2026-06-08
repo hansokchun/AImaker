@@ -35,6 +35,7 @@ export default function ServiceRequest() {
     const [progressType, setProgressType] = useState<'single' | 'milestone'>('single')
     const [budget, setBudget] = useState<string>(selectedPackage ? String(selectedPackage.price) : '')
     const [editingRequest, setEditingRequest] = useState<ServiceRequestData | null>(null)
+    const isReceivedRequestReadonly = Boolean(editingRequest?.clientId && user?.id !== editingRequest.clientId)
 
     useEffect(() => {
         let active = true
@@ -104,6 +105,11 @@ export default function ServiceRequest() {
             return
         }
 
+        if (isReceivedRequestReadonly) {
+            alert('의뢰서를 작성한 의뢰자만 수정할 수 있습니다.')
+            return
+        }
+
         const referenceLinks = referenceText
             .split(/\s+/)
             .map((item) => item.trim())
@@ -116,11 +122,13 @@ export default function ServiceRequest() {
             budget,
             deadline,
             categories: selectedCategories,
-            createdAt: new Date().toLocaleDateString(),
+            createdAt: editingRequest?.createdAt || new Date().toISOString(),
+            updatedAt: editingRequest ? new Date().toISOString() : undefined,
             ordererEmail: '',
+            clientId: editingRequest?.clientId || user.id,
             status: 'pending',
             productId: selectedProduct?.id,
-            expertId: selectedProduct?.expertId,
+            expertId: editingRequest?.expertId || selectedProduct?.expertId,
             selectedPackage: 'standard',
             desiredResult,
             purpose,
@@ -167,6 +175,86 @@ export default function ServiceRequest() {
                         <Link to={ROUTES.CATEGORY} className="btn-primary">
                             AI 작업 찾기로 돌아가기
                         </Link>
+                    </section>
+                </main>
+            </div>
+        )
+    }
+
+    if (isReceivedRequestReadonly) {
+        return (
+            <div className="request-page">
+                <div className="page-hero request-hero">
+                    <div className="container">
+                        <h1 className="page-title">받은 의뢰서 확인</h1>
+                        <p>의뢰자가 보낸 요구사항을 확인하고 제안서를 작성할 수 있습니다.</p>
+                    </div>
+                </div>
+
+                <main className="container request-main">
+                    <section className="content-card request-form-card">
+                        {selectedProduct && selectedPackage ? (
+                            <div className="selected-package-summary" aria-label="선택한 패키지 요약">
+                                <div>
+                                    <span>의뢰 상품</span>
+                                    <h2>{selectedProduct.title}</h2>
+                                </div>
+                                <dl>
+                                    <div>
+                                        <dt>패키지</dt>
+                                        <dd>{selectedPackage.name}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>금액</dt>
+                                        <dd>{currency.format(Number(budget || selectedPackage.price))}원</dd>
+                                    </div>
+                                    <div>
+                                        <dt>마감</dt>
+                                        <dd>{deadline || '미정'}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        ) : null}
+
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                            <section>
+                                <h2 style={{ fontSize: '1rem', margin: '0 0 0.4rem' }}>원하는 결과물</h2>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                                    {desiredResult || '입력된 내용이 없습니다.'}
+                                </p>
+                            </section>
+                            <section>
+                                <h2 style={{ fontSize: '1rem', margin: '0 0 0.4rem' }}>작업 목적</h2>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                                    {purpose || '입력된 내용이 없습니다.'}
+                                </p>
+                            </section>
+                            <section>
+                                <h2 style={{ fontSize: '1rem', margin: '0 0 0.4rem' }}>참고자료</h2>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                                    {referenceText || '입력된 내용이 없습니다.'}
+                                </p>
+                            </section>
+                            <section>
+                                <h2 style={{ fontSize: '1rem', margin: '0 0 0.4rem' }}>진행 방식</h2>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                                    {progressType === 'milestone' ? '단계별 진행' : '단일 진행'}
+                                </p>
+                            </section>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1.5rem' }}>
+                            {selectedProduct ? (
+                                <Link className="btn-text" to={`/expert/${selectedProduct.id}`}>
+                                    상품 보기
+                                </Link>
+                            ) : null}
+                            {editingRequest ? (
+                                <Link className="btn-primary" to={`${ROUTES.WORK_DASHBOARD}?role=expert&panel=client&expertRequest=${editingRequest.id}`}>
+                                    거래관리로 돌아가기
+                                </Link>
+                            ) : null}
+                        </div>
                     </section>
                 </main>
             </div>

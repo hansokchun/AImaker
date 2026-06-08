@@ -35,6 +35,7 @@ const currency = new Intl.NumberFormat('ko-KR')
 type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'consultations' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
+type StageAction = { label: string; to: string; onClick?: () => void }
 
 const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
     done: {
@@ -772,10 +773,11 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         title: string,
         description: string,
         state: StageVisualState,
-        action?: { label: string; to: string; onClick?: () => void },
+        action?: StageAction | StageAction[],
     ) => {
         const visual = stageVisualConfig[state]
         const mutedProps = state === 'pending' ? { 'data-stage-muted': 'true' } : {}
+        const actions = Array.isArray(action) ? action : action ? [action] : []
         return (
             <div
                 aria-label={`${title} 단계 상태: ${visual.label}`}
@@ -809,11 +811,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     </span>
                 </div>
                 <strong {...mutedProps} style={{ display: 'block', color: visual.textColor, marginBottom: '0.4rem' }}>{title}</strong>
-            <p {...mutedProps} style={{ color: visual.bodyColor, margin: action ? '0 0 0.75rem' : 0 }}>{description}</p>
-            {action && (
-                <Link className="btn-text" to={action.to} state={myPageReturnState} onClick={action.onClick}>
-                    {action.label}
-                </Link>
+            <p {...mutedProps} style={{ color: visual.bodyColor, margin: actions.length ? '0 0 0.75rem' : 0 }}>{description}</p>
+            {actions.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {actions.map((stageAction) => (
+                        <Link key={`${stageAction.label}-${stageAction.to}`} className="btn-text" to={stageAction.to} state={myPageReturnState} onClick={stageAction.onClick}>
+                            {stageAction.label}
+                        </Link>
+                    ))}
+                </div>
             )}
             </div>
         )
@@ -1136,7 +1142,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     '받은 의뢰',
                                     selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
                                     'done',
-                                    selectedExpertRequest.productId ? { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` } : undefined,
+                                    selectedExpertRequest.productId
+                                        ? [
+                                            { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` },
+                                            { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` },
+                                        ]
+                                        : undefined,
                                 )}
                                 {selectedExpertRequestProposal
                                     ? renderClientOrderStage(
@@ -1274,7 +1285,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         '받은 의뢰',
                         selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
                         'done',
-                        selectedExpertRequest.productId ? { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` } : undefined,
+                        selectedExpertRequest.productId
+                            ? [
+                                { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` },
+                                { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` },
+                            ]
+                            : undefined,
                     )}
                     {selectedExpertRequestProposal
                         ? renderClientOrderStage(

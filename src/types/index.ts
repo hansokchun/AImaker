@@ -205,6 +205,8 @@ export interface ServiceRequestData {
     categories: string[];
     /** 작성일 (toLocaleDateString 형식) */
     createdAt: string;
+    /** 마지막 수정일 */
+    updatedAt?: string;
     /** 주문자 연락용 이메일 */
     ordererEmail?: string;
     /** Supabase client id */

@@ -3,6 +3,44 @@ import { buildUserNotifications } from './notifications'
 import type { Consultation, ConsultationMessage, Proposal, ServiceRequestData, Work } from '../types'
 
 describe('buildUserNotifications', () => {
+    it('sends a new expert notification when a received request is updated', () => {
+        const requests: ServiceRequestData[] = [
+            {
+                id: 'request-updated-01',
+                title: 'AI 영상 상품',
+                description: '처음 보낸 의뢰서',
+                budget: '50000',
+                deadline: '2026-06-20',
+                categories: [],
+                createdAt: '2026-06-10T10:00:00.000Z',
+                updatedAt: '2026-06-11T09:00:00.000Z',
+                clientId: 'client-01',
+                expertId: 'expert-01',
+                productId: 'product-01',
+                status: 'pending',
+                desiredResult: '수정된 의뢰 내용',
+            },
+        ]
+
+        const notifications = buildUserNotifications({
+            userId: 'expert-01',
+            serviceRequests: requests,
+            proposals: [],
+            consultations: [],
+            messagesByConsultation: {},
+            works: [],
+        })
+
+        expect(notifications).toHaveLength(1)
+        expect(notifications[0]).toMatchObject({
+            id: 'request-updated-request-updated-01-2026-06-11T09:00:00.000Z',
+            title: '의뢰서 수정됨',
+            body: '수정된 의뢰 내용',
+            to: '/my-work?role=expert&panel=client&expertRequest=request-updated-01',
+            createdAt: '2026-06-11T09:00:00.000Z',
+        })
+    })
+
     it('turns received marketplace events into direct work links newest first', () => {
         const requests: ServiceRequestData[] = [
             {

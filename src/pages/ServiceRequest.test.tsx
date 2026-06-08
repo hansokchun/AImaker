@@ -182,6 +182,46 @@ describe('ServiceRequest', () => {
         expect(window.alert).toHaveBeenCalledWith('의뢰서를 수정했습니다. 전문가가 수정된 내용을 확인할 수 있습니다.')
     })
 
+    it('shows a received request as read-only when the signed-in user is the expert', async () => {
+        const product = mockExpertProducts[0]
+        const existingRequest: ServiceRequestData = {
+            id: 'request-readonly-01',
+            title: product.title,
+            description: '전문가가 확인할 의뢰 목적',
+            budget: '30000',
+            deadline: '2026-06-10',
+            categories: ['AI 영상/숏폼'],
+            createdAt: '2026-06-01T12:00:00.000Z',
+            ordererEmail: '',
+            clientId: 'client-real-01',
+            expertId: 'expert-real-01',
+            status: 'pending',
+            productId: product.id,
+            selectedPackage: 'standard',
+            desiredResult: '전문가가 받은 의뢰서',
+            purpose: '전문가가 확인할 의뢰 목적',
+            referenceText: 'https://example.com/readonly',
+            referenceLinks: ['https://example.com/readonly'],
+            progressType: 'single',
+        }
+        mockUser = { id: 'expert-real-01', email: 'expert@example.com' }
+        vi.mocked(getRequestById).mockResolvedValue(existingRequest)
+
+        render(
+            <MemoryRouter initialEntries={[`/request/${product.id}?requestId=${existingRequest.id}`]}>
+                <Routes>
+                    <Route path="/request/:productId" element={<ServiceRequest />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '받은 의뢰서 확인' })).toBeInTheDocument()
+        expect(screen.getByText('전문가가 받은 의뢰서')).toBeInTheDocument()
+        expect(screen.getByText('전문가가 확인할 의뢰 목적')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /수정/ })).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('원하는 결과물')).not.toBeInTheDocument()
+    })
+
     it('requires login before saving requirements to Supabase', async () => {
         mockUser = null
         const product = mockExpertProducts[0]
