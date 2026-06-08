@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
+import ProductCard from '../components/ProductCard'
 import Profile from './Profile'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
@@ -35,7 +36,7 @@ const currency = new Intl.NumberFormat('ko-KR')
 type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'favorites' | 'consultations' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
-type StageAction = { label: string; to: string; onClick?: () => void }
+type StageAction = { label: string; to?: string; onClick?: () => void; variant?: 'primary' | 'secondary' }
 
 const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
     done: {
@@ -822,11 +823,37 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             <p {...mutedProps} style={{ color: visual.bodyColor, margin: actions.length ? '0 0 0.75rem' : 0 }}>{description}</p>
             {actions.length > 0 && (
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {actions.map((stageAction) => (
-                        <Link key={`${stageAction.label}-${stageAction.to}`} className="btn-text" to={stageAction.to} state={myPageReturnState} onClick={stageAction.onClick}>
-                            {stageAction.label}
-                        </Link>
-                    ))}
+                    {actions.map((stageAction) => {
+                        const className = stageAction.variant === 'secondary' ? 'btn-text' : 'btn-primary'
+                        const actionStyle = { padding: '0.72rem 0.95rem', textDecoration: 'none' }
+
+                        if (stageAction.to) {
+                            return (
+                                <Link
+                                    key={`${stageAction.label}-${stageAction.to}`}
+                                    className={className}
+                                    to={stageAction.to}
+                                    state={myPageReturnState}
+                                    onClick={stageAction.onClick}
+                                    style={actionStyle}
+                                >
+                                    {stageAction.label}
+                                </Link>
+                            )
+                        }
+
+                        return (
+                            <button
+                                key={stageAction.label}
+                                type="button"
+                                className={className}
+                                onClick={stageAction.onClick}
+                                style={actionStyle}
+                            >
+                                {stageAction.label}
+                            </button>
+                        )
+                    })}
                 </div>
             )}
             </div>
@@ -1072,10 +1099,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     '의뢰서 작성',
                                     selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                                     'done',
-                                    selectedClientOrder.productId
-                                        ? [
+                                        selectedClientOrder.productId
+                                            ? [
                                             { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` },
-                                            { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}` },
+                                            { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}`, variant: 'secondary' },
                                         ]
                                         : undefined,
                                 )}
@@ -1089,7 +1116,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                                 ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
                                                 : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
                                         selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
-                                        { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
+                                        {
+                                            label: selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid'
+                                                ? '제안서 보기'
+                                                : '제안서 승인하고 결제하기',
+                                            to: `/proposal/${selectedClientOrderProposal.id}`,
+                                        },
                                     )
                                     : renderClientOrderStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current')}
                                 {selectedClientOrderWork
@@ -1153,10 +1185,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     '받은 의뢰',
                                     selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
                                     'done',
-                                    selectedExpertRequest.productId
-                                        ? [
+                                        selectedExpertRequest.productId
+                                            ? [
                                             { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` },
-                                            { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` },
+                                            { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}`, variant: 'secondary' },
                                         ]
                                         : undefined,
                                 )}
@@ -1168,7 +1200,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         selectedExpertRequestWork ? 'done' : 'current',
                                         { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
                                     )
-                                    : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.', selectedExpertRequestWork ? 'pending' : 'current')}
+                                    : renderClientOrderStage(
+                                        '검토 단계',
+                                        '제안서 작성/수정',
+                                        '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.',
+                                        selectedExpertRequestWork ? 'pending' : 'current',
+                                        selectedExpertRequestWork
+                                            ? undefined
+                                            : { label: '제안서 보내기', onClick: handleSendProductProposal },
+                                    )}
                                 {selectedExpertRequestProposal
                                     ? renderClientOrderStage(
                                         '결제',
@@ -1197,16 +1237,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
                                 )}
                             </div>
-                            {!selectedExpertRequestProposal && !selectedExpertRequestWork && (
-                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <button type="button" className="btn-primary" onClick={handleSendProductProposal}>
-                                        제안서 보내기
-                                    </button>
-                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                        받은 상품 의뢰에 바로 제안서를 보냅니다.
-                                    </span>
-                                </div>
-                            )}
                             {expertProposalMessage && (
                                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{expertProposalMessage}</p>
@@ -1243,7 +1273,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         selectedClientOrder.productId
                             ? [
                                 { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` },
-                                { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}` },
+                                { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}`, variant: 'secondary' },
                             ]
                             : undefined,
                     )}
@@ -1257,7 +1287,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
                                     : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
                             selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
-                            { label: '제안서 보기', to: `/proposal/${selectedClientOrderProposal.id}` },
+                            {
+                                label: selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid'
+                                    ? '제안서 보기'
+                                    : '제안서 승인하고 결제하기',
+                                to: `/proposal/${selectedClientOrderProposal.id}`,
+                            },
                         )
                         : renderClientOrderStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current')}
                     {selectedClientOrderWork
@@ -1302,7 +1337,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         selectedExpertRequest.productId
                             ? [
                                 { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` },
-                                { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}` },
+                                { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}`, variant: 'secondary' },
                             ]
                             : undefined,
                     )}
@@ -1314,7 +1349,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             selectedExpertRequestWork ? 'done' : 'current',
                             { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
                         )
-                        : renderClientOrderStage('검토 단계', '제안서 작성/수정', '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.', selectedExpertRequestWork ? 'pending' : 'current')}
+                        : renderClientOrderStage(
+                            '검토 단계',
+                            '제안서 작성/수정',
+                            '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.',
+                            selectedExpertRequestWork ? 'pending' : 'current',
+                            selectedExpertRequestWork
+                                ? undefined
+                                : { label: '제안서 보내기', onClick: handleSendProductProposal },
+                        )}
                     {selectedExpertRequestProposal
                         ? renderClientOrderStage(
                             '결제',
@@ -1343,16 +1386,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
                     )}
                 </div>
-                {!selectedExpertRequestProposal && !selectedExpertRequestWork && (
-                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <button type="button" className="btn-primary" onClick={handleSendProductProposal}>
-                            제안서 보내기
-                        </button>
-                        <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
-                            받은 상품 의뢰에 바로 제안서를 보냅니다.
-                        </span>
-                    </div>
-                )}
                 {expertProposalMessage && (
                     <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <p style={{ margin: 0, color: '#166534', fontWeight: 800 }}>{expertProposalMessage}</p>
@@ -1435,49 +1468,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             </div>
 
             {favoriteProducts.length > 0 ? (
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div className="product-grid">
                     {favoriteProducts.map((product) => (
-                        <Link
-                            key={product.id}
-                            to={`/expert/${product.id}`}
-                            state={myPageReturnState}
-                            aria-label={`${product.title} 상세 보기`}
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'minmax(92px, 0.33fr) minmax(0, 1fr)',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                padding: '0.85rem',
-                                borderRadius: '0.85rem',
-                                border: '1px solid var(--border-color)',
-                                background: '#f8fafc',
-                                color: '#0f172a',
-                                textDecoration: 'none',
-                            }}
-                        >
-                            <div style={{ overflow: 'hidden', borderRadius: '0.7rem', background: '#e2e8f0', height: '74px' }}>
-                                {product.sampleImageUrl ? (
-                                    <img
-                                        src={product.sampleImageUrl}
-                                        alt={`${product.title} 썸네일`}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                    />
-                                ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#64748b', fontWeight: 800 }}>
-                                        이미지 없음
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <strong style={{ display: 'block', marginBottom: '0.35rem', lineHeight: 1.35 }}>{product.title}</strong>
-                                <span style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                    {product.expertName}
-                                </span>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                    {currency.format(product.startingPrice)}원부터 · {product.deliveryDays}일
-                                </span>
-                            </div>
-                        </Link>
+                        <ProductCard key={product.id} product={product} />
                     ))}
                 </div>
             ) : (

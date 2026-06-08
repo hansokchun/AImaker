@@ -73,4 +73,17 @@ describe('ProductCard', () => {
     expect(screen.getByTestId('current-path')).toHaveTextContent('/category')
     expect(await screen.findByRole('button', { name: `${product.title} 관심 상품 해제` })).toBeInTheDocument()
   })
+
+  it('shows a placeholder instead of an empty product image', () => {
+    const product = { ...mockExpertProducts[0], sampleImageUrl: '' }
+
+    render(
+      <MemoryRouter>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByAltText(`${product.title} 샘플`)).not.toBeInTheDocument()
+    expect(screen.getByText('이미지 준비 중')).toBeInTheDocument()
+  })
 })

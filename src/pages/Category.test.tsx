@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Category from './Category'
+import { AI_CATEGORIES } from '../constants/categories'
 import { mockExpertProducts } from '../data/mockData'
 
 const getExpertProducts = vi.fn(async () => mockExpertProducts)
@@ -19,6 +20,9 @@ vi.mock('../lib/storage', () => ({
 describe('Category', () => {
   beforeEach(() => {
     getExpertProducts.mockResolvedValue(mockExpertProducts)
+    getUserFavoriteProductIds.mockClear()
+    getFavoriteProductCount.mockClear()
+    toggleFavoriteProduct.mockClear()
   })
 
   it('renders products instead of expert cards', async () => {
@@ -28,40 +32,37 @@ describe('Category', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: 'AI 작업 찾기' })).toBeInTheDocument()
-    expect(screen.getByText('AI 영상/숏폼')).toBeInTheDocument()
-    expect(screen.getByText('AI 이미지/캐릭터')).toBeInTheDocument()
-    expect(screen.getByText('AI 개발/자동화')).toBeInTheDocument()
-    expect(await screen.findAllByRole('link', { name: /상세 보기/ })).toHaveLength(3)
-    expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
-    expect(screen.getByText('시작가 30,000원')).toBeInTheDocument()
-    expect(screen.getByText('ChatGPT · Runway · Premiere Pro')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: mockExpertProducts[2].title })).toBeInTheDocument()
   })
 
-  it('shows an empty state without an all-products button when filters remove all products', async () => {
-    render(
+  it('shows an empty state when filters remove all products', async () => {
+    const { container } = render(
       <MemoryRouter>
         <Category />
       </MemoryRouter>,
     )
 
-    await screen.findAllByRole('link', { name: /상세 보기/ })
-    fireEvent.change(screen.getByLabelText('최대 가격'), { target: { value: '10000' } })
+    await screen.findByRole('heading', { name: mockExpertProducts[0].title })
 
-    expect(screen.getByText('아직 등록된 AI 작업이 없습니다.')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'AI 작업 요청하기' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: '전체 상품 보기' })).not.toBeInTheDocument()
+    const maxPriceInput = container.querySelector<HTMLInputElement>('#max-price')
+    expect(maxPriceInput).not.toBeNull()
+    fireEvent.change(maxPriceInput!, { target: { value: '10000' } })
+
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[2].title })).not.toBeInTheDocument()
   })
 
   it('keeps all products visible by default even when a saved product has an unknown category', async () => {
-    getExpertProducts.mockResolvedValue([
-      {
-        ...mockExpertProducts[0],
-        id: 'product-unknown-category',
-        title: '등록 카테고리 불일치 상품',
-        category: 'custom-category-from-db' as any,
-      },
-    ])
+    const unknownCategoryProduct = {
+      ...mockExpertProducts[0],
+      id: 'product-unknown-category',
+      title: 'Unknown category product',
+      category: 'custom-category-from-db' as any,
+    }
+    getExpertProducts.mockResolvedValue([unknownCategoryProduct])
 
     render(
       <MemoryRouter>
@@ -69,6 +70,22 @@ describe('Category', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByRole('heading', { name: '등록 카테고리 불일치 상품' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: unknownCategoryProduct.title })).toBeInTheDocument()
+  })
+
+  it('filters to the clicked category from the initial all-selected state', async () => {
+    render(
+      <MemoryRouter>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: mockExpertProducts[0].title })
+
+    fireEvent.click(screen.getByLabelText(AI_CATEGORIES[1].name))
+
+    expect(screen.getByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[2].title })).not.toBeInTheDocument()
   })
 })

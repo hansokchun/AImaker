@@ -35,7 +35,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                 className="product-card-favorite"
             />
             <div className="product-card-image">
-                <img src={product.sampleImageUrl} alt={`${product.title} 샘플`} />
+                {product.sampleImageUrl ? (
+                    <img src={product.sampleImageUrl} alt={`${product.title} 샘플`} />
+                ) : (
+                    <div className="product-card-image-placeholder">이미지 준비 중</div>
+                )}
             </div>
 
             <div className="product-card-body">

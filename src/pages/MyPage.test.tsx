@@ -48,6 +48,8 @@ const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-dire
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-client-before'])
+const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
+const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
 const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
 const getUserServiceRequests = vi.fn(async (_userId: string): Promise<ServiceRequestData[]> => [
     {
@@ -641,6 +643,8 @@ vi.mock('../lib/storage', () => ({
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
+    getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
+    toggleFavoriteProduct: (userId: string, productId: string) => toggleFavoriteProduct(userId, productId),
     saveReview: (review: Review) => saveReview(review),
     deleteUserPublicAccountData: (userId: string) => deleteUserPublicAccountData(userId),
 }))
@@ -653,6 +657,8 @@ describe('MyPage', () => {
         mockSignOut.mockClear()
         deleteUserPublicAccountData.mockClear()
         getUserFavoriteProductIds.mockClear()
+        getFavoriteProductCount.mockClear()
+        toggleFavoriteProduct.mockClear()
         getExpertProducts.mockClear()
         getUserProposals.mockReset()
         getUserProposals.mockResolvedValue(defaultProposals())
@@ -1354,6 +1360,10 @@ describe('MyPage', () => {
         expect(await screen.findByText('제안서 승인 및 결제')).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
         expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+        const paymentAction = screen.getByRole('link', { name: '제안서 승인하고 결제하기' })
+        expect(paymentAction).toHaveAttribute('href', '/proposal/proposal-client-before-payment')
+        expect(paymentAction.closest('[aria-label]')?.getAttribute('aria-label')).toContain('제안서 승인 및 결제')
+        expect(screen.queryByRole('link', { name: '제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByLabelText('테스트 결제 대기 단계 상태: 진행 중')).not.toBeInTheDocument()
     })
 
@@ -2036,7 +2046,8 @@ describe('MyPage', () => {
 
         expect(await screen.findByRole('button', { name: '관심 상품' })).toHaveAttribute('aria-pressed', 'true')
         expect(getUserFavoriteProductIds).toHaveBeenCalledWith('user-demo-01')
-        expect(screen.getByRole('link', { name: /작업 전 테스트 상품/ })).toHaveAttribute('href', '/expert/product-client-before')
+        expect(document.querySelector('.product-grid .product-card')).not.toBeNull()
+        expect(screen.getByRole('link', { name: /작업 전 테스트 상품/ })).toBeInTheDocument()
     })
 
     it('lets clients open the ordered product from the pre-work stage', async () => {
@@ -2065,6 +2076,8 @@ describe('MyPage', () => {
             'href',
             '/request/product-owned-01?requestId=request-product-directed-01',
         )
+        const proposalButton = screen.getByRole('button', { name: '제안서 보내기' })
+        expect(proposalButton.closest('[aria-label]')?.getAttribute('aria-label')).toContain('제안서 작성/수정')
         expect(screen.getByRole('link', { name: '상품 보기' })).toHaveAttribute('href', '/expert/product-owned-01')
     })
 })

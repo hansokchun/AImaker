@@ -30,8 +30,21 @@ export default function Category() {
     }, [])
 
     const toggleCategory = (categoryId: AiCategoryId) => {
+        const allCategoryIds = AI_CATEGORIES.map((category) => category.id)
+
+        if (selectedCategories.length === AI_CATEGORIES.length) {
+            setSelectedCategories([categoryId])
+            return
+        }
+
+        if (selectedCategories.length === 1 && selectedCategories.includes(categoryId)) {
+            setSelectedCategories(allCategoryIds)
+            return
+        }
+
         if (selectedCategories.includes(categoryId)) {
-            setSelectedCategories(selectedCategories.filter((item) => item !== categoryId))
+            const nextCategories = selectedCategories.filter((item) => item !== categoryId)
+            setSelectedCategories(nextCategories.length > 0 ? nextCategories : allCategoryIds)
         } else {
             setSelectedCategories([...selectedCategories, categoryId])
         }
