@@ -6,6 +6,7 @@ import Navbar from './Navbar'
 const mockUseAuth = vi.fn()
 const mockGetStoredProfile = vi.fn()
 const mockGetUserDisplayProfile = vi.fn()
+const mockGetUserNotifications = vi.fn()
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => mockUseAuth(),
@@ -16,6 +17,10 @@ vi.mock('../lib/storage', () => ({
     getUserDisplayProfile: (userId: string) => mockGetUserDisplayProfile(userId),
 }))
 
+vi.mock('../lib/notifications', () => ({
+    getUserNotifications: (userId: string) => mockGetUserNotifications(userId),
+}))
+
 describe('Navbar', () => {
     beforeEach(() => {
         mockUseAuth.mockReturnValue({
@@ -24,6 +29,7 @@ describe('Navbar', () => {
         })
         mockGetStoredProfile.mockResolvedValue(null)
         mockGetUserDisplayProfile.mockResolvedValue(null)
+        mockGetUserNotifications.mockResolvedValue([])
     })
 
     it('removes the single top navigation link and keeps account actions only', () => {
@@ -150,5 +156,48 @@ describe('Navbar', () => {
                 'https://example.com/updated-avatar.jpg',
             ),
         )
+    })
+
+    it('shows received marketplace notifications next to the profile menu with direct links', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'user-demo-01', email: 'demo@example.com', user_metadata: {} },
+            signOut: vi.fn(),
+        })
+        mockGetUserNotifications.mockResolvedValue([
+            {
+                id: 'request-request-01',
+                kind: 'request',
+                title: '새 상품 의뢰',
+                body: '숏폼 영상 제작',
+                to: '/my-work?panel=expert&expertRequest=request-01',
+                createdAt: '2026-06-10T10:00:00.000Z',
+            },
+            {
+                id: 'proposal-proposal-01',
+                kind: 'proposal',
+                title: '새 제안서 도착',
+                body: '50,000원',
+                to: '/proposal/proposal-01',
+                createdAt: '2026-06-10T09:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter>
+                <Navbar />
+            </MemoryRouter>,
+        )
+
+        const notificationButton = await screen.findByRole('button', { name: '알림 2개 열기' })
+        expect(notificationButton).toHaveTextContent('2')
+
+        fireEvent.click(notificationButton)
+
+        expect(screen.getByRole('menu', { name: '알림 목록' })).toBeInTheDocument()
+        expect(screen.getByRole('menuitem', { name: /새 상품 의뢰/ })).toHaveAttribute(
+            'href',
+            '/my-work?panel=expert&expertRequest=request-01',
+        )
+        expect(screen.getByRole('menuitem', { name: /새 제안서 도착/ })).toHaveAttribute('href', '/proposal/proposal-01')
     })
 })
