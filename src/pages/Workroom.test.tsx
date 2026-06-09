@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Workroom from './Workroom'
@@ -88,7 +88,7 @@ const saveWorkMessage = vi.fn(async (message: { workId: string; senderId: string
 }))
 const getUserDisplayProfile = vi.fn(async (userId: string) => ({
     name: userId === work.clientId ? 'Client User' : 'Expert User',
-    imageUrl: '',
+    imageUrl: userId === work.clientId ? 'https://example.com/client.png' : 'https://example.com/expert.png',
     isExpert: userId === work.expertId,
 }))
 const getWorkroomData = vi.fn(
@@ -220,9 +220,70 @@ describe('Workroom', () => {
 
         expect(await screen.findByText('Client User')).toBeInTheDocument()
         expect(screen.getByText('Expert User')).toBeInTheDocument()
+        expect(screen.getByAltText('Client User 프로필 이미지')).toHaveAttribute('src', 'https://example.com/client.png')
+        expect(screen.getByAltText('Expert User 프로필 이미지')).toHaveAttribute('src', 'https://example.com/expert.png')
         expect(screen.getByRole('button', { name: '결과물 승인' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '수정 요청' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '제출물 링크 등록' })).not.toBeInTheDocument()
+    })
+
+    it('keeps the workroom chat in sync by polling for new messages', async () => {
+        vi.useFakeTimers()
+        getWorkMessages
+            .mockResolvedValueOnce([
+                {
+                    id: 'work-message-01',
+                    workId: work.id,
+                    senderId: work.clientId,
+                    body: 'Workroom message from client',
+                    attachmentUrls: [],
+                    createdAt: '2026-06-01T00:00:00.000Z',
+                },
+            ])
+            .mockResolvedValueOnce([
+                {
+                    id: 'work-message-01',
+                    workId: work.id,
+                    senderId: work.clientId,
+                    body: 'Workroom message from client',
+                    attachmentUrls: [],
+                    createdAt: '2026-06-01T00:00:00.000Z',
+                },
+                {
+                    id: 'work-message-02',
+                    workId: work.id,
+                    senderId: work.expertId,
+                    body: 'Expert replied from another browser',
+                    attachmentUrls: [],
+                    createdAt: '2026-06-01T00:00:05.000Z',
+                },
+            ])
+
+        try {
+            render(
+                <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                    <Routes>
+                        <Route path="/workroom/:workId" element={<Workroom />} />
+                    </Routes>
+                </MemoryRouter>,
+            )
+
+            await act(async () => {
+                await Promise.resolve()
+                await Promise.resolve()
+            })
+            expect(screen.getByText('Workroom message from client')).toBeInTheDocument()
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(5000)
+                await Promise.resolve()
+            })
+
+            expect(screen.getByText('Expert replied from another browser')).toBeInTheDocument()
+            expect(getWorkMessages).toHaveBeenCalledTimes(2)
+        } finally {
+            vi.useRealTimers()
+        }
     })
 
     it('keeps review actions client-only and deliverable submission expert-only', async () => {

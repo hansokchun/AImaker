@@ -83,10 +83,11 @@ describe('Workroom return navigation', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: '거래 단계 보기' })).toHaveAttribute(
             'href',
-            '/mypage?panel=client&clientOrder=request-product-client-01',
+            '/my-work?role=client&panel=client&clientOrder=request-product-client-01',
         )
+        expect(screen.queryByRole('link', { name: '마이페이지로 돌아가기' })).not.toBeInTheDocument()
     })
 
     it('keeps the selected work dashboard role when opened from my work', async () => {
@@ -106,9 +107,10 @@ describe('Workroom return navigation', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: '거래 단계 보기' })).toHaveAttribute(
             'href',
-            '/my-work?role=expert&panel=workroom',
+            '/my-work?role=client&panel=client&clientOrder=request-product-client-01',
         )
+        expect(screen.queryByRole('link', { name: '마이페이지로 돌아가기' })).not.toBeInTheDocument()
     })
 })

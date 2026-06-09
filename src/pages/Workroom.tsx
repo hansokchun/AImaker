@@ -91,6 +91,11 @@ const notifyActivityChanged = () => {
     window.dispatchEvent(new Event('aiconnect:notifications-updated'))
 }
 
+type ParticipantProfile = {
+    name: string
+    imageUrl: string
+}
+
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
     const location = useLocation()
@@ -104,7 +109,10 @@ export default function Workroom() {
     const [messageSubmitting, setMessageSubmitting] = useState(false)
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
-    const [participantNames, setParticipantNames] = useState({ client: '', expert: '' })
+    const [participants, setParticipants] = useState<Record<'client' | 'expert', ParticipantProfile>>({
+        client: { name: '', imageUrl: '' },
+        expert: { name: '', imageUrl: '' },
+    })
     const [isLoaded, setIsLoaded] = useState(false)
     const [notFound, setNotFound] = useState(false)
     const activeDeliverable = deliverables[0]
@@ -127,6 +135,7 @@ export default function Workroom() {
 
     useEffect(() => {
         let active = true
+        let messageSyncInterval: number | undefined
         setIsLoaded(false)
         setNotFound(false)
         getWorkroomData(workId || mockWork.id).then(async (data) => {
@@ -146,14 +155,30 @@ export default function Workroom() {
             setSteps(data.steps)
             setDeliverables(data.deliverables)
             setMessages(workMessages)
-            setParticipantNames({
-                client: clientProfile?.name || data.work.clientId,
-                expert: expertProfile?.name || data.work.expertId,
+            setParticipants({
+                client: {
+                    name: clientProfile?.name || data.work.clientId,
+                    imageUrl: clientProfile?.imageUrl || '',
+                },
+                expert: {
+                    name: expertProfile?.name || data.work.expertId,
+                    imageUrl: expertProfile?.imageUrl || '',
+                },
             })
             setIsLoaded(true)
+            messageSyncInterval = window.setInterval(() => {
+                getWorkMessages(data.work!.id)
+                    .then((nextMessages) => {
+                        if (active) setMessages(nextMessages)
+                    })
+                    .catch(() => {
+                        // 다음 폴링에서 다시 시도합니다.
+                    })
+            }, 5000)
         })
         return () => {
             active = false
+            if (messageSyncInterval) window.clearInterval(messageSyncInterval)
         }
     }, [workId])
 
@@ -422,12 +447,34 @@ export default function Workroom() {
                     <section className="workroom-participants">
                         <h2>거래 참여자</h2>
                         <div>
+                            {participants.client.imageUrl ? (
+                                <img
+                                    src={participants.client.imageUrl}
+                                    alt={`${participants.client.name || work.clientId} 프로필 이미지`}
+                                    className="workroom-participant-image"
+                                />
+                            ) : (
+                                <span className="workroom-participant-fallback" aria-hidden="true">
+                                    {(participants.client.name || work.clientId).slice(0, 1).toUpperCase()}
+                                </span>
+                            )}
                             <span>의뢰자</span>
-                            <strong>{participantNames.client || work.clientId}</strong>
+                            <strong>{participants.client.name || work.clientId}</strong>
                         </div>
                         <div>
+                            {participants.expert.imageUrl ? (
+                                <img
+                                    src={participants.expert.imageUrl}
+                                    alt={`${participants.expert.name || work.expertId} 프로필 이미지`}
+                                    className="workroom-participant-image"
+                                />
+                            ) : (
+                                <span className="workroom-participant-fallback" aria-hidden="true">
+                                    {(participants.expert.name || work.expertId).slice(0, 1).toUpperCase()}
+                                </span>
+                            )}
                             <span>작업자</span>
-                            <strong>{participantNames.expert || work.expertId}</strong>
+                            <strong>{participants.expert.name || work.expertId}</strong>
                         </div>
                     </section>
 
@@ -460,9 +507,6 @@ export default function Workroom() {
                             거래 중단 요청
                         </button>
                     )}
-                    <Link to={myPageReturnTo} className="btn-text">
-                        마이페이지로 돌아가기
-                    </Link>
                 </aside>
             </section>
         </main>
