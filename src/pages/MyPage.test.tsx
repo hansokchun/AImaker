@@ -1723,7 +1723,76 @@ describe('MyPage', () => {
         expect(screen.getByText('제안 취소')).toBeInTheDocument()
     })
 
-    it('lets clients stop an active paid work from transaction management', async () => {
+    it('keeps stop transaction actions out of transaction management', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=client&panel=client&clientOrder=request-product-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const flow = await screen.findByTestId('client-product-order-flow')
+        expect(flow.querySelectorAll('button')).toHaveLength(0)
+        expect(cancelWork).not.toHaveBeenCalled()
+    })
+
+    it('keeps proposal cancellation out of expert transaction management', async () => {
+        getUserProposals.mockResolvedValue([
+            {
+                id: 'proposal-directed-sent',
+                requestId: 'request-product-directed-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                title: 'Direct sent proposal',
+                scope: 'Proposal scope',
+                deliverables: ['Result'],
+                totalPrice: 50000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                progressType: 'single',
+                milestones: [],
+                commercialUseAllowed: true,
+                sourceFileIncluded: false,
+                status: 'sent',
+                paymentStatus: 'unpaid',
+                expiresAt: '2999-01-01T00:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const flow = await screen.findByTestId('expert-product-order-flow')
+        expect(
+            Array.from(flow.querySelectorAll('a')).some((link) =>
+                link.getAttribute('href') === '/proposals/new?proposalId=proposal-directed-sent',
+            ),
+        ).toBe(true)
+        expect(flow.querySelectorAll('button')).toHaveLength(0)
+        expect(cancelProposal).not.toHaveBeenCalled()
+    })
+
+    it('keeps stop transaction actions out of workroom cards', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=workroom']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const activeWork = (await screen.findAllByTestId('active-work'))[0]
+        expect(activeWork.querySelectorAll('button')).toHaveLength(0)
+        expect(cancelWork).not.toHaveBeenCalled()
+    })
+
+    it.skip('lets clients stop an active paid work from transaction management', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?role=client&panel=client&clientOrder=request-product-client-01']}>
                 <Routes>
@@ -1739,7 +1808,7 @@ describe('MyPage', () => {
         expect(screen.getByText('거래 중단')).toBeInTheDocument()
     })
 
-    it('lets experts cancel a sent proposal directly from transaction management', async () => {
+    it.skip('lets experts cancel a sent proposal directly from transaction management', async () => {
         getUserProposals.mockResolvedValue([
             {
                 id: 'proposal-directed-sent',
@@ -1785,7 +1854,7 @@ describe('MyPage', () => {
         )
     })
 
-    it('shows a stop transaction action on active workroom cards', async () => {
+    it.skip('shows a stop transaction action on active workroom cards', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=workroom']}>
                 <Routes>
@@ -1876,7 +1945,7 @@ describe('MyPage', () => {
                 .getAllByRole('link')
                 .some((link) => link.getAttribute('href') === '/proposals/new?proposalId=proposal-real-expert'),
         ).toBe(true)
-        expect(screen.getByRole('button', { name: '취소하기' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '취소하기' })).not.toBeInTheDocument()
     })
 
     it('shows every active and completed work as workroom cards', async () => {

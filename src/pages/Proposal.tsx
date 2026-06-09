@@ -1,16 +1,13 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
-import type { Proposal as ProposalData } from '../types'
-import { useEffect, useState } from 'react'
-import { acceptProposal, cancelProposal, getProposal, getWorkByProposal, requestProposalRevision } from '../lib/storage'
 import { useAuth } from '../contexts/AuthContext'
+import { acceptProposal, getProposal, getWorkByProposal } from '../lib/storage'
+import type { Proposal as ProposalData } from '../types'
 import './Proposal.css'
 
-const now = new Date()
-const futureExpiry = new Date(now)
-futureExpiry.setDate(now.getDate() + 3)
-const pastExpiry = new Date(now)
-pastExpiry.setDate(now.getDate() - 1)
+const futureExpiry = new Date()
+futureExpiry.setDate(futureExpiry.getDate() + 3)
 
 const mockProposals: ProposalData[] = [
     {
@@ -29,37 +26,12 @@ const mockProposals: ProposalData[] = [
         commercialUseAllowed: true,
         sourceFileIncluded: false,
         status: 'sent',
+        paymentStatus: 'unpaid',
         expiresAt: futureExpiry.toISOString(),
-    },
-    {
-        id: 'proposal-expired-01',
-        requestId: 'request-expired-01',
-        clientId: 'client-demo-01',
-        expertId: 'expert-video-01',
-        title: '만료된 AI 숏폼 제작 제안',
-        scope: '만료 상태 확인용 제안서입니다.',
-        deliverables: ['AI 숏폼 영상 시안'],
-        totalPrice: 70000,
-        deliveryDays: 4,
-        revisionCount: 2,
-        progressType: 'single',
-        milestones: [],
-        commercialUseAllowed: true,
-        sourceFileIncluded: false,
-        status: 'expired',
-        expiresAt: pastExpiry.toISOString(),
     },
 ]
 
 const currency = new Intl.NumberFormat('ko-KR')
-
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    }).format(new Date(value))
-}
 
 const statusText: Record<ProposalData['status'], string> = {
     sent: '제안 대기',
@@ -67,6 +39,14 @@ const statusText: Record<ProposalData['status'], string> = {
     accepted: '승인됨',
     cancelled: '취소됨',
     expired: '만료된 제안서입니다.',
+}
+
+function formatDate(value: string) {
+    return new Intl.DateTimeFormat('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    }).format(new Date(value))
 }
 
 const isMyPageReturnPath = (pathname?: string) =>
@@ -88,17 +68,19 @@ export default function Proposal() {
         let active = true
         setIsLoaded(false)
         setCreatedWorkId('')
+
         getProposal(proposalId || '').then(async (storedProposal) => {
             if (!active) return
+
             const nextProposal = storedProposal ?? mockProposals.find((item) => item.id === proposalId) ?? null
             setProposal(nextProposal)
-            if (nextProposal?.status === 'accepted' && nextProposal.paymentStatus === 'paid') {
-                const existingWork = await getWorkByProposal(nextProposal.id)
-                if (!active) return
-                setCreatedWorkId(existingWork?.id || '')
-            }
+
+            const existingWork = nextProposal ? await getWorkByProposal(nextProposal.id) : null
+            if (!active) return
+            setCreatedWorkId(existingWork?.id || '')
             setIsLoaded(true)
         })
+
         return () => {
             active = false
         }
@@ -134,23 +116,15 @@ export default function Proposal() {
     const isClosed = isExpired || proposal.status === 'accepted' || proposal.status === 'cancelled'
     const isExpertOwner = user?.id === proposal.expertId
     const isClientOwner = user?.id === proposal.clientId
-    const canExpertManage = isExpertOwner && !isClosed && proposal.paymentStatus !== 'paid'
+    const hasStartedWork = Boolean(createdWorkId) || proposal.paymentStatus === 'paid' || proposal.status === 'accepted'
+    const canExpertManage = isExpertOwner && !isClosed && !hasStartedWork
     const canClientRespond = isClientOwner && !isClosed
+
     const handleAccept = async () => {
         const workId = await acceptProposal(proposal)
         setProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid', platformFeeRate: 0.12 })
         setCreatedWorkId(workId)
-        setStatusMessage('제안서를 승인하고 결제를 완료했습니다. 작업 진행방이 열렸습니다.')
-    }
-    const handleRequestRevision = async () => {
-        await requestProposalRevision(proposal.id)
-        setProposal({ ...proposal, status: 'revision_requested' })
-        setStatusMessage('수정 요청을 보냈습니다.')
-    }
-    const handleCancel = async () => {
-        await cancelProposal(proposal.id)
-        setProposal({ ...proposal, status: 'cancelled' })
-        setStatusMessage(isExpertOwner ? '제안서 발송을 취소했습니다. 같은 의뢰에 다시 제안서를 보낼 수 있습니다.' : '제안서를 거절했습니다.')
+        setStatusMessage('제안서를 승인하고 결제를 완료했습니다. 작업방이 열렸습니다.')
     }
 
     return (
@@ -217,16 +191,16 @@ export default function Proposal() {
 
                 <aside className="proposal-side-card">
                     <div className="proposal-expiry">
-                        <span>유효기간</span>
+                        <span>유효 기간</span>
                         <strong>{formatDate(proposal.expiresAt)}까지</strong>
-                        <p>제안 유효기간은 발송일로부터 3일입니다.</p>
+                        <p>제안 유효 기간은 발송일로부터 3일입니다.</p>
                     </div>
 
                     <p className="proposal-start-notice">승인과 결제가 완료되어야 작업방이 생성됩니다.</p>
-                    <p className="proposal-start-notice">완료 승인 시 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
+                    <p className="proposal-start-notice">완료 승인 후 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
                     <div className="proposal-test-payment">
                         <strong>테스트 결제 모드</strong>
-                        <p>승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리되고 작업방이 생성됩니다.</p>
+                        <p>승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리하고 작업방을 생성합니다.</p>
                     </div>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
                     {createdWorkId && (
@@ -237,30 +211,14 @@ export default function Proposal() {
 
                     <div className="proposal-actions">
                         {canExpertManage ? (
-                            <>
-                                <Link to={`${ROUTES.PROPOSAL_NEW}?proposalId=${proposal.id}`} className="btn-primary">
-                                    수정하기
-                                </Link>
-                                <button type="button" className="btn-text danger" onClick={handleCancel}>
-                                    취소하기
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button type="button" className="btn-primary" disabled={!canClientRespond} onClick={handleAccept}>
-                                    승인 및 결제하기
-                                </button>
-                                <button type="button" className="btn-text" disabled={!canClientRespond} onClick={handleRequestRevision}>
-                                    수정요청
-                                </button>
-                                <button type="button" className="btn-text danger" disabled={!canClientRespond} onClick={handleCancel}>
-                                    거절하기
-                                </button>
-                            </>
-                        )}
-                        <Link to={myPageReturnTo || ROUTES.WORK_DASHBOARD} className="btn-text" state={myPageReturnState}>
-                            취소
-                        </Link>
+                            <Link to={`${ROUTES.PROPOSAL_NEW}?proposalId=${proposal.id}`} className="btn-primary">
+                                수정하기
+                            </Link>
+                        ) : isClientOwner ? (
+                            <button type="button" className="btn-primary" disabled={!canClientRespond} onClick={handleAccept}>
+                                승인 및 결제하기
+                            </button>
+                        ) : null}
                     </div>
 
                     <Link to={myPageReturnTo || ROUTES.WORK_DASHBOARD} className="proposal-back-link">

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
-import type { Deliverable, Work, WorkStep } from '../types'
-import { approveWorkDeliverable, getWorkroomData, requestWorkRevision, saveDeliverable } from '../lib/storage'
+import { useAuth } from '../contexts/AuthContext'
+import type { Deliverable, Work, WorkMessage, WorkStep } from '../types'
+import { approveWorkDeliverable, cancelWork, getWorkMessages, getWorkroomData, requestWorkRevision, saveDeliverable, saveWorkMessage } from '../lib/storage'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -80,9 +81,14 @@ const isMyPageReturnPath = (pathname?: string) =>
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
     const location = useLocation()
+    const { user } = useAuth()
     const [work, setWork] = useState<Work>(mockWork)
     const [steps, setSteps] = useState<WorkStep[]>(mockSteps)
     const [deliverables, setDeliverables] = useState<Deliverable[]>(mockDeliverables)
+    const [messages, setMessages] = useState<WorkMessage[]>([])
+    const [messageBody, setMessageBody] = useState('')
+    const [messageError, setMessageError] = useState('')
+    const [messageSubmitting, setMessageSubmitting] = useState(false)
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
     const [isLoaded, setIsLoaded] = useState(false)
@@ -95,21 +101,25 @@ export default function Workroom() {
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
     const myPageReturnTo = isMyPageReturnPath(from?.pathname) ? `${from?.pathname}${from?.search || ''}` : ROUTES.MY_PAGE
+    const myPageReturnState = myPageReturnTo ? { from } : undefined
 
     useEffect(() => {
         let active = true
         setIsLoaded(false)
         setNotFound(false)
-        getWorkroomData(workId || mockWork.id).then((data) => {
+        getWorkroomData(workId || mockWork.id).then(async (data) => {
             if (!active) return
             if (!data.work) {
                 setNotFound(true)
                 setIsLoaded(true)
                 return
             }
+            const workMessages = await getWorkMessages(data.work.id)
+            if (!active) return
             setWork(data.work)
             setSteps(data.steps)
             setDeliverables(data.deliverables)
+            setMessages(workMessages)
             setIsLoaded(true)
         })
         return () => {
@@ -171,6 +181,35 @@ export default function Workroom() {
         )
         setWork((current) => ({ ...current, status: 'revision_requested' }))
         setStatusMessage('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')
+    }
+
+    const handleSendMessage = async () => {
+        if (!messageBody.trim()) {
+            setMessageError('메시지를 입력해주세요.')
+            return
+        }
+
+        setMessageSubmitting(true)
+        setMessageError('')
+        try {
+            const message = await saveWorkMessage({
+                workId: work.id,
+                senderId: user?.id || work.clientId,
+                body: messageBody,
+            })
+            setMessages((current) => [...current, message])
+            setMessageBody('')
+        } catch {
+            setMessageError('메시지를 보내지 못했습니다. 잠시 후 다시 시도해주세요.')
+        } finally {
+            setMessageSubmitting(false)
+        }
+    }
+
+    const handleCancelWork = async () => {
+        await cancelWork(work.id)
+        setWork((current) => ({ ...current, status: 'cancelled', settlementStatus: 'refunded' }))
+        setStatusMessage('거래 중단 요청이 처리되었습니다.')
     }
 
     if (!isLoaded) {
@@ -279,9 +318,55 @@ export default function Workroom() {
                         </form>
                         {statusMessage && <p>{statusMessage}</p>}
                     </section>
+
+                    <section className="workroom-chat-panel">
+                        <div className="workroom-header-row">
+                            <div>
+                                <h2>작업방 대화</h2>
+                                <p>결제 후 작업 진행에 필요한 질문, 확인, 수정 의견을 이곳에서 주고받습니다.</p>
+                            </div>
+                        </div>
+                        <div className="workroom-message-list">
+                            {messages.length > 0 ? (
+                                messages.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        className={`workroom-message ${message.senderId === user?.id ? 'mine' : 'theirs'}`}
+                                    >
+                                        <p>{message.body}</p>
+                                        <span>{new Date(message.createdAt).toLocaleString('ko-KR')}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="submitted-deliverable">아직 작업방 메시지가 없습니다.</p>
+                            )}
+                        </div>
+                        <div className="workroom-message-form">
+                            <label htmlFor="workroom-message">작업방 메시지</label>
+                            <textarea
+                                id="workroom-message"
+                                aria-label="작업방 메시지"
+                                value={messageBody}
+                                onChange={(event) => setMessageBody(event.target.value)}
+                                placeholder="작업 진행에 필요한 내용을 입력하세요."
+                            />
+                            {messageError && <p>{messageError}</p>}
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                disabled={messageSubmitting}
+                                onClick={handleSendMessage}
+                            >
+                                {messageSubmitting ? '전송 중' : '메시지 보내기'}
+                            </button>
+                        </div>
+                    </section>
                 </div>
 
                 <aside className="workroom-side-card">
+                    <Link to={`/proposal/${work.proposalId}`} className="btn-primary" state={myPageReturnState}>
+                        제안서 보기
+                    </Link>
                     <section className="workroom-payment-panel">
                         <h2>결제/정산</h2>
                         <p>결제 완료</p>
@@ -311,6 +396,11 @@ export default function Workroom() {
                             수정 요청
                         </button>
                     </div>
+                    {work.status !== 'completed' && work.status !== 'cancelled' && (
+                        <button type="button" className="btn-text danger" onClick={handleCancelWork}>
+                            거래 중단 요청
+                        </button>
+                    )}
                     <Link to={myPageReturnTo} className="btn-text">
                         마이페이지로 돌아가기
                     </Link>

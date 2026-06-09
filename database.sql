@@ -515,7 +515,42 @@ create trigger set_deliverables_updated_at
   before update on public.deliverables
   for each row execute function public.set_updated_at();
 
--- 9. reviews
+-- 9. work_messages
+create table if not exists public.work_messages (
+  id uuid primary key default gen_random_uuid(),
+  work_id uuid references public.works(id) on delete cascade,
+  sender_id uuid references public.profiles(id) on delete cascade,
+  body text not null,
+  attachment_urls text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+alter table public.work_messages enable row level security;
+
+drop policy if exists "Work participants can view messages" on public.work_messages;
+create policy "Work participants can view messages"
+  on public.work_messages for select
+  using (
+    exists (
+      select 1 from public.works
+      where works.id = work_messages.work_id
+      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
+    )
+  );
+
+drop policy if exists "Work participants can insert messages" on public.work_messages;
+create policy "Work participants can insert messages"
+  on public.work_messages for insert
+  with check (
+    sender_id = auth.uid()
+    and exists (
+      select 1 from public.works
+      where works.id = work_messages.work_id
+      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
+    )
+  );
+
+-- 10. reviews
 create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
   work_id uuid references public.works(id) on delete cascade,

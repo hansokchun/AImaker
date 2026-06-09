@@ -20,14 +20,14 @@ const proposal: ProposalData = {
     commercialUseAllowed: true,
     sourceFileIncluded: false,
     status: 'sent',
+    paymentStatus: 'unpaid',
     expiresAt: '2999-01-01T00:00:00.000Z',
 }
 
 vi.mock('../lib/storage', () => ({
     getProposal: vi.fn(async () => proposal),
+    getWorkByProposal: vi.fn(async () => null),
     acceptProposal: vi.fn(async () => 'work-created-01'),
-    cancelProposal: vi.fn(async () => undefined),
-    requestProposalRevision: vi.fn(async () => undefined),
 }))
 
 describe('Proposal return navigation', () => {
@@ -47,7 +47,7 @@ describe('Proposal return navigation', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('heading', { name: '거래 제안서' })).toBeInTheDocument()
+        expect(await screen.findByText('Scope')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute(
             'href',
             '/mypage?panel=client&clientOrder=request-product-client-01',
@@ -70,7 +70,7 @@ describe('Proposal return navigation', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('heading', { name: '거래 제안서' })).toBeInTheDocument()
+        expect(await screen.findByText('Scope')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute(
             'href',
             '/my-work?role=expert&panel=client&expertRequest=request-product-client-01',

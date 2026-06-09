@@ -18,6 +18,7 @@ import type {
     Review,
     ServiceRequestData,
     Work,
+    WorkMessage,
     WorkStep,
 } from '../types';
 import { supabase } from './supabase';
@@ -37,6 +38,7 @@ const STORAGE_KEYS = {
     REVIEWS: 'ai_reviews',
     CONSULTATIONS: 'ai_consultations',
     CONSULTATION_MESSAGES: 'ai_consultation_messages',
+    WORK_MESSAGES: 'ai_work_messages',
     FAVORITE_PRODUCTS: 'ai_favorite_products',
 } as const;
 
@@ -195,6 +197,15 @@ const toConsultation = (item: any): Consultation => ({
 const toConsultationMessage = (item: any): ConsultationMessage => ({
     id: item.id,
     consultationId: item.consultation_id,
+    senderId: item.sender_id,
+    body: item.body || '',
+    attachmentUrls: item.attachment_urls || [],
+    createdAt: item.created_at,
+});
+
+const toWorkMessage = (item: any): WorkMessage => ({
+    id: item.id,
+    workId: item.work_id,
     senderId: item.sender_id,
     body: item.body || '',
     attachmentUrls: item.attachment_urls || [],
@@ -1446,6 +1457,76 @@ export async function cancelWork(workId: string): Promise<void> {
         .eq('id', workId);
 
     if (error) throw new Error('데이터베이스 통신 오류: 거래 중단 실패');
+}
+
+export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
+    const getLocalMessages = () => {
+        const raw = localStorage.getItem(STORAGE_KEYS.WORK_MESSAGES);
+        const messages = raw ? (JSON.parse(raw) as WorkMessage[]) : [];
+        return messages
+            .filter((message) => message.workId === workId)
+            .sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
+    };
+
+    if (!supabase) return getLocalMessages();
+
+    const { data, error } = await supabase
+        .from('work_messages')
+        .select('*')
+        .eq('work_id', workId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error('?묒뾽諛?硫붿떆吏 濡쒕뵫 ?ㅽ뙣:', error);
+        return getLocalMessages();
+    }
+
+    return (data || []).map(toWorkMessage);
+}
+
+export async function saveWorkMessage(input: {
+    workId: string;
+    senderId: string;
+    body: string;
+}): Promise<WorkMessage> {
+    const body = input.body.trim();
+    if (!body) throw new Error('?묒뾽諛?硫붿떆吏瑜??낅젰?댁＜?몄슂.');
+    const now = new Date().toISOString();
+
+    const saveLocalMessage = () => {
+        const message: WorkMessage = {
+            id: `work-message-${Date.now()}`,
+            workId: input.workId,
+            senderId: input.senderId,
+            body,
+            attachmentUrls: [],
+            createdAt: now,
+        };
+        const raw = localStorage.getItem(STORAGE_KEYS.WORK_MESSAGES);
+        const messages = raw ? (JSON.parse(raw) as WorkMessage[]) : [];
+        localStorage.setItem(STORAGE_KEYS.WORK_MESSAGES, JSON.stringify([...messages, message]));
+        return message;
+    };
+
+    if (!supabase) return saveLocalMessage();
+
+    const { data, error } = await supabase
+        .from('work_messages')
+        .insert({
+            work_id: input.workId,
+            sender_id: input.senderId,
+            body,
+            attachment_urls: [],
+        })
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('?묒뾽諛?硫붿떆吏 ????ㅽ뙣:', error);
+        return saveLocalMessage();
+    }
+
+    return toWorkMessage(data);
 }
 
 export async function saveDeliverable(deliverable: Deliverable): Promise<void> {

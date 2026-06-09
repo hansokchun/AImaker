@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Workroom from './Workroom'
 import type { Deliverable, Work, WorkStep } from '../types'
 
+let currentUserId = 'client-demo-01'
+
 const mockWorkTitle = 'AI 숏폼 영상 1차 제작'
 
 const work: Work = {
@@ -65,6 +67,25 @@ const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
 const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
+const cancelWork = vi.fn(async (_workId: string) => undefined)
+const getWorkMessages = vi.fn(async (_workId: string) => [
+    {
+        id: 'work-message-01',
+        workId: work.id,
+        senderId: work.clientId,
+        body: 'Workroom message from client',
+        attachmentUrls: [],
+        createdAt: '2026-06-01T00:00:00.000Z',
+    },
+])
+const saveWorkMessage = vi.fn(async (message: { workId: string; senderId: string; body: string }) => ({
+    id: 'work-message-created',
+    workId: message.workId,
+    senderId: message.senderId,
+    body: message.body.trim(),
+    attachmentUrls: [],
+    createdAt: '2026-06-01T00:00:01.000Z',
+}))
 const getWorkroomData = vi.fn(
     async (_workId: string): Promise<{ work: Work | null; steps: WorkStep[]; deliverables: Deliverable[] }> => ({
         work,
@@ -73,22 +94,36 @@ const getWorkroomData = vi.fn(
     }),
 )
 
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: () => ({
+        user: { id: currentUserId, email: `${currentUserId}@example.com` },
+        loading: false,
+    }),
+}))
+
 vi.mock('../lib/storage', () => ({
     approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string, stepId?: string) =>
         approveWorkDeliverable(workId, deliverableId, requestId, stepId),
+    cancelWork: (workId: string) => cancelWork(workId),
+    getWorkMessages: (workId: string) => getWorkMessages(workId),
     getWorkroomData: (workId: string) => getWorkroomData(workId),
     requestWorkRevision: (workId: string, deliverableId: string, stepId?: string) =>
         requestWorkRevision(workId, deliverableId, stepId),
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
+    saveWorkMessage: (message: { workId: string; senderId: string; body: string }) => saveWorkMessage(message),
 }))
 
 describe('Workroom', () => {
     beforeEach(() => {
+        currentUserId = 'client-demo-01'
         getWorkroomData.mockReset()
         getWorkroomData.mockResolvedValue({ work, steps: [step], deliverables: [deliverable] })
         approveWorkDeliverable.mockClear()
         requestWorkRevision.mockClear()
         saveDeliverable.mockClear()
+        cancelWork.mockClear()
+        getWorkMessages.mockClear()
+        saveWorkMessage.mockClear()
     })
 
     it('loads workroom data and saves deliverable links', async () => {
@@ -126,6 +161,37 @@ describe('Workroom', () => {
             ),
         )
         expect(screen.getByText('제출물 링크가 등록되었습니다.')).toBeInTheDocument()
+    })
+
+    it('shows the proposal link, workroom chat, and stop action inside the workroom', async () => {
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('Workroom message from client')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-demo-01')
+        expect(screen.getByRole('button', { name: '거래 중단 요청' })).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('작업방 메시지'), {
+            target: { value: 'Please check the updated draft.' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '메시지 보내기' }))
+
+        await waitFor(() =>
+            expect(saveWorkMessage).toHaveBeenCalledWith({
+                workId: work.id,
+                senderId: currentUserId,
+                body: 'Please check the updated draft.',
+            }),
+        )
+        expect(screen.getByText('Please check the updated draft.')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '거래 중단 요청' }))
+        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith(work.id))
     })
 
     it('does not show demo deliverables when a real work has no deliverables yet', async () => {

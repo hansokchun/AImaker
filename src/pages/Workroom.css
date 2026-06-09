@@ -183,6 +183,72 @@
     border-top: 1px solid var(--border-color);
 }
 
+.workroom-chat-panel {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.workroom-message-list {
+    display: grid;
+    gap: 0.75rem;
+    min-height: 180px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+.workroom-message {
+    width: min(78%, 560px);
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.9rem;
+    background: white;
+}
+
+.workroom-message.mine {
+    justify-self: end;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.workroom-message p {
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.55;
+}
+
+.workroom-message span {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.workroom-message-form {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.workroom-message-form label {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.workroom-message-form textarea {
+    min-height: 96px;
+    resize: vertical;
+    padding: 0.95rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    font: inherit;
+}
+
 .submitted-deliverable {
     display: flex;
     justify-content: space-between;

@@ -38,9 +38,26 @@ const deliverable: Deliverable = {
 
 vi.mock('../lib/storage', () => ({
     approveWorkDeliverable: vi.fn(async () => undefined),
+    cancelWork: vi.fn(async () => undefined),
+    getWorkMessages: vi.fn(async () => []),
     getWorkroomData: vi.fn(async () => ({ work, steps: [step], deliverables: [deliverable] })),
     requestWorkRevision: vi.fn(async () => undefined),
     saveDeliverable: vi.fn(async () => undefined),
+    saveWorkMessage: vi.fn(async () => ({
+        id: 'work-message-return-01',
+        workId: work.id,
+        senderId: work.clientId,
+        body: 'Message',
+        attachmentUrls: [],
+        createdAt: '2026-06-01T00:00:00.000Z',
+    })),
+}))
+
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: () => ({
+        user: { id: 'user-demo-01', email: 'user@example.com' },
+        loading: false,
+    }),
 }))
 
 describe('Workroom return navigation', () => {
