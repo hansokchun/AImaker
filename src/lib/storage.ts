@@ -996,6 +996,25 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
     }
 }
 
+export async function deleteExpertProduct(productId: string): Promise<void> {
+    if (!supabase) {
+        const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+        const existing = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(existing.filter((item) => item.id !== productId)));
+        return;
+    }
+
+    const { error } = await supabase
+        .from('expert_products')
+        .update({ status: 'hidden', updated_at: new Date().toISOString() })
+        .eq('id', productId);
+
+    if (error) {
+        console.error('Supabase 상품 삭제 실패:', error);
+        throw new Error(`데이터베이스 통신 오류: 상품 삭제 실패 (${error.message})`);
+    }
+}
+
 export async function getExpertProducts(): Promise<ExpertProduct[]> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);

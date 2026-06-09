@@ -5,6 +5,7 @@ import ProductRegister from './ProductRegister'
 import type { ExpertProduct } from '../types'
 
 const saveExpertProduct = vi.fn(async (_product: ExpertProduct) => undefined)
+const deleteExpertProduct = vi.fn(async (_productId: string) => undefined)
 const editableProduct: ExpertProduct = {
     id: 'editable-product-01',
     expertId: 'expert-user-01',
@@ -45,6 +46,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../lib/storage', () => ({
     saveExpertProduct: (product: ExpertProduct) => saveExpertProduct(product),
+    deleteExpertProduct: (productId: string) => deleteExpertProduct(productId),
     getExpertProducts: () => getExpertProducts(),
 }))
 
@@ -70,6 +72,7 @@ function renderEditRegister() {
             <Routes>
                 <Route path="/products/:productId/edit" element={<><ProductRegister /><LocationProbe /></>} />
                 <Route path="/expert/:id" element={<LocationProbe />} />
+                <Route path="/my-work" element={<LocationProbe />} />
             </Routes>
         </MemoryRouter>,
     )
@@ -78,6 +81,7 @@ function renderEditRegister() {
 describe('ProductRegister', () => {
     beforeEach(() => {
         saveExpertProduct.mockClear()
+        deleteExpertProduct.mockClear()
         getExpertProducts.mockClear()
         getExpertProducts.mockResolvedValue([editableProduct])
         vi.stubGlobal('Image', class {
@@ -351,5 +355,15 @@ describe('ProductRegister', () => {
                 }),
             ),
         )
+    })
+
+    it('lets owners delete an existing product from the edit page', async () => {
+        renderEditRegister()
+
+        expect(await screen.findByDisplayValue('기존 AI 상품')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '상품 삭제하기' }))
+
+        await waitFor(() => expect(deleteExpertProduct).toHaveBeenCalledWith(editableProduct.id))
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work'))
     })
 })

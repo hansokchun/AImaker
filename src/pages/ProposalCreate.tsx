@@ -178,14 +178,33 @@ export default function ProposalCreate() {
             <main className="container request-main">
                 <form className="content-card request-form-card" onSubmit={handleSubmit}>
                     <h1>{isEditMode ? '제안서 수정' : '제안서 작성'}</h1>
-                    <p>
-                        {isEditMode
-                            ? '처음 제안서를 작성할 때와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정 알림이 전달됩니다.'
-                            : '의뢰 내용을 바탕으로 작업 범위, 제출물, 금액과 일정을 작성합니다.'}
-                    </p>
-                    <p>
-                        {product?.title || request?.title} · 예상 금액 {totalPrice ? `${currency.format(Number(totalPrice))}원` : '미정'}
-                    </p>
+                    <div
+                        style={{
+                            display: 'grid',
+                            gap: '0.65rem',
+                            padding: '1rem',
+                            borderRadius: '0.85rem',
+                            border: '1px solid #dbeafe',
+                            background: '#eff6ff',
+                        }}
+                    >
+                        <strong style={{ color: '#1d4ed8' }}>{isEditMode ? '수정 제안서' : '새 제안서'}</strong>
+                        <p style={{ margin: 0, color: '#334155', lineHeight: 1.6 }}>
+                            {isEditMode
+                                ? '처음 제안서를 작성할 때와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정 알림이 전달됩니다.'
+                                : '의뢰 내용을 바탕으로 작업 범위, 제출물, 금액과 일정을 작성합니다.'}
+                        </p>
+                    </div>
+                    <div className="request-inline-grid">
+                        <div>
+                            <span style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 800, marginBottom: '0.25rem' }}>대상 상품</span>
+                            <strong>{product?.title || request?.title}</strong>
+                        </div>
+                        <div>
+                            <span style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 800, marginBottom: '0.25rem' }}>예상 금액</span>
+                            <strong>{totalPrice ? `${currency.format(Number(totalPrice))}원` : '미정'}</strong>
+                        </div>
+                    </div>
 
                     {errorMessage && <p style={{ color: '#dc2626', fontWeight: 800 }}>{errorMessage}</p>}
 

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { getExpertProducts, saveExpertProduct } from '../lib/storage'
+import { deleteExpertProduct, getExpertProducts, saveExpertProduct } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '../types'
 
 const currency = new Intl.NumberFormat('ko-KR')
@@ -229,6 +229,21 @@ export default function ProductRegister() {
         }
     }
 
+    const handleDeleteProduct = async () => {
+        if (!existingProduct) return
+        setSubmitting(true)
+        setErrorMessage('')
+        try {
+            await deleteExpertProduct(existingProduct.id)
+            navigate(`${ROUTES.WORK_DASHBOARD}?role=expert&panel=products`)
+        } catch (error) {
+            console.error('상품 삭제 실패:', error)
+            setErrorMessage(error instanceof Error ? error.message : '상품을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
     if (loading || !session) return null
 
     return (
@@ -364,6 +379,41 @@ export default function ProductRegister() {
                     <button type="submit" className="btn-primary" disabled={submitting} style={{ justifySelf: 'start', padding: '0.85rem 1.1rem' }}>
                         {submitting ? (productId ? '수정 중' : '등록 중') : (productId ? '수정 저장하기' : '등록하기')}
                     </button>
+
+                    {existingProduct && (
+                        <section
+                            style={{
+                                display: 'grid',
+                                gap: '0.75rem',
+                                padding: '1rem',
+                                borderRadius: '0.85rem',
+                                border: '1px solid #fecaca',
+                                background: '#fff7f7',
+                            }}
+                        >
+                            <strong style={{ color: '#991b1b' }}>상품 삭제</strong>
+                            <p style={{ margin: 0, color: '#7f1d1d', lineHeight: 1.6 }}>
+                                삭제한 상품은 AI 작업 찾기와 상품 상세에서 더 이상 공개되지 않습니다.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={handleDeleteProduct}
+                                disabled={submitting}
+                                style={{
+                                    justifySelf: 'start',
+                                    padding: '0.78rem 1rem',
+                                    borderRadius: '0.65rem',
+                                    border: '1px solid #fecaca',
+                                    background: '#fee2e2',
+                                    color: '#991b1b',
+                                    fontWeight: 900,
+                                    cursor: submitting ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                상품 삭제하기
+                            </button>
+                        </section>
+                    )}
                 </form>
             </section>
         </main>
