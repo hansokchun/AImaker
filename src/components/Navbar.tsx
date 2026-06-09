@@ -36,8 +36,7 @@ export default function Navbar() {
             });
         };
 
-        refreshProfileImage();
-        getUserNotifications(user.id)
+        const refreshNotifications = () => getUserNotifications(user.id)
             .then((items) => {
                 if (active) {
                     const readIds = getReadNotificationIds(user.id);
@@ -48,18 +47,28 @@ export default function Navbar() {
                 if (active) setNotifications([]);
             });
 
+        refreshProfileImage();
+        void refreshNotifications();
+
         const handleProfileUpdated = (event: Event) => {
             const updatedUserId = (event as CustomEvent<{ userId?: string }>).detail?.userId;
             if (!updatedUserId || updatedUserId === user.id) {
                 void refreshProfileImage();
             }
         };
+        const handleNotificationsUpdated = () => {
+            void refreshNotifications();
+        };
+        const notificationInterval = window.setInterval(refreshNotifications, 15000);
 
         window.addEventListener('aiconnect:profile-updated', handleProfileUpdated);
+        window.addEventListener('aiconnect:notifications-updated', handleNotificationsUpdated);
 
         return () => {
             active = false;
             window.removeEventListener('aiconnect:profile-updated', handleProfileUpdated);
+            window.removeEventListener('aiconnect:notifications-updated', handleNotificationsUpdated);
+            window.clearInterval(notificationInterval);
         };
     }, [user]);
 

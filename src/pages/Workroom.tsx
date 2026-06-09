@@ -3,7 +3,16 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import type { Deliverable, Work, WorkMessage, WorkStep } from '../types'
-import { approveWorkDeliverable, cancelWork, getWorkMessages, getWorkroomData, requestWorkRevision, saveDeliverable, saveWorkMessage } from '../lib/storage'
+import {
+    approveWorkDeliverable,
+    cancelWork,
+    getUserDisplayProfile,
+    getWorkMessages,
+    getWorkroomData,
+    requestWorkRevision,
+    saveDeliverable,
+    saveWorkMessage,
+} from '../lib/storage'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -78,6 +87,10 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 const isMyPageReturnPath = (pathname?: string) =>
     pathname === ROUTES.MY_PAGE || pathname === ROUTES.WORK_DASHBOARD
 
+const notifyActivityChanged = () => {
+    window.dispatchEvent(new Event('aiconnect:notifications-updated'))
+}
+
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
     const location = useLocation()
@@ -91,6 +104,7 @@ export default function Workroom() {
     const [messageSubmitting, setMessageSubmitting] = useState(false)
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
+    const [participantNames, setParticipantNames] = useState({ client: '', expert: '' })
     const [isLoaded, setIsLoaded] = useState(false)
     const [notFound, setNotFound] = useState(false)
     const activeDeliverable = deliverables[0]
@@ -99,9 +113,17 @@ export default function Workroom() {
     const deliverableButtonLabel = isRevisionMode ? '수정본 제출하기' : '제출물 링크 등록'
     const workStatusLabel =
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
+    const isClientParticipant = user?.id === work.clientId
+    const isExpertParticipant = user?.id === work.expertId
+    const isClosedWork = work.status === 'completed' || work.status === 'cancelled'
+    const canSubmitDeliverable = isExpertParticipant && !isClosedWork
+    const canReviewDeliverable = isClientParticipant && !isClosedWork
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
     const myPageReturnTo = isMyPageReturnPath(from?.pathname) ? `${from?.pathname}${from?.search || ''}` : ROUTES.MY_PAGE
     const myPageReturnState = myPageReturnTo ? { from } : undefined
+    const workDashboardRole = isExpertParticipant ? 'expert' : 'client'
+    const workDashboardSelectedKey = isExpertParticipant ? 'expertRequest' : 'clientOrder'
+    const workDashboardTo = `${ROUTES.WORK_DASHBOARD}?role=${workDashboardRole}&panel=client&${workDashboardSelectedKey}=${work.requestId}`
 
     useEffect(() => {
         let active = true
@@ -114,12 +136,20 @@ export default function Workroom() {
                 setIsLoaded(true)
                 return
             }
-            const workMessages = await getWorkMessages(data.work.id)
+            const [workMessages, clientProfile, expertProfile] = await Promise.all([
+                getWorkMessages(data.work.id),
+                getUserDisplayProfile(data.work.clientId).catch(() => null),
+                getUserDisplayProfile(data.work.expertId).catch(() => null),
+            ])
             if (!active) return
             setWork(data.work)
             setSteps(data.steps)
             setDeliverables(data.deliverables)
             setMessages(workMessages)
+            setParticipantNames({
+                client: clientProfile?.name || data.work.clientId,
+                expert: expertProfile?.name || data.work.expertId,
+            })
             setIsLoaded(true)
         })
         return () => {
@@ -128,7 +158,7 @@ export default function Workroom() {
     }, [workId])
 
     const handleSubmitDeliverable = async () => {
-        if (!deliverableLink.trim()) return
+        if (!canSubmitDeliverable || !deliverableLink.trim()) return
         const newDeliverable: Deliverable = {
             id: `deliverable-${Date.now()}`,
             workId: work.id,
@@ -143,10 +173,11 @@ export default function Workroom() {
         setDeliverables([newDeliverable, ...deliverables])
         setDeliverableLink('')
         setStatusMessage(isRevisionMode ? '수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.' : '제출물 링크가 등록되었습니다.')
+        notifyActivityChanged()
     }
 
     const handleApproveDeliverable = async () => {
-        if (!activeDeliverable) return
+        if (!canReviewDeliverable || !activeDeliverable) return
 
         await approveWorkDeliverable(work.id, activeDeliverable.id, work.requestId, activeDeliverable.stepId)
         setDeliverables((current) =>
@@ -161,10 +192,11 @@ export default function Workroom() {
         )
         setWork((current) => ({ ...current, status: 'completed', settlementStatus: 'pending' }))
         setStatusMessage('결과물을 승인했습니다. 작업이 완료되었습니다.')
+        notifyActivityChanged()
     }
 
     const handleRequestRevision = async () => {
-        if (!activeDeliverable) return
+        if (!canReviewDeliverable || !activeDeliverable) return
 
         await requestWorkRevision(work.id, activeDeliverable.id, activeDeliverable.stepId)
         setDeliverables((current) =>
@@ -181,6 +213,7 @@ export default function Workroom() {
         )
         setWork((current) => ({ ...current, status: 'revision_requested' }))
         setStatusMessage('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')
+        notifyActivityChanged()
     }
 
     const handleSendMessage = async () => {
@@ -199,6 +232,7 @@ export default function Workroom() {
             })
             setMessages((current) => [...current, message])
             setMessageBody('')
+            notifyActivityChanged()
         } catch {
             setMessageError('메시지를 보내지 못했습니다. 잠시 후 다시 시도해주세요.')
         } finally {
@@ -207,9 +241,11 @@ export default function Workroom() {
     }
 
     const handleCancelWork = async () => {
+        if (isClosedWork) return
         await cancelWork(work.id)
         setWork((current) => ({ ...current, status: 'cancelled', settlementStatus: 'refunded' }))
         setStatusMessage('거래 중단 요청이 처리되었습니다.')
+        notifyActivityChanged()
     }
 
     if (!isLoaded) {
@@ -300,22 +336,26 @@ export default function Workroom() {
                             <p className="submitted-deliverable">등록된 제출물이 없습니다.</p>
                         )}
 
-                        <form className="deliverable-form">
-                            <label htmlFor="deliverable-link">{deliverableFieldLabel}</label>
-                            <div>
-                                <input
-                                    id="deliverable-link"
-                                    aria-label={deliverableFieldLabel}
-                                    type="url"
-                                    placeholder="https://..."
-                                    value={deliverableLink}
-                                    onChange={(event) => setDeliverableLink(event.target.value)}
-                                />
-                                <button type="button" className="btn-primary" onClick={handleSubmitDeliverable}>
-                                    {deliverableButtonLabel}
-                                </button>
-                            </div>
-                        </form>
+                        {canSubmitDeliverable ? (
+                            <form className="deliverable-form">
+                                <label htmlFor="deliverable-link">{deliverableFieldLabel}</label>
+                                <div>
+                                    <input
+                                        id="deliverable-link"
+                                        aria-label={deliverableFieldLabel}
+                                        type="url"
+                                        placeholder="https://..."
+                                        value={deliverableLink}
+                                        onChange={(event) => setDeliverableLink(event.target.value)}
+                                    />
+                                    <button type="button" className="btn-primary" onClick={handleSubmitDeliverable}>
+                                        {deliverableButtonLabel}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <p className="workroom-role-note">제출물 링크 등록은 작업자만 할 수 있습니다.</p>
+                        )}
                         {statusMessage && <p>{statusMessage}</p>}
                     </section>
 
@@ -367,6 +407,9 @@ export default function Workroom() {
                     <Link to={`/proposal/${work.proposalId}`} className="btn-primary" state={myPageReturnState}>
                         제안서 보기
                     </Link>
+                    <Link to={workDashboardTo} className="btn-text" state={myPageReturnState}>
+                        거래 단계 보기
+                    </Link>
                     <section className="workroom-payment-panel">
                         <h2>결제/정산</h2>
                         <p>결제 완료</p>
@@ -376,28 +419,44 @@ export default function Workroom() {
                         <span>{settlementStatusText[work.settlementStatus || 'held']}</span>
                     </section>
 
-                    <h2>의뢰자 확인</h2>
-                    <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
-                    <div className="review-actions">
-                        <button
-                            type="button"
-                            className="btn-primary"
-                            disabled={!activeDeliverable || work.status === 'completed'}
-                            onClick={handleApproveDeliverable}
-                        >
-                            결과물 승인
-                        </button>
-                        <button
-                            type="button"
-                            className="btn-text"
-                            disabled={!activeDeliverable || work.status === 'completed'}
-                            onClick={handleRequestRevision}
-                        >
-                            수정 요청
-                        </button>
-                    </div>
+                    <section className="workroom-participants">
+                        <h2>거래 참여자</h2>
+                        <div>
+                            <span>의뢰자</span>
+                            <strong>{participantNames.client || work.clientId}</strong>
+                        </div>
+                        <div>
+                            <span>작업자</span>
+                            <strong>{participantNames.expert || work.expertId}</strong>
+                        </div>
+                    </section>
+
+                    {canReviewDeliverable && (
+                        <>
+                            <h2>의뢰자 확인</h2>
+                            <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
+                            <div className="review-actions">
+                                <button
+                                    type="button"
+                                    className="btn-primary"
+                                    disabled={!activeDeliverable}
+                                    onClick={handleApproveDeliverable}
+                                >
+                                    결과물 승인
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-text"
+                                    disabled={!activeDeliverable}
+                                    onClick={handleRequestRevision}
+                                >
+                                    수정 요청
+                                </button>
+                            </div>
+                        </>
+                    )}
                     {work.status !== 'completed' && work.status !== 'cancelled' && (
-                        <button type="button" className="btn-text danger" onClick={handleCancelWork}>
+                        <button type="button" className="workroom-danger-button" onClick={handleCancelWork}>
                             거래 중단 요청
                         </button>
                     )}

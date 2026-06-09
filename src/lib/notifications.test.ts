@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildUserNotifications } from './notifications'
-import type { Consultation, ConsultationMessage, Proposal, ServiceRequestData, Work } from '../types'
+import type { Consultation, ConsultationMessage, Proposal, ServiceRequestData, Work, WorkMessage } from '../types'
 
 describe('buildUserNotifications', () => {
     it('sends a new expert notification when a received request is updated', () => {
@@ -29,12 +29,13 @@ describe('buildUserNotifications', () => {
             consultations: [],
             messagesByConsultation: {},
             works: [],
+            messagesByWork: {},
         })
 
         expect(notifications).toHaveLength(1)
         expect(notifications[0]).toMatchObject({
             id: 'request-updated-request-updated-01-2026-06-11T09:00:00.000Z',
-            title: '의뢰서 수정됨',
+            title: '의뢰서가 수정됨',
             body: '수정된 의뢰 내용',
             to: '/my-work?role=expert&panel=client&expertRequest=request-updated-01',
             createdAt: '2026-06-11T09:00:00.000Z',
@@ -123,6 +124,7 @@ describe('buildUserNotifications', () => {
             consultations,
             messagesByConsultation,
             works,
+            messagesByWork: {},
         })
         const clientNotifications = buildUserNotifications({
             userId: 'client-01',
@@ -131,6 +133,7 @@ describe('buildUserNotifications', () => {
             consultations,
             messagesByConsultation,
             works,
+            messagesByWork: {},
         })
 
         expect(expertNotifications.map((item) => item.title)).toEqual(['새 상담 메시지', '새 상품 의뢰'])
@@ -171,6 +174,7 @@ describe('buildUserNotifications', () => {
             consultations: [],
             messagesByConsultation: {},
             works: [],
+            messagesByWork: {},
         })
 
         expect(notifications).toEqual([])
@@ -198,6 +202,7 @@ describe('buildUserNotifications', () => {
             consultations: [],
             messagesByConsultation: {},
             works,
+            messagesByWork: {},
         })
         const expertNotifications = buildUserNotifications({
             userId: 'expert-01',
@@ -206,6 +211,7 @@ describe('buildUserNotifications', () => {
             consultations: [],
             messagesByConsultation: {},
             works,
+            messagesByWork: {},
         })
 
         expect(clientNotifications[0]).toMatchObject({
@@ -217,6 +223,95 @@ describe('buildUserNotifications', () => {
             title: '거래 중단됨',
             body: '중단된 거래',
             to: '/my-work?role=expert&panel=client&expertRequest=request-01',
+        })
+    })
+
+    it('notifies the other participant when a workroom message arrives', () => {
+        const works: Work[] = [
+            {
+                id: 'work-message-01',
+                proposalId: 'proposal-01',
+                requestId: 'request-01',
+                clientId: 'client-01',
+                expertId: 'expert-01',
+                title: '작업방 메시지 거래',
+                progressType: 'single',
+                status: 'in_progress',
+                stepIds: [],
+            },
+        ]
+        const messagesByWork: Record<string, WorkMessage[]> = {
+            'work-message-01': [
+                {
+                    id: 'work-message-client-01',
+                    workId: 'work-message-01',
+                    senderId: 'client-01',
+                    body: '초안 방향 확인 부탁드립니다.',
+                    attachmentUrls: [],
+                    createdAt: '2026-06-11T12:00:00.000Z',
+                },
+            ],
+        }
+
+        const expertNotifications = buildUserNotifications({
+            userId: 'expert-01',
+            serviceRequests: [],
+            proposals: [],
+            consultations: [],
+            messagesByConsultation: {},
+            works,
+            messagesByWork,
+        })
+        const clientNotifications = buildUserNotifications({
+            userId: 'client-01',
+            serviceRequests: [],
+            proposals: [],
+            consultations: [],
+            messagesByConsultation: {},
+            works,
+            messagesByWork,
+        })
+
+        expect(expertNotifications[0]).toMatchObject({
+            id: 'work-message-work-message-client-01',
+            title: '작업방 메시지',
+            body: '초안 방향 확인 부탁드립니다.',
+            to: '/workroom/work-message-01',
+            createdAt: '2026-06-11T12:00:00.000Z',
+        })
+        expect(clientNotifications).toEqual([])
+    })
+
+    it('notifies experts when work is completed by deliverable approval', () => {
+        const works: Work[] = [
+            {
+                id: 'work-completed-01',
+                proposalId: 'proposal-01',
+                requestId: 'request-01',
+                clientId: 'client-01',
+                expertId: 'expert-01',
+                title: '완료 승인된 작업',
+                progressType: 'single',
+                status: 'completed',
+                stepIds: [],
+            },
+        ]
+
+        const notifications = buildUserNotifications({
+            userId: 'expert-01',
+            serviceRequests: [],
+            proposals: [],
+            consultations: [],
+            messagesByConsultation: {},
+            works,
+            messagesByWork: {},
+        })
+
+        expect(notifications[0]).toMatchObject({
+            id: 'work-completed-work-completed-01',
+            title: '작업 완료 승인',
+            body: '완료 승인된 작업',
+            to: '/workroom/work-completed-01',
         })
     })
 })

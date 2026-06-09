@@ -39,6 +39,11 @@ const deliverable: Deliverable = {
 vi.mock('../lib/storage', () => ({
     approveWorkDeliverable: vi.fn(async () => undefined),
     cancelWork: vi.fn(async () => undefined),
+    getUserDisplayProfile: vi.fn(async (userId: string) => ({
+        name: userId === work.clientId ? '의뢰자' : '작업자',
+        imageUrl: '',
+        isExpert: userId === work.expertId,
+    })),
     getWorkMessages: vi.fn(async () => []),
     getWorkroomData: vi.fn(async () => ({ work, steps: [step], deliverables: [deliverable] })),
     requestWorkRevision: vi.fn(async () => undefined),

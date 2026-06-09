@@ -86,6 +86,11 @@ const saveWorkMessage = vi.fn(async (message: { workId: string; senderId: string
     attachmentUrls: [],
     createdAt: '2026-06-01T00:00:01.000Z',
 }))
+const getUserDisplayProfile = vi.fn(async (userId: string) => ({
+    name: userId === work.clientId ? 'Client User' : 'Expert User',
+    imageUrl: '',
+    isExpert: userId === work.expertId,
+}))
 const getWorkroomData = vi.fn(
     async (_workId: string): Promise<{ work: Work | null; steps: WorkStep[]; deliverables: Deliverable[] }> => ({
         work,
@@ -111,6 +116,7 @@ vi.mock('../lib/storage', () => ({
         requestWorkRevision(workId, deliverableId, stepId),
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
     saveWorkMessage: (message: { workId: string; senderId: string; body: string }) => saveWorkMessage(message),
+    getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
 }))
 
 describe('Workroom', () => {
@@ -124,9 +130,12 @@ describe('Workroom', () => {
         cancelWork.mockClear()
         getWorkMessages.mockClear()
         saveWorkMessage.mockClear()
+        getUserDisplayProfile.mockClear()
     })
 
     it('loads workroom data and saves deliverable links', async () => {
+        currentUserId = 'expert-video-01'
+
         render(
             <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
                 <Routes>
@@ -174,6 +183,10 @@ describe('Workroom', () => {
 
         expect(await screen.findByText('Workroom message from client')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-demo-01')
+        expect(screen.getByRole('link', { name: '거래 단계 보기' })).toHaveAttribute(
+            'href',
+            '/my-work?role=client&panel=client&clientOrder=request-demo-01',
+        )
         expect(screen.getByRole('button', { name: '거래 중단 요청' })).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('작업방 메시지'), {
@@ -192,6 +205,40 @@ describe('Workroom', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '거래 중단 요청' }))
         await waitFor(() => expect(cancelWork).toHaveBeenCalledWith(work.id))
+    })
+
+    it('shows participants and keeps deliverable submission expert-only', async () => {
+        currentUserId = 'client-demo-01'
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('Client User')).toBeInTheDocument()
+        expect(screen.getByText('Expert User')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '결과물 승인' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '수정 요청' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '제출물 링크 등록' })).not.toBeInTheDocument()
+    })
+
+    it('keeps review actions client-only and deliverable submission expert-only', async () => {
+        currentUserId = 'expert-video-01'
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '제출물 링크 등록' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '결과물 승인' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '수정 요청' })).not.toBeInTheDocument()
     })
 
     it('does not show demo deliverables when a real work has no deliverables yet', async () => {
@@ -282,6 +329,7 @@ describe('Workroom', () => {
     })
 
     it('shows revision copy when experts resubmit after a revision request', async () => {
+        currentUserId = 'expert-video-01'
         getWorkroomData.mockResolvedValue({
             work: revisionWork,
             steps: [revisionStep],

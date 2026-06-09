@@ -1,6 +1,6 @@
 import { ROUTES } from '../constants/routes'
-import type { Consultation, ConsultationMessage, Proposal, ServiceRequestData, Work } from '../types'
-import { getConsultationMessages, getUserConsultations, getUserProposals, getUserServiceRequests, getUserWorks } from './storage'
+import type { Consultation, ConsultationMessage, Proposal, ServiceRequestData, Work, WorkMessage } from '../types'
+import { getConsultationMessages, getUserConsultations, getUserProposals, getUserServiceRequests, getUserWorks, getWorkMessages } from './storage'
 
 export type UserNotificationKind = 'request' | 'proposal' | 'message' | 'work'
 
@@ -20,6 +20,7 @@ export interface UserNotificationSource {
     consultations: Consultation[]
     messagesByConsultation: Record<string, ConsultationMessage[]>
     works: Work[]
+    messagesByWork?: Record<string, WorkMessage[]>
 }
 
 export async function getUserNotifications(userId: string): Promise<UserNotification[]> {
@@ -32,6 +33,9 @@ export async function getUserNotifications(userId: string): Promise<UserNotifica
     const messagePairs = await Promise.all(
         consultations.map(async (consultation) => [consultation.id, await getConsultationMessages(consultation.id)] as const),
     )
+    const workMessagePairs = await Promise.all(
+        works.map(async (work) => [work.id, await getWorkMessages(work.id)] as const),
+    )
 
     return buildUserNotifications({
         userId,
@@ -40,6 +44,7 @@ export async function getUserNotifications(userId: string): Promise<UserNotifica
         consultations,
         messagesByConsultation: Object.fromEntries(messagePairs),
         works,
+        messagesByWork: Object.fromEntries(workMessagePairs),
     })
 }
 
@@ -50,6 +55,7 @@ export function buildUserNotifications({
     consultations,
     messagesByConsultation,
     works,
+    messagesByWork = {},
 }: UserNotificationSource): UserNotification[] {
     const requestNotifications = serviceRequests
         .filter((request) => request.expertId === userId && request.productId && request.status === 'pending')
@@ -61,7 +67,7 @@ export function buildUserNotifications({
             return {
                 id: wasUpdated ? `request-updated-${request.id}-${eventTime}` : `request-${request.id}`,
                 kind: 'request',
-                title: wasUpdated ? '의뢰서 수정됨' : '새 상품 의뢰',
+                title: wasUpdated ? '의뢰서가 수정됨' : '새 상품 의뢰',
                 body: request.desiredResult || request.title,
                 to: `${ROUTES.WORK_DASHBOARD}?role=expert&panel=client&expertRequest=${request.id}`,
                 createdAt: eventTime,
@@ -99,16 +105,38 @@ export function buildUserNotifications({
     const workNotifications = works
         .filter((work) => (
             (work.clientId === userId && work.status === 'submitted') ||
-            (work.expertId === userId && work.status === 'revision_requested')
+            (work.expertId === userId && work.status === 'revision_requested') ||
+            (work.expertId === userId && work.status === 'completed')
         ))
         .map((work): UserNotification => ({
-            id: `work-${work.id}`,
+            id: work.status === 'completed' ? `work-completed-${work.id}` : `work-${work.id}`,
             kind: 'work',
-            title: work.clientId === userId ? '작업물 도착' : '수정 요청 도착',
+            title: work.status === 'completed'
+                ? '작업 완료 승인'
+                : work.clientId === userId
+                    ? '작업물 도착'
+                    : '수정 요청 도착',
             body: work.title,
             to: `${ROUTES.WORKROOM.replace(':workId', work.id)}`,
             createdAt: new Date().toISOString(),
         }))
+
+    const workMessageNotifications = works
+        .map((work) => {
+            const latestMessage = [...(messagesByWork[work.id] || [])]
+                .reverse()
+                .find((message) => message.senderId !== userId)
+            if (!latestMessage) return null
+            return {
+                id: `work-message-${latestMessage.id}`,
+                kind: 'message',
+                title: '작업방 메시지',
+                body: latestMessage.body || work.title,
+                to: `${ROUTES.WORKROOM.replace(':workId', work.id)}`,
+                createdAt: latestMessage.createdAt,
+            } satisfies UserNotification
+        })
+        .filter((notification): notification is UserNotification => Boolean(notification))
 
     const cancelledWorkNotifications = works
         .filter((work) => (work.clientId === userId || work.expertId === userId) && work.status === 'cancelled')
@@ -121,8 +149,14 @@ export function buildUserNotifications({
             createdAt: new Date().toISOString(),
         }))
 
-    return [...requestNotifications, ...proposalNotifications, ...messageNotifications, ...workNotifications, ...cancelledWorkNotifications]
-        .sort((first, second) => toTime(second.createdAt) - toTime(first.createdAt))
+    return [
+        ...requestNotifications,
+        ...proposalNotifications,
+        ...messageNotifications,
+        ...workNotifications,
+        ...workMessageNotifications,
+        ...cancelledWorkNotifications,
+    ].sort((first, second) => toTime(second.createdAt) - toTime(first.createdAt))
 }
 
 const toTime = (value: string) => {
