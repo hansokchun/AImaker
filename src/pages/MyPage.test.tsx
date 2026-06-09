@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
-import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData } from '../types'
+import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData, Work } from '../types'
 
 const mockSignOut = vi.fn(async () => undefined)
 
@@ -45,6 +45,7 @@ vi.mock('../lib/supabase', () => ({
 
 const saveReview = vi.fn(async (_review: Review) => undefined)
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-directed-created')
+const cancelProposal = vi.fn(async (_proposalId: string) => undefined)
 const cancelWork = vi.fn(async (_workId: string) => undefined)
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
@@ -642,6 +643,7 @@ vi.mock('../lib/storage', () => ({
     getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
     saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
+    cancelProposal: (proposalId: string) => cancelProposal(proposalId),
     cancelWork: (workId: string) => cancelWork(workId),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
@@ -655,6 +657,7 @@ describe('MyPage', () => {
     beforeEach(() => {
         saveReview.mockClear()
         saveProposal.mockClear()
+        cancelProposal.mockClear()
         cancelWork.mockClear()
         saveExpertProduct.mockClear()
         mockSignOut.mockClear()
@@ -1734,6 +1737,67 @@ describe('MyPage', () => {
         expect(screen.getByText('거래 중단')).toBeInTheDocument()
     })
 
+    it('lets experts cancel a sent proposal directly from transaction management', async () => {
+        getUserProposals.mockResolvedValue([
+            {
+                id: 'proposal-directed-sent',
+                requestId: 'request-product-directed-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                title: '직접 취소 테스트 제안서',
+                scope: '제안 범위',
+                deliverables: ['결과물'],
+                totalPrice: 50000,
+                deliveryDays: 3,
+                revisionCount: 1,
+                progressType: 'single',
+                milestones: [],
+                commercialUseAllowed: true,
+                sourceFileIncluded: false,
+                status: 'sent',
+                paymentStatus: 'unpaid',
+                expiresAt: '2999-01-01T00:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('link', { name: '수정하기' })).toHaveAttribute(
+            'href',
+            '/proposals/new?proposalId=proposal-directed-sent',
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '취소하기' }))
+
+        await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith('proposal-directed-sent'))
+        expect(screen.getByText('직접 취소 테스트 제안서')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '제안서 보내기' })).toHaveAttribute(
+            'href',
+            '/proposals/new?requestId=request-product-directed-01',
+        )
+    })
+
+    it('shows a stop transaction action on active workroom cards', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=workroom']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const activeWork = (await screen.findAllByTestId('active-work'))[0]
+        fireEvent.click(within(activeWork).getByRole('button', { name: '거래 중단 요청' }))
+
+        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith('work-real-active'))
+    })
+
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {
         getUserProposals.mockResolvedValue([])
         getUserWorks.mockResolvedValue([])
@@ -1808,8 +1872,9 @@ describe('MyPage', () => {
         expect(
             screen
                 .getAllByRole('link')
-                .some((link) => link.getAttribute('href') === '/proposal/proposal-real-expert'),
+                .some((link) => link.getAttribute('href') === '/proposals/new?proposalId=proposal-real-expert'),
         ).toBe(true)
+        expect(screen.getByRole('button', { name: '취소하기' })).toBeInTheDocument()
     })
 
     it('shows every active and completed work as workroom cards', async () => {

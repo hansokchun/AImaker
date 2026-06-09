@@ -110,7 +110,18 @@ export function buildUserNotifications({
             createdAt: new Date().toISOString(),
         }))
 
-    return [...requestNotifications, ...proposalNotifications, ...messageNotifications, ...workNotifications]
+    const cancelledWorkNotifications = works
+        .filter((work) => (work.clientId === userId || work.expertId === userId) && work.status === 'cancelled')
+        .map((work): UserNotification => ({
+            id: `work-cancelled-${work.id}`,
+            kind: 'work',
+            title: '거래 중단됨',
+            body: work.title,
+            to: `${ROUTES.WORK_DASHBOARD}?role=${work.expertId === userId ? 'expert' : 'client'}&panel=client&${work.expertId === userId ? 'expertRequest' : 'clientOrder'}=${work.requestId}`,
+            createdAt: new Date().toISOString(),
+        }))
+
+    return [...requestNotifications, ...proposalNotifications, ...messageNotifications, ...workNotifications, ...cancelledWorkNotifications]
         .sort((first, second) => toTime(second.createdAt) - toTime(first.createdAt))
 }
 

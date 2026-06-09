@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { cancelWork, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { cancelProposal, cancelWork, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
 import Profile from './Profile'
@@ -573,6 +573,17 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         )
     }
 
+    const handleCancelSentProposal = async (proposal: Proposal) => {
+        await cancelProposal(proposal.id)
+        setProposals((currentProposals) =>
+            currentProposals.map((currentProposal) =>
+                currentProposal.id === proposal.id
+                    ? { ...currentProposal, status: 'cancelled' }
+                    : currentProposal,
+            ),
+        )
+    }
+
     const getRoleConsultationId = () => {
         if (mode !== 'work') return selectedConsultationId
         const roleConsultations = workRole === 'client' ? clientConsultationsByCreatedAt : expertConsultationsByCreatedAt
@@ -663,6 +674,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         <p style={{ color: 'var(--text-secondary)', margin: '0 0 0.8rem' }}>
                             {workStatusText[work.status]}
                         </p>
+                        {work.status !== 'completed' && (
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                style={{ padding: '0.65rem 0.9rem', marginBottom: '0.8rem' }}
+                                onClick={() => handleCancelWork(work)}
+                            >
+                                거래 중단 요청
+                            </button>
+                        )}
                         {work.settlementStatus && (
                             <div style={{ display: 'grid', gap: '0.25rem', marginBottom: '0.8rem', color: '#475569', fontWeight: 800 }}>
                                 <span>{settlementStatusText[work.settlementStatus]}</span>
@@ -1225,7 +1246,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         '제안서 작성/수정',
                                         `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
                                         selectedExpertRequestWork ? 'done' : 'current',
-                                        { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
+                                        [
+                                            { label: '수정하기', to: `${ROUTES.PROPOSAL_NEW}?proposalId=${selectedExpertRequestProposal.id}` },
+                                            { label: '취소하기', onClick: () => handleCancelSentProposal(selectedExpertRequestProposal), variant: 'secondary' },
+                                        ],
                                     )
                                     : renderClientOrderStage(
                                         '검토 단계',
@@ -1379,7 +1403,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             '제안서 작성/수정',
                             `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
                             selectedExpertRequestWork ? 'done' : 'current',
-                            { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` },
+                            [
+                                { label: '수정하기', to: `${ROUTES.PROPOSAL_NEW}?proposalId=${selectedExpertRequestProposal.id}` },
+                                { label: '취소하기', onClick: () => handleCancelSentProposal(selectedExpertRequestProposal), variant: 'secondary' },
+                            ],
                         )
                         : renderClientOrderStage(
                             '검토 단계',

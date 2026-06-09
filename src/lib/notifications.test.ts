@@ -175,4 +175,48 @@ describe('buildUserNotifications', () => {
 
         expect(notifications).toEqual([])
     })
+
+    it('notifies both parties when a work is cancelled and links back to transaction management', () => {
+        const works: Work[] = [
+            {
+                id: 'work-cancelled-01',
+                proposalId: 'proposal-01',
+                requestId: 'request-01',
+                clientId: 'client-01',
+                expertId: 'expert-01',
+                title: '중단된 거래',
+                progressType: 'single',
+                status: 'cancelled',
+                stepIds: [],
+            },
+        ]
+
+        const clientNotifications = buildUserNotifications({
+            userId: 'client-01',
+            serviceRequests: [],
+            proposals: [],
+            consultations: [],
+            messagesByConsultation: {},
+            works,
+        })
+        const expertNotifications = buildUserNotifications({
+            userId: 'expert-01',
+            serviceRequests: [],
+            proposals: [],
+            consultations: [],
+            messagesByConsultation: {},
+            works,
+        })
+
+        expect(clientNotifications[0]).toMatchObject({
+            title: '거래 중단됨',
+            body: '중단된 거래',
+            to: '/my-work?role=client&panel=client&clientOrder=request-01',
+        })
+        expect(expertNotifications[0]).toMatchObject({
+            title: '거래 중단됨',
+            body: '중단된 거래',
+            to: '/my-work?role=expert&panel=client&expertRequest=request-01',
+        })
+    })
 })
