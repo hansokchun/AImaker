@@ -66,4 +66,27 @@ describe('Workroom return navigation', () => {
             '/mypage?panel=client&clientOrder=request-product-client-01',
         )
     })
+
+    it('keeps the selected work dashboard role when opened from my work', async () => {
+        render(
+            <MemoryRouter
+                initialEntries={[
+                    {
+                        pathname: '/workroom/work-return-01',
+                        state: { from: { pathname: '/my-work', search: '?role=expert&panel=workroom' } },
+                    },
+                ]}
+            >
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute(
+            'href',
+            '/my-work?role=expert&panel=workroom',
+        )
+    })
 })

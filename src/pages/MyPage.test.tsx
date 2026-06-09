@@ -965,6 +965,8 @@ describe('MyPage', () => {
         expect(screen.queryByText('내가 의뢰한 일과 전문가로 받은 일을 역할을 전환하며 확인합니다.')).not.toBeInTheDocument()
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        expect(screen.getByText('현재 주체')).toBeInTheDocument()
+        expect(screen.getByText('의뢰자 모드')).toBeInTheDocument()
         expect(within(roleSwitch).getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
         expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
         expect(screen.getByRole('button', { name: '거래관리' })).toBeInTheDocument()

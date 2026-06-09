@@ -53,4 +53,27 @@ describe('Proposal return navigation', () => {
             '/mypage?panel=client&clientOrder=request-product-client-01',
         )
     })
+
+    it('keeps the selected work dashboard role when opened from my work', async () => {
+        render(
+            <MemoryRouter
+                initialEntries={[
+                    {
+                        pathname: '/proposal/proposal-return-01',
+                        state: { from: { pathname: '/my-work', search: '?role=expert&panel=client&expertRequest=request-product-client-01' } },
+                    },
+                ]}
+            >
+                <Routes>
+                    <Route path="/proposal/:proposalId" element={<Proposal />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '거래 제안서' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute(
+            'href',
+            '/my-work?role=expert&panel=client&expertRequest=request-product-client-01',
+        )
+    })
 })

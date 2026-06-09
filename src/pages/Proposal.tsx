@@ -69,6 +69,9 @@ const statusText: Record<ProposalData['status'], string> = {
     expired: '만료된 제안서입니다.',
 }
 
+const isMyPageReturnPath = (pathname?: string) =>
+    pathname === ROUTES.MY_PAGE || pathname === ROUTES.WORK_DASHBOARD
+
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
     const location = useLocation()
@@ -78,7 +81,7 @@ export default function Proposal() {
     const [statusMessage, setStatusMessage] = useState('')
     const [createdWorkId, setCreatedWorkId] = useState('')
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
-    const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ''
+    const myPageReturnTo = isMyPageReturnPath(from?.pathname) ? `${from?.pathname}${from?.search || ''}` : ''
     const myPageReturnState = myPageReturnTo ? { from } : undefined
 
     useEffect(() => {

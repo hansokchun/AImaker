@@ -173,7 +173,7 @@ describe('ProposalCreate', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '제안서 수정' })).toBeInTheDocument()
-        expect(screen.getByText('처음 제안서를 작성할 때와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정 알림이 전달됩니다.')).toBeInTheDocument()
+        expect(screen.getByText('기존 제안서를 불러와 작성 페이지와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정된 제안서 도착 알림이 전달됩니다.')).toBeInTheDocument()
         expect(screen.getByDisplayValue('기존 제안서')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('작업 범위'), { target: { value: '수정된 작업 범위입니다.' } })
@@ -192,5 +192,36 @@ describe('ProposalCreate', () => {
         await waitFor(() => {
             expect(screen.getAllByTestId('location').some((item) => item.textContent?.includes('/proposal/proposal-created-01'))).toBe(true)
         })
+    })
+
+    it('keeps the selected expert transaction when returning from proposal edit', async () => {
+        render(
+            <MemoryRouter initialEntries={['/proposals/new?proposalId=proposal-created-01']}>
+                <Routes>
+                    <Route path="/proposals/new" element={<ProposalCreate />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '제안서 수정' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '거래관리로 돌아가기' })).toHaveAttribute(
+            'href',
+            '/my-work?role=expert&panel=client&expertRequest=request-product-directed-01',
+        )
+    })
+
+    it('shows the proposal form in the same polished layout for writing and editing', async () => {
+        render(
+            <MemoryRouter initialEntries={['/proposals/new?requestId=request-product-directed-01']}>
+                <Routes>
+                    <Route path="/proposals/new" element={<ProposalCreate />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '제안서 작성' })).toBeInTheDocument()
+        expect(screen.getByLabelText('제안서 핵심 정보')).toBeInTheDocument()
+        expect(screen.getByRole('complementary', { name: '제출 전 확인' })).toBeInTheDocument()
+        expect(screen.getByText('의뢰 내용')).toBeInTheDocument()
     })
 })

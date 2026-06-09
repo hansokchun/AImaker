@@ -726,52 +726,89 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderWorkRoleSwitch = () => (
         <div
-            aria-label="내 작업 역할 전환"
             style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                padding: '0.35rem',
-                borderRadius: '999px',
+                gap: '0.45rem',
+                padding: '0.55rem',
+                borderRadius: '1.1rem',
                 background: 'white',
                 border: '1px solid var(--border-color)',
-                gap: '0.35rem',
                 boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
             }}
         >
-            <button
-                type="button"
-                aria-pressed={workRole === 'client'}
-                onClick={() => handleWorkRoleChange('client')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0 0.35rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 900 }}>현재 주체</span>
+                <strong style={{ color: workRole === 'expert' ? '#166534' : '#1d4ed8', fontSize: '0.88rem' }}>
+                    {workRole === 'expert' ? '전문가 모드' : '의뢰자 모드'}
+                </strong>
+            </div>
+            <div
+                aria-label="내 작업 역할 전환"
                 style={{
-                    padding: '0.78rem 1rem',
+                    position: 'relative',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    padding: '0.3rem',
                     borderRadius: '999px',
-                    border: 'none',
-                    background: workRole === 'client' ? '#eff6ff' : 'transparent',
-                    color: workRole === 'client' ? '#1d4ed8' : '#475569',
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    cursor: 'pointer',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    gap: '0.25rem',
+                    overflow: 'hidden',
                 }}
             >
-                의뢰자로 보기
-            </button>
-            <button
-                type="button"
-                aria-pressed={workRole === 'expert'}
-                onClick={() => handleWorkRoleChange('expert')}
-                style={{
-                    padding: '0.78rem 1rem',
-                    borderRadius: '999px',
-                    border: 'none',
-                    background: workRole === 'expert' ? '#ecfdf5' : 'transparent',
-                    color: workRole === 'expert' ? '#166534' : '#475569',
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                }}
-            >
-                전문가로 보기
-            </button>
+                <span
+                    aria-hidden="true"
+                    style={{
+                        position: 'absolute',
+                        top: '0.3rem',
+                        bottom: '0.3rem',
+                        left: workRole === 'expert' ? 'calc(50% + 0.125rem)' : '0.3rem',
+                        width: 'calc(50% - 0.425rem)',
+                        borderRadius: '999px',
+                        background: workRole === 'expert' ? '#ecfdf5' : '#eff6ff',
+                        border: `1px solid ${workRole === 'expert' ? '#bbf7d0' : '#bfdbfe'}`,
+                        transition: 'left 160ms ease, background 160ms ease, border-color 160ms ease',
+                    }}
+                />
+                <button
+                    type="button"
+                    aria-pressed={workRole === 'client'}
+                    onClick={() => handleWorkRoleChange('client')}
+                    style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        padding: '0.78rem 1rem',
+                        borderRadius: '999px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: workRole === 'client' ? '#1d4ed8' : '#475569',
+                        fontWeight: 900,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                    }}
+                >
+                    의뢰자로 보기
+                </button>
+                <button
+                    type="button"
+                    aria-pressed={workRole === 'expert'}
+                    onClick={() => handleWorkRoleChange('expert')}
+                    style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        padding: '0.78rem 1rem',
+                        borderRadius: '999px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: workRole === 'expert' ? '#166534' : '#475569',
+                        fontWeight: 900,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                    }}
+                >
+                    전문가로 보기
+                </button>
+            </div>
         </div>
     )
 

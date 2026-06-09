@@ -74,6 +74,9 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
     refunded: '환불 처리',
 }
 
+const isMyPageReturnPath = (pathname?: string) =>
+    pathname === ROUTES.MY_PAGE || pathname === ROUTES.WORK_DASHBOARD
+
 export default function Workroom() {
     const { workId } = useParams<{ workId: string }>()
     const location = useLocation()
@@ -91,7 +94,7 @@ export default function Workroom() {
     const workStatusLabel =
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
-    const myPageReturnTo = from?.pathname === ROUTES.MY_PAGE ? `${from.pathname}${from.search || ''}` : ROUTES.MY_PAGE
+    const myPageReturnTo = isMyPageReturnPath(from?.pathname) ? `${from?.pathname}${from?.search || ''}` : ROUTES.MY_PAGE
 
     useEffect(() => {
         let active = true
