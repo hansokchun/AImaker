@@ -32,6 +32,7 @@ export default function ProposalCreate() {
     const [totalPrice, setTotalPrice] = useState('')
     const [deliveryDays, setDeliveryDays] = useState('')
     const [revisionCount, setRevisionCount] = useState('')
+    const isEditMode = Boolean(proposal)
 
     useEffect(() => {
         if (!loading && !user) {
@@ -176,7 +177,12 @@ export default function ProposalCreate() {
         <div className="request-page">
             <main className="container request-main">
                 <form className="content-card request-form-card" onSubmit={handleSubmit}>
-                    <h1>{proposal ? '제안서 수정' : '제안서 작성'}</h1>
+                    <h1>{isEditMode ? '제안서 수정' : '제안서 작성'}</h1>
+                    <p>
+                        {isEditMode
+                            ? '처음 제안서를 작성할 때와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정 알림이 전달됩니다.'
+                            : '의뢰 내용을 바탕으로 작업 범위, 제출물, 금액과 일정을 작성합니다.'}
+                    </p>
                     <p>
                         {product?.title || request?.title} · 예상 금액 {totalPrice ? `${currency.format(Number(totalPrice))}원` : '미정'}
                     </p>
@@ -215,7 +221,7 @@ export default function ProposalCreate() {
 
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <button type="submit" className="btn-primary" disabled={submitting}>
-                            {submitting ? '저장 중' : proposal ? '수정해서 보내기' : '제안서 보내기'}
+                            {submitting ? '저장 중' : isEditMode ? '수정해서 보내기' : '제안서 보내기'}
                         </button>
                         <Link to={returnTo} className="btn-text">
                             취소

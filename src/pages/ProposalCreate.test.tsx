@@ -173,6 +173,7 @@ describe('ProposalCreate', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '제안서 수정' })).toBeInTheDocument()
+        expect(screen.getByText('처음 제안서를 작성할 때와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정 알림이 전달됩니다.')).toBeInTheDocument()
         expect(screen.getByDisplayValue('기존 제안서')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('작업 범위'), { target: { value: '수정된 작업 범위입니다.' } })
