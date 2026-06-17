@@ -139,8 +139,19 @@ describe('database.sql', () => {
         expect(sql).toMatch(/platform_fee integer not null default 0/i)
         expect(sql).toMatch(/expert_payout integer not null default 0/i)
         expect(sql).toMatch(/settlement_status text not null default 'held'/i)
+        expect(sql).toMatch(/revision_limit integer not null default 0/i)
+        expect(sql).toMatch(/revision_used integer not null default 0/i)
+        expect(sql).toMatch(/refund_status text/i)
+        expect(sql).toMatch(/cancellation_reason text/i)
+        expect(sql).toMatch(/cancelled_at timestamptz/i)
         expect(sql).toMatch(/add column if not exists payment_status/i)
         expect(sql).toMatch(/add column if not exists settlement_status/i)
+    })
+
+    it('stores profile and product trust fields used by launch UI', () => {
+        expect(sql).toMatch(/contact_available_time text/i)
+        expect(sql).toMatch(/average_response_time text/i)
+        expect(sql).toMatch(/tax_invoice_available boolean not null default false/i)
     })
 
     it('allows clients to review only completed work with the matching expert', () => {

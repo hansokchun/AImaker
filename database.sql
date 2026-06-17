@@ -77,11 +77,15 @@ create table if not exists public.expert_profiles (
   ai_tools jsonb not null default '[]'::jsonb,
   edit_tools jsonb not null default '[]'::jsonb,
   packages jsonb not null default '{}'::jsonb,
+  contact_available_time text,
+  average_response_time text,
   updated_at timestamptz not null default now()
 );
 
 alter table public.expert_profiles
-  add column if not exists sample_links jsonb not null default '[]'::jsonb;
+  add column if not exists sample_links jsonb not null default '[]'::jsonb,
+  add column if not exists contact_available_time text,
+  add column if not exists average_response_time text;
 
 alter table public.expert_profiles enable row level security;
 
@@ -117,10 +121,14 @@ create table if not exists public.expert_products (
   delivery_days integer not null check (delivery_days > 0),
   revision_count integer not null default 0 check (revision_count >= 0),
   packages jsonb not null,
+  tax_invoice_available boolean not null default false,
   status text not null default 'published' check (status in ('draft', 'published', 'hidden')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.expert_products
+  add column if not exists tax_invoice_available boolean not null default false;
 
 alter table public.expert_products enable row level security;
 
@@ -357,6 +365,11 @@ create table if not exists public.works (
   platform_fee integer not null default 0 check (platform_fee >= 0),
   expert_payout integer not null default 0 check (expert_payout >= 0),
   settlement_status text not null default 'held' check (settlement_status in ('held', 'pending', 'settled', 'refunded')),
+  revision_limit integer not null default 0 check (revision_limit >= 0),
+  revision_used integer not null default 0 check (revision_used >= 0),
+  refund_status text check (refund_status in ('fee_excluded_refund_pending')),
+  cancellation_reason text check (cancellation_reason in ('before_start', 'mutual_after_start')),
+  cancelled_at timestamptz,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   created_at timestamptz not null default now(),
@@ -367,6 +380,11 @@ alter table public.works add column if not exists total_price integer not null d
 alter table public.works add column if not exists platform_fee integer not null default 0;
 alter table public.works add column if not exists expert_payout integer not null default 0;
 alter table public.works add column if not exists settlement_status text not null default 'held';
+alter table public.works add column if not exists revision_limit integer not null default 0;
+alter table public.works add column if not exists revision_used integer not null default 0;
+alter table public.works add column if not exists refund_status text;
+alter table public.works add column if not exists cancellation_reason text;
+alter table public.works add column if not exists cancelled_at timestamptz;
 
 alter table public.works enable row level security;
 
