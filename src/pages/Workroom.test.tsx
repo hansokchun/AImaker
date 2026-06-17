@@ -194,7 +194,7 @@ describe('Workroom', () => {
 
         expect(await screen.findByText('Workroom message from client')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-demo-01')
-        expect(screen.getByRole('link', { name: '거래 단계 보기' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: '내 작업에서 전체 진행 보기' })).toHaveAttribute(
             'href',
             '/my-work?role=client&panel=client&clientOrder=request-demo-01',
         )

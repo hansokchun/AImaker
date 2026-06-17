@@ -38,7 +38,7 @@ describe('Navbar', () => {
         window.localStorage.clear()
     })
 
-    it('removes the single top navigation link and keeps account actions only', () => {
+    it('keeps the header focused on account actions before login', () => {
         render(
             <MemoryRouter>
                 <Navbar />
@@ -49,6 +49,21 @@ describe('Navbar', () => {
         expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'AIConnect' })).toHaveAttribute('href', '/')
         expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
+    })
+
+    it('surfaces my work as a top-level shortcut after login', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'user-demo-01', email: 'demo@example.com', user_metadata: {} },
+            signOut: vi.fn(),
+        })
+
+        render(
+            <MemoryRouter>
+                <Navbar />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('link', { name: '내 작업' })).toHaveAttribute('href', '/my-work')
     })
 
     it('opens my page and logout actions from the profile image menu', async () => {

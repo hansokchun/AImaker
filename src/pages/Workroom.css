@@ -54,6 +54,35 @@
     top: 96px;
 }
 
+.workroom-dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 0.65rem;
+    margin-bottom: 1.5rem;
+    padding: 0.7rem 0.95rem;
+    border: 1px solid #cbd5e1;
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    color: var(--text-primary);
+    font-weight: 850;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.workroom-dashboard-link:hover {
+    border-color: var(--primary);
+    background: #eff6ff;
+    color: var(--primary);
+}
+
+.workroom-dashboard-link .material-symbols-outlined {
+    font-size: 1.15rem;
+}
+
 .workroom-header-row {
     display: flex;
     justify-content: space-between;

@@ -101,6 +101,10 @@ export default function Navbar() {
                 <div className="nav-actions">
                     {user ? (
                         <>
+                        <Link to={ROUTES.WORK_DASHBOARD} className="nav-work-link">
+                            <span className="material-symbols-outlined" aria-hidden="true">work_history</span>
+                            내 작업
+                        </Link>
                         <div className="nav-notification-menu">
                             <button
                                 type="button"

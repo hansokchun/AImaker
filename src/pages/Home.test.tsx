@@ -21,7 +21,7 @@ describe('Home', () => {
     mockUseAuth.mockReturnValue({ user: null })
   })
 
-  it('shows a minimal Apple-like product-first home without process explanations', async () => {
+  it('shows a minimal product-first home without process explanations', async () => {
     render(
       <MemoryRouter>
         <Home />
@@ -36,7 +36,7 @@ describe('Home', () => {
     expect(screen.queryByText('상품 탐색')).not.toBeInTheDocument()
     expect(screen.queryByText('요구사항 작성')).not.toBeInTheDocument()
     expect(screen.queryByText('제안서 확인')).not.toBeInTheDocument()
-    expect(screen.queryByText('주문 후에도 단계가 보입니다')).not.toBeInTheDocument()
+    expect(screen.queryByText('주문 전에 단계가 보입니다')).not.toBeInTheDocument()
 
     expect(screen.getByRole('heading', { name: '추천 AI 상품' })).toBeInTheDocument()
     expect(await screen.findAllByRole('link', { name: /주문 시작/ })).toHaveLength(3)
@@ -95,19 +95,17 @@ describe('Home', () => {
     expect(image).not.toBeInTheDocument()
   })
 
-  it('does not show the logged-in profile shortcut in the home hero', async () => {
+  it('shows a direct my work shortcut in the home hero after login', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'user-demo-01', user_metadata: {} },
     })
 
-    const { container } = render(
+    render(
       <MemoryRouter>
         <Home />
       </MemoryRouter>,
     )
 
-    expect(screen.queryByRole('link', { name: /profile|프로필|내 프로필/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /profile|프로필|내 프로필/i })).not.toBeInTheDocument()
-    expect(container.querySelector('.home-profile-chip')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '내 작업 보기' })).toHaveAttribute('href', '/my-work')
   })
 })

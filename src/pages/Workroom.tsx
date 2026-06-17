@@ -515,8 +515,9 @@ export default function Workroom() {
                     <Link to={`/proposal/${work.proposalId}`} className="btn-primary" state={myPageReturnState}>
                         제안서 보기
                     </Link>
-                    <Link to={workDashboardTo} className="btn-text" state={myPageReturnState}>
-                        거래 단계 보기
+                    <Link to={workDashboardTo} className="workroom-dashboard-link" state={myPageReturnState}>
+                        <span className="material-symbols-outlined" aria-hidden="true">fact_check</span>
+                        내 작업에서 전체 진행 보기
                     </Link>
                     <section className="workroom-payment-panel">
                         <h2>결제/정산</h2>

@@ -84,7 +84,7 @@ describe('Workroom return navigation', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '거래 단계 보기' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: '내 작업에서 전체 진행 보기' })).toHaveAttribute(
             'href',
             '/my-work?role=client&panel=client&clientOrder=request-product-client-01',
         )
@@ -108,7 +108,7 @@ describe('Workroom return navigation', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '거래 단계 보기' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: '내 작업에서 전체 진행 보기' })).toHaveAttribute(
             'href',
             '/my-work?role=client&panel=client&clientOrder=request-product-client-01',
         )

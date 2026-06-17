@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
+import { useAuth } from '../contexts/AuthContext';
 import { mockExpertProducts } from '../data/mockData';
 import { getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
@@ -34,6 +35,7 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
 }
 
 export default function Home() {
+    const { user } = useAuth();
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
 
     useEffect(() => {
@@ -63,6 +65,11 @@ export default function Home() {
                         <Link to={ROUTES.PROFILE} className="home-minimal-secondary">
                             전문가로 시작하기
                         </Link>
+                        {user && (
+                            <Link to={ROUTES.WORK_DASHBOARD} className="home-minimal-work">
+                                내 작업 보기
+                            </Link>
+                        )}
                     </div>
                 </div>
             </section>
