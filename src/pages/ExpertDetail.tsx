@@ -5,19 +5,40 @@ import PackageCard from '../components/PackageCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { createConsultation, getExpertProducts, getExpertReviews, getUserDisplayProfile } from '../lib/storage'
-import type { ExpertProduct, ProductPackage, Review } from '../types'
+import { createConsultation, getExpertProducts, getExpertReviews, getStoredProfile, getUserDisplayProfile } from '../lib/storage'
+import type { ExpertProduct, ExpertProfile, ProductPackage, Review } from '../types'
 import './ExpertDetail.css'
 
 type SellerProfile = {
     name: string
     imageUrl: string
     isExpert: boolean
+    contactAvailableTime?: string
+    averageResponseTime?: string
 }
 
 const getAverageRating = (reviews: Review[]) => {
     if (reviews.length === 0) return 0
     return reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+}
+
+const mergeSellerProfile = (
+    displayProfile: { name: string; imageUrl: string; isExpert: boolean } | null,
+    storedProfile: ExpertProfile | null,
+    fallbackName: string,
+): SellerProfile => ({
+    name: displayProfile?.name || storedProfile?.name || fallbackName,
+    imageUrl: displayProfile?.imageUrl || storedProfile?.imageUrl || '',
+    isExpert: Boolean(displayProfile?.isExpert || storedProfile),
+    contactAvailableTime: storedProfile?.contactAvailableTime || '',
+    averageResponseTime: storedProfile?.averageResponseTime || '',
+})
+
+const formatProductCreatedAt = (createdAt?: string) => {
+    if (!createdAt) return ''
+    const parsed = new Date(createdAt)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return parsed.toLocaleDateString('ko-KR')
 }
 
 export default function ExpertDetail() {
@@ -47,12 +68,13 @@ export default function ExpertDetail() {
             setSellerProducts(productsBySeller)
 
             if (foundProduct || productsBySeller.length > 0) {
-                const [profile, reviews] = await Promise.all([
+                const [displayProfile, storedProfile, reviews] = await Promise.all([
                     getUserDisplayProfile(sellerId),
+                    getStoredProfile(sellerId),
                     getExpertReviews(sellerId),
                 ])
                 if (!active) return
-                setSellerProfile(profile)
+                setSellerProfile(mergeSellerProfile(displayProfile, storedProfile, foundProduct?.expertName || productsBySeller[0]?.expertName || 'AI 전문가'))
                 setExpertReviews(reviews)
             } else {
                 setSellerProfile(null)
@@ -77,6 +99,7 @@ export default function ExpertDetail() {
     const reviewSummary = expertReviews.length > 0
         ? `평점 ${averageRating.toFixed(1)} · 리뷰 ${expertReviews.length}개`
         : '아직 받은 리뷰가 없습니다'
+    const productCreatedAt = formatProductCreatedAt(product?.createdAt)
 
     const handleStartConsultation = async () => {
         if (!product) return
@@ -139,6 +162,12 @@ export default function ExpertDetail() {
                         <div className="product-detail-category">판매자 프로필</div>
                         <h1>{sellerName}</h1>
                         <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
+                        {sellerProfile?.contactAvailableTime && (
+                            <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
+                        )}
+                        {sellerProfile?.averageResponseTime && (
+                            <p>평균 응답 시간 {sellerProfile.averageResponseTime}</p>
+                        )}
                         <strong>{reviewSummary}</strong>
                     </div>
                 </section>
@@ -244,7 +273,6 @@ export default function ExpertDetail() {
                                     productId={product.id}
                                     productTitle={product.title}
                                     className="product-detail-favorite"
-                                    showCount
                                 />
                             )}
                             <h1>{product.title}</h1>
@@ -253,6 +281,8 @@ export default function ExpertDetail() {
                                 <span>시작가 {product.startingPrice.toLocaleString()}원</span>
                                 <span>작업 {product.deliveryDays}일</span>
                                 <span>수정 {product.revisionCount}회</span>
+                                {productCreatedAt && <span>등록일 {productCreatedAt}</span>}
+                                <span>{product.taxInvoiceAvailable ? '세금계산서 발행 가능' : '세금계산서 발행 불가'}</span>
                             </div>
                         </div>
                     </section>
@@ -274,6 +304,12 @@ export default function ExpertDetail() {
                                 <strong>{sellerName}</strong>
                                 <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
                                 <p>{reviewSummary}</p>
+                                {sellerProfile?.contactAvailableTime && (
+                                    <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
+                                )}
+                                {sellerProfile?.averageResponseTime && (
+                                    <p>평균 응답 시간 {sellerProfile.averageResponseTime}</p>
+                                )}
                                 <Link to={`/expert/${product.expertId}`}>판매자 프로필 보기</Link>
                             </div>
                         </div>

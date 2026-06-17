@@ -238,4 +238,31 @@ describe('Profile editing', () => {
             ),
         )
     })
+
+    it('saves expert contact availability and average response time', async () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(container.querySelector('#expert-contact-time')).toBeInTheDocument())
+        fireEvent.change(container.querySelector('#expert-contact-time') as HTMLInputElement, {
+            target: { value: '평일 10:00-18:00' },
+        })
+        fireEvent.change(container.querySelector('#expert-response-time') as HTMLInputElement, {
+            target: { value: '평균 2시간 이내' },
+        })
+        fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(saveProfile).toHaveBeenCalledWith(
+                'expert-video-01',
+                expect.objectContaining({
+                    contactAvailableTime: '평일 10:00-18:00',
+                    averageResponseTime: '평균 2시간 이내',
+                }),
+            ),
+        )
+    })
 })

@@ -359,3 +359,57 @@ AIConnect 초기 아키텍처는 기존 React/Supabase 구조를 유지하면서
 ```
 
 이 흐름이 안정되면 결제, 정산, 분쟁 조정, 추천 기능을 단계적으로 붙인다.
+---
+
+## 2026-06-10 수정: 결제/정산 아키텍처 포함
+
+첫 런칭부터 결제와 정산 기능을 포함한다.
+
+추가 페이지:
+
+```text
+/checkout/:proposalId       결제 페이지
+/mypage/payments            요청자 결제 내역
+/mypage/settlements         메이커 정산 내역
+```
+
+추가 데이터:
+
+```text
+payments
+settlements
+platform_fees
+refund_requests
+```
+
+수정된 핵심 흐름:
+
+```text
+proposal accepted
+→ payment pending
+→ payment paid
+→ work created
+→ deliverable approved
+→ settlement available
+→ settlement paid
+```
+
+권한 원칙:
+
+- 요청자만 자신의 결제를 생성하고 볼 수 있다.
+- 메이커는 자신에게 연결된 정산 내역만 볼 수 있다.
+- 운영자는 환불, 정산 보류, 정산 완료 상태를 관리할 수 있어야 한다.
+- 결제 완료 전에는 작업 진행표가 활성화되지 않는다.
+---
+
+## 최신 구현 메모: 작업방 예외상황 필드
+
+작업방 정책을 위해 `works` 데이터에는 다음 필드를 사용한다.
+
+- `revisionLimit`: 제안서에 명시된 수정 가능 횟수
+- `revisionUsed`: 작업방에서 이미 사용한 수정 요청 횟수
+- `refundStatus`: 취소 후 환불 처리 전 상태. 첫 런칭 기준 값은 `fee_excluded_refund_pending`
+- `cancellationReason`: `before_start` 또는 `mutual_after_start`
+- `cancelledAt`: 취소 처리 시각
+
+작업방에서는 결과물 내용 변경이나 범위 확장 CTA를 제공하지 않는다. 수정 요청은 `revisionUsed < revisionLimit`일 때만 가능하다.

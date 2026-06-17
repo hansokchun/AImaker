@@ -303,6 +303,11 @@ const toWork = (item: any): Work => ({
     platformFee: item.platform_fee || 0,
     expertPayout: item.expert_payout || 0,
     settlementStatus: item.settlement_status || 'held',
+    ...(item.refund_status ? { refundStatus: item.refund_status } : {}),
+    ...(item.cancellation_reason ? { cancellationReason: item.cancellation_reason } : {}),
+    ...(item.cancelled_at ? { cancelledAt: item.cancelled_at } : {}),
+    ...(item.revision_limit !== undefined && item.revision_limit !== null ? { revisionLimit: item.revision_limit } : {}),
+    ...(item.revision_used !== undefined && item.revision_used !== null ? { revisionUsed: item.revision_used } : {}),
     stepIds: [],
 });
 
@@ -848,6 +853,8 @@ export function createDefaultProfile(): ExpertProfile {
         aiTools: [],
         editTools: [],
         sampleLinks: [],
+        contactAvailableTime: '',
+        averageResponseTime: '',
         packages: {
             standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
             deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -906,6 +913,8 @@ export async function getStoredProfile(userId: string): Promise<ExpertProfile | 
         aiTools: Array.isArray(data.ai_tools) ? data.ai_tools : [],
         editTools: Array.isArray(data.edit_tools) ? data.edit_tools : [],
         sampleLinks: Array.isArray(data.sample_links) ? data.sample_links : [],
+        contactAvailableTime: data.contact_available_time || '',
+        averageResponseTime: data.average_response_time || '',
         packages: data.packages || {
             standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
             deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -947,6 +956,8 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
         ai_tools: profile.aiTools,
         edit_tools: profile.editTools,
         sample_links: profile.sampleLinks || [],
+        contact_available_time: profile.contactAvailableTime || '',
+        average_response_time: profile.averageResponseTime || '',
         packages: profile.packages,
         updated_at: new Date().toISOString(),
     });
@@ -997,6 +1008,7 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
         delivery_days: product.deliveryDays,
         revision_count: product.revisionCount,
         packages: product.packages,
+        tax_invoice_available: Boolean(product.taxInvoiceAvailable),
         status: product.status,
         updated_at: new Date().toISOString(),
     });
@@ -1058,6 +1070,8 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         startingPrice: Number(item.starting_price) || 0,
         deliveryDays: Number(item.delivery_days) || 1,
         revisionCount: Number(item.revision_count) || 1,
+        createdAt: item.created_at,
+        taxInvoiceAvailable: Boolean(item.tax_invoice_available),
         packages: normalizeDbProductPackages(item),
         status: item.status,
     })) as ExpertProduct[];
@@ -1204,6 +1218,8 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             platformFee: money.platformFee,
             expertPayout: money.expertPayout,
             settlementStatus: 'held',
+            revisionLimit: proposal.revisionCount,
+            revisionUsed: 0,
             stepIds: [],
         };
         const steps = buildInitialWorkSteps(proposal, work.id);
@@ -1278,6 +1294,8 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
         platform_fee: money.platformFee,
         expert_payout: money.expertPayout,
         settlement_status: 'held',
+        revision_limit: proposal.revisionCount,
+        revision_used: 0,
     }]).select('id').single();
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
@@ -1436,7 +1454,11 @@ export async function getUserWorks(userId: string): Promise<Work[]> {
     return (data || []).map(toWork);
 }
 
-export async function cancelWork(workId: string): Promise<void> {
+export async function cancelWork(
+    workId: string,
+    reason: NonNullable<Work['cancellationReason']> = 'mutual_after_start',
+): Promise<void> {
+    const cancelledAt = new Date().toISOString();
     if (!supabase) {
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
@@ -1444,7 +1466,16 @@ export async function cancelWork(workId: string): Promise<void> {
             STORAGE_KEYS.WORKS,
             JSON.stringify(
                 works.map((work) =>
-                    work.id === workId ? { ...work, status: 'cancelled', settlementStatus: 'refunded' } : work,
+                    work.id === workId
+                        ? {
+                            ...work,
+                            status: 'cancelled',
+                            settlementStatus: work.settlementStatus || 'held',
+                            refundStatus: 'fee_excluded_refund_pending',
+                            cancellationReason: reason,
+                            cancelledAt,
+                        }
+                        : work,
                 ),
             ),
         );
@@ -1453,7 +1484,12 @@ export async function cancelWork(workId: string): Promise<void> {
 
     const { error } = await supabase
         .from('works')
-        .update({ status: 'cancelled', settlement_status: 'refunded' })
+        .update({
+            status: 'cancelled',
+            refund_status: 'fee_excluded_refund_pending',
+            cancellation_reason: reason,
+            cancelled_at: cancelledAt,
+        })
         .eq('id', workId);
 
     if (error) throw new Error('데이터베이스 통신 오류: 거래 중단 실패');
@@ -1684,6 +1720,14 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
         const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
+        const currentWork = works.find((work) => work.id === workId);
+        const revisionLimit = currentWork?.revisionLimit ?? 0;
+        const revisionUsed = currentWork?.revisionUsed ?? 0;
+        const nextRevisionUsed = revisionUsed + 1;
+
+        if (revisionLimit > 0 && revisionUsed >= revisionLimit) {
+            throw new Error('수정 요청 가능 횟수를 모두 사용했습니다.');
+        }
 
         localStorage.setItem(
             STORAGE_KEYS.DELIVERABLES,
@@ -1698,7 +1742,11 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
         localStorage.setItem(
             STORAGE_KEYS.WORKS,
             JSON.stringify(
-                works.map((work) => (work.id === workId ? { ...work, status: 'revision_requested' } : work)),
+                works.map((work) =>
+                    work.id === workId
+                        ? { ...work, status: 'revision_requested', revisionUsed: nextRevisionUsed }
+                        : work,
+                ),
             ),
         );
         if (stepId) {
@@ -1710,6 +1758,22 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
             );
         }
         return;
+    }
+
+    const { data: workData, error: workReadError } = await supabase
+        .from('works')
+        .select('revision_limit, revision_used')
+        .eq('id', workId)
+        .single();
+
+    if (workReadError) throw new Error('데이터베이스 통신 오류: 작업 수정 횟수 확인 실패');
+
+    const revisionLimit = workData?.revision_limit ?? 0;
+    const revisionUsed = workData?.revision_used ?? 0;
+    const nextRevisionUsed = revisionUsed + 1;
+
+    if (revisionLimit > 0 && revisionUsed >= revisionLimit) {
+        throw new Error('수정 요청 가능 횟수를 모두 사용했습니다.');
     }
 
     const { error: deliverableError } = await supabase
@@ -1730,7 +1794,7 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
 
     const { error: workError } = await supabase
         .from('works')
-        .update({ status: 'revision_requested' })
+        .update({ status: 'revision_requested', revision_used: nextRevisionUsed })
         .eq('id', workId);
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 수정 요청 실패');

@@ -53,6 +53,28 @@ const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-cli
 const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
 const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
 const getUserReviews = vi.fn(async (_userId: string): Promise<Review[]> => [])
+const getUserDisplayProfile = vi.fn(async (_userId: string) => ({
+    name: 'Demo Maker',
+    imageUrl: 'https://example.com/demo-profile.png',
+    isExpert: true,
+}))
+const getStoredProfile = vi.fn(async (_userId: string) => ({
+    imageUrl: 'https://example.com/demo-profile.png',
+    profession: 'AI 영상 메이커',
+    name: 'Demo Maker',
+    oneLiner: 'AI로 빠르게 결과물을 만드는 메이커입니다.',
+    greeting: '',
+    activities: [],
+    awards: [],
+    aiTools: ['Runway', 'ChatGPT'],
+    editTools: [],
+    sampleLinks: ['https://example.com/sample'],
+    packages: {
+        standard: { price: '', description: '', workDays: '', revisions: '', features: [] },
+        deluxe: { price: '', description: '', workDays: '', revisions: '', features: [] },
+        premium: { price: '', description: '', workDays: '', revisions: '', features: [] },
+    },
+}))
 const getUserServiceRequests = vi.fn(async (_userId: string): Promise<ServiceRequestData[]> => [
     {
         id: 'request-product-directed-01',
@@ -637,6 +659,8 @@ vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
     getUserProposals: (userId: string) => getUserProposals(userId),
     getUserReviews: (userId: string) => getUserReviews(userId),
+    getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
+    getStoredProfile: (userId: string) => getStoredProfile(userId),
     getUserServiceRequests: (userId: string) => getUserServiceRequests(userId),
     getUserWorks: (userId: string) => getUserWorks(userId),
     getUserConsultations: (userId: string) => getUserConsultations(userId),
@@ -670,6 +694,8 @@ describe('MyPage', () => {
         getUserProposals.mockResolvedValue(defaultProposals())
         getUserReviews.mockReset()
         getUserReviews.mockResolvedValue([])
+        getUserDisplayProfile.mockClear()
+        getStoredProfile.mockClear()
         getUserServiceRequests.mockReset()
         getUserServiceRequests.mockResolvedValue([
             {
@@ -910,7 +936,7 @@ describe('MyPage', () => {
         }))
     })
 
-    it('opens profile management from the left menu instead of the top edit button', async () => {
+    it('shows my profile first and links to profile editing from the left menu', async () => {
         render(
             <MemoryRouter>
                 <MyPage mode="profile" />
@@ -918,7 +944,6 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(screen.queryByRole('link', { name: '프로필 수정하기' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: '마이 프로필' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '의뢰자 홈' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '전문가 홈' })).not.toBeInTheDocument()
@@ -927,8 +952,13 @@ describe('MyPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '마이 프로필' }))
 
-        expect(await screen.findByLabelText('마이 프로필 편집')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '프로필 저장하기' })).toBeInTheDocument()
+        const profileView = await screen.findByLabelText('마이 프로필 보기')
+        expect(await within(profileView).findByText('Demo Maker')).toBeInTheDocument()
+        expect(within(profileView).getByText('AI로 빠르게 결과물을 만드는 메이커입니다.')).toBeInTheDocument()
+        expect(within(profileView).getByText('Runway, ChatGPT')).toBeInTheDocument()
+        expect(within(profileView).getByText('1개 등록됨')).toBeInTheDocument()
+        expect(within(profileView).getByRole('img', { name: 'Demo Maker 프로필 이미지' })).toHaveAttribute('src', 'https://example.com/demo-profile.png')
+        expect(within(profileView).getByRole('link', { name: '수정하기' })).toHaveAttribute('href', '/profile')
         await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=profile'))
     })
 

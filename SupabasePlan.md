@@ -577,3 +577,151 @@ Supabase 첫 설계의 핵심은 결제보다 거래 기록이다.
 ```
 
 이 기록이 안정되면 이후 결제, 에스크로, 단계별 정산을 붙이기 쉬워진다.
+---
+
+## 2026-06-10 수정: 첫 런칭 결제/정산 테이블 추가
+
+첫 런칭부터 결제와 정산을 포함한다.
+
+추가 테이블:
+
+```text
+payments
+settlements
+platform_fees
+refund_requests
+```
+
+### payments
+
+```text
+id uuid primary key
+proposal_id uuid references proposals(id)
+work_id uuid references works(id)
+client_id uuid references profiles(id)
+expert_id uuid references profiles(id)
+amount integer
+client_fee_amount integer
+total_paid_amount integer
+currency text default 'KRW'
+provider text
+provider_payment_id text
+status text
+paid_at timestamptz
+created_at timestamptz
+updated_at timestamptz
+```
+
+상태값:
+
+```text
+pending
+paid
+failed
+cancelled
+refunded
+partially_refunded
+```
+
+### settlements
+
+```text
+id uuid primary key
+payment_id uuid references payments(id)
+work_id uuid references works(id)
+expert_id uuid references profiles(id)
+gross_amount integer
+platform_fee_amount integer
+net_amount integer
+status text
+available_at timestamptz
+requested_at timestamptz
+paid_at timestamptz
+created_at timestamptz
+updated_at timestamptz
+```
+
+상태값:
+
+```text
+pending
+available
+requested
+paid
+held
+cancelled
+```
+
+### platform_fees
+
+```text
+id uuid primary key
+payment_id uuid references payments(id)
+client_fee_amount integer
+expert_fee_amount integer
+pg_fee_amount integer
+total_platform_revenue integer
+created_at timestamptz
+```
+
+### refund_requests
+
+```text
+id uuid primary key
+payment_id uuid references payments(id)
+work_id uuid references works(id)
+requester_id uuid references profiles(id)
+reason text
+status text
+admin_note text
+created_at timestamptz
+updated_at timestamptz
+```
+
+RLS 원칙:
+
+- 요청자는 자기 결제 내역만 볼 수 있다.
+- 메이커는 자기 정산 내역만 볼 수 있다.
+- 결제/정산 상태 변경은 시스템 또는 운영자 권한으로 제한한다.
+- 환불 요청은 해당 거래의 요청자만 생성할 수 있다.
+---
+
+## 2026-06-17 수정: 의뢰서 필드와 샘플 필드 추가
+
+`service_requests`에 다음 필드를 추가한다.
+
+```text
+usage_purpose text
+target_audience text
+usage_channel text
+style_preference text
+file_format text
+reference_links text[]
+avoid_style text
+commercial_use_required boolean
+source_file_required boolean
+```
+
+메이커와 상품 샘플 필수 정책을 위해 다음 필드를 명확히 사용한다.
+
+```text
+profiles.sample_links
+expert_products.sample_links
+expert_products.sample_file_urls
+```
+---
+
+## 2026-06-17 추가 필요 컬럼
+
+프로필/상품 신뢰 정보 표시를 위해 다음 컬럼이 필요하다.
+
+`expert_profiles`
+
+- `contact_available_time text`
+- `average_response_time text`
+
+`expert_products`
+
+- `tax_invoice_available boolean default false`
+
+이미 존재하는 `created_at`은 상품 상세에서 등록일 표시용으로 사용한다.

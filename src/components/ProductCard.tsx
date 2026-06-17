@@ -69,7 +69,6 @@ export default function ProductCard({ product }: ProductCardProps) {
                         aria-label={`${product.expertName} 프로필 보기`}
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <span>작업 등록 전문가</span>
                         <strong>{product.expertName}</strong>
                     </Link>
                 </div>

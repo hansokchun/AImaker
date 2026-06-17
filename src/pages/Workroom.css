@@ -192,10 +192,34 @@
     color: #166534;
 }
 
+.work-step.completed .step-index {
+    background: #dcfce7;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+
 .work-step.submitted .step-index {
     background: #dbeafe;
     border-color: #bfdbfe;
     color: #1d4ed8;
+}
+
+.work-step.current .step-index {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+}
+
+.work-step.pending .step-index {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #64748b;
+}
+
+.work-step.cancelled .step-index {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #b91c1c;
 }
 
 .step-title-row {

@@ -3,10 +3,9 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getUserConsultations, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
-import Profile from './Profile'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
     sent: '대기 중',
@@ -155,6 +154,15 @@ type MyPageProps = {
     mode?: MyPageMode
 }
 
+type ProfilePreview = {
+    name: string
+    imageUrl: string
+    roleLabel: string
+    oneLiner: string
+    aiTools: string[]
+    sampleLinks: string[]
+}
+
 export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const { session, user, loading, signOut } = useAuth()
     const location = useLocation()
@@ -192,19 +200,37 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageError, setConsultationMessageError] = useState('')
     const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
+    const [profilePreview, setProfilePreview] = useState<ProfilePreview | null>(null)
+    const [profilePreviewLoaded, setProfilePreviewLoaded] = useState(false)
     const workRoleSelectedByUserRef = useRef(false)
     const myPageReturnState = { from: { pathname: location.pathname, search: location.search } }
+    const userId = user?.id
+    const userEmail = user?.email
 
     const fetchProfile = useCallback(async () => {
-        if (!supabase || !user) return
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        if (data) {
-            setIsExpert(data.is_expert)
-            setName(data.name || '')
-        } else if (error && error.code !== 'PGRST116') {
-            console.error('프로필 로딩 오류:', error)
-        }
-    }, [user])
+        if (!userId) return
+        setProfilePreviewLoaded(false)
+
+        const [displayProfile, storedProfile] = await Promise.all([
+            getUserDisplayProfile(userId).catch(() => null),
+            getStoredProfile(userId).catch(() => null),
+        ])
+        const fallbackName = userEmail?.split('@')[0] || 'AIConnect 사용자'
+        const nextName = displayProfile?.name || storedProfile?.name || fallbackName
+        const nextIsExpert = Boolean(displayProfile?.isExpert || storedProfile?.aiTools?.length || storedProfile?.profession)
+
+        setIsExpert(nextIsExpert)
+        setName(nextName)
+        setProfilePreview({
+            name: nextName,
+            imageUrl: displayProfile?.imageUrl || storedProfile?.imageUrl || '',
+            roleLabel: nextIsExpert ? '메이커 프로필' : '의뢰자 프로필',
+            oneLiner: storedProfile?.oneLiner || storedProfile?.greeting || '아직 소개 문구가 등록되지 않았습니다.',
+            aiTools: storedProfile?.aiTools || [],
+            sampleLinks: storedProfile?.sampleLinks || [],
+        })
+        setProfilePreviewLoaded(true)
+    }, [userEmail, userId])
 
     useEffect(() => {
         if (!loading && !session) {
@@ -264,7 +290,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }, [activePanel, defaultPanel, menuItems, mode, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams, workRole])
 
     useEffect(() => {
-        if (user && supabase) {
+        if (user) {
             fetchProfile()
         }
         if (user) {
@@ -296,7 +322,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 setFavoriteProductIds([])
             })
         }
-    }, [fetchProfile, user])
+    }, [fetchProfile, userId])
 
     useEffect(() => {
         const currentParams = new URLSearchParams(searchParamString)
@@ -1760,6 +1786,79 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </section>
     )
 
+    const renderProfileViewPanel = () => {
+        const preview = profilePreview
+        const avatarText = (preview?.name || name || 'A').slice(0, 1).toUpperCase()
+        const sampleCount = preview?.sampleLinks.length || 0
+        const toolText = preview?.aiTools.length ? preview.aiTools.join(', ') : '등록된 AI 도구가 없습니다.'
+
+        return (
+            <section style={cardStyle} aria-label="마이 프로필 보기">
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <div>
+                        <span style={{ color: '#2563eb', fontWeight: 900, fontSize: '0.9rem' }}>
+                            {preview?.roleLabel || (isExpert ? '메이커 프로필' : '의뢰자 프로필')}
+                        </span>
+                        <h2 style={{ margin: '0.45rem 0 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 900 }}>
+                            내 프로필
+                        </h2>
+                    </div>
+                    <Link to={ROUTES.PROFILE} className="btn-primary">
+                        수정하기
+                    </Link>
+                </div>
+
+                {!profilePreviewLoaded ? (
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>프로필을 불러오는 중입니다.</p>
+                ) : (
+                    <div style={{ display: 'grid', gap: '1.25rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: '1rem', alignItems: 'center' }}>
+                            {preview?.imageUrl ? (
+                                <img
+                                    src={preview.imageUrl}
+                                    alt={`${preview.name} 프로필 이미지`}
+                                    style={{ width: 76, height: 76, borderRadius: '999px', objectFit: 'cover', background: '#e2e8f0' }}
+                                />
+                            ) : (
+                                <span
+                                    aria-hidden="true"
+                                    style={{ display: 'grid', placeItems: 'center', width: 76, height: 76, borderRadius: '999px', background: '#dbeafe', color: '#1d4ed8', fontSize: '1.6rem', fontWeight: 900 }}
+                                >
+                                    {avatarText}
+                                </span>
+                            )}
+                            <div>
+                                <strong style={{ display: 'block', color: '#0f172a', fontSize: '1.25rem', marginBottom: '0.35rem' }}>
+                                    {preview?.name || name || '이름 미등록'}
+                                </strong>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                    {preview?.oneLiner || '아직 소개 문구가 등록되지 않았습니다.'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+                            <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.75rem', background: '#f8fafc' }}>
+                                <span style={{ display: 'block', color: '#64748b', fontWeight: 900, fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                                    사용 AI 도구
+                                </span>
+                                <p style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>{toolText}</p>
+                            </div>
+                            <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.75rem', background: '#f8fafc' }}>
+                                <span style={{ display: 'block', color: '#64748b', fontWeight: 900, fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                                    샘플 등록
+                                </span>
+                                <p style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                                    {sampleCount > 0 ? `${sampleCount}개 등록됨` : '아직 등록된 샘플이 없습니다.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </section>
+        )
+    }
+
     const renderPanel = () => {
         if (activePanel === 'overview') {
             return (
@@ -1799,7 +1898,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
 
         if (activePanel === 'profile') {
-            return <Profile />
+            return renderProfileViewPanel()
         }
 
         if (activePanel === 'products') {

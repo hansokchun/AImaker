@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { AiServiceRequest, Deliverable, ExpertProduct, Proposal, Review, Work, WorkStep } from '../types'
+import type { AiServiceRequest, Deliverable, ExpertProduct, ExpertProfile, Proposal, Review, Work, WorkStep } from '../types'
 
 const futureIsoDate = (daysFromNow = 7) => {
     const date = new Date()
@@ -27,6 +27,8 @@ const product: ExpertProduct = {
     startingPrice: 30000,
     deliveryDays: 2,
     revisionCount: 1,
+    createdAt: '2026-06-10T10:00:00.000Z',
+    taxInvoiceAvailable: true,
     packages: {
         standard: {
             name: 'Standard',
@@ -68,6 +70,7 @@ describe('expert product storage', () => {
                 starting_price: product.startingPrice,
                 delivery_days: product.deliveryDays,
                 packages: product.packages,
+                tax_invoice_available: true,
                 status: 'published',
             }),
         )
@@ -90,6 +93,8 @@ describe('expert product storage', () => {
                     starting_price: product.startingPrice,
                     delivery_days: product.deliveryDays,
                     revision_count: product.revisionCount,
+                    created_at: product.createdAt,
+                    tax_invoice_available: true,
                     packages: product.packages,
                     status: product.status,
                 },
@@ -264,6 +269,77 @@ describe('profile storage', () => {
         expect(from).toHaveBeenCalledWith('profiles')
         expect(deleteQuery).toHaveBeenCalledTimes(1)
         expect(eq).toHaveBeenCalledWith('id', 'user-test-01')
+    })
+
+    it('stores and loads expert contact availability fields through Supabase', async () => {
+        vi.resetModules()
+        const profile: ExpertProfile = {
+            imageUrl: 'https://example.com/profile.jpg',
+            profession: 'AI video',
+            name: 'Rumi AI Studio',
+            oneLiner: '',
+            greeting: '',
+            activities: [],
+            awards: [],
+            aiTools: ['Runway'],
+            editTools: [],
+            sampleLinks: [],
+            contactAvailableTime: '평일 10:00-18:00',
+            averageResponseTime: '평균 2시간 이내',
+            packages: {
+                standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            },
+        }
+        const profileUpdateEq = vi.fn().mockResolvedValue({ error: null })
+        const profileUpdate = vi.fn(() => ({ eq: profileUpdateEq }))
+        const upsert = vi.fn().mockResolvedValue({ error: null })
+        const single = vi.fn().mockResolvedValue({
+            data: {
+                user_id: user.id,
+                image_url: profile.imageUrl,
+                profession: profile.profession,
+                name: profile.name,
+                one_liner: '',
+                greeting: '',
+                activities: [],
+                awards: [],
+                ai_tools: profile.aiTools,
+                edit_tools: [],
+                sample_links: [],
+                contact_available_time: profile.contactAvailableTime,
+                average_response_time: profile.averageResponseTime,
+                packages: profile.packages,
+                updated_at: '2026-06-17T00:00:00.000Z',
+            },
+            error: null,
+        })
+        const eq = vi.fn(() => ({ single }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn((table: string) => {
+            if (table === 'profiles') return { update: profileUpdate }
+            return { upsert, select }
+        })
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { getStoredProfile, saveProfile } = await import('./storage')
+
+        await saveProfile(user.id, profile)
+
+        expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+            contact_available_time: '평일 10:00-18:00',
+            average_response_time: '평균 2시간 이내',
+        }))
+        await expect(getStoredProfile(user.id)).resolves.toEqual(
+            expect.objectContaining({
+                contactAvailableTime: '평일 10:00-18:00',
+                averageResponseTime: '평균 2시간 이내',
+            }),
+        )
     })
 })
 
@@ -846,6 +922,8 @@ describe('transaction storage', () => {
                 totalPrice: proposal.totalPrice,
                 platformFee: 8400,
                 expertPayout: 61600,
+                revisionLimit: proposal.revisionCount,
+                revisionUsed: 0,
             }),
         )
 
@@ -864,7 +942,7 @@ describe('transaction storage', () => {
         await requestWorkRevision(workId, firstDeliverable.id, firstStep.id)
 
         workroom = await getWorkroomData(workId)
-        expect(workroom.work).toEqual(expect.objectContaining({ status: 'revision_requested' }))
+        expect(workroom.work).toEqual(expect.objectContaining({ status: 'revision_requested', revisionUsed: 1 }))
         expect(workroom.deliverables[0]).toEqual(expect.objectContaining({ id: firstDeliverable.id, status: 'revision_requested' }))
 
         const revisedDeliverable: Deliverable = {
@@ -891,6 +969,46 @@ describe('transaction storage', () => {
         await expect(getStoredRequests()).resolves.toEqual([])
         expect(JSON.parse(localStorage.getItem('ai_requests') || '[]')).toEqual([
             expect.objectContaining({ id: proposal.requestId, status: 'completed' }),
+        ])
+    })
+
+    it('blocks local revision requests after the proposal revision count is used', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([{ ...work, revisionLimit: 1, revisionUsed: 1 }]))
+        localStorage.setItem('ai_deliverables', JSON.stringify([deliverable]))
+        localStorage.setItem('ai_work_steps', JSON.stringify([step]))
+
+        const { requestWorkRevision } = await import('./storage')
+
+        await expect(requestWorkRevision(work.id, deliverable.id, deliverable.stepId)).rejects.toThrow(
+            '수정 요청 가능 횟수를 모두 사용했습니다.',
+        )
+
+        expect(JSON.parse(localStorage.getItem('ai_works') || '[]')).toEqual([
+            expect.objectContaining({ id: work.id, status: 'in_progress', revisionUsed: 1 }),
+        ])
+    })
+
+    it('marks cancelled local work as fee-excluded refund pending instead of refunded', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([work]))
+
+        const { cancelWork } = await import('./storage')
+
+        await cancelWork(work.id, 'before_start')
+
+        expect(JSON.parse(localStorage.getItem('ai_works') || '[]')).toEqual([
+            expect.objectContaining({
+                id: work.id,
+                status: 'cancelled',
+                settlementStatus: 'held',
+                refundStatus: 'fee_excluded_refund_pending',
+                cancellationReason: 'before_start',
+            }),
         ])
     })
 
@@ -1485,12 +1603,18 @@ describe('transaction storage', () => {
         const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
         const stepEq = vi.fn().mockResolvedValue({ error: null })
         const stepUpdate = vi.fn(() => ({ eq: stepEq }))
-        const workEq = vi.fn().mockResolvedValue({ error: null })
-        const workUpdate = vi.fn(() => ({ eq: workEq }))
+        const workUpdateEq = vi.fn().mockResolvedValue({ error: null })
+        const workUpdate = vi.fn(() => ({ eq: workUpdateEq }))
+        const workSingle = vi.fn().mockResolvedValue({
+            data: { revision_limit: 2, revision_used: 0 },
+            error: null,
+        })
+        const workSelectEq = vi.fn(() => ({ single: workSingle }))
+        const workSelect = vi.fn(() => ({ eq: workSelectEq }))
         const from = vi.fn((table: string) => {
             if (table === 'deliverables') return { update: deliverableUpdate }
             if (table === 'work_steps') return { update: stepUpdate }
-            if (table === 'works') return { update: workUpdate }
+            if (table === 'works') return { select: workSelect, update: workUpdate }
             return {}
         })
         vi.doMock('./supabase', () => ({ supabase: { from } }))
@@ -1506,8 +1630,10 @@ describe('transaction storage', () => {
         expect(stepUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
         expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
         expect(from).toHaveBeenCalledWith('works')
-        expect(workUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
-        expect(workEq).toHaveBeenCalledWith('id', work.id)
+        expect(workSelect).toHaveBeenCalledWith('revision_limit, revision_used')
+        expect(workSelectEq).toHaveBeenCalledWith('id', work.id)
+        expect(workUpdate).toHaveBeenCalledWith({ status: 'revision_requested', revision_used: 1 })
+        expect(workUpdateEq).toHaveBeenCalledWith('id', work.id)
     })
 
     it('saves reviews to Supabase', async () => {

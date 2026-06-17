@@ -228,6 +228,8 @@ export default function Profile() {
             name: profile.name.trim(),
             aiTools: parseCommaList(expertTools),
             sampleLinks: parseCommaList(expertSamples),
+            contactAvailableTime: profile.contactAvailableTime?.trim() || '',
+            averageResponseTime: profile.averageResponseTime?.trim() || '',
             activities: profile.activities.filter((item) => item.trim()),
             awards: profile.awards.filter((item) => item.trim()),
         };
@@ -477,6 +479,28 @@ export default function Profile() {
                                         value={expertSamples}
                                         onChange={(event) => setExpertSamples(event.target.value)}
                                         placeholder="예: https://example.com/sample-a, https://example.com/sample-b"
+                                    />
+                                </div>
+                                <div className="profile-form-group">
+                                    <label htmlFor="expert-contact-time">연락 가능 시간 <span className="label-hint">(선택)</span></label>
+                                    <input
+                                        id="expert-contact-time"
+                                        type="text"
+                                        className="profile-input"
+                                        value={profile.contactAvailableTime || ''}
+                                        onChange={(event) => updateProfile('contactAvailableTime', event.target.value)}
+                                        placeholder="예: 평일 10:00-18:00"
+                                    />
+                                </div>
+                                <div className="profile-form-group">
+                                    <label htmlFor="expert-response-time">평균 응답 시간 <span className="label-hint">(선택)</span></label>
+                                    <input
+                                        id="expert-response-time"
+                                        type="text"
+                                        className="profile-input"
+                                        value={profile.averageResponseTime || ''}
+                                        onChange={(event) => updateProfile('averageResponseTime', event.target.value)}
+                                        placeholder="예: 평균 2시간 이내"
                                     />
                                 </div>
                             </div>

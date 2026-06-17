@@ -21,6 +21,8 @@ const work: Work = {
     platformFee: 8400,
     expertPayout: 61600,
     settlementStatus: 'held',
+    revisionLimit: 2,
+    revisionUsed: 1,
     stepIds: ['step-concept'],
 }
 
@@ -67,7 +69,7 @@ const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
 const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
-const cancelWork = vi.fn(async (_workId: string) => undefined)
+const cancelWork = vi.fn(async (_workId: string, _reason?: 'before_start' | 'mutual_after_start') => undefined)
 const getWorkMessages = vi.fn(async (_workId: string) => [
     {
         id: 'work-message-01',
@@ -91,6 +93,7 @@ const getUserDisplayProfile = vi.fn(async (userId: string) => ({
     imageUrl: userId === work.clientId ? 'https://example.com/client.png' : 'https://example.com/expert.png',
     isExpert: userId === work.expertId,
 }))
+const getStoredProfile = vi.fn(async (_userId: string) => null)
 const getWorkroomData = vi.fn(
     async (_workId: string): Promise<{ work: Work | null; steps: WorkStep[]; deliverables: Deliverable[] }> => ({
         work,
@@ -109,7 +112,7 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../lib/storage', () => ({
     approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string, stepId?: string) =>
         approveWorkDeliverable(workId, deliverableId, requestId, stepId),
-    cancelWork: (workId: string) => cancelWork(workId),
+    cancelWork: (workId: string, reason?: 'before_start' | 'mutual_after_start') => cancelWork(workId, reason),
     getWorkMessages: (workId: string) => getWorkMessages(workId),
     getWorkroomData: (workId: string) => getWorkroomData(workId),
     requestWorkRevision: (workId: string, deliverableId: string, stepId?: string) =>
@@ -117,6 +120,7 @@ vi.mock('../lib/storage', () => ({
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
     saveWorkMessage: (message: { workId: string; senderId: string; body: string }) => saveWorkMessage(message),
     getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
+    getStoredProfile: (userId: string) => getStoredProfile(userId),
 }))
 
 describe('Workroom', () => {
@@ -131,6 +135,7 @@ describe('Workroom', () => {
         getWorkMessages.mockClear()
         saveWorkMessage.mockClear()
         getUserDisplayProfile.mockClear()
+        getStoredProfile.mockClear()
     })
 
     it('loads workroom data and saves deliverable links', async () => {
@@ -145,7 +150,13 @@ describe('Workroom', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
-        expect(screen.getByText('콘셉트 확인')).toBeInTheDocument()
+        expect(screen.getByText('흐름설계')).toBeInTheDocument()
+        expect(screen.getByText('결과물 제출')).toBeInTheDocument()
+        expect(screen.getByText('결과물 승인 및 정산')).toBeInTheDocument()
+        expect(screen.queryByText('콘셉트 확인')).not.toBeInTheDocument()
+        expect(screen.getByLabelText('흐름설계 단계 상태: 완료')).toBeInTheDocument()
+        expect(screen.getByLabelText('결과물 제출 단계 상태: 완료')).toBeInTheDocument()
+        expect(screen.getByLabelText('결과물 승인 및 정산 단계 상태: 진행 중')).toBeInTheDocument()
         expect(screen.getByText('1차 시안 링크')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '결제/정산' })).toBeInTheDocument()
         expect(screen.getByText('결제 완료')).toBeInTheDocument()
@@ -204,7 +215,8 @@ describe('Workroom', () => {
         expect(screen.getByText('Please check the updated draft.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '거래 중단 요청' }))
-        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith(work.id))
+        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith(work.id, 'mutual_after_start'))
+        expect(screen.getByText('수수료 제외 환불 예정 상태로 처리되었습니다.')).toBeInTheDocument()
     })
 
     it('shows participants and keeps deliverable submission expert-only', async () => {
@@ -222,9 +234,31 @@ describe('Workroom', () => {
         expect(screen.getByText('Expert User')).toBeInTheDocument()
         expect(screen.getByAltText('Client User 프로필 이미지')).toHaveAttribute('src', 'https://example.com/client.png')
         expect(screen.getByAltText('Expert User 프로필 이미지')).toHaveAttribute('src', 'https://example.com/expert.png')
+        expect(screen.getByText('수정 요청 1/2회 사용')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '결과물 승인' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '수정 요청' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '제출물 링크 등록' })).not.toBeInTheDocument()
+    })
+
+    it('disables revision requests when the agreed revision count is exhausted', async () => {
+        currentUserId = 'client-demo-01'
+        getWorkroomData.mockResolvedValue({
+            work: { ...work, revisionLimit: 1, revisionUsed: 1 },
+            steps: [step],
+            deliverables: [deliverable],
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('수정 요청 1/1회 사용')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '수정 요청' })).toBeDisabled()
+        expect(screen.getByText('제안서에 포함된 수정 요청 횟수를 모두 사용했습니다.')).toBeInTheDocument()
     })
 
     it('keeps the workroom chat in sync by polling for new messages', async () => {
@@ -331,7 +365,9 @@ describe('Workroom', () => {
 
         expect(await screen.findByRole('heading', { name: '작업 진행방' })).toBeInTheDocument()
         expect(screen.queryByText('콘셉트 확인')).not.toBeInTheDocument()
-        expect(screen.getByText('등록된 진행 단계가 없습니다.')).toBeInTheDocument()
+        expect(screen.getByText('흐름설계')).toBeInTheDocument()
+        expect(screen.getByText('결과물 제출')).toBeInTheDocument()
+        expect(screen.getByText('결과물 승인 및 정산')).toBeInTheDocument()
     })
 
     it('shows an empty state instead of demo workroom content when work is not found', async () => {
@@ -367,7 +403,7 @@ describe('Workroom', () => {
             expect(approveWorkDeliverable).toHaveBeenCalledWith(work.id, deliverable.id, work.requestId, step.id),
         )
         expect(screen.getByText('결과물을 승인했습니다. 작업이 완료되었습니다.')).toBeInTheDocument()
-        expect(screen.getByText('완료')).toBeInTheDocument()
+        expect(screen.getAllByText('완료').length).toBeGreaterThan(0)
         expect(screen.getByText('정산 대기')).toBeInTheDocument()
         expect(screen.getAllByText('승인됨').length).toBeGreaterThan(0)
     })
@@ -386,6 +422,7 @@ describe('Workroom', () => {
 
         await waitFor(() => expect(requestWorkRevision).toHaveBeenCalledWith(work.id, deliverable.id, step.id))
         expect(screen.getByText('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')).toBeInTheDocument()
+        expect(screen.getByText('수정 요청 2/2회 사용')).toBeInTheDocument()
         expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0)
     })
 

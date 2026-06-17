@@ -53,6 +53,8 @@ describe('ProductCard', () => {
       'href',
       `/expert/${product.expertId}`,
     )
+    expect(screen.getByText(product.expertName)).toBeInTheDocument()
+    expect(screen.queryByText('작업 등록 전문가')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
   })
 

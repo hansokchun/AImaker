@@ -1,3 +1,26 @@
+# AIMaker 개발 동기화
+
+이 저장소는 `dev` 브랜치를 기준으로 작업한다.
+
+작업 완료 후 안전하게 원격 `origin/dev`에 반영하려면 다음 스크립트를 사용한다.
+
+```powershell
+.\scripts\sync-dev.ps1 -Message "feat: 작업 내용 요약"
+```
+
+스크립트 흐름:
+
+- 현재 브랜치가 `dev`인지 확인
+- `origin/dev` fetch
+- 변경사항이 있으면 `npm.cmd test` 실행
+- `npm.cmd run build` 실행
+- 전체 변경사항 stage
+- 커밋 생성
+- `git pull --rebase origin dev`
+- 충돌이 없으면 `git push origin dev`
+
+테스트나 빌드가 실패하면 커밋/푸시하지 않는다. rebase 충돌이 발생하면 스크립트가 멈추므로 충돌을 직접 해결한 뒤 다시 실행한다.
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

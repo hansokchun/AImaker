@@ -11,6 +11,8 @@ const supabaseProduct: ExpertProduct = {
     title: 'Supabase AI 상품',
     description: '실제 DB 상품 상세 설명입니다.',
     summary: '실제 DB 상품 요약입니다.',
+    createdAt: '2026-06-10T10:00:00.000Z',
+    taxInvoiceAvailable: true,
 }
 
 const expertReviews: Review[] = [
@@ -40,6 +42,25 @@ const getUserDisplayProfile = vi.fn(async () => ({
     imageUrl: 'https://example.com/avatar.jpg',
     isExpert: true,
 }))
+const getStoredProfile = vi.fn(async () => ({
+    imageUrl: 'https://example.com/avatar.jpg',
+    profession: 'AI video',
+    name: '검증된 AI 전문가',
+    oneLiner: '',
+    greeting: '',
+    activities: [],
+    awards: [],
+    aiTools: ['Runway'],
+    editTools: [],
+    sampleLinks: [],
+    contactAvailableTime: '평일 10:00-18:00',
+    averageResponseTime: '평균 2시간 이내',
+    packages: {
+        standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+        deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+        premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+    },
+}))
 const getExpertReviews = vi.fn(async () => expertReviews)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
 const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
@@ -63,6 +84,7 @@ let mockUser: { id: string; email: string } | null = {
 vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
     getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
+    getStoredProfile: (userId: string) => getStoredProfile(userId),
     getExpertReviews: (expertId: string) => getExpertReviews(expertId),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
     getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
@@ -88,6 +110,25 @@ describe('ExpertDetail', () => {
             imageUrl: 'https://example.com/avatar.jpg',
             isExpert: true,
         })
+        getStoredProfile.mockResolvedValue({
+            imageUrl: 'https://example.com/avatar.jpg',
+            profession: 'AI video',
+            name: '검증된 AI 전문가',
+            oneLiner: '',
+            greeting: '',
+            activities: [],
+            awards: [],
+            aiTools: ['Runway'],
+            editTools: [],
+            sampleLinks: [],
+            contactAvailableTime: '평일 10:00-18:00',
+            averageResponseTime: '평균 2시간 이내',
+            packages: {
+                standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            },
+        })
         getExpertReviews.mockResolvedValue(expertReviews)
         getUserFavoriteProductIds.mockResolvedValue([])
         getFavoriteProductCount.mockResolvedValue(0)
@@ -95,7 +136,7 @@ describe('ExpertDetail', () => {
         mockUser = { id: 'client-real-01', email: 'client@example.com' }
     })
 
-    it('shows how many clients saved the product as a favorite', async () => {
+    it('hides favorite counts and shows launch metadata on the product detail page', async () => {
         getFavoriteProductCount.mockResolvedValue(3)
 
         render(
@@ -106,7 +147,12 @@ describe('ExpertDetail', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('3명 관심')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+        expect(screen.queryByText('3명 관심')).not.toBeInTheDocument()
+        expect(screen.queryByText('0명 관심')).not.toBeInTheDocument()
+        expect(screen.getByText('등록일 2026. 6. 10.')).toBeInTheDocument()
+        expect(screen.getByText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
+        expect(screen.getByText('세금계산서 발행 가능')).toBeInTheDocument()
         expect(getFavoriteProductCount).toHaveBeenCalledWith(supabaseProduct.id)
     })
 

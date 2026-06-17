@@ -44,6 +44,7 @@ vi.mock('../lib/storage', () => ({
         imageUrl: '',
         isExpert: userId === work.expertId,
     })),
+    getStoredProfile: vi.fn(async () => null),
     getWorkMessages: vi.fn(async () => []),
     getWorkroomData: vi.fn(async () => ({ work, steps: [step], deliverables: [deliverable] })),
     requestWorkRevision: vi.fn(async () => undefined),

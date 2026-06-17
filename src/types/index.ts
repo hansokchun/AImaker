@@ -56,6 +56,8 @@ export interface ExpertProduct {
     startingPrice: number;
     deliveryDays: number;
     revisionCount: number;
+    createdAt?: string;
+    taxInvoiceAvailable?: boolean;
     packages: Record<PackageTier, ProductPackage | null> & {
         standard: ProductPackage;
     };
@@ -160,6 +162,11 @@ export interface Work {
     platformFee?: number;
     expertPayout?: number;
     settlementStatus?: 'held' | 'pending' | 'settled' | 'refunded';
+    refundStatus?: 'fee_excluded_refund_pending';
+    cancellationReason?: 'before_start' | 'mutual_after_start';
+    cancelledAt?: string;
+    revisionLimit?: number;
+    revisionUsed?: number;
     stepIds: string[];
 }
 
@@ -308,6 +315,10 @@ export interface ExpertProfile {
     editTools: string[];
     /** 대표 포트폴리오/샘플 링크 목록 */
     sampleLinks?: string[];
+    /** 연락 가능한 시간대 */
+    contactAvailableTime?: string;
+    /** 평균 응답 시간 */
+    averageResponseTime?: string;
     /** 3단계 요금 패키지 */
     packages: {
         standard: PackageInfo;

@@ -6,6 +6,7 @@ import type { Deliverable, Work, WorkMessage, WorkStep } from '../types'
 import {
     approveWorkDeliverable,
     cancelWork,
+    getStoredProfile,
     getUserDisplayProfile,
     getWorkMessages,
     getWorkroomData,
@@ -84,6 +85,10 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
     refunded: '환불 처리',
 }
 
+const refundStatusText: Record<NonNullable<Work['refundStatus']>, string> = {
+    fee_excluded_refund_pending: '수수료 제외 환불 예정',
+}
+
 const isMyPageReturnPath = (pathname?: string) =>
     pathname === ROUTES.MY_PAGE || pathname === ROUTES.WORK_DASHBOARD
 
@@ -94,6 +99,62 @@ const notifyActivityChanged = () => {
 type ParticipantProfile = {
     name: string
     imageUrl: string
+}
+
+type WorkProgressStep = {
+    title: string
+    description: string
+    state: 'completed' | 'current' | 'pending' | 'cancelled'
+    label: string
+}
+
+const getWorkProgressSteps = (work: Work, deliverables: Deliverable[]): WorkProgressStep[] => {
+    const hasSubmittedDeliverable = deliverables.length > 0 || ['submitted', 'revision_requested', 'completed'].includes(work.status)
+    const isCompleted = work.status === 'completed'
+    const isCancelled = work.status === 'cancelled'
+
+    if (isCancelled) {
+        return [
+            { title: '흐름설계', description: '작업 범위와 진행 방식을 정리합니다.', state: 'cancelled', label: '취소' },
+            { title: '결과물 제출', description: '작업자가 결과물 링크나 파일을 제출합니다.', state: 'cancelled', label: '취소' },
+            { title: '결과물 승인 및 정산', description: '의뢰자 승인 후 정산 대기 상태로 전환됩니다.', state: 'cancelled', label: '취소' },
+        ]
+    }
+
+    return [
+        {
+            title: '흐름설계',
+            description: '제안서와 요구사항을 바탕으로 작업 범위를 확정합니다.',
+            state: 'completed',
+            label: '완료',
+        },
+        {
+            title: '결과물 제출',
+            description: work.status === 'revision_requested'
+                ? '수정 요청을 반영한 결과물을 다시 제출합니다.'
+                : '작업자가 결과물 링크나 파일을 제출합니다.',
+            state: hasSubmittedDeliverable ? 'completed' : 'current',
+            label: hasSubmittedDeliverable ? '완료' : '진행 중',
+        },
+        {
+            title: '결과물 승인 및 정산',
+            description: '의뢰자가 결과물을 승인하면 정산 대기 상태로 이동합니다.',
+            state: isCompleted ? 'completed' : hasSubmittedDeliverable ? 'current' : 'pending',
+            label: isCompleted ? '완료' : hasSubmittedDeliverable ? '진행 중' : '대기',
+        },
+    ]
+}
+
+const resolveParticipantProfile = async (userId: string): Promise<ParticipantProfile> => {
+    const [displayProfile, storedProfile] = await Promise.all([
+        getUserDisplayProfile(userId).catch(() => null),
+        getStoredProfile(userId).catch(() => null),
+    ])
+
+    return {
+        name: displayProfile?.name || storedProfile?.name || userId,
+        imageUrl: displayProfile?.imageUrl || storedProfile?.imageUrl || '',
+    }
 }
 
 export default function Workroom() {
@@ -116,6 +177,7 @@ export default function Workroom() {
     const [isLoaded, setIsLoaded] = useState(false)
     const [notFound, setNotFound] = useState(false)
     const activeDeliverable = deliverables[0]
+    const progressSteps = getWorkProgressSteps(work, deliverables)
     const isRevisionMode = work.status === 'revision_requested'
     const deliverableFieldLabel = isRevisionMode ? '수정본 링크' : '제출물 링크'
     const deliverableButtonLabel = isRevisionMode ? '수정본 제출하기' : '제출물 링크 등록'
@@ -126,6 +188,13 @@ export default function Workroom() {
     const isClosedWork = work.status === 'completed' || work.status === 'cancelled'
     const canSubmitDeliverable = isExpertParticipant && !isClosedWork
     const canReviewDeliverable = isClientParticipant && !isClosedWork
+    const revisionLimit = work.revisionLimit ?? 0
+    const revisionUsed = work.revisionUsed ?? 0
+    const hasRevisionLimit = revisionLimit > 0
+    const isRevisionExhausted = hasRevisionLimit && revisionUsed >= revisionLimit
+    const revisionUsageText = hasRevisionLimit
+        ? `수정 요청 ${revisionUsed}/${revisionLimit}회 사용`
+        : '수정 요청 횟수 제한 없음'
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
     const myPageReturnTo = isMyPageReturnPath(from?.pathname) ? `${from?.pathname}${from?.search || ''}` : ROUTES.MY_PAGE
     const myPageReturnState = myPageReturnTo ? { from } : undefined
@@ -147,8 +216,8 @@ export default function Workroom() {
             }
             const [workMessages, clientProfile, expertProfile] = await Promise.all([
                 getWorkMessages(data.work.id),
-                getUserDisplayProfile(data.work.clientId).catch(() => null),
-                getUserDisplayProfile(data.work.expertId).catch(() => null),
+                resolveParticipantProfile(data.work.clientId),
+                resolveParticipantProfile(data.work.expertId),
             ])
             if (!active) return
             setWork(data.work)
@@ -157,12 +226,12 @@ export default function Workroom() {
             setMessages(workMessages)
             setParticipants({
                 client: {
-                    name: clientProfile?.name || data.work.clientId,
-                    imageUrl: clientProfile?.imageUrl || '',
+                    name: clientProfile.name,
+                    imageUrl: clientProfile.imageUrl,
                 },
                 expert: {
-                    name: expertProfile?.name || data.work.expertId,
-                    imageUrl: expertProfile?.imageUrl || '',
+                    name: expertProfile.name,
+                    imageUrl: expertProfile.imageUrl,
                 },
             })
             setIsLoaded(true)
@@ -221,9 +290,15 @@ export default function Workroom() {
     }
 
     const handleRequestRevision = async () => {
-        if (!canReviewDeliverable || !activeDeliverable) return
+        if (!canReviewDeliverable || !activeDeliverable || isRevisionExhausted) return
 
-        await requestWorkRevision(work.id, activeDeliverable.id, activeDeliverable.stepId)
+        try {
+            await requestWorkRevision(work.id, activeDeliverable.id, activeDeliverable.stepId)
+        } catch (error) {
+            setStatusMessage(error instanceof Error ? error.message : '수정 요청을 처리하지 못했습니다.')
+            return
+        }
+        const nextRevisionUsed = revisionUsed + 1
         setDeliverables((current) =>
             current.map((deliverable) =>
                 deliverable.id === activeDeliverable.id
@@ -236,7 +311,7 @@ export default function Workroom() {
                 step.id === activeDeliverable.stepId ? { ...step, status: 'revision_requested' } : step,
             ),
         )
-        setWork((current) => ({ ...current, status: 'revision_requested' }))
+        setWork((current) => ({ ...current, status: 'revision_requested', revisionUsed: nextRevisionUsed }))
         setStatusMessage('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')
         notifyActivityChanged()
     }
@@ -267,9 +342,17 @@ export default function Workroom() {
 
     const handleCancelWork = async () => {
         if (isClosedWork) return
-        await cancelWork(work.id)
-        setWork((current) => ({ ...current, status: 'cancelled', settlementStatus: 'refunded' }))
-        setStatusMessage('거래 중단 요청이 처리되었습니다.')
+        const cancellationReason: NonNullable<Work['cancellationReason']> = activeDeliverable
+            ? 'mutual_after_start'
+            : 'before_start'
+        await cancelWork(work.id, cancellationReason)
+        setWork((current) => ({
+            ...current,
+            status: 'cancelled',
+            refundStatus: 'fee_excluded_refund_pending',
+            cancellationReason,
+        }))
+        setStatusMessage('수수료 제외 환불 예정 상태로 처리되었습니다.')
         notifyActivityChanged()
     }
 
@@ -319,24 +402,24 @@ export default function Workroom() {
                         <span className="work-status-badge">{workStatusLabel}</span>
                     </div>
 
-                    {steps.length > 0 ? (
-                        <ol className="work-step-list">
-                            {steps.map((step) => (
-                                <li key={step.id} className={`work-step ${step.status}`}>
-                                    <div className="step-index">{step.stepOrder}</div>
-                                    <div className="step-body">
-                                        <div className="step-title-row">
-                                            <h3>{step.title}</h3>
-                                            <span>{statusLabels[step.status]}</span>
-                                        </div>
-                                        <p>{step.description}</p>
+                    <ol className="work-step-list">
+                        {progressSteps.map((step, index) => (
+                            <li
+                                key={step.title}
+                                className={`work-step ${step.state}`}
+                                aria-label={`${step.title} 단계 상태: ${step.label}`}
+                            >
+                                <div className="step-index">{index + 1}</div>
+                                <div className="step-body">
+                                    <div className="step-title-row">
+                                        <h3>{step.title}</h3>
+                                        <span>{step.label}</span>
                                     </div>
-                                </li>
-                            ))}
-                        </ol>
-                    ) : (
-                        <p className="submitted-deliverable">등록된 진행 단계가 없습니다.</p>
-                    )}
+                                    <p>{step.description}</p>
+                                </div>
+                            </li>
+                        ))}
+                    </ol>
 
                     <section className="deliverable-panel">
                         <h2>제출물</h2>
@@ -441,7 +524,11 @@ export default function Workroom() {
                         <strong>{currency.format(work.totalPrice || 0)}원</strong>
                         <span>AIConnect 수수료 {currency.format(work.platformFee || 0)}원</span>
                         <span>전문가 정산 예정 {currency.format(work.expertPayout || 0)}원</span>
-                        <span>{settlementStatusText[work.settlementStatus || 'held']}</span>
+                        <span>
+                            {work.refundStatus
+                                ? refundStatusText[work.refundStatus]
+                                : settlementStatusText[work.settlementStatus || 'held']}
+                        </span>
                     </section>
 
                     <section className="workroom-participants">
@@ -482,6 +569,10 @@ export default function Workroom() {
                         <>
                             <h2>의뢰자 확인</h2>
                             <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
+                            <p>{revisionUsageText}</p>
+                            {isRevisionExhausted && (
+                                <p>제안서에 포함된 수정 요청 횟수를 모두 사용했습니다.</p>
+                            )}
                             <div className="review-actions">
                                 <button
                                     type="button"
@@ -494,7 +585,7 @@ export default function Workroom() {
                                 <button
                                     type="button"
                                     className="btn-text"
-                                    disabled={!activeDeliverable}
+                                    disabled={!activeDeliverable || isRevisionExhausted}
                                     onClick={handleRequestRevision}
                                 >
                                     수정 요청
