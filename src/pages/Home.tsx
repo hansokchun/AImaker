@@ -56,11 +56,12 @@ export default function Home() {
         <main className="home-page home-page-minimal">
             <section className="home-minimal-hero">
                 <div className="container home-minimal-hero-inner">
-                    <h1 className="home-minimal-title">AI 작업, 더 간단하게.</h1>
-                    <p className="home-minimal-subtitle">원하는 상품을 고르고 바로 주문하세요.</p>
+                    <p className="home-minimal-kicker">AIConnect Marketplace</p>
+                    <h1 className="home-minimal-title">검증된 AI 전문가를 고르는 가장 조용한 방법</h1>
+                    <p className="home-minimal-subtitle">영상, 이미지, 자동화 작업을 상품 단위로 비교하고 바로 시작하세요.</p>
                     <div className="home-minimal-actions">
                         <Link to={ROUTES.CATEGORY} className="home-minimal-primary">
-                            상품 둘러보기
+                            AI 작업 찾기
                         </Link>
                         <Link to={ROUTES.PROFILE} className="home-minimal-secondary">
                             전문가로 시작하기
@@ -71,12 +72,19 @@ export default function Home() {
                             </Link>
                         )}
                     </div>
+                    <div className="home-minimal-proof" aria-label="AIConnect 핵심 특징">
+                        <span>검증된 상품</span>
+                        <span>상품 기반 의뢰</span>
+                        <span>안전한 작업 관리</span>
+                    </div>
                 </div>
             </section>
 
             <section className="home-minimal-products container">
                 <div className="home-minimal-section-title">
-                    <h2 className="section-title">추천 AI 상품</h2>
+                    <p className="home-minimal-section-eyebrow">Featured work</p>
+                    <h2 className="section-title">최근 등록된 AI 상품</h2>
+                    <p className="home-minimal-section-copy">Stitch 미니멀 디자인에 맞춰 상품 정보만 선명하게 보여줍니다.</p>
                 </div>
                 <div className="home-minimal-product-grid">
                     {products.slice(0, 3).map((product) => (
