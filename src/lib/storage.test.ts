@@ -1140,6 +1140,48 @@ describe('transaction storage', () => {
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
     })
 
+    it('normalizes object milestones from Supabase proposals into renderable titles', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: proposal.id,
+                    request_id: proposal.requestId,
+                    client_id: proposal.clientId,
+                    expert_id: proposal.expertId,
+                    title: proposal.title,
+                    scope: proposal.scope,
+                    deliverables: proposal.deliverables,
+                    total_price: proposal.totalPrice,
+                    delivery_days: proposal.deliveryDays,
+                    revision_count: proposal.revisionCount,
+                    progress_type: 'milestone',
+                    milestones: [
+                        { title: '흐름설계', amount: 25000 },
+                        { title: '결과물 제출', amount: 50000 },
+                    ],
+                    commercial_use_allowed: proposal.commercialUseAllowed,
+                    source_file_included: proposal.sourceFileIncluded,
+                    status: proposal.status,
+                    expires_at: proposal.expiresAt,
+                },
+            ],
+            error: null,
+        })
+        const or = vi.fn(() => ({ order }))
+        const select = vi.fn(() => ({ or }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getUserProposals } = await import('./storage')
+
+        await expect(getUserProposals(request.clientId)).resolves.toEqual([
+            expect.objectContaining({
+                milestones: ['흐름설계', '결과물 제출'],
+            }),
+        ])
+    })
+
     it('loads consultation chats and messages from Supabase', async () => {
         vi.resetModules()
         const consultationOrder = vi.fn().mockResolvedValue({

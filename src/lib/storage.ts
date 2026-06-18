@@ -269,6 +269,21 @@ const normalizeProposalStatus = (proposal: Proposal): Proposal => {
     return proposal;
 };
 
+const toTextList = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+
+    return value
+        .map((item) => {
+            if (typeof item === 'string') return item;
+            if (item && typeof item === 'object' && 'title' in item) {
+                const title = (item as { title?: unknown }).title;
+                return typeof title === 'string' ? title : '';
+            }
+            return '';
+        })
+        .filter(Boolean);
+};
+
 const toProposal = (item: any): Proposal => normalizeProposalStatus({
     id: item.id,
     requestId: item.request_id,
@@ -276,12 +291,12 @@ const toProposal = (item: any): Proposal => normalizeProposalStatus({
     expertId: item.expert_id,
     title: item.title,
     scope: item.scope,
-    deliverables: item.deliverables || [],
+    deliverables: toTextList(item.deliverables),
     totalPrice: item.total_price || 0,
     deliveryDays: item.delivery_days || 0,
     revisionCount: item.revision_count || 0,
     progressType: item.progress_type || 'single',
-    milestones: item.milestones || [],
+    milestones: toTextList(item.milestones),
     commercialUseAllowed: Boolean(item.commercial_use_allowed),
     sourceFileIncluded: Boolean(item.source_file_included),
     status: item.status || 'sent',
