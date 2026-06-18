@@ -968,7 +968,7 @@ section { padding: 8rem 0; }
     border-radius: 12px;
     background:
         linear-gradient(90deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.42)),
-        url("https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1400&q=75") center / cover;
+        url("/assets/home-creator-cta.png") center / cover;
     text-align: center;
 }
 .home-minimal-creator-cta h2 {
