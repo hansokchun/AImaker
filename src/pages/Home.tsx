@@ -8,19 +8,16 @@ import type { ExpertProduct } from '../types';
 
 const categoryCards = [
     {
-        icon: 'video_settings',
-        title: 'AI 영상/숏폼',
-        description: '숏폼, 광고, 유튜브 콘텐츠 제작.',
+        title: 'AI 영상',
+        imageClassName: 'home-minimal-category-card--video',
     },
     {
-        icon: 'palette',
-        title: 'AI 이미지/캐릭터',
-        description: '캐릭터, 프로필, 브랜드 이미지 제작.',
+        title: 'AI 이미지',
+        imageClassName: 'home-minimal-category-card--image',
     },
     {
-        icon: 'terminal',
-        title: 'AI 개발/자동화',
-        description: '챗봇, API 연동, 업무 자동화 구축.',
+        title: 'AI 개발',
+        imageClassName: 'home-minimal-category-card--development',
     },
 ];
 
@@ -82,13 +79,10 @@ export default function Home() {
             <section className="home-minimal-hero">
                 <div className="container home-minimal-hero-inner">
                     <h1 className="home-minimal-title">
-                        AI 영상, 이미지, 자동화 작업을
+                        당신의 의뢰를 AI로 더 빠르고,
                         <br />
-                        더 저렴하게 맡기세요
+                        더 퀄리티 있게 해결합니다
                     </h1>
-                    <p className="home-minimal-subtitle">
-                        샘플과 가격을 보고 바로 의뢰하세요.
-                    </p>
                     <div className="home-minimal-actions">
                         <Link to={ROUTES.CATEGORY} className="home-minimal-primary">
                             AI 전문가 찾기
@@ -108,17 +102,13 @@ export default function Home() {
             <section className="home-minimal-categories container" aria-label="AI 작업 카테고리">
                 <div className="home-minimal-category-grid">
                     {categoryCards.map((category) => (
-                        <article className="home-minimal-category-card" key={category.title}>
-                            <div className="home-minimal-category-icon" aria-hidden="true">
-                                <span className="material-symbols-outlined">{category.icon}</span>
-                            </div>
+                        <Link
+                            to={ROUTES.CATEGORY}
+                            className={`home-minimal-category-card ${category.imageClassName}`}
+                            key={category.title}
+                        >
                             <h2>{category.title}</h2>
-                            <p>{category.description}</p>
-                            <Link to={ROUTES.CATEGORY} className="home-minimal-category-link">
-                                전문가 찾기
-                                <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-                            </Link>
-                        </article>
+                        </Link>
                     ))}
                 </div>
             </section>
@@ -127,8 +117,7 @@ export default function Home() {
                 <div className="container">
                     <div className="home-minimal-products-header">
                         <div>
-                            <span>Curated</span>
-                            <h2>입문형 AI 상품</h2>
+                            <h2>AI 상품</h2>
                         </div>
                         <Link to={ROUTES.CATEGORY}>전체 상품 보기</Link>
                     </div>
@@ -173,9 +162,9 @@ export default function Home() {
             </section>
 
             <section className="home-minimal-creator-cta container">
-                <div>
-                    <h2>AI 도구를 다룰 줄 안다면 작업자로 시작하세요</h2>
-                    <p>AI 도구 활용 능력을 상품으로 등록해보세요.</p>
+                <div className="home-minimal-creator-panel">
+                    <h2>AI를 쓸 줄 안다면? 작업자로 활동해보세요!</h2>
+                    <p>당신의 능력을 필요로 합니다!</p>
                     <Link to={ROUTES.PRODUCT_NEW}>첫 상품 등록하기</Link>
                 </div>
             </section>
