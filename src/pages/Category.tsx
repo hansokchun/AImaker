@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { getExpertProducts } from '../lib/storage'
@@ -6,9 +7,15 @@ import type { AiCategoryId, ExpertProduct } from '../types'
 import './Category.css'
 
 export default function Category() {
+    const [searchParams] = useSearchParams()
+    const initialCategory = searchParams.get('category') as AiCategoryId | null
+    const initialCategoryIds = AI_CATEGORIES.map((category) => category.id)
+    const initialSelectedCategories = initialCategory && initialCategoryIds.includes(initialCategory)
+        ? [initialCategory]
+        : initialCategoryIds
     const [products, setProducts] = useState<ExpertProduct[]>([])
     const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(
-        AI_CATEGORIES.map((category) => category.id),
+        initialSelectedCategories,
     )
     const [selectedTool, setSelectedTool] = useState<string>('')
     const [sortBy, setSortBy] = useState<string>('추천순')

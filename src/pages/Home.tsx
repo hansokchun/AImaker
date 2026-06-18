@@ -8,14 +8,17 @@ import type { ExpertProduct } from '../types';
 
 const categoryCards = [
     {
+        id: 'ai-video-shortform',
         title: 'AI 영상',
         imageClassName: 'home-minimal-category-card--video',
     },
     {
+        id: 'ai-image-character',
         title: 'AI 이미지',
         imageClassName: 'home-minimal-category-card--image',
     },
     {
+        id: 'ai-development-automation',
         title: 'AI 개발',
         imageClassName: 'home-minimal-category-card--development',
     },
@@ -87,9 +90,6 @@ export default function Home() {
                         <Link to={ROUTES.CATEGORY} className="home-minimal-primary">
                             AI 전문가 찾기
                         </Link>
-                        <Link to={ROUTES.CATEGORY} className="home-minimal-secondary">
-                            상품 둘러보기
-                        </Link>
                         {user && (
                             <Link to={ROUTES.WORK_DASHBOARD} className="home-minimal-work">
                                 내 작업 보기
@@ -103,7 +103,7 @@ export default function Home() {
                 <div className="home-minimal-category-grid">
                     {categoryCards.map((category) => (
                         <Link
-                            to={ROUTES.CATEGORY}
+                            to={`${ROUTES.CATEGORY}?category=${category.id}`}
                             className={`home-minimal-category-card ${category.imageClassName}`}
                             key={category.title}
                         >

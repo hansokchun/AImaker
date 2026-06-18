@@ -89,6 +89,22 @@ describe('Category', () => {
     expect(screen.queryByRole('heading', { name: mockExpertProducts[2].title })).not.toBeInTheDocument()
   })
 
+  it('opens with the category from the URL selected and filtered', async () => {
+    render(
+      <MemoryRouter initialEntries={['/category?category=ai-image-character']}>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[2].title })).not.toBeInTheDocument()
+
+    expect(screen.getByLabelText(AI_CATEGORIES[0].name)).not.toBeChecked()
+    expect(screen.getByLabelText(AI_CATEGORIES[1].name)).toBeChecked()
+    expect(screen.getByLabelText(AI_CATEGORIES[2].name)).not.toBeChecked()
+  })
+
   it('deselects a category when the selected category is clicked again', async () => {
     render(
       <MemoryRouter>

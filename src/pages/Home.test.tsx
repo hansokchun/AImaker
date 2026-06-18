@@ -45,10 +45,13 @@ describe('Home', () => {
       screen.queryByText('샘플과 가격을 보고 AI 작업자를 찾아 의뢰할 수 있어요. 전문가의 손길로 AI의 잠재력을 비즈니스에 연결하세요.'),
     ).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'AI 전문가 찾기' })).toHaveAttribute('href', '/category')
-    expect(screen.getByRole('link', { name: '상품 둘러보기' })).toHaveAttribute('href', '/category')
+    expect(screen.queryByRole('link', { name: '상품 둘러보기' })).not.toBeInTheDocument()
 
+    expect(screen.getByRole('link', { name: 'AI 영상' })).toHaveAttribute('href', '/category?category=ai-video-shortform')
     expect(screen.getByRole('link', { name: 'AI 영상' })).toHaveClass('home-minimal-category-card--video')
+    expect(screen.getByRole('link', { name: 'AI 이미지' })).toHaveAttribute('href', '/category?category=ai-image-character')
     expect(screen.getByRole('link', { name: 'AI 이미지' })).toHaveClass('home-minimal-category-card--image')
+    expect(screen.getByRole('link', { name: 'AI 개발' })).toHaveAttribute('href', '/category?category=ai-development-automation')
     expect(screen.getByRole('link', { name: 'AI 개발' })).toHaveClass('home-minimal-category-card--development')
     expect(screen.queryByText('숏폼, 광고, 유튜브 콘텐츠 제작.')).not.toBeInTheDocument()
     expect(screen.queryByText('캐릭터, 프로필, 브랜드 이미지 제작.')).not.toBeInTheDocument()
