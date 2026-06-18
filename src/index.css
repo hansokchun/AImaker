@@ -694,31 +694,41 @@ section { padding: 8rem 0; }
     border: 0;
     border-radius: 18px;
     background-color: #0f172a;
-    background-position: center;
-    background-size: cover;
     color: #ffffff;
     clip-path: polygon(9% 0, 100% 0, 91% 100%, 0 100%);
     transition: var(--transition);
+}
+.home-minimal-category-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--category-bg);
+    background-position: center;
+    background-size: cover;
+    transition: transform 600ms ease;
+    z-index: 0;
 }
 .home-minimal-category-card::before {
     content: "";
     position: absolute;
     inset: 0;
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.72));
-    z-index: 0;
+    z-index: 1;
 }
 .home-minimal-category-card:hover {
     box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
-    transform: translateY(-4px);
+}
+.home-minimal-category-card:hover::after {
+    transform: scale(1.08);
 }
 .home-minimal-category-card--video {
-    background-image: url("https://images.unsplash.com/photo-1536240478700-b869070f9279?auto=format&fit=crop&w=1000&q=80");
+    --category-bg: url("https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1000&q=80");
 }
 .home-minimal-category-card--image {
-    background-image: url("https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=1000&q=80");
+    --category-bg: url("https://images.unsplash.com/photo-1686191128892-3b35c3f5f1d1?auto=format&fit=crop&w=1000&q=80");
 }
 .home-minimal-category-card--development {
-    background-image: url("https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=1000&q=80");
+    --category-bg: url("https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=1000&q=80");
 }
 .home-minimal-category-icon {
     width: 3rem;
@@ -736,7 +746,7 @@ section { padding: 8rem 0; }
 }
 .home-minimal-category-card h2 {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     margin-bottom: 0;
     color: #ffffff;
     font-size: 2rem;
@@ -760,8 +770,6 @@ section { padding: 8rem 0; }
 }
 .home-minimal-products {
     padding: 5rem 0;
-    border-top: 1px solid rgba(195, 198, 215, 0.35);
-    border-bottom: 1px solid rgba(195, 198, 215, 0.35);
     background: #ffffff;
 }
 .home-minimal-products-header {
@@ -896,7 +904,6 @@ section { padding: 8rem 0; }
 }
 .home-minimal-process {
     padding: 6rem 2rem;
-    border-bottom: 1px solid rgba(195, 198, 215, 0.35);
     background: #ffffff;
     text-align: center;
 }
