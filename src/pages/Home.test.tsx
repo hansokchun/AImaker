@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockExpertProducts } from '../data/mockData'
 import { getExpertProducts } from '../lib/storage'
@@ -14,6 +14,11 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../lib/storage', () => ({
   getExpertProducts: vi.fn(async () => mockExpertProducts),
 }))
+
+function CurrentPath() {
+  const location = useLocation()
+  return <div data-testid="current-path">{location.pathname}</div>
+}
 
 describe('Home', () => {
   beforeEach(() => {
@@ -58,7 +63,6 @@ describe('Home', () => {
     expect(screen.queryByText('챗봇, API 연동, 업무 자동화 구축.')).not.toBeInTheDocument()
 
     expect(screen.queryByText('상품 탐색')).not.toBeInTheDocument()
-    expect(screen.queryByText('제안서 확인')).not.toBeInTheDocument()
     expect(screen.queryByText('주문 전에 단계가 보입니다')).not.toBeInTheDocument()
 
     expect(screen.queryByText('Curated')).not.toBeInTheDocument()
@@ -69,7 +73,9 @@ describe('Home', () => {
     expect(screen.getByRole('heading', { name: 'How it Works' })).toBeInTheDocument()
     expect(screen.getByText('샘플 확인')).toBeInTheDocument()
     expect(screen.getByText('요구사항 작성')).toBeInTheDocument()
+    expect(screen.getByText('제안서 확인')).toBeInTheDocument()
     expect(screen.getByText('작업 진행 확인')).toBeInTheDocument()
+    expect(screen.getByText('작업물 수령')).toBeInTheDocument()
 
     expect(screen.getByRole('heading', { name: 'AI를 쓸 줄 안다면? 작업자로 활동해보세요!' })).toBeInTheDocument()
     expect(screen.getByText('당신의 능력을 필요로 합니다!')).toBeInTheDocument()
@@ -100,6 +106,23 @@ describe('Home', () => {
       'href',
       '/request/home-product-real-01',
     )
+  })
+
+  it('opens the product detail when a home AI product card is clicked', async () => {
+    const product = mockExpertProducts[0]
+    vi.mocked(getExpertProducts).mockResolvedValue([product])
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Home />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+
+    const productCard = await screen.findByRole('link', { name: `${product.title} 상품 정보 보기` })
+    fireEvent.click(productCard)
+
+    expect(screen.getByTestId('current-path')).toHaveTextContent(`/expert/${product.id}`)
   })
 
   it('keeps a visible product thumbnail when the external image fails', async () => {

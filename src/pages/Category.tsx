@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
+import { mockExpertProducts } from '../data/mockData'
 import { getExpertProducts } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct } from '../types'
 import './Category.css'
@@ -13,7 +14,7 @@ export default function Category() {
     const initialSelectedCategories = initialCategory && initialCategoryIds.includes(initialCategory)
         ? [initialCategory]
         : initialCategoryIds
-    const [products, setProducts] = useState<ExpertProduct[]>([])
+    const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
     const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(
         initialSelectedCategories,
     )
@@ -28,9 +29,13 @@ export default function Category() {
 
     useEffect(() => {
         let active = true
-        getExpertProducts().then((items) => {
-            if (active) setProducts(items)
-        })
+        getExpertProducts()
+            .then((items) => {
+                if (active) setProducts(items.length ? items : mockExpertProducts)
+            })
+            .catch(() => {
+                if (active) setProducts(mockExpertProducts)
+            })
         return () => {
             active = false
         }

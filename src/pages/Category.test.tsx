@@ -73,6 +73,19 @@ describe('Category', () => {
     expect(await screen.findByRole('heading', { name: unknownCategoryProduct.title })).toBeInTheDocument()
   })
 
+  it('shows default products immediately while stored products are loading', () => {
+    getExpertProducts.mockReturnValue(new Promise(() => undefined))
+
+    render(
+      <MemoryRouter>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.getByText(`총 ${mockExpertProducts.length}개의 AI 작업`)).toBeInTheDocument()
+  })
+
   it('filters to the clicked category from the initial all-selected state', async () => {
     render(
       <MemoryRouter>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import type { KeyboardEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
 import { mockExpertProducts } from '../data/mockData';
@@ -27,7 +28,9 @@ const categoryCards = [
 const processSteps = [
     { icon: 'gallery_thumbnail', label: '샘플 확인' },
     { icon: 'edit_note', label: '요구사항 작성' },
+    { icon: 'description', label: '제안서 확인' },
     { icon: 'check_circle', label: '작업 진행 확인' },
+    { icon: 'download_done', label: '작업물 수령' },
 ];
 
 function ProductThumbnail({ product }: { product: ExpertProduct }) {
@@ -60,8 +63,20 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
 
 export default function Home() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
     const featuredProducts = products.slice(0, 4);
+
+    const openProductDetail = (productId: string) => {
+        navigate(`/expert/${productId}`);
+    };
+
+    const openProductDetailWithKeyboard = (event: KeyboardEvent<HTMLElement>, productId: string) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openProductDetail(productId);
+        }
+    };
 
     useEffect(() => {
         let active = true;
@@ -123,8 +138,20 @@ export default function Home() {
                     </div>
                     <div className="home-minimal-product-grid">
                         {featuredProducts.map((product) => (
-                            <article className="home-minimal-product" key={product.id}>
-                                <Link to={`/expert/${product.id}`} className="home-minimal-product-image-link">
+                            <article
+                                className="home-minimal-product"
+                                key={product.id}
+                                role="link"
+                                tabIndex={0}
+                                aria-label={`${product.title} 상품 정보 보기`}
+                                onClick={() => openProductDetail(product.id)}
+                                onKeyDown={(event) => openProductDetailWithKeyboard(event, product.id)}
+                            >
+                                <Link
+                                    to={`/expert/${product.id}`}
+                                    className="home-minimal-product-image-link"
+                                    onClick={(event) => event.stopPropagation()}
+                                >
                                     <ProductThumbnail product={product} />
                                 </Link>
                                 <div className="home-minimal-product-body">
@@ -135,7 +162,11 @@ export default function Home() {
                                             <span className="home-minimal-expert-name">{product.expertName}</span>
                                             <strong>{product.startingPrice.toLocaleString()}원~</strong>
                                         </div>
-                                        <Link to={`/request/${product.id}`} className="home-minimal-order">
+                                        <Link
+                                            to={`/request/${product.id}`}
+                                            className="home-minimal-order"
+                                            onClick={(event) => event.stopPropagation()}
+                                        >
                                             의뢰하기
                                         </Link>
                                     </div>
