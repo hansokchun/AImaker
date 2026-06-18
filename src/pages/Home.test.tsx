@@ -21,13 +21,13 @@ describe('Home', () => {
     mockUseAuth.mockReturnValue({ user: null })
   })
 
-  it('rebuilds the home around the Stitch AIConnect structure', async () => {
+  it('shows a compact minimal home with short copy and clear actions', async () => {
     vi.mocked(getExpertProducts).mockResolvedValue([
       ...mockExpertProducts,
       {
         ...mockExpertProducts[0],
         id: 'home-product-fourth',
-        title: '실사 상업용 제품 이미지 20컷',
+        title: '상세 이미지 20컷 제작',
         expertName: 'Photo-G',
         startingPrice: 45000,
       },
@@ -39,32 +39,38 @@ describe('Home', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: /AI 영상, 이미지, 자동화 작업을\s*더 저렴하게 맡기세요/ })).toBeInTheDocument()
-    expect(screen.getByText('샘플과 가격을 보고 AI 작업자를 찾아 의뢰할 수 있어요. 전문가의 손길로 AI의 잠재력을 비즈니스에 연결하세요.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'AI 전문가 찾기' })).toHaveAttribute('href', '/category')
-    expect(screen.getByRole('link', { name: '상품 둘러보기' })).toHaveAttribute('href', '/category')
+    expect(screen.getByRole('heading', { name: 'AI 작업을 더 쉽게 맡기세요' })).toBeInTheDocument()
+    expect(screen.getByText('샘플과 가격을 보고 바로 의뢰하세요.')).toBeInTheDocument()
+    expect(
+      screen.queryByText('샘플과 가격을 보고 AI 작업자를 찾아 의뢰할 수 있어요. 전문가의 손길로 AI의 잠재력을 비즈니스에 연결하세요.'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
+    expect(screen.getByRole('link', { name: '상품 보기' })).toHaveAttribute('href', '/category')
 
     expect(screen.getByRole('heading', { name: 'AI 영상/숏폼' })).toBeInTheDocument()
+    expect(screen.getByText('숏폼, 광고, 유튜브 콘텐츠 제작.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'AI 이미지/캐릭터' })).toBeInTheDocument()
+    expect(screen.getByText('캐릭터, 프로필, 브랜드 이미지 제작.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'AI 개발/자동화' })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: '전문가 찾기' })).toHaveLength(3)
+    expect(screen.getByText('챗봇, API 연동, 업무 자동화 구축.')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /전문가 찾기/ })).toHaveLength(3)
 
     expect(screen.queryByText('상품 탐색')).not.toBeInTheDocument()
     expect(screen.queryByText('제안서 확인')).not.toBeInTheDocument()
     expect(screen.queryByText('주문 전에 단계가 보입니다')).not.toBeInTheDocument()
 
-    expect(screen.getByText('Curated')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '입문형 AI 상품' })).toBeInTheDocument()
+    expect(screen.getByText('추천')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '추천 상품' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '전체 상품 보기' })).toHaveAttribute('href', '/category')
     await waitFor(() => expect(screen.getAllByRole('link', { name: /의뢰하기/ })).toHaveLength(4))
 
-    expect(screen.getByRole('heading', { name: 'How it Works' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '진행 방식' })).toBeInTheDocument()
     expect(screen.getByText('샘플 확인')).toBeInTheDocument()
     expect(screen.getByText('요구사항 작성')).toBeInTheDocument()
     expect(screen.getByText('작업 진행 확인')).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: 'AI 도구를 다룰 줄 안다면 작업자로 시작하세요' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '첫 상품 등록하기' })).toHaveAttribute('href', '/products/new')
+    expect(screen.getByRole('heading', { name: '전문가로 시작하기' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '상품 등록하기' })).toHaveAttribute('href', '/products/new')
   })
 
   it('shows recommended products from shared product storage', async () => {

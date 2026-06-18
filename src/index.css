@@ -605,7 +605,7 @@ section { padding: 8rem 0; }
     background: #ffffff;
 }
 .home-minimal-hero {
-    padding: 8rem 0 6rem;
+    padding: 5.5rem 0 4rem;
     text-align: center;
     background: radial-gradient(circle at 50% -20%, #f0f4ff 0%, #ffffff 60%);
 }
@@ -613,18 +613,18 @@ section { padding: 8rem 0; }
     text-align: center;
 }
 .home-minimal-title {
-    max-width: 980px;
-    margin: 0 auto 1.5rem;
+    max-width: 720px;
+    margin: 0 auto 1rem;
     color: #0b1c30;
-    font-size: clamp(2.75rem, 5vw, 4.8rem);
+    font-size: clamp(2.2rem, 4vw, 3.6rem);
     font-weight: 800;
-    line-height: 1.08;
+    line-height: 1.14;
 }
 .home-minimal-subtitle {
-    max-width: 680px;
-    margin: 0 auto 3rem;
+    max-width: 480px;
+    margin: 0 auto 2rem;
     color: #434655;
-    font-size: 1.125rem;
+    font-size: 1rem;
     line-height: 1.6;
 }
 .home-minimal-actions {
@@ -639,10 +639,10 @@ section { padding: 8rem 0; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 56px;
-    padding: 0 2rem;
+    min-height: 44px;
+    padding: 0 1.25rem;
     border-radius: 8px;
-    font-size: 1.35rem;
+    font-size: 1rem;
     font-weight: 700;
     transition: var(--transition);
 }
@@ -668,8 +668,8 @@ section { padding: 8rem 0; }
     color: #004ac6;
 }
 .home-minimal-categories {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+    padding-top: 3.5rem;
+    padding-bottom: 3.5rem;
 }
 .home-minimal-category-grid {
     display: grid;
@@ -677,11 +677,11 @@ section { padding: 8rem 0; }
     gap: 1.5rem;
 }
 .home-minimal-category-card {
-    min-height: 330px;
+    min-height: 250px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 2.5rem;
+    padding: 2rem;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     background: #ffffff;
@@ -692,30 +692,30 @@ section { padding: 8rem 0; }
     transform: translateY(-2px);
 }
 .home-minimal-category-icon {
-    width: 3rem;
-    height: 3rem;
+    width: 2.75rem;
+    height: 2.75rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     border-radius: 8px;
     background: #eff4ff;
     color: #004ac6;
 }
 .home-minimal-category-icon .material-symbols-outlined {
-    font-size: 2rem;
+    font-size: 1.75rem;
 }
 .home-minimal-category-card h2 {
     margin-bottom: 0.75rem;
     color: #0b1c30;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     line-height: 1.3;
 }
 .home-minimal-category-card p {
     flex: 1;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     color: #434655;
-    font-size: 1rem;
+    font-size: 0.95rem;
     line-height: 1.5;
 }
 .home-minimal-category-link {
@@ -727,7 +727,7 @@ section { padding: 8rem 0; }
     font-weight: 700;
 }
 .home-minimal-products {
-    padding: 5rem 0;
+    padding: 4rem 0;
     border-top: 1px solid rgba(195, 198, 215, 0.35);
     border-bottom: 1px solid rgba(195, 198, 215, 0.35);
     background: #ffffff;
@@ -737,7 +737,7 @@ section { padding: 8rem 0; }
     align-items: flex-end;
     justify-content: space-between;
     gap: 1.5rem;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
 }
 .home-minimal-products-header span {
     display: block;
@@ -745,12 +745,12 @@ section { padding: 8rem 0; }
     color: #004ac6;
     font-size: 0.85rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
 }
 .home-minimal-products-header h2 {
     color: #0b1c30;
-    font-size: 2rem;
+    font-size: 1.65rem;
     line-height: 1.2;
 }
 .home-minimal-products-header > a {
@@ -763,7 +763,7 @@ section { padding: 8rem 0; }
 .home-minimal-product-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.5rem;
+    gap: 1.25rem;
 }
 .home-minimal-product {
     overflow: hidden;
@@ -807,7 +807,7 @@ section { padding: 8rem 0; }
     display: block;
 }
 .home-minimal-product-body {
-    padding: 1.25rem;
+    padding: 1rem;
 }
 .home-minimal-product-label {
     margin-bottom: 0.25rem;
@@ -818,10 +818,10 @@ section { padding: 8rem 0; }
     text-transform: uppercase;
 }
 .home-minimal-product-body .home-product-title {
-    min-height: 3.1rem;
-    margin-bottom: 1.5rem;
+    min-height: 2.8rem;
+    margin-bottom: 1.25rem;
     color: #0b1c30;
-    font-size: 1.08rem;
+    font-size: 1rem;
     line-height: 1.45;
 }
 .home-minimal-product-footer {
@@ -863,30 +863,30 @@ section { padding: 8rem 0; }
     color: #ffffff;
 }
 .home-minimal-process {
-    padding: 6rem 2rem;
+    padding: 4rem 2rem;
     border-bottom: 1px solid rgba(195, 198, 215, 0.35);
     background: #ffffff;
     text-align: center;
 }
 .home-minimal-process > h2 {
-    margin-bottom: 3rem;
+    margin-bottom: 2.25rem;
     color: #737686;
     font-size: 0.95rem;
     font-weight: 800;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
 }
 .home-minimal-process-list {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 3rem;
+    gap: 2rem;
 }
 .home-minimal-process-item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 3rem;
+    gap: 2rem;
 }
 .home-minimal-process-item > p {
     width: 9rem;
@@ -895,8 +895,8 @@ section { padding: 8rem 0; }
     font-weight: 800;
 }
 .home-minimal-process-icon {
-    width: 4rem;
-    height: 4rem;
+    width: 3.25rem;
+    height: 3.25rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -905,19 +905,19 @@ section { padding: 8rem 0; }
     color: #004ac6;
 }
 .home-minimal-process-icon .material-symbols-outlined {
-    font-size: 2rem;
+    font-size: 1.75rem;
 }
 .home-minimal-process-line {
-    width: 3rem;
+    width: 2rem;
     height: 1px;
     background: #c3c6d7;
 }
 .home-minimal-creator-cta {
-    padding-top: 6rem;
-    padding-bottom: 6rem;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
 }
 .home-minimal-creator-cta > div {
-    padding: 4rem;
+    padding: 3rem;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     background: #eff4ff;
@@ -926,22 +926,22 @@ section { padding: 8rem 0; }
 .home-minimal-creator-cta h2 {
     margin-bottom: 1rem;
     color: #0b1c30;
-    font-size: 2rem;
+    font-size: 1.6rem;
     line-height: 1.25;
 }
 .home-minimal-creator-cta p {
     max-width: 600px;
-    margin: 0 auto 2.5rem;
+    margin: 0 auto 2rem;
     color: #434655;
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1.6;
 }
 .home-minimal-creator-cta a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 52px;
-    padding: 0 2.5rem;
+    min-height: 44px;
+    padding: 0 1.5rem;
     border-radius: 8px;
     background: #004ac6;
     color: #ffffff;
@@ -1117,10 +1117,10 @@ section { padding: 8rem 0; }
         padding: 2rem;
     }
     .home-minimal-hero {
-        padding: 5rem 0 3.5rem;
+        padding: 3.5rem 0 2.75rem;
     }
     .home-minimal-title {
-        font-size: 2.35rem;
+        font-size: 2rem;
     }
     .home-minimal-subtitle {
         font-size: 1rem;
@@ -1135,7 +1135,7 @@ section { padding: 8rem 0; }
         width: min(100%, 280px);
     }
     .home-minimal-products {
-        padding: 4rem 0;
+        padding: 3rem 0;
     }
     .home-minimal-products-header {
         align-items: flex-start;
@@ -1146,7 +1146,7 @@ section { padding: 8rem 0; }
     }
     .home-minimal-category-card {
         min-height: auto;
-        padding: 2rem;
+        padding: 1.5rem;
     }
     .home-minimal-process-list {
         align-items: stretch;
@@ -1166,7 +1166,7 @@ section { padding: 8rem 0; }
         padding: 2.25rem 1.5rem;
     }
     .home-minimal-creator-cta h2 {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
     }
     .floating-badge {
         position: static;
