@@ -10,17 +10,17 @@ const categoryCards = [
     {
         icon: 'video_settings',
         title: 'AI 영상/숏폼',
-        description: '숏폼, 광고, 유튜브 콘텐츠 제작.',
+        description: '전문적인 영상 편집과 숏폼 제작을 AI로 빠르게. 유튜브, 광고, SNS 콘텐츠를 더 효율적으로 생산하세요.',
     },
     {
         icon: 'palette',
         title: 'AI 이미지/캐릭터',
-        description: '캐릭터, 프로필, 브랜드 이미지 제작.',
+        description: '캐릭터 디자인부터 실사 이미지까지. Midjourney와 Stable Diffusion을 활용한 고퀄리티 아트워크를 만나보세요.',
     },
     {
         icon: 'terminal',
         title: 'AI 개발/자동화',
-        description: '챗봇, API 연동, 업무 자동화 구축.',
+        description: '업무 효율을 높이는 AI 자동화 솔루션. 챗봇, API 연동, 데이터 분석 등 맞춤형 AI 툴을 구축해드립니다.',
     },
 ];
 
@@ -82,17 +82,19 @@ export default function Home() {
             <section className="home-minimal-hero">
                 <div className="container home-minimal-hero-inner">
                     <h1 className="home-minimal-title">
-                        AI 작업을 더 쉽게 맡기세요
+                        AI 영상, 이미지, 자동화 작업을
+                        <br />
+                        더 저렴하게 맡기세요
                     </h1>
                     <p className="home-minimal-subtitle">
-                        샘플과 가격을 보고 바로 의뢰하세요.
+                        샘플과 가격을 보고 AI 작업자를 찾아 의뢰할 수 있어요. 전문가의 손길로 AI의 잠재력을 비즈니스에 연결하세요.
                     </p>
                     <div className="home-minimal-actions">
                         <Link to={ROUTES.CATEGORY} className="home-minimal-primary">
-                            AI 작업 찾기
+                            AI 전문가 찾기
                         </Link>
                         <Link to={ROUTES.CATEGORY} className="home-minimal-secondary">
-                            상품 보기
+                            상품 둘러보기
                         </Link>
                         {user && (
                             <Link to={ROUTES.WORK_DASHBOARD} className="home-minimal-work">
@@ -125,8 +127,8 @@ export default function Home() {
                 <div className="container">
                     <div className="home-minimal-products-header">
                         <div>
-                            <span>추천</span>
-                            <h2>추천 상품</h2>
+                            <span>Curated</span>
+                            <h2>입문형 AI 상품</h2>
                         </div>
                         <Link to={ROUTES.CATEGORY}>전체 상품 보기</Link>
                     </div>
@@ -156,7 +158,7 @@ export default function Home() {
             </section>
 
             <section className="home-minimal-process">
-                <h2>진행 방식</h2>
+                <h2>How it Works</h2>
                 <div className="home-minimal-process-list">
                     {processSteps.map((step, index) => (
                         <div className="home-minimal-process-item" key={step.label}>
@@ -172,9 +174,9 @@ export default function Home() {
 
             <section className="home-minimal-creator-cta container">
                 <div>
-                    <h2>전문가로 시작하기</h2>
-                    <p>AI 도구 활용 능력을 상품으로 등록해보세요.</p>
-                    <Link to={ROUTES.PRODUCT_NEW}>상품 등록하기</Link>
+                    <h2>AI 도구를 다룰 줄 안다면 작업자로 시작하세요</h2>
+                    <p>수천 명의 의뢰인이 당신의 기술을 기다리고 있습니다. 전문성을 수익으로 바꾸는 가장 빠른 방법.</p>
+                    <Link to={ROUTES.PRODUCT_NEW}>첫 상품 등록하기</Link>
                 </div>
             </section>
         </main>
