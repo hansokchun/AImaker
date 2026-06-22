@@ -211,6 +211,30 @@ describe('ExpertDetail', () => {
         expect(seller.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
+    it('shows marketplace breadcrumbs and package actions above the package tabs', async () => {
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+
+        const breadcrumbs = screen.getByTestId('product-detail-breadcrumbs')
+        expect(within(breadcrumbs).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/')
+        expect(within(breadcrumbs).getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
+        expect(within(breadcrumbs).getByText(supabaseProduct.title)).toBeInTheDocument()
+
+        const sidebar = screen.getByTestId('product-package-sidebar')
+        const actions = within(sidebar).getByTestId('product-package-actions')
+        const tabs = sidebar.querySelector('.package-tabs')
+        expect(actions.compareDocumentPosition(tabs as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(within(actions).getByRole('button', { name: '상품 공유' })).toBeInTheDocument()
+        expect(within(actions).getByRole('button', { name: '더보기' })).toBeInTheDocument()
+    })
+
     it('opens a public seller profile with products and received reviews through the expert id', async () => {
         render(
             <MemoryRouter initialEntries={[`/expert/${supabaseProduct.expertId}`]}>

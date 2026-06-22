@@ -47,6 +47,7 @@ export default function ExpertDetail() {
     const navigate = useNavigate()
     const { user } = useAuth()
     const [creatingConsultation, setCreatingConsultation] = useState(false)
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
     const [sellerProducts, setSellerProducts] = useState<ExpertProduct[]>([])
     const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null)
@@ -123,6 +124,25 @@ export default function ExpertDetail() {
             window.alert('상담을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.')
         } finally {
             setCreatingConsultation(false)
+        }
+    }
+
+    const handleShareProduct = async () => {
+        if (!product) return
+
+        const productUrl = `${window.location.origin}/expert/${product.id}`
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: product.title, url: productUrl })
+                return
+            }
+
+            await navigator.clipboard?.writeText(productUrl)
+            window.alert('상품 링크를 복사했습니다.')
+        } catch (error) {
+            if ((error as Error).name !== 'AbortError') {
+                window.alert('상품 링크를 복사하지 못했습니다.')
+            }
         }
     }
 
@@ -229,6 +249,7 @@ export default function ExpertDetail() {
         ? product.packages
         : { standard: fallbackPackage, deluxe: null, premium: null }
     const sampleImageUrl = product.sampleImageUrl || sampleLinks[0] || ''
+    const categoryUrl = `${ROUTES.CATEGORY}?category=${encodeURIComponent(product.category)}`
     const detailGalleryImages = [
         ...(product.sampleImageUrl ? [{ src: product.sampleImageUrl, alt: `${product.title} 메인 이미지`, label: '메인 이미지' }] : []),
         ...sampleLinks.map((src, index) => ({
@@ -240,6 +261,16 @@ export default function ExpertDetail() {
 
     return (
         <main className="container">
+            <nav className="product-breadcrumbs" data-testid="product-detail-breadcrumbs" aria-label="상품 위치">
+                <Link to="/">홈</Link>
+                <span aria-hidden="true">/</span>
+                <Link to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
+                <span aria-hidden="true">/</span>
+                <Link to={categoryUrl}>{category?.name ?? 'AI 작업'}</Link>
+                <span aria-hidden="true">/</span>
+                <span>{product.title}</span>
+            </nav>
+
             {myPageReturnTo && (
                 <div className="detail-owner-actions">
                     <Link to={myPageReturnTo} className="btn-text">
@@ -268,13 +299,6 @@ export default function ExpertDetail() {
                         </div>
                         <div className="product-detail-copy">
                             <div className="product-detail-category">{category?.name ?? 'AI 작업'}</div>
-                            {user?.id !== product.expertId && (
-                                <FavoriteProductButton
-                                    productId={product.id}
-                                    productTitle={product.title}
-                                    className="product-detail-favorite"
-                                />
-                            )}
                             <h1>{product.title}</h1>
                             <p>{product.summary}</p>
                             <div className="product-detail-seller-inline">
@@ -395,6 +419,36 @@ export default function ExpertDetail() {
                 </div>
 
                 <div className="content-right" data-testid="product-package-sidebar">
+                    <div className="product-package-actions" data-testid="product-package-actions">
+                        {user?.id !== product.expertId && (
+                            <FavoriteProductButton
+                                productId={product.id}
+                                productTitle={product.title}
+                                className="product-detail-favorite product-sidebar-favorite"
+                            />
+                        )}
+                        <button type="button" className="package-icon-action" aria-label="상품 공유" onClick={handleShareProduct}>
+                            <span className="material-symbols-outlined" aria-hidden="true">ios_share</span>
+                        </button>
+                        <div className="package-more-action">
+                            <button
+                                type="button"
+                                className="package-icon-action"
+                                aria-label="더보기"
+                                aria-expanded={isMoreMenuOpen}
+                                onClick={() => setIsMoreMenuOpen((open) => !open)}
+                            >
+                                <span className="material-symbols-outlined" aria-hidden="true">more_horiz</span>
+                            </button>
+                            {isMoreMenuOpen && (
+                                <div className="package-more-menu">
+                                    <Link to={`/expert/${product.expertId}`}>판매자 프로필 보기</Link>
+                                    <button type="button" onClick={handleShareProduct}>상품 링크 복사</button>
+                                    <button type="button" onClick={() => window.alert('신고 기능은 준비 중입니다.')}>상품 신고</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                     <PackageCard
                         packages={packages}
                         productId={product.id}
