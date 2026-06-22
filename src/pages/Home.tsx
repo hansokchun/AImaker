@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,6 +65,7 @@ export default function Home() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
+    const [searchKeyword, setSearchKeyword] = useState('');
     const featuredProducts = products.slice(0, 4);
 
     const openProductDetail = (productId: string) => {
@@ -76,6 +77,12 @@ export default function Home() {
             event.preventDefault();
             openProductDetail(productId);
         }
+    };
+
+    const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const keyword = searchKeyword.trim();
+        navigate(keyword ? `${ROUTES.CATEGORY}?q=${encodeURIComponent(keyword)}` : ROUTES.CATEGORY);
     };
 
     useEffect(() => {
@@ -101,6 +108,20 @@ export default function Home() {
                         <br />
                         더 퀄리티 있게 해결합니다
                     </h1>
+                    <form className="home-minimal-search" onSubmit={handleSearchSubmit}>
+                        <label htmlFor="home-product-search">상품 검색</label>
+                        <div className="home-minimal-search-box">
+                            <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                            <input
+                                id="home-product-search"
+                                type="search"
+                                value={searchKeyword}
+                                onChange={(event) => setSearchKeyword(event.target.value)}
+                                placeholder="어떤 AI 작업이 필요하신가요?"
+                            />
+                            <button type="submit">검색</button>
+                        </div>
+                    </form>
                     <div className="home-minimal-actions">
                         <Link to={ROUTES.CATEGORY} className="home-minimal-primary">
                             AI 전문가 찾기

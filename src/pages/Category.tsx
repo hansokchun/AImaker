@@ -18,6 +18,7 @@ export default function Category() {
     const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(
         initialSelectedCategories,
     )
+    const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '')
     const [selectedTool, setSelectedTool] = useState<string>('')
     const [sortBy, setSortBy] = useState<string>('추천순')
     const [maxPrice, setMaxPrice] = useState<number>(1000000)
@@ -65,14 +66,16 @@ export default function Category() {
     const allCategoriesSelected = selectedCategories.length === AI_CATEGORIES.length
 
     const filteredProducts = products.filter((product) => {
+        const normalizedKeyword = searchKeyword.trim().toLowerCase()
         const matchesCategory =
             allCategoriesSelected ||
             selectedCategories.length === 0 ||
             selectedCategories.includes(product.category)
+        const matchesKeyword = !normalizedKeyword || product.title.toLowerCase().includes(normalizedKeyword)
         const matchesPrice = product.startingPrice <= maxPrice
         const matchesTool = !selectedTool || product.aiTools.includes(selectedTool)
 
-        return matchesCategory && matchesPrice && matchesTool
+        return matchesCategory && matchesKeyword && matchesPrice && matchesTool
     })
 
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -159,6 +162,19 @@ export default function Category() {
                     </aside>
 
                     <div className="product-list-main">
+                        <form className="category-search" role="search" onSubmit={(event) => event.preventDefault()}>
+                            <label htmlFor="category-product-search">상품 검색</label>
+                            <div className="category-search-box">
+                                <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                                <input
+                                    id="category-product-search"
+                                    type="search"
+                                    value={searchKeyword}
+                                    onChange={(event) => setSearchKeyword(event.target.value)}
+                                    placeholder="상품 이름으로 검색"
+                                />
+                            </div>
+                        </form>
                         <div className="product-list-header">
                             <span>총 {sortedProducts.length}개의 AI 작업</span>
                             <select

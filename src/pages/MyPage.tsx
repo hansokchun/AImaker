@@ -648,19 +648,61 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
     }
 
+    const getWorkAttentionLabel = (work: Work) => {
+        if (work.status === 'submitted') return '결과물 확인 필요'
+        if (work.status === 'revision_requested') return '수정요청 진행 중'
+        if (work.status === 'in_progress') return '새 진행 상태 확인'
+        return ''
+    }
+
     const renderWorkCards = (items: Work[], emptyText: string) => (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
             {items.length > 0 ? (
-                items.map((work) => (
+                items.map((work) => {
+                    const attentionLabel = getWorkAttentionLabel(work)
+                    const cardStyle = {
+                        padding: '1rem',
+                        borderRadius: '0.75rem',
+                        background: work.status === 'completed' ? '#f0fdf4' : '#f8fafc',
+                        border: attentionLabel ? '1px solid #bfdbfe' : '1px solid var(--border-color)',
+                    }
+
+                    if (work.status !== 'completed') {
+                        return (
+                            <Link
+                                key={work.id}
+                                to={`/workroom/${work.id}`}
+                                state={myPageReturnState}
+                                data-testid="active-work"
+                                aria-label={work.title}
+                                style={{
+                                    ...cardStyle,
+                                    display: 'grid',
+                                    gap: '0.45rem',
+                                    color: 'inherit',
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                                    <strong style={{ color: '#0f172a', fontWeight: 800 }}>{work.title}</strong>
+                                    {attentionLabel && (
+                                        <span style={{ padding: '0.25rem 0.55rem', borderRadius: '999px', background: '#dbeafe', color: '#1d4ed8', fontSize: '0.78rem', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                                            {attentionLabel}
+                                        </span>
+                                    )}
+                                </div>
+                                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                                    {workStatusText[work.status]}
+                                </p>
+                            </Link>
+                        )
+                    }
+
+                    return (
                     <div
                         key={work.id}
-                        data-testid={work.status === 'completed' ? 'completed-work' : 'active-work'}
-                        style={{
-                            padding: '1rem',
-                            borderRadius: '0.75rem',
-                            background: work.status === 'completed' ? '#f0fdf4' : '#f8fafc',
-                            border: '1px solid var(--border-color)',
-                        }}
+                        data-testid="completed-work"
+                        style={cardStyle}
                     >
                         <Link
                             to={`/workroom/${work.id}`}
@@ -711,7 +753,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             </p>
                         )}
                     </div>
-                ))
+                    )
+                })
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
             )}

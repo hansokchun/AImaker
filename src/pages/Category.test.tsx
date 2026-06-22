@@ -118,6 +118,23 @@ describe('Category', () => {
     expect(screen.getByLabelText(AI_CATEGORIES[2].name)).not.toBeChecked()
   })
 
+  it('filters products by the search keyword from the URL and search input', async () => {
+    render(
+      <MemoryRouter initialEntries={[`/category?q=${encodeURIComponent(mockExpertProducts[1].title)}`]}>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('상품 검색')).toHaveValue(mockExpertProducts[1].title)
+
+    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: mockExpertProducts[0].title } })
+
+    expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
+  })
+
   it('deselects a category when the selected category is clicked again', async () => {
     render(
       <MemoryRouter>

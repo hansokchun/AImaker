@@ -2001,6 +2001,21 @@ describe('MyPage', () => {
         expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(3)
     })
 
+    it('makes each workroom card open the workroom and highlights attention states', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '작업방' }))
+
+        const submittedCard = await screen.findByRole('link', { name: 'Submitted work' })
+        expect(submittedCard).toHaveAttribute('href', '/workroom/work-real-submitted')
+        expect(submittedCard).toHaveAttribute('data-testid', 'active-work')
+        expect(within(submittedCard).getByText('결과물 확인 필요')).toBeInTheDocument()
+    })
+
     it('filters consultations, workrooms, and reviews by the selected work role', async () => {
         render(
             <MemoryRouter>

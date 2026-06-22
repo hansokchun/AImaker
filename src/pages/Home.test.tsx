@@ -17,7 +17,7 @@ vi.mock('../lib/storage', () => ({
 
 function CurrentPath() {
   const location = useLocation()
-  return <div data-testid="current-path">{location.pathname}</div>
+  return <div data-testid="current-path">{location.pathname}{location.search}</div>
 }
 
 describe('Home', () => {
@@ -123,6 +123,20 @@ describe('Home', () => {
     fireEvent.click(productCard)
 
     expect(screen.getByTestId('current-path')).toHaveTextContent(`/expert/${product.id}`)
+  })
+
+  it('sends the hero search keyword to the category page', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Home />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: 'AI 숏폼' } })
+    fireEvent.click(screen.getByRole('button', { name: '검색' }))
+
+    expect(screen.getByTestId('current-path')).toHaveTextContent('/category?q=AI%20%EC%88%8F%ED%8F%BC')
   })
 
   it('keeps a visible product thumbnail when the external image fails', async () => {
