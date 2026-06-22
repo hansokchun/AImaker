@@ -141,10 +141,6 @@ export default function Home() {
                             ))}
                         </div>
                     </div>
-                    <div className="home-minimal-trust">
-                        <p>작업 전 상담하고, 제안서를 확인한 뒤 안전하게 진행하세요.</p>
-                        <p>요구사항 전달부터 결제, 작업방까지 한 곳에서 관리할 수 있습니다.</p>
-                    </div>
                 </div>
             </section>
 

@@ -67,8 +67,8 @@ describe('Home', () => {
 
     expect(screen.queryByText('상품 탐색')).not.toBeInTheDocument()
     expect(screen.queryByText('주문 전에 단계가 보입니다')).not.toBeInTheDocument()
-    expect(screen.getByText('작업 전 상담하고, 제안서를 확인한 뒤 안전하게 진행하세요.')).toBeInTheDocument()
-    expect(screen.getByText('요구사항 전달부터 결제, 작업방까지 한 곳에서 관리할 수 있습니다.')).toBeInTheDocument()
+    expect(screen.queryByText('작업 전 상담하고, 제안서를 확인한 뒤 안전하게 진행하세요.')).not.toBeInTheDocument()
+    expect(screen.queryByText('요구사항 전달부터 결제, 작업방까지 한 곳에서 관리할 수 있습니다.')).not.toBeInTheDocument()
 
     expect(screen.queryByText('Curated')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'AI 상품' })).toBeInTheDocument()

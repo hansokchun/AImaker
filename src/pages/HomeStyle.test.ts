@@ -15,7 +15,6 @@ describe('home hero visual styles', () => {
     expect(getRule('.home-minimal-hero')).not.toContain('linear-gradient(180deg')
     expect(getRule('.home-minimal-categories')).toContain('margin-top: -1.25rem')
     expect(getRule('.home-minimal-popular a')).toContain('border-radius: 999px')
-    expect(getRule('.home-minimal-trust p')).toContain('background: rgba(255, 255, 255, 0.62)')
   })
 
   it('keeps the How it Works process row at a balanced readable width', () => {
