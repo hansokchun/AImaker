@@ -104,9 +104,9 @@ export default function Home() {
             <section className="home-minimal-hero">
                 <div className="container home-minimal-hero-inner">
                     <h1 className="home-minimal-title">
-                        AI메이커를 통해
+                        AI로 더 싸고 빠르게,
                         <br />
-                        더 싸고 빠르게 해결해보세요
+                        필요한 작업을 의뢰하세요
                     </h1>
                     <form className="home-minimal-search" onSubmit={handleSearchSubmit}>
                         <label htmlFor="home-product-search">상품 검색</label>
