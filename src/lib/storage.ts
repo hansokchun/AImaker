@@ -24,6 +24,7 @@ import type {
 import { supabase } from './supabase';
 import { mockExpertProducts } from '../data/mockData';
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
+import { validateMarketplaceMessage } from './tradeSafety';
 import type { User } from '@supabase/supabase-js';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
@@ -622,6 +623,8 @@ export async function saveConsultationMessage(input: {
     body: string;
 }): Promise<ConsultationMessage> {
     const body = input.body.trim();
+    const validation = validateMarketplaceMessage(body);
+    if (!validation.allowed) throw new Error(validation.message);
     if (!body) throw new Error('상담 메시지를 입력해주세요.');
     const now = new Date().toISOString();
 
@@ -1541,6 +1544,8 @@ export async function saveWorkMessage(input: {
     body: string;
 }): Promise<WorkMessage> {
     const body = input.body.trim();
+    const validation = validateMarketplaceMessage(body);
+    if (!validation.allowed) throw new Error(validation.message);
     if (!body) throw new Error('?묒뾽諛?硫붿떆吏瑜??낅젰?댁＜?몄슂.');
     const now = new Date().toISOString();
 

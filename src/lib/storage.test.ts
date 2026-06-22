@@ -1361,6 +1361,38 @@ describe('transaction storage', () => {
         expect(consultationEq).toHaveBeenCalledWith('id', 'consultation-db-01')
     })
 
+    it('rejects consultation messages that try to move the deal outside the marketplace', async () => {
+        vi.resetModules()
+        const insert = vi.fn()
+        const from = vi.fn(() => ({ insert }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveConsultationMessage } = await import('./storage')
+
+        await expect(saveConsultationMessage({
+            consultationId: 'consultation-db-01',
+            senderId: request.clientId,
+            body: '카톡으로 이야기해요. 010-1234-5678',
+        })).rejects.toThrow('연락처나 외부 결제 유도 문구가 포함되어 있어 메시지를 보낼 수 없습니다.')
+        expect(from).not.toHaveBeenCalled()
+    })
+
+    it('rejects workroom messages that try to move payment outside the marketplace', async () => {
+        vi.resetModules()
+        const insert = vi.fn()
+        const from = vi.fn(() => ({ insert }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveWorkMessage } = await import('./storage')
+
+        await expect(saveWorkMessage({
+            workId: work.id,
+            senderId: request.clientId,
+            body: '수수료 아까우니 계좌이체로 따로 거래해요.',
+        })).rejects.toThrow('연락처나 외부 결제 유도 문구가 포함되어 있어 메시지를 보낼 수 없습니다.')
+        expect(from).not.toHaveBeenCalled()
+    })
+
     it('marks expired user proposals from Supabase as expired', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({

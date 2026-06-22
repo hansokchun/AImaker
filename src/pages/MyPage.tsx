@@ -4,6 +4,7 @@ import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
 
@@ -512,6 +513,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         const body = consultationMessageBody.trim()
         if (!body) {
             setConsultationMessageError('메시지를 입력해주세요.')
+            return
+        }
+
+        const validation = validateMarketplaceMessage(body)
+        if (!validation.allowed) {
+            setConsultationMessageError(validation.message)
             return
         }
 

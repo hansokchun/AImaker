@@ -219,6 +219,27 @@ describe('Workroom', () => {
         expect(screen.getByText('수수료 제외 환불 예정 상태로 처리되었습니다.')).toBeInTheDocument()
     })
 
+    it('blocks off-platform payment attempts before sending a workroom message', async () => {
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await screen.findByText('Workroom message from client')
+        const input = screen.getByLabelText('작업방 메시지')
+        fireEvent.change(input, {
+            target: { value: '수수료 아까우니 계좌이체로 따로 거래해요.' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '메시지 보내기' }))
+
+        expect(await screen.findByText('연락처나 외부 결제 유도 문구가 포함되어 있어 메시지를 보낼 수 없습니다.')).toBeInTheDocument()
+        expect(saveWorkMessage).not.toHaveBeenCalled()
+        expect(input).toHaveValue('수수료 아까우니 계좌이체로 따로 거래해요.')
+    })
+
     it('shows participants and keeps deliverable submission expert-only', async () => {
         currentUserId = 'client-demo-01'
 

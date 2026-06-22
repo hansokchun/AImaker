@@ -1055,6 +1055,24 @@ describe('MyPage', () => {
         expect(input).toHaveValue('')
     })
 
+    it('blocks contact details before sending a consultation message', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const input = await screen.findByLabelText('상담 메시지 입력')
+        fireEvent.change(input, { target: { value: '카톡으로 이야기해요. 010-1234-5678' } })
+        fireEvent.click(screen.getByRole('button', { name: '메시지 보내기' }))
+
+        expect(await screen.findByText('연락처나 외부 결제 유도 문구가 포함되어 있어 메시지를 보낼 수 없습니다.')).toBeInTheDocument()
+        expect(saveConsultationMessage).not.toHaveBeenCalled()
+        expect(input).toHaveValue('카톡으로 이야기해요. 010-1234-5678')
+    })
+
     it('switches between consultation chats and workrooms without restoring a stale panel from the URL', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>

@@ -14,6 +14,7 @@ import {
     saveDeliverable,
     saveWorkMessage,
 } from '../lib/storage'
+import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -317,8 +318,15 @@ export default function Workroom() {
     }
 
     const handleSendMessage = async () => {
-        if (!messageBody.trim()) {
+        const body = messageBody.trim()
+        if (!body) {
             setMessageError('메시지를 입력해주세요.')
+            return
+        }
+
+        const validation = validateMarketplaceMessage(body)
+        if (!validation.allowed) {
+            setMessageError(validation.message)
             return
         }
 
@@ -328,7 +336,7 @@ export default function Workroom() {
             const message = await saveWorkMessage({
                 workId: work.id,
                 senderId: user?.id || work.clientId,
-                body: messageBody,
+                body,
             })
             setMessages((current) => [...current, message])
             setMessageBody('')
