@@ -153,7 +153,7 @@ describe('ExpertDetail', () => {
         expect(screen.getByText('등록일 2026. 6. 10.')).toBeInTheDocument()
         expect(screen.getByText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
         expect(screen.getByText('세금계산서 발행 가능')).toBeInTheDocument()
-        expect(getFavoriteProductCount).toHaveBeenCalledWith(supabaseProduct.id)
+        await waitFor(() => expect(getFavoriteProductCount).toHaveBeenCalledWith(supabaseProduct.id))
     })
 
     it('loads product details from the shared product storage', async () => {
@@ -171,13 +171,44 @@ describe('ExpertDetail', () => {
         expect(getUserDisplayProfile).toHaveBeenCalledWith(supabaseProduct.expertId)
         expect(getExpertReviews).toHaveBeenCalledWith(supabaseProduct.expertId)
         expect(screen.getByRole('heading', { name: '판매자 정보' })).toBeInTheDocument()
-        expect(screen.getByText('검증된 AI 전문가')).toBeInTheDocument()
-        expect(screen.getByText('평점 4.5 · 리뷰 2개')).toBeInTheDocument()
+        expect(screen.getAllByText('검증된 AI 전문가').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getAllByText('평점 4.5 · 리뷰 2개').length).toBeGreaterThanOrEqual(1)
         expect(screen.getByRole('link', { name: '판매자 프로필 보기' })).toHaveAttribute(
             'href',
             `/expert/${supabaseProduct.expertId}`,
         )
         expect(screen.getByRole('button', { name: '패키지로 의뢰하기' })).toBeInTheDocument()
+    })
+
+    it('renders product details as one ordered content flow with a package sidebar', async () => {
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+
+        const flow = screen.getByTestId('product-detail-flow')
+        const sidebar = screen.getByTestId('product-package-sidebar')
+        const header = screen.getByTestId('product-detail-header')
+        const gallery = screen.getByTestId('product-detail-gallery')
+        const description = screen.getByTestId('product-detail-description')
+        const seller = screen.getByTestId('product-detail-seller')
+        const reviews = screen.getByTestId('product-detail-reviews')
+
+        expect(flow).toContainElement(header)
+        expect(flow).toContainElement(gallery)
+        expect(flow).toContainElement(description)
+        expect(flow).toContainElement(seller)
+        expect(flow).toContainElement(reviews)
+        expect(sidebar.querySelector('.package-card')).toBeInTheDocument()
+        expect(header.compareDocumentPosition(gallery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(gallery.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(description.compareDocumentPosition(seller) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(seller.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('opens a public seller profile with products and received reviews through the expert id', async () => {

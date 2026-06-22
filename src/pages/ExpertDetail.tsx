@@ -257,8 +257,8 @@ export default function ExpertDetail() {
             )}
 
             <div className="detail-layout">
-                <div className="content-left">
-                    <section className="product-detail-hero">
+                <div className="content-left" data-testid="product-detail-flow">
+                    <section className="product-detail-hero" data-testid="product-detail-header">
                         <div className="product-detail-image">
                             {sampleImageUrl ? (
                                 <img src={sampleImageUrl} alt={`${product.title} 샘플 결과물`} />
@@ -277,6 +277,19 @@ export default function ExpertDetail() {
                             )}
                             <h1>{product.title}</h1>
                             <p>{product.summary}</p>
+                            <div className="product-detail-seller-inline">
+                                {sellerImageUrl ? (
+                                    <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
+                                ) : (
+                                    <div className="seller-avatar-fallback" aria-hidden="true">
+                                        {sellerName.slice(0, 1)}
+                                    </div>
+                                )}
+                                <div>
+                                    <Link to={`/expert/${product.expertId}`}>{sellerName}</Link>
+                                    <span>{reviewSummary}</span>
+                                </div>
+                            </div>
                             <div className="product-detail-meta">
                                 <span>시작가 {product.startingPrice.toLocaleString()}원</span>
                                 <span>작업 {product.deliveryDays}일</span>
@@ -284,44 +297,6 @@ export default function ExpertDetail() {
                                 {productCreatedAt && <span>등록일 {productCreatedAt}</span>}
                                 <span>{product.taxInvoiceAvailable ? '세금계산서 발행 가능' : '세금계산서 발행 불가'}</span>
                             </div>
-                        </div>
-                    </section>
-
-                    <section className="detail-section seller-info-section">
-                        <h2>
-                            <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
-                            판매자 정보
-                        </h2>
-                        <div className="seller-info-card">
-                            {sellerImageUrl ? (
-                                <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
-                            ) : (
-                                <div className="seller-avatar-fallback" aria-hidden="true">
-                                    {sellerName.slice(0, 1)}
-                                </div>
-                            )}
-                            <div>
-                                <strong>{sellerName}</strong>
-                                <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
-                                <p>{reviewSummary}</p>
-                                {sellerProfile?.contactAvailableTime && (
-                                    <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
-                                )}
-                                {sellerProfile?.averageResponseTime && (
-                                    <p>평균 응답 시간 {sellerProfile.averageResponseTime}</p>
-                                )}
-                                <Link to={`/expert/${product.expertId}`}>판매자 프로필 보기</Link>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="detail-section">
-                        <h2>
-                            <span className="material-symbols-outlined">description</span>
-                            상품 설명
-                        </h2>
-                        <div className="section-content">
-                            <p>{product.description}</p>
                         </div>
                     </section>
 
@@ -341,6 +316,16 @@ export default function ExpertDetail() {
                         </section>
                     )}
 
+                    <section className="detail-section" data-testid="product-detail-description">
+                        <h2>
+                            <span className="material-symbols-outlined">description</span>
+                            상품 설명
+                        </h2>
+                        <div className="section-content">
+                            <p>{product.description}</p>
+                        </div>
+                    </section>
+
                     {aiTools.length > 0 && (
                         <section className="detail-section">
                             <h2>
@@ -356,9 +341,60 @@ export default function ExpertDetail() {
                             </div>
                         </section>
                     )}
+
+                    <section className="detail-section seller-info-section" data-testid="product-detail-seller">
+                        <h2 className="seller-clean-heading">
+                            <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
+                            판매자 정보
+                        </h2>
+                        <div className="seller-info-card">
+                            {sellerImageUrl ? (
+                                <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
+                            ) : (
+                                <div className="seller-avatar-fallback" aria-hidden="true">
+                                    {sellerName.slice(0, 1)}
+                                </div>
+                            )}
+                            <div>
+                                <strong>{sellerName}</strong>
+                                <div className="seller-clean-details">
+                                    <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
+                                    <p>{reviewSummary}</p>
+                                    {sellerProfile?.contactAvailableTime && (
+                                        <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
+                                    )}
+                                    {sellerProfile?.averageResponseTime && (
+                                        <p>평균 응답 시간 {sellerProfile.averageResponseTime}</p>
+                                    )}
+                                    <Link to={`/expert/${product.expertId}`} className="seller-profile-clean-link">
+                                        판매자 프로필 보기
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="detail-section seller-review-section" data-testid="product-detail-reviews">
+                        <h2>
+                            <span className="material-symbols-outlined" aria-hidden="true">star</span>
+                            諛쏆? 由щ럭
+                        </h2>
+                        {expertReviews.length > 0 ? (
+                            <div className="seller-review-list">
+                                {expertReviews.map((review) => (
+                                    <article key={review.id} className="seller-review-card">
+                                        <strong>?됱젏 {review.rating}.0</strong>
+                                        <p>{review.content}</p>
+                                    </article>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="seller-empty-copy">?꾩쭅 諛쏆? 由щ럭媛 ?놁뒿?덈떎.</p>
+                        )}
+                    </section>
                 </div>
 
-                <div className="content-right">
+                <div className="content-right" data-testid="product-package-sidebar">
                     <PackageCard
                         packages={packages}
                         productId={product.id}

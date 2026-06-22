@@ -1,8 +1,13 @@
 .detail-layout {
     display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 3rem;
-    padding: 4rem 0;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 4rem;
+    align-items: start;
+    padding: 3rem 0 5rem;
+}
+
+.content-left {
+    max-width: 780px;
 }
 .expert-header,
 .product-detail-hero {
@@ -48,9 +53,17 @@
 }
 
 .product-detail-hero {
-    align-items: stretch;
-    overflow: hidden;
-    padding: 0;
+    align-items: flex-start;
+    overflow: visible;
+    padding: 0 0 2rem;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+}
+
+.product-detail-hero .product-detail-image {
+    display: none;
 }
 
 .product-detail-image {
@@ -78,9 +91,8 @@
 .product-detail-copy {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: 1rem;
-    padding: 3rem;
+    padding: 0;
 }
 
 .product-detail-category {
@@ -96,8 +108,8 @@
 .product-detail-copy h1 {
     margin: 0;
     color: var(--text-primary);
-    font-size: 2.15rem;
-    line-height: 1.35;
+    font-size: clamp(2rem, 4vw, 3.35rem);
+    line-height: 1.08;
     letter-spacing: 0;
 }
 
@@ -129,14 +141,63 @@
     color: var(--primary);
 }
 
+.product-detail-seller-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.product-detail-seller-inline img,
+.product-detail-seller-inline .seller-avatar-fallback {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
+
+.product-detail-seller-inline a,
+.product-detail-seller-inline span {
+    display: block;
+}
+
+.product-detail-seller-inline a {
+    color: var(--text-primary);
+    font-weight: 900;
+}
+
+.product-detail-seller-inline span {
+    margin-top: 0.15rem;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.detail-layout .detail-section {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    margin-top: 0;
+    padding: 2.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-layout .detail-section h2 {
+    margin-bottom: 1.25rem;
+}
+
 .seller-info-section {
-    padding: 2rem;
+    padding: 2rem 0;
 }
 
 .seller-info-card {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
 }
 
 .seller-info-card img,
@@ -168,6 +229,15 @@
 .seller-info-card a {
     color: var(--primary);
     font-weight: 800;
+}
+
+.seller-clean-details p {
+    margin: 0 0 0.5rem;
+}
+
+.seller-profile-clean-link {
+    display: inline-flex;
+    margin-top: 0.2rem;
 }
 
 .seller-profile-page {
@@ -296,11 +366,11 @@
 
 .portfolio-section {
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .portfolio-section h2 {
-    padding: 3rem 3rem 0;
+    padding: 0;
 }
 
 .sample-result-panel {
@@ -316,9 +386,11 @@
 
 .detail-gallery-item img {
     width: 100%;
-    max-height: 560px;
+    max-height: none;
     object-fit: cover;
-    border-radius: 0;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    display: block;
 }
 
 .sample-result-panel a {
