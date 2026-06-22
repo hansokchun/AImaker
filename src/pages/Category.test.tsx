@@ -135,6 +135,45 @@ describe('Category', () => {
     expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
   })
 
+  it('searches product summaries, descriptions, experts, and tools as well as titles', async () => {
+    const products = [
+      {
+        ...mockExpertProducts[0],
+        id: 'search-description-product',
+        title: '제목에는 없는 상품',
+        summary: '브랜드 릴스와 랜딩 이미지를 함께 구성합니다',
+        description: '스마트스토어 상세페이지와 전환용 배너를 제작합니다',
+        expertName: '전환디자인랩',
+        aiTools: ['Midjourney', 'Runway'],
+      },
+      {
+        ...mockExpertProducts[1],
+        id: 'search-other-product',
+        title: '다른 상품',
+        summary: '다른 요약',
+        description: '다른 설명',
+        expertName: '다른 전문가',
+        aiTools: ['ChatGPT'],
+      },
+    ]
+    getExpertProducts.mockResolvedValue(products)
+
+    render(
+      <MemoryRouter initialEntries={['/category?q=상세페이지']}>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '다른 상품' })).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: '전환디자인랩' } })
+    expect(screen.getByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: 'Runway' } })
+    expect(screen.getByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
+  })
+
   it('deselects a category when the selected category is clicked again', async () => {
     render(
       <MemoryRouter>

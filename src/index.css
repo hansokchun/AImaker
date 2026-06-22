@@ -603,15 +603,16 @@ section { padding: 8rem 0; }
 
 .home-page-minimal {
     background:
-        radial-gradient(circle at 50% 5%, rgba(37, 99, 235, 0.14), transparent 28rem),
-        radial-gradient(circle at 16% 24rem, rgba(14, 165, 233, 0.14), transparent 24rem),
-        linear-gradient(180deg, #f7faff 0%, #ffffff 46rem);
+        radial-gradient(circle at 50% 8%, rgba(37, 99, 235, 0.18), transparent 30rem),
+        radial-gradient(circle at 16% 28rem, rgba(14, 165, 233, 0.18), transparent 25rem),
+        radial-gradient(circle at 78% 20rem, rgba(96, 165, 250, 0.12), transparent 22rem),
+        linear-gradient(180deg, #f7faff 0%, #ffffff 52rem);
 }
 .home-minimal-hero {
-    min-height: 520px;
+    min-height: 560px;
     display: flex;
     align-items: center;
-    padding: 9rem 0 7rem;
+    padding: 8.5rem 0 5.5rem;
     text-align: center;
 }
 .home-minimal-hero-inner {
@@ -692,10 +693,67 @@ section { padding: 8rem 0; }
 .home-minimal-search-box button:hover {
     background: #004ac6;
 }
+.home-minimal-popular {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin: 1.25rem auto 1.5rem;
+    color: #64748b;
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+.home-minimal-popular > div {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.home-minimal-popular a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #334155;
+    font-size: 0.9rem;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+    transition: var(--transition);
+}
+.home-minimal-popular a:hover {
+    border-color: rgba(37, 99, 235, 0.24);
+    background: #ffffff;
+    color: #004ac6;
+}
+.home-minimal-trust {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    max-width: 820px;
+    margin: 0 auto;
+}
+.home-minimal-trust p {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 1rem;
+    border: 1px solid rgba(191, 219, 254, 0.7);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.62);
+    color: #475569;
+    font-size: 0.92rem;
+    font-weight: 750;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
 .home-minimal-categories {
-    margin-top: -2rem;
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+    margin-top: -1.25rem;
+    padding-top: 3rem;
+    padding-bottom: 3.5rem;
 }
 .home-minimal-category-grid {
     display: grid;
@@ -703,7 +761,7 @@ section { padding: 8rem 0; }
     gap: 1rem;
 }
 .home-minimal-category-card {
-    min-height: 380px;
+    min-height: 340px;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -774,11 +832,15 @@ section { padding: 8rem 0; }
     line-height: 1.3;
 }
 .home-minimal-category-card p {
-    flex: 1;
-    margin-bottom: 2rem;
-    color: #434655;
-    font-size: 1rem;
+    position: relative;
+    z-index: 2;
+    margin: 0.75rem 0 0;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.96rem;
+    font-weight: 750;
     line-height: 1.5;
+    text-align: center;
+    text-shadow: 0 2px 14px rgba(15, 23, 42, 0.4);
 }
 .home-minimal-category-link {
     display: inline-flex;
@@ -789,7 +851,7 @@ section { padding: 8rem 0; }
     font-weight: 700;
 }
 .home-minimal-products {
-    padding: 5rem 0;
+    padding: 4rem 0 5rem;
     background: #ffffff;
 }
 .home-minimal-products-header {
@@ -1265,6 +1327,28 @@ section { padding: 8rem 0; }
         grid-column: 1 / -1;
         width: 100%;
     }
+    .home-minimal-popular {
+        align-items: flex-start;
+        justify-content: flex-start;
+        max-width: 100%;
+        padding: 0 0.25rem;
+    }
+    .home-minimal-popular > div {
+        justify-content: flex-start;
+    }
+    .home-minimal-popular a {
+        min-height: 32px;
+        font-size: 0.84rem;
+    }
+    .home-minimal-trust {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .home-minimal-trust p {
+        justify-content: center;
+        border-radius: 1rem;
+        text-align: center;
+    }
     .home-minimal-products {
         padding: 4rem 0;
     }
@@ -1276,7 +1360,7 @@ section { padding: 8rem 0; }
         grid-template-columns: 1fr;
     }
     .home-minimal-category-card {
-        min-height: auto;
+        min-height: 220px;
         padding: 2rem;
     }
     .home-minimal-process-list {

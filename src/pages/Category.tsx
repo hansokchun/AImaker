@@ -67,11 +67,20 @@ export default function Category() {
 
     const filteredProducts = products.filter((product) => {
         const normalizedKeyword = searchKeyword.trim().toLowerCase()
+        const searchableText = [
+            product.title,
+            product.summary,
+            product.description,
+            product.expertName,
+            ...product.aiTools,
+        ]
+            .join(' ')
+            .toLowerCase()
         const matchesCategory =
             allCategoriesSelected ||
             selectedCategories.length === 0 ||
             selectedCategories.includes(product.category)
-        const matchesKeyword = !normalizedKeyword || product.title.toLowerCase().includes(normalizedKeyword)
+        const matchesKeyword = !normalizedKeyword || searchableText.includes(normalizedKeyword)
         const matchesPrice = product.startingPrice <= maxPrice
         const matchesTool = !selectedTool || product.aiTools.includes(selectedTool)
 

@@ -10,18 +10,29 @@ const categoryCards = [
     {
         id: 'ai-video-shortform',
         title: 'AI 영상',
+        description: '숏폼, 광고, 유튜브 콘텐츠 제작',
         imageClassName: 'home-minimal-category-card--video',
     },
     {
         id: 'ai-image-character',
         title: 'AI 이미지',
+        description: '썸네일, 상세페이지, 캐릭터 이미지',
         imageClassName: 'home-minimal-category-card--image',
     },
     {
         id: 'ai-development-automation',
         title: 'AI 개발',
+        description: '자동화, 챗봇, 업무용 웹 도구',
         imageClassName: 'home-minimal-category-card--development',
     },
+];
+
+const popularSearches = [
+    'AI 숏폼 영상',
+    '상세페이지 이미지',
+    '업무 자동화',
+    'AI 프로필',
+    '쇼핑몰 썸네일',
 ];
 
 const processSteps = [
@@ -120,6 +131,20 @@ export default function Home() {
                             <button type="submit">검색</button>
                         </div>
                     </form>
+                    <div className="home-minimal-popular" aria-label="인기 검색어">
+                        <span>인기 검색어</span>
+                        <div>
+                            {popularSearches.map((keyword) => (
+                                <Link key={keyword} to={`${ROUTES.CATEGORY}?q=${encodeURIComponent(keyword)}`}>
+                                    {keyword}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="home-minimal-trust">
+                        <p>작업 전 상담하고, 제안서를 확인한 뒤 안전하게 진행하세요.</p>
+                        <p>요구사항 전달부터 결제, 작업방까지 한 곳에서 관리할 수 있습니다.</p>
+                    </div>
                 </div>
             </section>
 
@@ -132,6 +157,7 @@ export default function Home() {
                             key={category.title}
                         >
                             <h2>{category.title}</h2>
+                            <p>{category.description}</p>
                         </Link>
                     ))}
                 </div>
