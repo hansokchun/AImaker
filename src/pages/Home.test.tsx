@@ -49,7 +49,7 @@ describe('Home', () => {
     expect(
       screen.queryByText('샘플과 가격을 보고 AI 작업자를 찾아 의뢰할 수 있어요. 전문가의 손길로 AI의 잠재력을 비즈니스에 연결하세요.'),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'AI 전문가 찾기' })).toHaveAttribute('href', '/category')
+    expect(screen.queryByRole('link', { name: 'AI 전문가 찾기' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '상품 둘러보기' })).not.toBeInTheDocument()
 
     expect(screen.getByRole('link', { name: 'AI 영상' })).toHaveAttribute('href', '/category?category=ai-video-shortform')
@@ -165,7 +165,7 @@ describe('Home', () => {
     expect(image).not.toBeInTheDocument()
   })
 
-  it('shows a direct my work shortcut in the home hero after login', () => {
+  it('keeps the home hero focused without account shortcuts after login', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'user-demo-01', user_metadata: {} },
     })
@@ -176,6 +176,7 @@ describe('Home', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('link', { name: '내 작업 보기' })).toHaveAttribute('href', '/my-work')
+    expect(screen.queryByRole('link', { name: 'AI 전문가 찾기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '내 작업 보기' })).not.toBeInTheDocument()
   })
 })

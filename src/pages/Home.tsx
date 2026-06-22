@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { useAuth } from '../contexts/AuthContext';
 import { mockExpertProducts } from '../data/mockData';
 import { getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
@@ -62,7 +61,6 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
 }
 
 export default function Home() {
-    const { user } = useAuth();
     const navigate = useNavigate();
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -122,16 +120,6 @@ export default function Home() {
                             <button type="submit">검색</button>
                         </div>
                     </form>
-                    <div className="home-minimal-actions">
-                        <Link to={ROUTES.CATEGORY} className="home-minimal-primary">
-                            AI 전문가 찾기
-                        </Link>
-                        {user && (
-                            <Link to={ROUTES.WORK_DASHBOARD} className="home-minimal-work">
-                                내 작업 보기
-                            </Link>
-                        )}
-                    </div>
                 </div>
             </section>
 
