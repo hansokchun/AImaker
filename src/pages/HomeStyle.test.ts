@@ -21,12 +21,14 @@ describe('home hero visual styles', () => {
     expect(getRule('.home-minimal-process-list')).toContain('margin: 0 auto')
   })
 
-  it('uses a curved staggered process path instead of a straight line', () => {
+  it('uses an S-shaped process path that matches the minimal site style', () => {
     expect(getRule('.home-minimal-process-list')).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))')
-    expect(getRule('.home-minimal-process-list::before')).toContain('border-top: 2px solid #c3c6d7')
-    expect(getRule('.home-minimal-process-list::before')).toContain('border-radius: 50%')
-    expect(getRule('.home-minimal-process-item:nth-of-type(odd)')).toContain('transform: translateY(-18px)')
-    expect(getRule('.home-minimal-process-item:nth-of-type(even)')).toContain('transform: translateY(26px)')
+    expect(getRule('.home-minimal-process-list::before')).toContain('linear-gradient(90deg, transparent, #004ac6, #7dd3fc, transparent)')
+    expect(getRule('.home-minimal-process-list::before')).toContain("url(\"data:image/svg+xml")
+    expect(getRule('.home-minimal-process-list::before')).toContain('stroke-width=\'5\'')
+    expect(getRule('.home-minimal-process-list::after')).toContain('filter: blur(18px)')
+    expect(getRule('.home-minimal-process-item:nth-of-type(odd)')).toContain('transform: translateY(-34px)')
+    expect(getRule('.home-minimal-process-item:nth-of-type(even)')).toContain('transform: translateY(34px)')
     expect(getRule('.home-minimal-process-line')).toContain('display: none')
   })
 })
