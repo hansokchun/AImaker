@@ -921,19 +921,21 @@ section { padding: 8rem 0; }
     text-transform: uppercase;
 }
 .home-minimal-process-list {
+    max-width: 980px;
+    margin: 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 3rem;
+    gap: 1.5rem;
 }
 .home-minimal-process-item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 3rem;
+    gap: 1.25rem;
 }
 .home-minimal-process-item > p {
-    width: 9rem;
+    width: 7rem;
     color: #0b1c30;
     font-size: 0.95rem;
     font-weight: 800;
@@ -952,7 +954,7 @@ section { padding: 8rem 0; }
     font-size: 2rem;
 }
 .home-minimal-process-line {
-    width: 3rem;
+    width: 2rem;
     height: 1px;
     background: #c3c6d7;
 }

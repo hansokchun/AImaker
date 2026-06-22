@@ -15,4 +15,10 @@ describe('home hero visual styles', () => {
     expect(getRule('.home-minimal-hero')).not.toContain('linear-gradient(180deg')
     expect(getRule('.home-minimal-categories')).toContain('margin-top: -2rem')
   })
+
+  it('keeps the How it Works process row at a balanced readable width', () => {
+    expect(getRule('.home-minimal-process-list')).toContain('max-width: 980px')
+    expect(getRule('.home-minimal-process-list')).toContain('margin: 0 auto')
+    expect(getRule('.home-minimal-process-list')).toContain('gap: 1.5rem')
+  })
 })
