@@ -17,8 +17,16 @@ describe('home hero visual styles', () => {
   })
 
   it('keeps the How it Works process row at a balanced readable width', () => {
-    expect(getRule('.home-minimal-process-list')).toContain('max-width: 980px')
+    expect(getRule('.home-minimal-process-list')).toContain('max-width: var(--container-max)')
     expect(getRule('.home-minimal-process-list')).toContain('margin: 0 auto')
-    expect(getRule('.home-minimal-process-list')).toContain('gap: 1.5rem')
+  })
+
+  it('uses a curved staggered process path instead of a straight line', () => {
+    expect(getRule('.home-minimal-process-list')).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))')
+    expect(getRule('.home-minimal-process-list::before')).toContain('border-top: 2px solid #c3c6d7')
+    expect(getRule('.home-minimal-process-list::before')).toContain('border-radius: 50%')
+    expect(getRule('.home-minimal-process-item:nth-of-type(odd)')).toContain('transform: translateY(-18px)')
+    expect(getRule('.home-minimal-process-item:nth-of-type(even)')).toContain('transform: translateY(26px)')
+    expect(getRule('.home-minimal-process-line')).toContain('display: none')
   })
 })
