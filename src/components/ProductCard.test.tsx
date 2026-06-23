@@ -58,6 +58,27 @@ describe('ProductCard', () => {
     expect(screen.queryByRole('link', { name: '상품 구매하기' })).not.toBeInTheDocument()
   })
 
+  it('presents marketplace listing details close to a Fiverr card', () => {
+    const product = {
+      ...mockExpertProducts[0],
+      taxInvoiceAvailable: true,
+    }
+
+    render(
+      <MemoryRouter>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('AI 영상/숏폼')).toBeInTheDocument()
+    expect(screen.getByText(product.expertName.slice(0, 1))).toBeInTheDocument()
+    expect(screen.getByText('평점 신규')).toBeInTheDocument()
+    expect(screen.getByText(`시작가 ${currencyForTest(product.startingPrice)}원`)).toBeInTheDocument()
+    expect(screen.getByText(`${product.deliveryDays}일 납기`)).toBeInTheDocument()
+    expect(screen.getByText(`수정 ${product.revisionCount}회`)).toBeInTheDocument()
+    expect(screen.getByText('세금계산서 가능')).toBeInTheDocument()
+  })
+
   it('toggles a product as a favorite without opening the detail page', async () => {
     const product = mockExpertProducts[0]
 
@@ -89,3 +110,5 @@ describe('ProductCard', () => {
     expect(screen.getByText('이미지 준비 중')).toBeInTheDocument()
   })
 })
+
+const currencyForTest = (value: number) => new Intl.NumberFormat('ko-KR').format(value)

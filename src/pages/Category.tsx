@@ -7,6 +7,10 @@ import { getExpertProducts } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct } from '../types'
 import './Category.css'
 
+type SortOption = '추천순' | '가격 낮은순' | '가격 높은순' | '빠른 납기순'
+
+const sortOptions: SortOption[] = ['추천순', '가격 낮은순', '가격 높은순', '빠른 납기순']
+
 export default function Category() {
     const [searchParams] = useSearchParams()
     const initialCategory = searchParams.get('category') as AiCategoryId | null
@@ -15,13 +19,11 @@ export default function Category() {
         ? [initialCategory]
         : initialCategoryIds
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
-    const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(
-        initialSelectedCategories,
-    )
+    const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(initialSelectedCategories)
     const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '')
-    const [selectedTool, setSelectedTool] = useState<string>('')
-    const [sortBy, setSortBy] = useState<string>('추천순')
-    const [maxPrice, setMaxPrice] = useState<number>(1000000)
+    const [selectedTool, setSelectedTool] = useState('')
+    const [sortBy, setSortBy] = useState<SortOption>('추천순')
+    const [maxPrice, setMaxPrice] = useState(1000000)
 
     const tools = useMemo(
         () => Array.from(new Set(products.flatMap((product) => product.aiTools))).sort(),
@@ -64,9 +66,9 @@ export default function Category() {
     }
 
     const allCategoriesSelected = selectedCategories.length === AI_CATEGORIES.length
+    const normalizedKeyword = searchKeyword.trim().toLowerCase()
 
     const filteredProducts = products.filter((product) => {
-        const normalizedKeyword = searchKeyword.trim().toLowerCase()
         const searchableText = [
             product.title,
             product.summary,
@@ -102,20 +104,43 @@ export default function Category() {
     })
 
     const maxPriceLabel =
-        maxPrice >= 1000000 ? '전체' : `${(maxPrice / 10000).toLocaleString()}만원 이하`
+        maxPrice >= 1000000 ? '전체 가격' : `${(maxPrice / 10000).toLocaleString()}만원 이하`
+    const selectedCategorySummary = allCategoriesSelected || selectedCategories.length === 0
+        ? '전체 카테고리'
+        : AI_CATEGORIES.filter((category) => selectedCategories.includes(category.id)).map((category) => category.name).join(', ')
 
     return (
         <>
             <div className="category-hero">
                 <div className="container">
+                    <span>AIConnect Marketplace</span>
                     <h1>AI 작업 찾기</h1>
-                    <p>샘플 결과물, 시작 가격, 사용 AI 도구를 보고 원하는 작업을 선택하세요.</p>
+                    <p>Fiverr처럼 샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 상품을 바로 확인하세요.</p>
                 </div>
             </div>
 
             <main className="container">
+                <form className="category-search category-search--top" role="search" onSubmit={(event) => event.preventDefault()}>
+                    <label htmlFor="category-product-search">상품 검색</label>
+                    <div className="category-search-box">
+                        <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                        <input
+                            id="category-product-search"
+                            type="search"
+                            value={searchKeyword}
+                            onChange={(event) => setSearchKeyword(event.target.value)}
+                            placeholder="어떤 AI 작업이 필요하신가요?"
+                        />
+                    </div>
+                </form>
+
                 <div className="category-page-layout">
-                    <aside className="filter-sidebar">
+                    <aside className="filter-sidebar" aria-label="상품 필터">
+                        <div className="filter-sidebar-head">
+                            <strong>필터</strong>
+                            <span>{selectedCategorySummary}</span>
+                        </div>
+
                         <div className="filter-group">
                             <h4>카테고리</h4>
                             {AI_CATEGORIES.map((category) => (
@@ -143,7 +168,7 @@ export default function Category() {
                                 max="1000000"
                                 step="10000"
                                 value={maxPrice}
-                                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                                onChange={(event) => setMaxPrice(Number(event.target.value))}
                             />
                             <div className="price-current">{maxPriceLabel}</div>
                             <div className="price-range-caption">
@@ -171,30 +196,20 @@ export default function Category() {
                     </aside>
 
                     <div className="product-list-main">
-                        <form className="category-search" role="search" onSubmit={(event) => event.preventDefault()}>
-                            <label htmlFor="category-product-search">상품 검색</label>
-                            <div className="category-search-box">
-                                <span className="material-symbols-outlined" aria-hidden="true">search</span>
-                                <input
-                                    id="category-product-search"
-                                    type="search"
-                                    value={searchKeyword}
-                                    onChange={(event) => setSearchKeyword(event.target.value)}
-                                    placeholder="상품 이름으로 검색"
-                                />
-                            </div>
-                        </form>
                         <div className="product-list-header">
-                            <span>총 {sortedProducts.length}개의 AI 작업</span>
+                            <div>
+                                <strong>총 {sortedProducts.length}개의 AI 작업</strong>
+                                <span>{normalizedKeyword ? `"${searchKeyword.trim()}" 검색 결과` : selectedCategorySummary}</span>
+                            </div>
                             <select
+                                aria-label="상품 정렬"
                                 className="sort-select"
                                 value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
+                                onChange={(event) => setSortBy(event.target.value as SortOption)}
                             >
-                                <option value="추천순">추천순</option>
-                                <option value="가격 낮은순">가격 낮은순</option>
-                                <option value="가격 높은순">가격 높은순</option>
-                                <option value="빠른 납기순">빠른 납기순</option>
+                                {sortOptions.map((option) => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -206,8 +221,8 @@ export default function Category() {
                             </div>
                         ) : (
                             <section className="empty-products">
-                                <h2>아직 등록된 AI 작업이 없습니다.</h2>
-                                <p>조건을 조금 넓히거나 전문가가 새 상품을 등록한 뒤 다시 확인해보세요.</p>
+                                <h2>조건에 맞는 AI 작업이 없습니다.</h2>
+                                <p>검색어를 줄이거나 카테고리, 예산 조건을 넓혀 다시 확인해보세요.</p>
                             </section>
                         )}
                     </div>
