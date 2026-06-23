@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
+import { getPackageOptionRows } from '../lib/packageOptions'
 import type { ExpertProduct, PackageTier, ProductPackage } from '../types'
 
 type ProductPackages = ExpertProduct['packages']
@@ -24,17 +25,6 @@ const currency = new Intl.NumberFormat('ko-KR')
 
 function getPackageTabs(packages: ProductPackages) {
     return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages?.[tab]))
-}
-
-function getAllIncludedFeatures(packages: ProductPackages) {
-    const features = new Set<string>()
-    ;(Object.keys(packageLabels) as PackageTier[]).forEach((tier) => {
-        packages?.[tier]?.included?.forEach((feature) => {
-            if (feature.trim()) features.add(feature.trim())
-        })
-    })
-
-    return Array.from(features)
 }
 
 export default function PackageCard({
@@ -65,8 +55,7 @@ export default function PackageCard({
     const included = Array.isArray(renderPackage.included) && renderPackage.included.length > 0
         ? renderPackage.included
         : fallbackPackage.included
-    const upgradeFeatures = getAllIncludedFeatures(safePackages)
-    const visibleFeatures = upgradeFeatures.length > 0 ? upgradeFeatures : included
+    const optionRows = getPackageOptionRows(safePackages)
     const includedSet = new Set(included)
     const goToLogin = () => {
         window.alert('로그인 후 이용할 수 있습니다.')
@@ -112,15 +101,24 @@ export default function PackageCard({
                 </div>
 
                 <ul className="package-list package-upgrade-list" data-testid="package-upgrade-feature-list">
-                    {visibleFeatures.map((feature) => {
-                        const isAvailable = includedSet.has(feature)
+                    {(optionRows.length > 0 ? optionRows : included.map((feature) => ({
+                        label: feature,
+                        values: { standard: '포함', deluxe: '포함', premium: '포함' },
+                        available: {
+                            standard: includedSet.has(feature),
+                            deluxe: includedSet.has(feature),
+                            premium: includedSet.has(feature),
+                        },
+                    }))).map((row) => {
+                        const isAvailable = row.available[activeTab]
 
                         return (
-                            <li key={feature} className={isAvailable ? 'available' : 'unavailable'}>
+                            <li key={row.label} className={isAvailable ? 'available' : 'unavailable'}>
                                 <span className="material-symbols-outlined package-feature-icon" aria-hidden="true">
                                     {isAvailable ? 'check' : 'remove'}
                                 </span>
-                                <span className={isAvailable ? 'available' : 'unavailable'}>{feature}</span>
+                                <span className={`package-option-label ${isAvailable ? 'available' : 'unavailable'}`}>{row.label}</span>
+                                <span className={`package-option-value ${isAvailable ? 'available' : 'unavailable'}`}>{row.values[activeTab]}</span>
                             </li>
                         )
                     })}

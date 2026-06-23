@@ -4,6 +4,7 @@ import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { deleteExpertProduct, getExpertProducts, saveExpertProduct } from '../lib/storage'
+import { attachOptionValuesToPackage, getPackageOptionRows as getPackageComparisonRows } from '../lib/packageOptions'
 import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '../types'
 
 const currency = new Intl.NumberFormat('ko-KR')
@@ -30,7 +31,9 @@ const productPackageToFormState = (productPackage?: ProductPackage | null): Pack
     price: productPackage?.price ? String(productPackage.price) : '',
     deliveryDays: productPackage?.deliveryDays ? String(productPackage.deliveryDays) : '',
     revisionCount: productPackage?.revisionCount !== undefined ? String(productPackage.revisionCount) : '',
-    included: productPackage?.included?.join('\n') || '',
+    included: productPackage?.optionValues
+        ? Object.entries(productPackage.optionValues).map(([label, value]) => `${label}: ${value}`).join('\n')
+        : productPackage?.included?.join('\n') || '',
 })
 
 const packageNames: Record<PackageTier, ProductPackage['name']> = {
@@ -160,13 +163,13 @@ export default function ProductRegister() {
             throw new Error(`${packageNames[tier]} 가격 정보를 모두 입력해 주세요.`)
         }
 
-        return {
+        return attachOptionValuesToPackage({
             name: packageNames[tier],
             price,
             deliveryDays,
             revisionCount,
             included,
-        }
+        })
     }
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -502,11 +505,11 @@ function PackageOptionPreview({ packages }: { packages: Record<PackageTier, Pack
                     <strong role="columnheader">Premium</strong>
                 </div>
                 {rows.length > 0 ? rows.map((row) => (
-                    <div key={row.option} style={packagePreviewRowStyle} role="row">
-                        <span role="cell" style={{ fontWeight: 800 }}>{row.option}</span>
-                        <PackageOptionCell included={row.standard} />
-                        <PackageOptionCell included={row.deluxe} />
-                        <PackageOptionCell included={row.premium} />
+                    <div key={row.label} style={packagePreviewRowStyle} role="row">
+                        <span role="cell" style={{ fontWeight: 800 }}>{row.label}</span>
+                        <PackageOptionCell included={row.available.standard} value={row.values.standard} />
+                        <PackageOptionCell included={row.available.deluxe} value={row.values.deluxe} />
+                        <PackageOptionCell included={row.available.premium} value={row.values.premium} />
                     </div>
                 )) : (
                     <div style={packagePreviewEmptyStyle}>
@@ -518,13 +521,13 @@ function PackageOptionPreview({ packages }: { packages: Record<PackageTier, Pack
     )
 }
 
-function PackageOptionCell({ included }: { included: boolean }) {
+function PackageOptionCell({ included, value }: { included: boolean; value: string }) {
     return (
         <span role="cell" style={included ? packagePreviewIncludedCellStyle : packagePreviewExcludedCellStyle}>
             <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '1rem' }}>
                 {included ? 'check' : 'remove'}
             </span>
-            {included ? '포함' : '미포함'}
+            {value}
         </span>
     )
 }
@@ -553,25 +556,21 @@ const parseCommaList = (value: string) =>
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
 
-const getPackageOptionRows = (packages: Record<PackageTier, PackageFormState>) => {
-    const includedByTier = {
-        standard: parseLineList(packages.standard.included),
-        deluxe: parseLineList(packages.deluxe.included),
-        premium: parseLineList(packages.premium.included),
-    }
-    const allOptions = Array.from(new Set([
-        ...includedByTier.standard,
-        ...includedByTier.deluxe,
-        ...includedByTier.premium,
-    ]))
+const getPackageOptionRows = (packages: Record<PackageTier, PackageFormState>) =>
+    getPackageComparisonRows({
+        standard: createPreviewPackage('standard', packages.standard),
+        deluxe: createPreviewPackage('deluxe', packages.deluxe),
+        premium: createPreviewPackage('premium', packages.premium),
+    })
 
-    return allOptions.map((option) => ({
-        option,
-        standard: includedByTier.standard.includes(option),
-        deluxe: includedByTier.deluxe.includes(option),
-        premium: includedByTier.premium.includes(option),
-    }))
-}
+const createPreviewPackage = (tier: PackageTier, state: PackageFormState): ProductPackage =>
+    attachOptionValuesToPackage({
+        name: packageNames[tier],
+        price: Number(state.price) || 1,
+        deliveryDays: Number(state.deliveryDays) || 1,
+        revisionCount: Number(state.revisionCount) || 0,
+        included: parseLineList(state.included),
+    })
 
 const isVideoMediaSource = (src: string) =>
     /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)

@@ -6,6 +6,7 @@ import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { createConsultation, getExpertProducts, getExpertReviews, getStoredProfile, getUserDisplayProfile } from '../lib/storage'
+import { getPackageOptionRows } from '../lib/packageOptions'
 import type { ExpertProduct, ExpertProfile, ProductPackage, Review } from '../types'
 import './ExpertDetail.css'
 
@@ -66,17 +67,6 @@ const isVideoMedia = (src: string) =>
     /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
 
 const getReviewClientName = (clientId: string) => `의뢰자 ${clientId}`
-
-const getPackageComparisonFeatures = (packageEntries: readonly (readonly ['standard' | 'deluxe' | 'premium', ProductPackage])[]) => {
-    const features = new Set<string>()
-    packageEntries.forEach(([, packageInfo]) => {
-        packageInfo.included.forEach((feature) => {
-            if (feature.trim()) features.add(feature.trim())
-        })
-    })
-
-    return Array.from(features)
-}
 
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
@@ -312,7 +302,7 @@ export default function ExpertDetail() {
         deluxe: 'Deluxe',
         premium: 'Premium',
     }
-    const packageComparisonFeatures = getPackageComparisonFeatures(packageEntries)
+    const packageComparisonFeatures = getPackageOptionRows(packages)
     const sellerPortfolioProducts = sellerProducts
         .filter((sellerProduct) => sellerProduct.id !== product.id)
         .slice(0, 4)
@@ -493,14 +483,15 @@ export default function ExpertDetail() {
                                     <div role="cell">
                                         <ul className="price-comparison-feature-list">
                                             {packageComparisonFeatures.map((feature) => {
-                                                const included = packageInfo.included.includes(feature)
+                                                const included = feature.available[tier]
 
                                                 return (
-                                                    <li key={`${tier}-${feature}`} className={included ? 'available' : 'unavailable'}>
+                                                    <li key={`${tier}-${feature.label}`} className={included ? 'available' : 'unavailable'}>
                                                         <span className="material-symbols-outlined" aria-hidden="true">
                                                             {included ? 'check' : 'remove'}
                                                         </span>
-                                                        <span>{feature}</span>
+                                                        <span>{feature.label}</span>
+                                                        <small>{feature.values[tier]}</small>
                                                     </li>
                                                 )
                                             })}

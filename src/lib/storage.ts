@@ -136,6 +136,7 @@ const normalizeDbProductPackage = (tier: PackageTier, packageData: any, item: an
         price: Number(packageData.price) || Number(item.starting_price) || 0,
         deliveryDays: Number(packageData.deliveryDays ?? packageData.delivery_days) || Number(item.delivery_days) || 1,
         revisionCount: Number(packageData.revisionCount ?? packageData.revision_count) || Number(item.revision_count) || 1,
+        optionValues: packageData.optionValues || packageData.option_values || undefined,
         included: Array.isArray(included) && included.length > 0
             ? included
             : [item.summary || item.title || '상담 후 작업 범위를 확정합니다.'],

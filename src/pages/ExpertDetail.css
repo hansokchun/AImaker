@@ -667,10 +667,16 @@
 
 .price-comparison-feature-list li {
     display: grid;
-    grid-template-columns: 1rem 1fr;
+    grid-template-columns: 1rem minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.4rem;
     font-weight: 700;
+}
+
+.price-comparison-feature-list small {
+    font-size: 0.82rem;
+    font-weight: 900;
+    white-space: nowrap;
 }
 
 .price-comparison-feature-list .material-symbols-outlined {
@@ -791,7 +797,7 @@
 }
 .package-upgrade-list li {
     display: grid;
-    grid-template-columns: 1.15rem 1fr;
+    grid-template-columns: 1.15rem minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.55rem;
     margin-bottom: 0;
@@ -808,6 +814,11 @@
 .package-feature-icon {
     font-size: 1.05rem;
     color: currentColor;
+}
+.package-option-value {
+    justify-self: end;
+    font-weight: 900;
+    white-space: nowrap;
 }
 .package-request-note { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem; }
 .package-primary-cta { display: block; width: 100%; padding: 1.25rem; font-size: 1.1rem; border-radius: 12px; margin-bottom: 1rem; text-align: center; }

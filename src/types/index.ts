@@ -40,6 +40,7 @@ export interface ProductPackage {
     deliveryDays: number;
     revisionCount: number;
     included: string[];
+    optionValues?: Record<string, string>;
 }
 
 export interface ExpertProduct {

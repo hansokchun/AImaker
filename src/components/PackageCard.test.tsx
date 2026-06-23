@@ -117,6 +117,54 @@ describe('PackageCard', () => {
         expect(within(premiumFeatureList).getByText('소스 파일 제공')).toHaveClass('available')
     })
 
+    it('groups quantity-only package options and shows the selected package value', () => {
+        const product = {
+            ...mockExpertProducts[0],
+            packages: {
+                standard: {
+                    name: 'Standard',
+                    price: 45000,
+                    deliveryDays: 3,
+                    revisionCount: 1,
+                    included: ['광고 콘셉트 1안', '15초 대본 1개', '대표 장면 이미지 시안 1개'],
+                },
+                deluxe: {
+                    name: 'Deluxe',
+                    price: 90000,
+                    deliveryDays: 5,
+                    revisionCount: 2,
+                    included: ['광고 콘셉트 2안', '15초 대본 2개', '장면 구성표', '짧은 영상 샘플 1개'],
+                },
+                premium: {
+                    name: 'Premium',
+                    price: 150000,
+                    deliveryDays: 7,
+                    revisionCount: 3,
+                    included: ['광고 콘셉트 3안', '영상 샘플 2개', '썸네일 시안', '업로드용 문구 제안'],
+                },
+            },
+        }
+
+        render(
+            <MemoryRouter>
+                <PackageCard productId={product.id} packages={product.packages} />
+            </MemoryRouter>,
+        )
+
+        const standardFeatureList = screen.getByTestId('package-upgrade-feature-list')
+        expect(within(standardFeatureList).getByText('광고 콘셉트')).toBeInTheDocument()
+        expect(within(standardFeatureList).getByText('1안')).toBeInTheDocument()
+        expect(within(standardFeatureList).queryByText('광고 콘셉트 1안')).not.toBeInTheDocument()
+        expect(within(standardFeatureList).queryByText('광고 콘셉트 2안')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Premium' }))
+
+        const premiumFeatureList = screen.getByTestId('package-upgrade-feature-list')
+        expect(within(premiumFeatureList).getByText('광고 콘셉트')).toBeInTheDocument()
+        expect(within(premiumFeatureList).getByText('3안')).toBeInTheDocument()
+        expect(within(premiumFeatureList).getByText('업로드용 문구 제안')).toHaveClass('available')
+    })
+
     it('hides buyer actions while the owner is viewing their own product', () => {
         const product = mockExpertProducts[0]
 

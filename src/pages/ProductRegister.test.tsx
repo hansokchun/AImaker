@@ -161,6 +161,11 @@ describe('ProductRegister', () => {
                             deliveryDays: 2,
                             revisionCount: 1,
                             included: ['15초 영상 콘셉트', '대본 초안', 'AI 영상 시안 1개'],
+                            optionValues: {
+                                '15초 영상 콘셉트': '포함',
+                                '대본 초안': '포함',
+                                'AI 영상 시안': '1개',
+                            },
                         },
                         deluxe: null,
                         premium: null,
