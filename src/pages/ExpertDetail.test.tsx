@@ -225,7 +225,16 @@ describe('ExpertDetail', () => {
         const breadcrumbs = screen.getByTestId('product-detail-breadcrumbs')
         expect(within(breadcrumbs).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/')
         expect(within(breadcrumbs).getByRole('link', { name: 'AI 작업 찾기' })).toHaveAttribute('href', '/category')
-        expect(within(breadcrumbs).getByText(supabaseProduct.title)).toBeInTheDocument()
+        expect(within(breadcrumbs).getByRole('link', { name: 'AI 영상/숏폼' })).toHaveAttribute(
+            'href',
+            '/category?category=ai-video-shortform',
+        )
+        expect(within(breadcrumbs).getByRole('link', { name: supabaseProduct.title })).toHaveAttribute(
+            'href',
+            `/expert/${supabaseProduct.id}`,
+        )
+        expect(breadcrumbs.compareDocumentPosition(screen.getByRole('heading', { name: supabaseProduct.title })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(document.querySelector('.product-detail-hero .product-detail-category')).toBeNull()
 
         const sidebar = screen.getByTestId('product-package-sidebar')
         const actions = within(sidebar).getByTestId('product-package-actions')

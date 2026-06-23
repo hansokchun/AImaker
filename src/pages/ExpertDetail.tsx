@@ -261,16 +261,6 @@ export default function ExpertDetail() {
 
     return (
         <main className="container">
-            <nav className="product-breadcrumbs" data-testid="product-detail-breadcrumbs" aria-label="상품 위치">
-                <Link to="/">홈</Link>
-                <span aria-hidden="true">/</span>
-                <Link to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
-                <span aria-hidden="true">/</span>
-                <Link to={categoryUrl}>{category?.name ?? 'AI 작업'}</Link>
-                <span aria-hidden="true">/</span>
-                <span>{product.title}</span>
-            </nav>
-
             {myPageReturnTo && (
                 <div className="detail-owner-actions">
                     <Link to={myPageReturnTo} className="btn-text">
@@ -298,7 +288,15 @@ export default function ExpertDetail() {
                             )}
                         </div>
                         <div className="product-detail-copy">
-                            <div className="product-detail-category">{category?.name ?? 'AI 작업'}</div>
+                            <nav className="product-breadcrumbs" data-testid="product-detail-breadcrumbs" aria-label="상품 위치">
+                                <Link to="/">홈</Link>
+                                <span aria-hidden="true">/</span>
+                                <Link to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
+                                <span aria-hidden="true">/</span>
+                                <Link to={categoryUrl}>{category?.name ?? 'AI 작업'}</Link>
+                                <span aria-hidden="true">/</span>
+                                <Link to={`/expert/${product.id}`}>{product.title}</Link>
+                            </nav>
                             <h1>{product.title}</h1>
                             <p>{product.summary}</p>
                             <div className="product-detail-seller-inline">
