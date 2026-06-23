@@ -41,6 +41,17 @@ const formatProductCreatedAt = (createdAt?: string) => {
     return parsed.toLocaleDateString('ko-KR')
 }
 
+const getPackageComparisonFeatures = (packageEntries: readonly (readonly ['standard' | 'deluxe' | 'premium', ProductPackage])[]) => {
+    const features = new Set<string>()
+    packageEntries.forEach(([, packageInfo]) => {
+        packageInfo.included.forEach((feature) => {
+            if (feature.trim()) features.add(feature.trim())
+        })
+    })
+
+    return Array.from(features)
+}
+
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
     const location = useLocation()
@@ -272,6 +283,7 @@ export default function ExpertDetail() {
         deluxe: 'Deluxe',
         premium: 'Premium',
     }
+    const packageComparisonFeatures = getPackageComparisonFeatures(packageEntries)
 
     return (
         <main className="container">
@@ -431,7 +443,22 @@ export default function ExpertDetail() {
                                     <div role="cell">{packageInfo.price.toLocaleString()}원</div>
                                     <div role="cell">{packageInfo.deliveryDays}일</div>
                                     <div role="cell">{packageInfo.revisionCount}회</div>
-                                    <div role="cell">{packageInfo.included.join(', ')}</div>
+                                    <div role="cell">
+                                        <ul className="price-comparison-feature-list">
+                                            {packageComparisonFeatures.map((feature) => {
+                                                const included = packageInfo.included.includes(feature)
+
+                                                return (
+                                                    <li key={`${tier}-${feature}`} className={included ? 'available' : 'unavailable'}>
+                                                        <span className="material-symbols-outlined" aria-hidden="true">
+                                                            {included ? 'check' : 'remove'}
+                                                        </span>
+                                                        <span>{feature}</span>
+                                                    </li>
+                                                )
+                                            })}
+                                        </ul>
+                                    </div>
                                 </div>
                             ))}
                         </div>

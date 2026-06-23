@@ -26,6 +26,17 @@ function getPackageTabs(packages: ProductPackages) {
     return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages?.[tab]))
 }
 
+function getAllIncludedFeatures(packages: ProductPackages) {
+    const features = new Set<string>()
+    ;(Object.keys(packageLabels) as PackageTier[]).forEach((tier) => {
+        packages?.[tier]?.included?.forEach((feature) => {
+            if (feature.trim()) features.add(feature.trim())
+        })
+    })
+
+    return Array.from(features)
+}
+
 export default function PackageCard({
     packages,
     productId,
@@ -54,6 +65,9 @@ export default function PackageCard({
     const included = Array.isArray(renderPackage.included) && renderPackage.included.length > 0
         ? renderPackage.included
         : fallbackPackage.included
+    const upgradeFeatures = getAllIncludedFeatures(safePackages)
+    const visibleFeatures = upgradeFeatures.length > 0 ? upgradeFeatures : included
+    const includedSet = new Set(included)
     const goToLogin = () => {
         window.alert('로그인 후 이용할 수 있습니다.')
         navigate(ROUTES.LOGIN, { state: { from: { pathname: location.pathname, search: location.search } } })
@@ -97,10 +111,19 @@ export default function PackageCard({
                     <span>수정 {renderPackage.revisionCount}회</span>
                 </div>
 
-                <ul className="package-list">
-                    {included.map((feature) => (
-                        <li key={feature}>{feature}</li>
-                    ))}
+                <ul className="package-list package-upgrade-list" data-testid="package-upgrade-feature-list">
+                    {visibleFeatures.map((feature) => {
+                        const isAvailable = includedSet.has(feature)
+
+                        return (
+                            <li key={feature} className={isAvailable ? 'available' : 'unavailable'}>
+                                <span className="material-symbols-outlined package-feature-icon" aria-hidden="true">
+                                    {isAvailable ? 'check' : 'remove'}
+                                </span>
+                                <span className={isAvailable ? 'available' : 'unavailable'}>{feature}</span>
+                            </li>
+                        )
+                    })}
                 </ul>
 
                 {isOwner ? (

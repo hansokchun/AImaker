@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import PackageCard from './PackageCard'
@@ -69,6 +69,52 @@ describe('PackageCard', () => {
         expect(screen.getByRole('button', { name: 'Standard' })).toHaveClass('active')
         fireEvent.click(screen.getByRole('button', { name: '패키지로 의뢰하기' }))
         expect(screen.getByTestId('location')).toHaveTextContent('/request/product-missing-included')
+    })
+
+    it('shows unavailable upgrade features as muted unchecked items on lower packages', () => {
+        const product = {
+            ...mockExpertProducts[0],
+            packages: {
+                standard: {
+                    name: 'Standard',
+                    price: 30000,
+                    deliveryDays: 2,
+                    revisionCount: 1,
+                    included: ['기본 편집', '자막 삽입'],
+                },
+                deluxe: {
+                    name: 'Deluxe',
+                    price: 60000,
+                    deliveryDays: 3,
+                    revisionCount: 2,
+                    included: ['기본 편집', '자막 삽입', '썸네일 제작'],
+                },
+                premium: {
+                    name: 'Premium',
+                    price: 90000,
+                    deliveryDays: 5,
+                    revisionCount: 3,
+                    included: ['기본 편집', '자막 삽입', '썸네일 제작', '소스 파일 제공'],
+                },
+            },
+        }
+
+        render(
+            <MemoryRouter initialEntries={[`/expert/${product.id}`]}>
+                <PackageCard productId={product.id} packages={product.packages} />
+            </MemoryRouter>,
+        )
+
+        const standardFeatureList = screen.getByTestId('package-upgrade-feature-list')
+        expect(within(standardFeatureList).getByText('기본 편집')).toHaveClass('available')
+        expect(within(standardFeatureList).getByText('썸네일 제작')).toHaveClass('unavailable')
+        expect(within(standardFeatureList).getByText('소스 파일 제공')).toHaveClass('unavailable')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Premium' }))
+
+        const premiumFeatureList = screen.getByTestId('package-upgrade-feature-list')
+        expect(within(premiumFeatureList).getByText('썸네일 제작')).toHaveClass('available')
+        expect(within(premiumFeatureList).getByText('소스 파일 제공')).toHaveClass('available')
     })
 
     it('hides buyer actions while the owner is viewing their own product', () => {

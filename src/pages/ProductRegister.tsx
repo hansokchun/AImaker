@@ -363,6 +363,7 @@ export default function ProductRegister() {
                                 <PackageFields tier="standard" state={packages.standard} onChange={updatePackage} />
                                 <PackageFields tier="deluxe" state={packages.deluxe} onChange={updatePackage} />
                                 <PackageFields tier="premium" state={packages.premium} onChange={updatePackage} />
+                                <PackageOptionPreview packages={packages} />
                             </div>
                         ) : (
                             <SinglePriceFields state={basePackage} onChange={(updates) => setBasePackage((current) => ({ ...current, ...updates }))} />
@@ -479,6 +480,52 @@ function PackageFields({
     )
 }
 
+function PackageOptionPreview({ packages }: { packages: Record<PackageTier, PackageFormState> }) {
+    const rows = getPackageOptionRows(packages)
+
+    return (
+        <div data-testid="package-option-preview" style={packagePreviewStyle}>
+            <div style={{ display: 'grid', gap: '0.25rem' }}>
+                <strong>패키지별 포함 항목 비교</strong>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                    상위 패키지에만 들어가는 항목은 하위 패키지에서 회색 미포함으로 표시됩니다.
+                </span>
+            </div>
+            <div style={packagePreviewTableStyle} role="table" aria-label="패키지 포함 항목 미리보기">
+                <div style={packagePreviewRowStyle} role="row">
+                    <strong role="columnheader">항목</strong>
+                    <strong role="columnheader">Standard</strong>
+                    <strong role="columnheader">Deluxe</strong>
+                    <strong role="columnheader">Premium</strong>
+                </div>
+                {rows.length > 0 ? rows.map((row) => (
+                    <div key={row.option} style={packagePreviewRowStyle} role="row">
+                        <span role="cell" style={{ fontWeight: 800 }}>{row.option}</span>
+                        <PackageOptionCell included={row.standard} />
+                        <PackageOptionCell included={row.deluxe} />
+                        <PackageOptionCell included={row.premium} />
+                    </div>
+                )) : (
+                    <div style={packagePreviewEmptyStyle}>
+                        포함 항목을 입력하면 패키지별 비교가 여기에 표시됩니다.
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function PackageOptionCell({ included }: { included: boolean }) {
+    return (
+        <span role="cell" style={included ? packagePreviewIncludedCellStyle : packagePreviewExcludedCellStyle}>
+            <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '1rem' }}>
+                {included ? 'check' : 'remove'}
+            </span>
+            {included ? '포함' : '미포함'}
+        </span>
+    )
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (
         <section style={sectionStyle}>
@@ -502,6 +549,26 @@ const parseCommaList = (value: string) =>
 
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
+
+const getPackageOptionRows = (packages: Record<PackageTier, PackageFormState>) => {
+    const includedByTier = {
+        standard: parseLineList(packages.standard.included),
+        deluxe: parseLineList(packages.deluxe.included),
+        premium: parseLineList(packages.premium.included),
+    }
+    const allOptions = Array.from(new Set([
+        ...includedByTier.standard,
+        ...includedByTier.deluxe,
+        ...includedByTier.premium,
+    ]))
+
+    return allOptions.map((option) => ({
+        option,
+        standard: includedByTier.standard.includes(option),
+        deluxe: includedByTier.deluxe.includes(option),
+        premium: includedByTier.premium.includes(option),
+    }))
+}
 
 function ImagePreviewCard({
     src,
@@ -677,6 +744,53 @@ const fieldsetStyle = {
     padding: '1rem',
     borderRadius: '0.85rem',
     border: '1px solid var(--border-color)',
+} as const
+
+const packagePreviewStyle = {
+    display: 'grid',
+    gap: '0.85rem',
+    padding: '1rem',
+    borderRadius: '0.85rem',
+    border: '1px solid #bfdbfe',
+    background: '#f8fbff',
+} as const
+
+const packagePreviewTableStyle = {
+    display: 'grid',
+    border: '1px solid var(--border-color)',
+    borderRadius: '0.7rem',
+    overflow: 'hidden',
+    background: 'white',
+} as const
+
+const packagePreviewRowStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(150px, 1.4fr) repeat(3, minmax(92px, 1fr))',
+    gap: '0',
+    alignItems: 'center',
+    borderBottom: '1px solid var(--border-color)',
+} as const
+
+const packagePreviewEmptyStyle = {
+    padding: '0.9rem',
+    color: 'var(--text-secondary)',
+    fontWeight: 700,
+} as const
+
+const packagePreviewIncludedCellStyle = {
+    display: 'inline-flex',
+    gap: '0.3rem',
+    alignItems: 'center',
+    color: '#2563eb',
+    fontWeight: 900,
+} as const
+
+const packagePreviewExcludedCellStyle = {
+    display: 'inline-flex',
+    gap: '0.3rem',
+    alignItems: 'center',
+    color: '#94a3b8',
+    fontWeight: 800,
 } as const
 
 const inputStyle = {

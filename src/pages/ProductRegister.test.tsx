@@ -185,6 +185,29 @@ describe('ProductRegister', () => {
         expect(within(premium).getByLabelText('가격')).toBeInTheDocument()
     })
 
+    it('guides package options as an upgrade comparison when package pricing is enabled', async () => {
+        renderRegister()
+
+        fireEvent.click(screen.getByRole('checkbox', { name: '패키지 가격 사용' }))
+
+        expect(screen.getByText('패키지별 포함 항목 비교')).toBeInTheDocument()
+        expect(screen.getByText('상위 패키지에만 들어가는 항목은 하위 패키지에서 회색 미포함으로 표시됩니다.')).toBeInTheDocument()
+
+        const standard = screen.getByTestId('package-standard')
+        const deluxe = screen.getByTestId('package-deluxe')
+        const premium = screen.getByTestId('package-premium')
+
+        fireEvent.change(within(standard).getByLabelText('포함 항목'), { target: { value: '기본 편집\n자막 삽입' } })
+        fireEvent.change(within(deluxe).getByLabelText('포함 항목'), { target: { value: '기본 편집\n자막 삽입\n썸네일 제작' } })
+        fireEvent.change(within(premium).getByLabelText('포함 항목'), { target: { value: '기본 편집\n자막 삽입\n썸네일 제작\n소스 파일 제공' } })
+
+        const preview = screen.getByTestId('package-option-preview')
+        expect(within(preview).getByText('기본 편집')).toBeInTheDocument()
+        expect(within(preview).getByText('소스 파일 제공')).toBeInTheDocument()
+        expect(within(preview).getAllByText('미포함').length).toBeGreaterThan(0)
+        expect(within(preview).getAllByText('포함').length).toBeGreaterThan(0)
+    })
+
     it('blocks main images below the Kmong pixel size before publishing', async () => {
         renderRegister()
 
