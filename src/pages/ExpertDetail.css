@@ -427,6 +427,10 @@
     display: block;
 }
 
+.product-gallery-video {
+    background: #0f172a;
+}
+
 .gallery-nav-button {
     position: absolute;
     top: 50%;
@@ -497,12 +501,14 @@
     background: #f8fafc;
 }
 
-.portfolio-preview-item img {
+.portfolio-preview-item img,
+.portfolio-preview-item video {
     width: 100%;
     aspect-ratio: 4 / 3;
     object-fit: contain;
     display: block;
     border-radius: 0;
+    background: #0f172a;
 }
 
 .price-comparison-table {

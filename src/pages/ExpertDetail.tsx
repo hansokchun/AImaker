@@ -17,6 +17,13 @@ type SellerProfile = {
     averageResponseTime?: string
 }
 
+type ProductGalleryMedia = {
+    src: string
+    alt: string
+    label: string
+    type: 'image' | 'video'
+}
+
 const getAverageRating = (reviews: Review[]) => {
     if (reviews.length === 0) return 0
     return reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
@@ -40,6 +47,9 @@ const formatProductCreatedAt = (createdAt?: string) => {
     if (Number.isNaN(parsed.getTime())) return ''
     return parsed.toLocaleDateString('ko-KR')
 }
+
+const isVideoMedia = (src: string) =>
+    /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
 
 const getPackageComparisonFeatures = (packageEntries: readonly (readonly ['standard' | 'deluxe' | 'premium', ProductPackage])[]) => {
     const features = new Set<string>()
@@ -266,12 +276,13 @@ export default function ExpertDetail() {
         : { standard: fallbackPackage, deluxe: null, premium: null }
     const sampleImageUrl = product.sampleImageUrl || sampleLinks[0] || ''
     const categoryUrl = `${ROUTES.CATEGORY}?category=${encodeURIComponent(product.category)}`
-    const detailGalleryImages = [
-        ...(product.sampleImageUrl ? [{ src: product.sampleImageUrl, alt: `${product.title} 메인 이미지`, label: '메인 이미지' }] : []),
+    const detailGalleryImages: ProductGalleryMedia[] = [
+        ...(product.sampleImageUrl ? [{ src: product.sampleImageUrl, alt: `${product.title} 메인 이미지`, label: '메인 이미지', type: 'image' as const }] : []),
         ...sampleLinks.map((src, index) => ({
             src,
-            alt: `${product.title} 상세 이미지 ${index + 1}`,
-            label: `상세 이미지 ${index + 1}`,
+            alt: `${product.title} 미디어 ${index + 1}`,
+            label: `미디어 ${index + 1}`,
+            type: isVideoMedia(src) ? 'video' as const : 'image' as const,
         })),
     ]
     const activeGalleryImage = detailGalleryImages[activeGalleryIndex] ?? detailGalleryImages[0]
@@ -350,30 +361,34 @@ export default function ExpertDetail() {
 
                     {detailGalleryImages.length > 0 && (
                         <section className="detail-section media-gallery-section">
-                            <h2>
-                                <span className="material-symbols-outlined" aria-hidden="true">image</span>
-                                상세 이미지
-                            </h2>
                             <div className="product-gallery-shell" data-testid="product-detail-gallery">
                                 <div className="product-gallery-stage">
                                     {detailGalleryImages.length > 1 && (
                                         <button
                                             type="button"
                                             className="gallery-nav-button gallery-nav-prev"
-                                            aria-label="이전 이미지"
+                                            aria-label="이전 미디어"
                                             onClick={() => setActiveGalleryIndex((index) => (index === 0 ? detailGalleryImages.length - 1 : index - 1))}
                                         >
                                             <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
                                         </button>
                                     )}
-                                    {activeGalleryImage && (
+                                    {activeGalleryImage?.type === 'video' ? (
+                                        <video
+                                            className="product-gallery-image product-gallery-video"
+                                            src={activeGalleryImage.src}
+                                            aria-label={activeGalleryImage.alt}
+                                            controls
+                                            data-testid="product-gallery-video"
+                                        />
+                                    ) : activeGalleryImage ? (
                                         <img className="product-gallery-image" src={activeGalleryImage.src} alt={activeGalleryImage.alt} />
-                                    )}
+                                    ) : null}
                                     {detailGalleryImages.length > 1 && (
                                         <button
                                             type="button"
                                             className="gallery-nav-button gallery-nav-next"
-                                            aria-label="다음 이미지"
+                                            aria-label="다음 미디어"
                                             onClick={() => setActiveGalleryIndex((index) => (index + 1) % detailGalleryImages.length)}
                                         >
                                             <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
@@ -388,7 +403,7 @@ export default function ExpertDetail() {
                                                 <button
                                                     key={`${image.label}-${image.src}`}
                                                     type="button"
-                                                    aria-label={`${index + 1}번 이미지 보기`}
+                                                    aria-label={`${index + 1}번 미디어 보기`}
                                                     className={index === activeGalleryIndex ? 'active' : ''}
                                                     onClick={() => setActiveGalleryIndex(index)}
                                                 />
@@ -418,7 +433,11 @@ export default function ExpertDetail() {
                         <div className="portfolio-preview-grid">
                             {detailGalleryImages.map((image) => (
                                 <figure key={`portfolio-${image.label}-${image.src}`} className="portfolio-preview-item">
-                                    <img src={image.src} alt={image.alt} />
+                                    {image.type === 'video' ? (
+                                        <video src={image.src} aria-label={image.alt} controls data-testid="product-portfolio-video" />
+                                    ) : (
+                                        <img src={image.src} alt={image.alt} />
+                                    )}
                                 </figure>
                             ))}
                         </div>
@@ -515,19 +534,19 @@ export default function ExpertDetail() {
                     <section className="detail-section seller-review-section" data-testid="product-detail-reviews">
                         <h2>
                             <span className="material-symbols-outlined" aria-hidden="true">star</span>
-                            諛쏆? 由щ럭
+                            받은 리뷰
                         </h2>
                         {expertReviews.length > 0 ? (
                             <div className="seller-review-list">
                                 {expertReviews.map((review) => (
                                     <article key={review.id} className="seller-review-card">
-                                        <strong>?됱젏 {review.rating}.0</strong>
+                                        <strong>평점 {review.rating}.0</strong>
                                         <p>{review.content}</p>
                                     </article>
                                 ))}
                             </div>
                         ) : (
-                            <p className="seller-empty-copy">?꾩쭅 諛쏆? 由щ럭媛 ?놁뒿?덈떎.</p>
+                            <p className="seller-empty-copy">아직 받은 리뷰가 없습니다.</p>
                         )}
                     </section>
                 </div>

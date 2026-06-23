@@ -55,7 +55,7 @@ describe('ProductCard', () => {
     )
     expect(screen.getByText(product.expertName)).toBeInTheDocument()
     expect(screen.queryByText('작업 등록 전문가')).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '상품 구매하기' })).not.toBeInTheDocument()
   })
 
   it('toggles a product as a favorite without opening the detail page', async () => {

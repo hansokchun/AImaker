@@ -8,6 +8,7 @@ import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '.
 
 const currency = new Intl.NumberFormat('ko-KR')
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
+const ACCEPTED_DETAIL_MEDIA_TYPES = ['image/jpeg', 'image/png', 'video/mp4', 'video/webm']
 const MAIN_IMAGE_MIN_WIDTH = 652
 const MAIN_IMAGE_MIN_HEIGHT = 488
 
@@ -301,8 +302,8 @@ export default function ProductRegister() {
                                 )}
                             </div>
                         )}
-                        <Field label="상세 이미지 첨부">
-                            <input ref={referenceFilesRef} type="file" accept="image/jpeg,image/png" multiple onChange={handleReferenceFilesChange} style={inputStyle} />
+                        <Field label="상세 미디어 첨부">
+                            <input ref={referenceFilesRef} type="file" accept="image/jpeg,image/png,video/mp4,video/webm" multiple onChange={handleReferenceFilesChange} style={inputStyle} />
                         </Field>
                         {(existingReferenceDataUrls.length > 0 || selectedReferenceFiles.length > 0) && (
                             <div style={imagePreviewGridStyle}>
@@ -310,20 +311,22 @@ export default function ProductRegister() {
                                     <ImagePreviewCard
                                         key={`existing-reference-${src}-${index}`}
                                         src={src}
-                                        alt={`현재 상세 이미지 ${index + 1}`}
-                                        label={`현재 상세 이미지 ${index + 1}`}
+                                        alt={`현재 상세 미디어 ${index + 1}`}
+                                        label={`현재 상세 미디어 ${index + 1}`}
+                                        mediaType={isVideoMediaSource(src) ? 'video' : 'image'}
                                         onRemove={() => removeExistingReferenceImage(index)}
-                                        removeLabel={`현재 상세 이미지 ${index + 1} 삭제`}
+                                        removeLabel={`현재 상세 미디어 ${index + 1} 삭제`}
                                     />
                                 ))}
                                 {selectedReferenceFiles.map((entry, index) => (
                                     <ImagePreviewCard
                                         key={`selected-reference-${entry.previewUrl}-${index}`}
                                         src={entry.previewUrl}
-                                        alt={`새 상세 이미지 ${index + 1}`}
-                                        label={`추가 예정 상세 이미지 ${index + 1}`}
+                                        alt={`새 상세 미디어 ${index + 1}`}
+                                        label={`추가 예정 상세 미디어 ${index + 1}`}
+                                        mediaType={entry.file.type.startsWith('video/') ? 'video' : 'image'}
                                         onRemove={() => removeSelectedReferenceImage(index)}
-                                        removeLabel={`새 상세 이미지 ${index + 1} 삭제`}
+                                        removeLabel={`새 상세 미디어 ${index + 1} 삭제`}
                                     />
                                 ))}
                             </div>
@@ -331,7 +334,7 @@ export default function ProductRegister() {
                         <div style={guideBoxStyle}>
                             <strong>등록 유의사항</strong>
                             <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 4:3 비율은 권장입니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 이미지는 넣지 않습니다.
+                                대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 미디어는 JPG/PNG 이미지와 MP4/WebM 영상을 등록할 수 있습니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 자료는 넣지 않습니다.
                             </p>
                             <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
                                 <input
@@ -570,22 +573,31 @@ const getPackageOptionRows = (packages: Record<PackageTier, PackageFormState>) =
     }))
 }
 
+const isVideoMediaSource = (src: string) =>
+    /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
+
 function ImagePreviewCard({
     src,
     alt,
     label,
+    mediaType = 'image',
     onRemove,
     removeLabel,
 }: {
     src: string
     alt: string
     label: string
+    mediaType?: 'image' | 'video'
     onRemove?: () => void
     removeLabel?: string
 }) {
     return (
         <figure style={imagePreviewCardStyle}>
-            <img src={src} alt={alt} style={imagePreviewStyle} />
+            {mediaType === 'video' ? (
+                <video src={src} aria-label={alt} controls style={imagePreviewStyle} />
+            ) : (
+                <img src={src} alt={alt} style={imagePreviewStyle} />
+            )}
             <figcaption style={imagePreviewCaptionStyle}>
                 <span>{label}</span>
                 {onRemove && (
@@ -612,8 +624,11 @@ const readFileAsDataUrl = async (file: File, kind: ProductImageKind) => {
 }
 
 const validateProductImageFile = async (file: File, _kind: ProductImageKind) => {
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        throw new Error('이미지는 JPG 또는 PNG 파일만 등록할 수 있습니다.')
+    const acceptedTypes = _kind === 'main' ? ACCEPTED_IMAGE_TYPES : ACCEPTED_DETAIL_MEDIA_TYPES
+    if (!acceptedTypes.includes(file.type)) {
+        throw new Error(_kind === 'main'
+            ? '대표 이미지는 JPG 또는 PNG 파일만 등록할 수 있습니다.'
+            : '상세 미디어는 JPG, PNG, MP4, WebM 파일만 등록할 수 있습니다.')
     }
 
     if (_kind === 'main') {

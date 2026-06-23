@@ -127,7 +127,7 @@ describe('ProductRegister', () => {
         fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [new File(['tiny-image'], 'thumb.png', { type: 'image/png' })] },
         })
-        fireEvent.change(screen.getByLabelText('상세 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('상세 미디어 첨부'), {
             target: { files: [new File(['portfolio'], 'portfolio.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
@@ -311,17 +311,17 @@ describe('ProductRegister', () => {
         renderEditRegister()
 
         expect(await screen.findByAltText('현재 대표 이미지')).toHaveAttribute('src', editableProduct.sampleImageUrl)
-        expect(screen.getByAltText('현재 상세 이미지 1')).toHaveAttribute('src', editableProduct.sampleLinks[0])
+        expect(screen.getByAltText('현재 상세 미디어 1')).toHaveAttribute('src', editableProduct.sampleLinks[0])
 
         fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
             target: { files: [new File(['new-main'], 'new-main.png', { type: 'image/png' })] },
         })
-        fireEvent.change(screen.getByLabelText('상세 이미지 첨부'), {
+        fireEvent.change(screen.getByLabelText('상세 미디어 첨부'), {
             target: { files: [new File(['new-detail'], 'new-detail.png', { type: 'image/png' })] },
         })
 
         expect(await screen.findByAltText('새 메인 이미지 미리보기')).toHaveAttribute('src', 'blob:new-main.png')
-        expect(screen.getByAltText('새 상세 이미지 1')).toHaveAttribute('src', 'blob:new-detail.png')
+        expect(screen.getByAltText('새 상세 미디어 1')).toHaveAttribute('src', 'blob:new-detail.png')
 
         fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '70000' } })
         fireEvent.click(screen.getAllByRole('checkbox')[0])
@@ -356,7 +356,7 @@ describe('ProductRegister', () => {
     it('renames portfolio inputs to detail images and lets editors remove existing and new detail images', async () => {
         renderEditRegister()
 
-        expect(await screen.findByLabelText('상세 이미지 첨부')).toBeInTheDocument()
+        expect(await screen.findByLabelText('상세 미디어 첨부')).toBeInTheDocument()
         expect(screen.queryByLabelText('상세 이미지/포트폴리오 첨부')).not.toBeInTheDocument()
 
         const fileInputs = document.querySelectorAll<HTMLInputElement>(`input[type="file"]`)
@@ -364,9 +364,9 @@ describe('ProductRegister', () => {
             target: { files: [new File(['new-detail'], 'new-detail.png', { type: 'image/png' })] },
         })
 
-        expect(await screen.findByAltText('새 상세 이미지 1')).toHaveAttribute('src', 'blob:new-detail.png')
-        fireEvent.click(screen.getByRole('button', { name: '현재 상세 이미지 1 삭제' }))
-        fireEvent.click(screen.getByRole('button', { name: '새 상세 이미지 1 삭제' }))
+        expect(await screen.findByAltText('새 상세 미디어 1')).toHaveAttribute('src', 'blob:new-detail.png')
+        fireEvent.click(screen.getByRole('button', { name: '현재 상세 미디어 1 삭제' }))
+        fireEvent.click(screen.getByRole('button', { name: '새 상세 미디어 1 삭제' }))
 
         fireEvent.click(screen.getAllByRole('checkbox')[0])
         fireEvent.submit(document.querySelector('form') as HTMLFormElement)
@@ -375,6 +375,34 @@ describe('ProductRegister', () => {
             expect(saveExpertProduct).toHaveBeenCalledWith(
                 expect.objectContaining({
                     sampleLinks: [],
+                }),
+            ),
+        )
+    })
+
+    it('accepts video files as detail media and stores them with product sample links', async () => {
+        renderRegister()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 영상 미디어 상품' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '영상과 이미지를 함께 보여주는 상품입니다.' } })
+        fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 미디어에 이미지와 영상을 함께 등록합니다.' } })
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
+            target: { files: [new File(['main'], 'main.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('상세 미디어 첨부'), {
+            target: { files: [new File(['video'], 'sample.mp4', { type: 'video/mp4' })] },
+        })
+        fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
+        fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '2' } })
+        fireEvent.change(screen.getByLabelText('수정 횟수'), { target: { value: '1' } })
+        fireEvent.change(screen.getByLabelText('기본 제공 항목'), { target: { value: '영상 샘플 확인' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    sampleLinks: [expect.stringMatching(/^data:video\/mp4;base64,/)],
                 }),
             ),
         )

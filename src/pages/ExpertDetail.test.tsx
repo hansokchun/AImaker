@@ -177,7 +177,7 @@ describe('ExpertDetail', () => {
             'href',
             `/expert/${supabaseProduct.expertId}`,
         )
-        expect(screen.getByRole('button', { name: '패키지로 의뢰하기' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '상품 구매하기' })).toBeInTheDocument()
     })
 
     it('renders product details as one ordered content flow with a package sidebar', async () => {
@@ -282,7 +282,7 @@ describe('ExpertDetail', () => {
         expect(await screen.findByRole('heading', { name: '상품을 찾을 수 없습니다' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'AI 작업 찾기로 돌아가기' })).toHaveAttribute('href', '/category')
         expect(screen.queryByText(supabaseProduct.title)).not.toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '상품 구매하기' })).not.toBeInTheDocument()
     })
 
     it('opens product details even when stored package data is missing', async () => {
@@ -304,7 +304,7 @@ describe('ExpertDetail', () => {
         )
 
         expect(await screen.findByRole('heading', { name: productWithoutPackages.title })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '패키지로 의뢰하기' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '상품 구매하기' })).toBeInTheDocument()
         expect(screen.queryByText('문제가 발생했습니다')).not.toBeInTheDocument()
     })
 
@@ -390,11 +390,37 @@ describe('ExpertDetail', () => {
         expect(within(imageSection).getByText('1 / 2')).toBeInTheDocument()
         expect(within(imageSection).getByRole('img')).toHaveAttribute(`src`, supabaseProduct.sampleImageUrl)
 
-        fireEvent.click(within(imageSection).getByRole('button', { name: '다음 이미지' }))
+        fireEvent.click(within(imageSection).getByRole('button', { name: '다음 미디어' }))
 
         expect(within(imageSection).getByText('2 / 2')).toBeInTheDocument()
         expect(within(imageSection).getByRole('img')).toHaveAttribute(`src`, supabaseProduct.sampleLinks[0])
         expect(within(imageSection).queryByText('메인 이미지')).not.toBeInTheDocument()
         expect(within(imageSection).queryByText('상세 이미지 1')).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '상세 이미지' })).not.toBeInTheDocument()
+    })
+
+    it('renders videos in the media gallery without a detail image heading', async () => {
+        getExpertProducts.mockResolvedValue([
+            {
+                ...supabaseProduct,
+                sampleLinks: ['https://cdn.example.com/demo-video.mp4'],
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+        const gallery = screen.getByTestId('product-detail-gallery')
+
+        fireEvent.click(within(gallery).getByRole('button', { name: '다음 미디어' }))
+
+        expect(within(gallery).getByTestId('product-gallery-video')).toHaveAttribute('src', 'https://cdn.example.com/demo-video.mp4')
+        expect(screen.queryByRole('heading', { name: '상세 이미지' })).not.toBeInTheDocument()
     })
 })

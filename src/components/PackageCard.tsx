@@ -136,7 +136,7 @@ export default function PackageCard({
                             결제 전 요구사항을 먼저 작성하고 전문가 제안을 받습니다.
                         </p>
                         <button type="button" className="btn-primary package-primary-cta" onClick={handlePackageRequest}>
-                            패키지로 의뢰하기
+                            상품 구매하기
                         </button>
 
                         {onOpenChat && (

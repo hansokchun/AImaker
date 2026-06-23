@@ -33,7 +33,7 @@ describe('PackageCard', () => {
         expect(screen.getByRole('button', { name: 'Standard' })).toHaveClass('active')
         expect(screen.getByText('30,000원')).toBeInTheDocument()
         expect(screen.getByText('결제 전 요구사항을 먼저 작성하고 전문가 제안을 받습니다.')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: '패키지로 의뢰하기' }))
+        fireEvent.click(screen.getByRole('button', { name: '상품 구매하기' }))
         expect(screen.getByTestId('location')).toHaveTextContent(`/request/${product.id}`)
     })
 
@@ -67,7 +67,7 @@ describe('PackageCard', () => {
         )
 
         expect(screen.getByRole('button', { name: 'Standard' })).toHaveClass('active')
-        fireEvent.click(screen.getByRole('button', { name: '패키지로 의뢰하기' }))
+        fireEvent.click(screen.getByRole('button', { name: '상품 구매하기' }))
         expect(screen.getByTestId('location')).toHaveTextContent('/request/product-missing-included')
     })
 
@@ -131,7 +131,7 @@ describe('PackageCard', () => {
             </MemoryRouter>,
         )
 
-        expect(screen.queryByRole('link', { name: '패키지로 의뢰하기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '상품 구매하기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '전문가에게 문의하기' })).not.toBeInTheDocument()
         expect(screen.getByText('내가 등록한 상품입니다. 상품 수정에서 가격과 패키지 정보를 관리할 수 있습니다.')).toBeInTheDocument()
     })
@@ -157,7 +157,7 @@ describe('PackageCard', () => {
             </MemoryRouter>,
         )
 
-        fireEvent.click(screen.getByRole('button', { name: '패키지로 의뢰하기' }))
+        fireEvent.click(screen.getByRole('button', { name: '상품 구매하기' }))
 
         expect(alert).toHaveBeenCalledWith('로그인 후 이용할 수 있습니다.')
         expect(screen.getByTestId('location')).toHaveTextContent('/login')
