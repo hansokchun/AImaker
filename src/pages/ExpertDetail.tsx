@@ -48,6 +48,7 @@ export default function ExpertDetail() {
     const { user } = useAuth()
     const [creatingConsultation, setCreatingConsultation] = useState(false)
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
+    const [activeGalleryIndex, setActiveGalleryIndex] = useState(0)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
     const [sellerProducts, setSellerProducts] = useState<ExpertProduct[]>([])
     const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null)
@@ -88,6 +89,10 @@ export default function ExpertDetail() {
         return () => {
             active = false
         }
+    }, [id])
+
+    useEffect(() => {
+        setActiveGalleryIndex(0)
     }, [id])
 
     const category = AI_CATEGORIES.find((item) => item.id === product?.category)
@@ -258,6 +263,15 @@ export default function ExpertDetail() {
             label: `상세 이미지 ${index + 1}`,
         })),
     ]
+    const activeGalleryImage = detailGalleryImages[activeGalleryIndex] ?? detailGalleryImages[0]
+    const packageEntries = (['standard', 'deluxe', 'premium'] as const)
+        .map((tier) => packages[tier] ? [tier, packages[tier] as ProductPackage] as const : null)
+        .filter((entry): entry is readonly ['standard' | 'deluxe' | 'premium', ProductPackage] => Boolean(entry))
+    const packageTierLabels = {
+        standard: 'Standard',
+        deluxe: 'Deluxe',
+        premium: 'Premium',
+    }
 
     return (
         <main className="container">
@@ -323,28 +337,103 @@ export default function ExpertDetail() {
                     </section>
 
                     {detailGalleryImages.length > 0 && (
-                        <section className="detail-section portfolio-section">
+                        <section className="detail-section media-gallery-section">
                             <h2>
                                 <span className="material-symbols-outlined" aria-hidden="true">image</span>
                                 상세 이미지
                             </h2>
-                            <div className="section-content sample-result-panel" data-testid="product-detail-gallery">
-                                {detailGalleryImages.map((image) => (
-                                    <figure key={`${image.label}-${image.src}`} className="detail-gallery-item">
-                                        <img src={image.src} alt={image.alt} />
-                                    </figure>
-                                ))}
+                            <div className="product-gallery-shell" data-testid="product-detail-gallery">
+                                <div className="product-gallery-stage">
+                                    {detailGalleryImages.length > 1 && (
+                                        <button
+                                            type="button"
+                                            className="gallery-nav-button gallery-nav-prev"
+                                            aria-label="이전 이미지"
+                                            onClick={() => setActiveGalleryIndex((index) => (index === 0 ? detailGalleryImages.length - 1 : index - 1))}
+                                        >
+                                            <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                                        </button>
+                                    )}
+                                    {activeGalleryImage && (
+                                        <img className="product-gallery-image" src={activeGalleryImage.src} alt={activeGalleryImage.alt} />
+                                    )}
+                                    {detailGalleryImages.length > 1 && (
+                                        <button
+                                            type="button"
+                                            className="gallery-nav-button gallery-nav-next"
+                                            aria-label="다음 이미지"
+                                            onClick={() => setActiveGalleryIndex((index) => (index + 1) % detailGalleryImages.length)}
+                                        >
+                                            <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                                        </button>
+                                    )}
+                                </div>
+                                {detailGalleryImages.length > 1 && (
+                                    <div className="product-gallery-footer">
+                                        <span>{activeGalleryIndex + 1} / {detailGalleryImages.length}</span>
+                                        <div className="product-gallery-dots" aria-label="이미지 선택">
+                                            {detailGalleryImages.map((image, index) => (
+                                                <button
+                                                    key={`${image.label}-${image.src}`}
+                                                    type="button"
+                                                    aria-label={`${index + 1}번 이미지 보기`}
+                                                    className={index === activeGalleryIndex ? 'active' : ''}
+                                                    onClick={() => setActiveGalleryIndex(index)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
                     )}
 
-                    <section className="detail-section" data-testid="product-detail-description">
+                    <section className="detail-section" data-testid="product-service-description">
                         <h2>
-                            <span className="material-symbols-outlined">description</span>
-                            상품 설명
+                            <span className="material-symbols-outlined" aria-hidden="true">description</span>
+                            서비스 설명
                         </h2>
                         <div className="section-content">
                             <p>{product.description}</p>
+                        </div>
+                    </section>
+
+                    <section className="detail-section product-portfolio-section" data-testid="product-portfolio">
+                        <h2>
+                            <span className="material-symbols-outlined" aria-hidden="true">work</span>
+                            포트폴리오
+                        </h2>
+                        <div className="portfolio-preview-grid">
+                            {detailGalleryImages.map((image) => (
+                                <figure key={`portfolio-${image.label}-${image.src}`} className="portfolio-preview-item">
+                                    <img src={image.src} alt={image.alt} />
+                                </figure>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="detail-section price-comparison-section" data-testid="product-price-comparison">
+                        <h2>
+                            <span className="material-symbols-outlined" aria-hidden="true">payments</span>
+                            가격 비교
+                        </h2>
+                        <div className="price-comparison-table" role="table" aria-label="패키지 가격 비교">
+                            <div className="price-comparison-row price-comparison-head" role="row">
+                                <div role="columnheader">패키지</div>
+                                <div role="columnheader">가격</div>
+                                <div role="columnheader">작업일</div>
+                                <div role="columnheader">수정</div>
+                                <div role="columnheader">포함 항목</div>
+                            </div>
+                            {packageEntries.map(([tier, packageInfo]) => (
+                                <div key={tier} className="price-comparison-row" role="row">
+                                    <div role="cell">{packageTierLabels[tier]}</div>
+                                    <div role="cell">{packageInfo.price.toLocaleString()}원</div>
+                                    <div role="cell">{packageInfo.deliveryDays}일</div>
+                                    <div role="cell">{packageInfo.revisionCount}회</div>
+                                    <div role="cell">{packageInfo.included.join(', ')}</div>
+                                </div>
+                            ))}
                         </div>
                     </section>
 

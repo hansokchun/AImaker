@@ -195,19 +195,25 @@ describe('ExpertDetail', () => {
         const sidebar = screen.getByTestId('product-package-sidebar')
         const header = screen.getByTestId('product-detail-header')
         const gallery = screen.getByTestId('product-detail-gallery')
-        const description = screen.getByTestId('product-detail-description')
+        const description = screen.getByTestId('product-service-description')
+        const portfolio = screen.getByTestId('product-portfolio')
+        const pricing = screen.getByTestId('product-price-comparison')
         const seller = screen.getByTestId('product-detail-seller')
         const reviews = screen.getByTestId('product-detail-reviews')
 
         expect(flow).toContainElement(header)
         expect(flow).toContainElement(gallery)
         expect(flow).toContainElement(description)
+        expect(flow).toContainElement(portfolio)
+        expect(flow).toContainElement(pricing)
         expect(flow).toContainElement(seller)
         expect(flow).toContainElement(reviews)
         expect(sidebar.querySelector('.package-card')).toBeInTheDocument()
         expect(header.compareDocumentPosition(gallery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(gallery.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(description.compareDocumentPosition(seller) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(description.compareDocumentPosition(portfolio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(portfolio.compareDocumentPosition(pricing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(pricing.compareDocumentPosition(seller) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(seller.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
@@ -353,7 +359,7 @@ describe('ExpertDetail', () => {
         expect(screen.queryByRole('button', { name: '프로필 수정하기' })).not.toBeInTheDocument()
     })
 
-    it('shows portfolio images without a sample link button', async () => {
+    it('shows a Fiverr-style service description, portfolio, and price comparison flow', async () => {
         render(
             <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
                 <Routes>
@@ -363,11 +369,13 @@ describe('ExpertDetail', () => {
         )
 
         expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
-        expect(screen.getByText('상세 이미지')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '서비스 설명' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '포트폴리오' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '가격 비교' })).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '샘플 링크 보기' })).not.toBeInTheDocument()
     })
 
-    it('shows the main image first and detail images below it in the detail image section', async () => {
+    it('shows one uncropped gallery image at a time and slides through multiple images', async () => {
         render(
             <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
                 <Routes>
@@ -379,10 +387,13 @@ describe('ExpertDetail', () => {
         expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
 
         const imageSection = screen.getByTestId('product-detail-gallery')
-        const images = within(imageSection).getAllByRole('img')
-        expect(images).toHaveLength(2)
-        expect(images[0]).toHaveAttribute(`src`, supabaseProduct.sampleImageUrl)
-        expect(images[1]).toHaveAttribute(`src`, supabaseProduct.sampleLinks[0])
+        expect(within(imageSection).getByText('1 / 2')).toBeInTheDocument()
+        expect(within(imageSection).getByRole('img')).toHaveAttribute(`src`, supabaseProduct.sampleImageUrl)
+
+        fireEvent.click(within(imageSection).getByRole('button', { name: '다음 이미지' }))
+
+        expect(within(imageSection).getByText('2 / 2')).toBeInTheDocument()
+        expect(within(imageSection).getByRole('img')).toHaveAttribute(`src`, supabaseProduct.sampleLinks[0])
         expect(within(imageSection).queryByText('메인 이미지')).not.toBeInTheDocument()
         expect(within(imageSection).queryByText('상세 이미지 1')).not.toBeInTheDocument()
     })
