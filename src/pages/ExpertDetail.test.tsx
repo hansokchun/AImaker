@@ -15,6 +15,24 @@ const supabaseProduct: ExpertProduct = {
     taxInvoiceAvailable: true,
 }
 
+const sellerPortfolioProduct: ExpertProduct = {
+    ...mockExpertProducts[1],
+    id: 'seller-portfolio-product-01',
+    expertId: supabaseProduct.expertId,
+    expertName: supabaseProduct.expertName,
+    title: '판매자의 다른 AI 영상 상품',
+    category: supabaseProduct.category,
+}
+
+const similarProduct: ExpertProduct = {
+    ...mockExpertProducts[2],
+    id: 'similar-product-01',
+    expertId: 'expert-other-01',
+    expertName: '다른 전문가',
+    title: '비슷한 AI 숏폼 상품',
+    category: supabaseProduct.category,
+}
+
 const expertReviews: Review[] = [
     {
         id: 'review-public-01',
@@ -46,12 +64,12 @@ const getStoredProfile = vi.fn(async () => ({
     imageUrl: 'https://example.com/avatar.jpg',
     profession: 'AI video',
     name: '검증된 AI 전문가',
-    oneLiner: '',
-    greeting: '',
-    activities: [],
-    awards: [],
+    oneLiner: '브랜드 영상의 기획과 제작 흐름을 함께 설계합니다.',
+    greeting: 'AI 영상 제작을 처음 의뢰하는 분도 이해하기 쉽게 진행 과정을 안내합니다.',
+    activities: ['브랜드 숏폼 캠페인 30건 제작', 'AI 영상 워크플로우 컨설팅'],
+    awards: ['2026 AI 영상 공모전 우수상'],
     aiTools: ['Runway'],
-    editTools: [],
+    editTools: ['Premiere Pro'],
     sampleLinks: [],
     contactAvailableTime: '평일 10:00-18:00',
     averageResponseTime: '평균 2시간 이내',
@@ -104,7 +122,7 @@ function LocationProbe() {
 describe('ExpertDetail', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        getExpertProducts.mockResolvedValue([supabaseProduct])
+        getExpertProducts.mockResolvedValue([supabaseProduct, sellerPortfolioProduct, similarProduct])
         getUserDisplayProfile.mockResolvedValue({
             name: '검증된 AI 전문가',
             imageUrl: 'https://example.com/avatar.jpg',
@@ -114,12 +132,12 @@ describe('ExpertDetail', () => {
             imageUrl: 'https://example.com/avatar.jpg',
             profession: 'AI video',
             name: '검증된 AI 전문가',
-            oneLiner: '',
-            greeting: '',
-            activities: [],
-            awards: [],
+            oneLiner: '브랜드 영상의 기획과 제작 흐름을 함께 설계합니다.',
+            greeting: 'AI 영상 제작을 처음 의뢰하는 분도 이해하기 쉽게 진행 과정을 안내합니다.',
+            activities: ['브랜드 숏폼 캠페인 30건 제작', 'AI 영상 워크플로우 컨설팅'],
+            awards: ['2026 AI 영상 공모전 우수상'],
             aiTools: ['Runway'],
-            editTools: [],
+            editTools: ['Premiere Pro'],
             sampleLinks: [],
             contactAvailableTime: '평일 10:00-18:00',
             averageResponseTime: '평균 2시간 이내',
@@ -373,6 +391,43 @@ describe('ExpertDetail', () => {
         expect(screen.getByRole('heading', { name: '포트폴리오' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '가격 비교' })).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '샘플 링크 보기' })).not.toBeInTheDocument()
+    })
+
+    it('shows detailed seller profile, seller portfolio products, review context, and similar recommendations', async () => {
+        render(
+            <MemoryRouter initialEntries={[`/expert/${supabaseProduct.id}`]}>
+                <Routes>
+                    <Route path="/expert/:id" element={<ExpertDetail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: supabaseProduct.title })).toBeInTheDocument()
+
+        const sellerDetail = screen.getByTestId('product-detail-seller')
+        expect(within(sellerDetail).getByRole('heading', { name: '판매자 정보' })).toBeInTheDocument()
+        expect(within(sellerDetail).getByText('브랜드 영상의 기획과 제작 흐름을 함께 설계합니다.')).toBeInTheDocument()
+        expect(within(sellerDetail).getByText('AI 영상 제작을 처음 의뢰하는 분도 이해하기 쉽게 진행 과정을 안내합니다.')).toBeInTheDocument()
+        expect(within(sellerDetail).getByText('Runway')).toBeInTheDocument()
+        expect(within(sellerDetail).getByText('Premiere Pro')).toBeInTheDocument()
+        expect(within(sellerDetail).getByText('브랜드 숏폼 캠페인 30건 제작')).toBeInTheDocument()
+        expect(within(sellerDetail).getByText('2026 AI 영상 공모전 우수상')).toBeInTheDocument()
+
+        const sellerPortfolio = screen.getByTestId('seller-portfolio-products')
+        expect(within(sellerPortfolio).getByRole('heading', { name: '마이 포트폴리오' })).toBeInTheDocument()
+        expect(within(sellerPortfolio).getByRole('link', { name: sellerPortfolioProduct.title })).toHaveAttribute('href', `/expert/${sellerPortfolioProduct.id}`)
+        expect(within(sellerPortfolio).queryByRole('link', { name: supabaseProduct.title })).not.toBeInTheDocument()
+
+        const reviews = screen.getByTestId('product-detail-reviews')
+        expect(within(reviews).getByText('의뢰자 client-review-01')).toBeInTheDocument()
+        expect(within(reviews).getAllByText((_, node) =>
+            node?.textContent === `평점 5.0 · 주문 상품: ${supabaseProduct.title}`,
+        ).length).toBeGreaterThan(0)
+
+        const similar = screen.getByTestId('similar-product-recommendations')
+        expect(within(similar).getByRole('heading', { name: '비슷한 AI 상품' })).toBeInTheDocument()
+        expect(within(similar).getByRole('link', { name: similarProduct.title })).toHaveAttribute('href', `/expert/${similarProduct.id}`)
+        expect(within(similar).queryByRole('link', { name: supabaseProduct.title })).not.toBeInTheDocument()
     })
 
     it('shows one uncropped gallery image at a time and slides through multiple images', async () => {

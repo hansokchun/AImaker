@@ -13,6 +13,13 @@ type SellerProfile = {
     name: string
     imageUrl: string
     isExpert: boolean
+    profession?: string
+    oneLiner?: string
+    greeting?: string
+    activities: string[]
+    awards: string[]
+    aiTools: string[]
+    editTools: string[]
     contactAvailableTime?: string
     averageResponseTime?: string
 }
@@ -37,6 +44,13 @@ const mergeSellerProfile = (
     name: displayProfile?.name || storedProfile?.name || fallbackName,
     imageUrl: displayProfile?.imageUrl || storedProfile?.imageUrl || '',
     isExpert: Boolean(displayProfile?.isExpert || storedProfile),
+    profession: storedProfile?.profession || '',
+    oneLiner: storedProfile?.oneLiner || '',
+    greeting: storedProfile?.greeting || '',
+    activities: storedProfile?.activities || [],
+    awards: storedProfile?.awards || [],
+    aiTools: storedProfile?.aiTools || [],
+    editTools: storedProfile?.editTools || [],
     contactAvailableTime: storedProfile?.contactAvailableTime || '',
     averageResponseTime: storedProfile?.averageResponseTime || '',
 })
@@ -50,6 +64,8 @@ const formatProductCreatedAt = (createdAt?: string) => {
 
 const isVideoMedia = (src: string) =>
     /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
+
+const getReviewClientName = (clientId: string) => `의뢰자 ${clientId}`
 
 const getPackageComparisonFeatures = (packageEntries: readonly (readonly ['standard' | 'deluxe' | 'premium', ProductPackage])[]) => {
     const features = new Set<string>()
@@ -70,6 +86,7 @@ export default function ExpertDetail() {
     const [creatingConsultation, setCreatingConsultation] = useState(false)
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
     const [activeGalleryIndex, setActiveGalleryIndex] = useState(0)
+    const [allProducts, setAllProducts] = useState<ExpertProduct[]>([])
     const [product, setProduct] = useState<ExpertProduct | null>(null)
     const [sellerProducts, setSellerProducts] = useState<ExpertProduct[]>([])
     const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null)
@@ -87,6 +104,7 @@ export default function ExpertDetail() {
             const sellerId = foundProduct?.expertId || id || ''
             const productsBySeller = products.filter((item) => item.expertId === sellerId)
 
+            setAllProducts(products)
             setProduct(foundProduct)
             setSellerProducts(productsBySeller)
 
@@ -295,6 +313,16 @@ export default function ExpertDetail() {
         premium: 'Premium',
     }
     const packageComparisonFeatures = getPackageComparisonFeatures(packageEntries)
+    const sellerPortfolioProducts = sellerProducts
+        .filter((sellerProduct) => sellerProduct.id !== product.id)
+        .slice(0, 4)
+    const similarProducts = allProducts
+        .filter((candidate) => candidate.id !== product.id && candidate.category === product.category)
+        .slice(0, 4)
+    const sellerTools = [
+        ...(sellerProfile?.aiTools || []),
+        ...(sellerProfile?.editTools || []),
+    ].filter(Boolean)
 
     return (
         <main className="container">
@@ -515,7 +543,7 @@ export default function ExpertDetail() {
                             <div>
                                 <strong>{sellerName}</strong>
                                 <div className="seller-clean-details">
-                                    <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
+                                    <p>{sellerProfile?.profession || (sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가')}</p>
                                     <p>{reviewSummary}</p>
                                     {sellerProfile?.contactAvailableTime && (
                                         <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
@@ -529,7 +557,70 @@ export default function ExpertDetail() {
                                 </div>
                             </div>
                         </div>
+                        <div className="seller-profile-detail-card">
+                            {sellerProfile?.oneLiner && (
+                                <p className="seller-profile-one-liner">{sellerProfile.oneLiner}</p>
+                            )}
+                            {sellerProfile?.greeting && (
+                                <p className="seller-profile-greeting">{sellerProfile.greeting}</p>
+                            )}
+                            {sellerTools.length > 0 && (
+                                <div className="seller-profile-block">
+                                    <strong>사용 도구</strong>
+                                    <div className="tool-chip-list">
+                                        {sellerTools.map((tool) => (
+                                            <span key={tool} className="tool-chip">{tool}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {sellerProfile?.activities && sellerProfile.activities.length > 0 && (
+                                <div className="seller-profile-block">
+                                    <strong>주요 활동</strong>
+                                    <ul className="seller-profile-list">
+                                        {sellerProfile.activities.map((activity) => (
+                                            <li key={activity}>{activity}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {sellerProfile?.awards && sellerProfile.awards.length > 0 && (
+                                <div className="seller-profile-block">
+                                    <strong>수상/경력</strong>
+                                    <ul className="seller-profile-list">
+                                        {sellerProfile.awards.map((award) => (
+                                            <li key={award}>{award}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
                     </section>
+
+                    {sellerPortfolioProducts.length > 0 && (
+                        <section className="detail-section seller-portfolio-products-section" data-testid="seller-portfolio-products">
+                            <h2>
+                                <span className="material-symbols-outlined" aria-hidden="true">dashboard</span>
+                                마이 포트폴리오
+                            </h2>
+                            <div className="recommendation-grid">
+                                {sellerPortfolioProducts.map((portfolioProduct) => (
+                                    <Link
+                                        key={portfolioProduct.id}
+                                        to={`/expert/${portfolioProduct.id}`}
+                                        className="recommendation-card"
+                                        aria-label={portfolioProduct.title}
+                                    >
+                                        {portfolioProduct.sampleImageUrl && (
+                                            <img src={portfolioProduct.sampleImageUrl} alt={`${portfolioProduct.title} 대표 이미지`} />
+                                        )}
+                                        <strong>{portfolioProduct.title}</strong>
+                                        <span>{portfolioProduct.startingPrice.toLocaleString()}원부터 · {portfolioProduct.deliveryDays}일</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     <section className="detail-section seller-review-section" data-testid="product-detail-reviews">
                         <h2>
@@ -540,7 +631,15 @@ export default function ExpertDetail() {
                             <div className="seller-review-list">
                                 {expertReviews.map((review) => (
                                     <article key={review.id} className="seller-review-card">
-                                        <strong>평점 {review.rating}.0</strong>
+                                        <div className="seller-review-header">
+                                            <div className="seller-review-avatar" aria-hidden="true">
+                                                {getReviewClientName(review.clientId).slice(-1)}
+                                            </div>
+                                            <div>
+                                                <strong>{getReviewClientName(review.clientId)}</strong>
+                                                <span>평점 {review.rating}.0 · 주문 상품: {product.title}</span>
+                                            </div>
+                                        </div>
                                         <p>{review.content}</p>
                                     </article>
                                 ))}
@@ -549,6 +648,32 @@ export default function ExpertDetail() {
                             <p className="seller-empty-copy">아직 받은 리뷰가 없습니다.</p>
                         )}
                     </section>
+
+                    {similarProducts.length > 0 && (
+                        <section className="detail-section similar-products-section" data-testid="similar-product-recommendations">
+                            <h2>
+                                <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
+                                비슷한 AI 상품
+                            </h2>
+                            <div className="recommendation-grid">
+                                {similarProducts.map((similarProduct) => (
+                                    <Link
+                                        key={similarProduct.id}
+                                        to={`/expert/${similarProduct.id}`}
+                                        className="recommendation-card"
+                                        aria-label={similarProduct.title}
+                                    >
+                                        {similarProduct.sampleImageUrl && (
+                                            <img src={similarProduct.sampleImageUrl} alt={`${similarProduct.title} 대표 이미지`} />
+                                        )}
+                                        <strong>{similarProduct.title}</strong>
+                                        <span>{similarProduct.expertName}</span>
+                                        <small>{similarProduct.startingPrice.toLocaleString()}원부터 · {similarProduct.deliveryDays}일</small>
+                                    </Link>
+                                ))}
+                            </div>
+                        </section>
+                    )}
                 </div>
 
                 <div className="content-right" data-testid="product-package-sidebar">

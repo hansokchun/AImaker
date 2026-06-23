@@ -270,6 +270,49 @@
     margin-top: 0.2rem;
 }
 
+.seller-profile-detail-card {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    background: white;
+}
+
+.seller-profile-one-liner {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 750;
+    line-height: 1.55;
+}
+
+.seller-profile-greeting {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.75;
+}
+
+.seller-profile-block {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.seller-profile-block > strong {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.seller-profile-list {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding-left: 1.15rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
 .seller-profile-page {
     padding: 4rem 0;
 }
@@ -381,10 +424,35 @@
     background: #f8fafc;
 }
 
+.seller-review-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.85rem;
+}
+
+.seller-review-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #eef2ff;
+    color: var(--primary);
+    font-weight: 900;
+}
+
 .seller-review-card strong {
     display: block;
-    margin-bottom: 0.5rem;
-    color: var(--primary);
+    margin-bottom: 0.15rem;
+    color: var(--text-primary);
+}
+
+.seller-review-card span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.45;
 }
 
 .seller-review-card p,
@@ -392,6 +460,47 @@
     margin: 0;
     color: var(--text-secondary);
     line-height: 1.7;
+}
+
+.recommendation-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.recommendation-card {
+    display: grid;
+    gap: 0.65rem;
+    color: var(--text-primary);
+}
+
+.recommendation-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #e2e8f0;
+}
+
+.recommendation-card strong,
+.recommendation-card span,
+.recommendation-card small {
+    display: block;
+}
+
+.recommendation-card strong {
+    font-size: 0.98rem;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.recommendation-card span,
+.recommendation-card small {
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.recommendation-card small {
+    font-weight: 700;
 }
 
 .media-gallery-section {
@@ -831,6 +940,7 @@
     }
 
     .portfolio-preview-grid,
+    .recommendation-grid,
     .price-comparison-row {
         grid-template-columns: 1fr;
     }
