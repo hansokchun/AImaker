@@ -58,7 +58,7 @@ describe('ProductCard', () => {
     expect(screen.queryByRole('link', { name: '상품 구매하기' })).not.toBeInTheDocument()
   })
 
-  it('presents marketplace listing details close to a Fiverr card', () => {
+  it('presents the compact listing details clients need for browsing', () => {
     const product = {
       ...mockExpertProducts[0],
       taxInvoiceAvailable: true,
@@ -70,13 +70,17 @@ describe('ProductCard', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('AI 영상/숏폼')).toBeInTheDocument()
     expect(screen.getByText(product.expertName.slice(0, 1))).toBeInTheDocument()
-    expect(screen.getByText('평점 신규')).toBeInTheDocument()
-    expect(screen.getByText(`시작가 ${currencyForTest(product.startingPrice)}원`)).toBeInTheDocument()
-    expect(screen.getByText(`${product.deliveryDays}일 납기`)).toBeInTheDocument()
-    expect(screen.getByText(`수정 ${product.revisionCount}회`)).toBeInTheDocument()
-    expect(screen.getByText('세금계산서 가능')).toBeInTheDocument()
+    expect(screen.getByText(product.expertName)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: product.title })).toBeInTheDocument()
+    expect(screen.getByText(product.summary)).toBeInTheDocument()
+    expect(screen.getByText(`${currencyForTest(product.startingPrice)}원부터`)).toBeInTheDocument()
+    expect(screen.queryByText('AI 영상/숏폼')).not.toBeInTheDocument()
+    expect(screen.queryByText('평점 신규')).not.toBeInTheDocument()
+    expect(screen.queryByText(`${product.deliveryDays}일 납기`)).not.toBeInTheDocument()
+    expect(screen.queryByText(`수정 ${product.revisionCount}회`)).not.toBeInTheDocument()
+    expect(screen.queryByText('세금계산서 가능')).not.toBeInTheDocument()
+    expect(screen.queryByText(product.aiTools[0])).not.toBeInTheDocument()
   })
 
   it('toggles a product as a favorite without opening the detail page', async () => {

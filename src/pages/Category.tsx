@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import CategoryBrowsePanel from './CategoryBrowsePanel'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
@@ -23,14 +23,8 @@ export default function Category() {
     const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
     const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(initialSelectedCategories)
     const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '')
-    const [selectedTool, setSelectedTool] = useState('')
     const [sortBy, setSortBy] = useState<SortOption>('추천순')
     const [maxPrice, setMaxPrice] = useState(1000000)
-
-    const tools = useMemo(
-        () => Array.from(new Set(products.flatMap((product) => product.aiTools))).sort(),
-        [products],
-    )
 
     useEffect(() => {
         let active = true
@@ -76,7 +70,6 @@ export default function Category() {
             product.summary,
             product.description,
             product.expertName,
-            ...product.aiTools,
         ]
             .join(' ')
             .toLowerCase()
@@ -86,9 +79,8 @@ export default function Category() {
             selectedCategories.includes(product.category)
         const matchesKeyword = !normalizedKeyword || searchableText.includes(normalizedKeyword)
         const matchesPrice = product.startingPrice <= maxPrice
-        const matchesTool = !selectedTool || product.aiTools.includes(selectedTool)
 
-        return matchesCategory && matchesKeyword && matchesPrice && matchesTool
+        return matchesCategory && matchesKeyword && matchesPrice
     })
 
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -114,37 +106,32 @@ export default function Category() {
     return (
         <>
             <div className="category-hero">
-                <div className="container category-hero-inner">
+                <div className="container">
                     <div className="category-hero-copy">
-                        <span>AIConnect Marketplace</span>
+                        <nav className="category-breadcrumb" aria-label="현재 위치">
+                            <Link to="/">홈</Link>
+                            <span aria-hidden="true">/</span>
+                            <span>AI 작업 찾기</span>
+                        </nav>
                         <h1>AI 작업 찾기</h1>
                         <p>샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 AI 상품을 바로 확인하세요.</p>
-                    </div>
-                    <div className="category-hero-metrics" aria-label="AIConnect 상품찾기 요약">
-                        <div>
-                            <strong>{AI_CATEGORIES.length}</strong>
-                            <span>초기 AI 카테고리</span>
-                        </div>
-                        <div>
-                            <strong>2만 원대</strong>
-                            <span>입문형 작업부터</span>
-                        </div>
-                        <div>
-                            <strong>단계 확인</strong>
-                            <span>작업 진행표 기반</span>
-                        </div>
                     </div>
                 </div>
             </div>
 
             <main className="container">
-                <form className="category-search category-search--top" role="search" onSubmit={(event) => event.preventDefault()}>
-                    <label htmlFor="category-product-search">상품 검색</label>
+                <form
+                    className="category-search category-search--top"
+                    role="search"
+                    aria-label="상품 검색"
+                    onSubmit={(event) => event.preventDefault()}
+                >
                     <div className="category-search-box">
                         <span className="material-symbols-outlined" aria-hidden="true">search</span>
                         <input
                             id="category-product-search"
                             type="search"
+                            aria-label="상품 검색어"
                             value={searchKeyword}
                             onChange={(event) => setSearchKeyword(event.target.value)}
                             placeholder="어떤 AI 작업이 필요하신가요?"
@@ -153,8 +140,6 @@ export default function Category() {
                 </form>
 
                 <CategoryBrowsePanel
-                    selectedCategories={selectedCategories}
-                    onSelectCategory={(categoryId) => setSelectedCategories([categoryId])}
                     onSearchTerm={setSearchKeyword}
                 />
 
@@ -201,22 +186,6 @@ export default function Category() {
                             </div>
                         </div>
 
-                        <div className="filter-group">
-                            <h4>AI 도구</h4>
-                            <select
-                                aria-label="사용 AI 도구"
-                                className="tool-select"
-                                value={selectedTool}
-                                onChange={(event) => setSelectedTool(event.target.value)}
-                            >
-                                <option value="">전체 도구</option>
-                                {tools.map((tool) => (
-                                    <option key={tool} value={tool}>
-                                        {tool}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
                     </aside>
 
                     <div className="product-list-main">

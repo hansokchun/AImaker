@@ -48,7 +48,8 @@ describe('Category', () => {
 
     const maxPriceInput = container.querySelector<HTMLInputElement>('#max-price')
     expect(maxPriceInput).not.toBeNull()
-    fireEvent.change(maxPriceInput!, { target: { value: '10000' } })
+    if (maxPriceInput === null) throw new Error('max price input missing')
+    fireEvent.change(maxPriceInput, { target: { value: '10000' } })
 
     expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
@@ -60,7 +61,7 @@ describe('Category', () => {
       ...mockExpertProducts[0],
       id: 'product-unknown-category',
       title: 'Unknown category product',
-      category: 'custom-category-from-db' as any,
+      category: 'custom-category-from-db',
     }
     getExpertProducts.mockResolvedValue([unknownCategoryProduct])
 
@@ -86,7 +87,7 @@ describe('Category', () => {
     expect(screen.getByText(`총 ${mockExpertProducts.length}개의 AI 작업`)).toBeInTheDocument()
   })
 
-  it('renders Fiverr-style category browsing scaffolding before product results', async () => {
+  it('renders breadcrumb navigation and popular searches without the category card panel', async () => {
     render(
       <MemoryRouter>
         <Category />
@@ -94,14 +95,15 @@ describe('Category', () => {
     )
 
     expect(await screen.findByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'AI 작업을 카테고리별로 탐색하세요' })).toBeInTheDocument()
-    expect(screen.getByText('판매자 샘플, 시작가, 납기를 한 화면에서 비교하세요.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: `${AI_CATEGORIES[0].name} 카테고리 보기` })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: `${AI_CATEGORIES[1].name} 카테고리 보기` })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: `${AI_CATEGORIES[2].name} 카테고리 보기` })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: '현재 위치' })).toHaveTextContent('홈/AI 작업 찾기')
+    expect(screen.queryByText('AIConnect Marketplace')).not.toBeInTheDocument()
+    expect(screen.queryByText('상품 검색')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'AI 작업을 카테고리별로 탐색하세요' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: `${AI_CATEGORIES[0].name} 카테고리 보기` })).not.toBeInTheDocument()
     expect(screen.getByText('자주 찾는 AI 작업')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '숏폼 영상 검색' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '업무 자동화 검색' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: '사용 AI 도구' })).not.toBeInTheDocument()
   })
 
   it('filters to the clicked category from the initial all-selected state', async () => {
@@ -145,15 +147,15 @@ describe('Category', () => {
 
     expect(await screen.findByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
-    expect(screen.getByLabelText('상품 검색')).toHaveValue(mockExpertProducts[1].title)
+    expect(screen.getByLabelText('상품 검색어')).toHaveValue(mockExpertProducts[1].title)
 
-    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: mockExpertProducts[0].title } })
+    fireEvent.change(screen.getByLabelText('상품 검색어'), { target: { value: mockExpertProducts[0].title } })
 
     expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
   })
 
-  it('searches product summaries, descriptions, experts, and tools as well as titles', async () => {
+  it('searches product summaries, descriptions, and experts as well as titles', async () => {
     const products = [
       {
         ...mockExpertProducts[0],
@@ -185,11 +187,11 @@ describe('Category', () => {
     expect(await screen.findByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '다른 상품' })).not.toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: '전환디자인랩' } })
+    fireEvent.change(screen.getByLabelText('상품 검색어'), { target: { value: '전환디자인랩' } })
     expect(screen.getByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('상품 검색'), { target: { value: 'Runway' } })
-    expect(screen.getByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('상품 검색어'), { target: { value: 'Runway' } })
+    expect(screen.queryByRole('heading', { name: '제목에는 없는 상품' })).not.toBeInTheDocument()
   })
 
   it('deselects a category when the selected category is clicked again', async () => {
