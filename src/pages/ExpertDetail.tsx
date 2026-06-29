@@ -501,7 +501,7 @@ export default function ExpertDetail() {
                             <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
                             판매자 정보
                         </h2>
-                        <div className="seller-info-card seller-info-card-fiverr">
+                        <div className="seller-info-card seller-info-card-fiverr" data-testid="seller-info-summary">
                             {sellerImageUrl ? (
                                 <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
                             ) : (
@@ -532,27 +532,27 @@ export default function ExpertDetail() {
                                         판매자 프로필 보기
                                     </Link>
                                 </div>
-                                <dl className="seller-stats-grid">
-                                    <div aria-label={`연락 가능 시간 ${sellerContactAvailableTime}`}>
-                                        <dt>연락 가능 시간</dt>
-                                        <dd>{sellerContactAvailableTime}</dd>
-                                    </div>
-                                    <div aria-label={`평균 응답 시간 ${sellerAverageResponseTime}`}>
-                                        <dt>평균 응답 시간</dt>
-                                        <dd>{sellerAverageResponseTime}</dd>
-                                    </div>
-                                    <div aria-label={`등록 상품 ${sellerProducts.length}개`}>
-                                        <dt>등록 상품</dt>
-                                        <dd>{sellerProducts.length}개</dd>
-                                    </div>
-                                    <div aria-label={`받은 리뷰 ${expertReviews.length}개`}>
-                                        <dt>받은 리뷰</dt>
-                                        <dd>{expertReviews.length}개</dd>
-                                    </div>
-                                </dl>
                             </div>
                         </div>
-                        <div className="seller-profile-detail-card seller-profile-overview-card">
+                        <div className="seller-profile-detail-card seller-profile-overview-card" data-testid="seller-profile-overview">
+                            <dl className="seller-stats-grid seller-profile-stats-grid">
+                                <div aria-label={`연락 가능 시간 ${sellerContactAvailableTime}`}>
+                                    <dt>연락 가능 시간</dt>
+                                    <dd>{sellerContactAvailableTime}</dd>
+                                </div>
+                                <div aria-label={`평균 응답 시간 ${sellerAverageResponseTime}`}>
+                                    <dt>평균 응답 시간</dt>
+                                    <dd>{sellerAverageResponseTime}</dd>
+                                </div>
+                                <div aria-label={`등록 상품 ${sellerProducts.length}개`}>
+                                    <dt>등록 상품</dt>
+                                    <dd>{sellerProducts.length}개</dd>
+                                </div>
+                                <div aria-label={`받은 리뷰 ${expertReviews.length}개`}>
+                                    <dt>받은 리뷰</dt>
+                                    <dd>{expertReviews.length}개</dd>
+                                </div>
+                            </dl>
                             <div className="seller-profile-intro">
                                 <strong>판매자 소개</strong>
                                 {sellerProfile?.oneLiner && (

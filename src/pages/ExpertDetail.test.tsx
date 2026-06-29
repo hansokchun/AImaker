@@ -24,6 +24,15 @@ const sellerPortfolioProduct: ExpertProduct = {
     category: supabaseProduct.category,
 }
 
+const sellerPortfolioProductSecond: ExpertProduct = {
+    ...mockExpertProducts[2],
+    id: 'seller-portfolio-product-02',
+    expertId: supabaseProduct.expertId,
+    expertName: supabaseProduct.expertName,
+    title: '판매자의 자동화 AI 상품',
+    category: supabaseProduct.category,
+}
+
 const similarProduct: ExpertProduct = {
     ...mockExpertProducts[2],
     id: 'similar-product-01',
@@ -52,6 +61,15 @@ const expertReviews: Review[] = [
         content: '요구사항 반영이 좋았습니다.',
         createdAt: '2026-06-02T10:00:00.000Z',
     },
+    {
+        id: 'review-public-03',
+        workId: 'work-public-03',
+        clientId: 'client-review-03',
+        expertId: supabaseProduct.expertId,
+        rating: 5,
+        content: '짧은 일정에도 결과물이 안정적이었습니다.',
+        createdAt: '2026-06-03T10:00:00.000Z',
+    },
 ]
 
 const getExpertProducts = vi.fn(async () => [supabaseProduct])
@@ -71,8 +89,8 @@ const getStoredProfile = vi.fn(async () => ({
     aiTools: ['Runway'],
     editTools: ['Premiere Pro'],
     sampleLinks: [],
-    contactAvailableTime: '평일 10:00-18:00',
-    averageResponseTime: '평균 2시간 이내',
+    contactAvailableTime: '평일 10:00-19:00',
+    averageResponseTime: '보통 2시간 이내',
     packages: {
         standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
         deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -122,7 +140,7 @@ function LocationProbe() {
 describe('ExpertDetail', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        getExpertProducts.mockResolvedValue([supabaseProduct, sellerPortfolioProduct, similarProduct])
+        getExpertProducts.mockResolvedValue([supabaseProduct, sellerPortfolioProduct, sellerPortfolioProductSecond, similarProduct])
         getUserDisplayProfile.mockResolvedValue({
             name: '검증된 AI 전문가',
             imageUrl: 'https://example.com/avatar.jpg',
@@ -139,8 +157,8 @@ describe('ExpertDetail', () => {
             aiTools: ['Runway'],
             editTools: ['Premiere Pro'],
             sampleLinks: [],
-            contactAvailableTime: '평일 10:00-18:00',
-            averageResponseTime: '평균 2시간 이내',
+            contactAvailableTime: '평일 10:00-19:00',
+            averageResponseTime: '보통 2시간 이내',
             packages: {
                 standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
                 deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
@@ -169,7 +187,7 @@ describe('ExpertDetail', () => {
         expect(screen.queryByText('3명 관심')).not.toBeInTheDocument()
         expect(screen.queryByText('0명 관심')).not.toBeInTheDocument()
         expect(screen.getByText('등록일 2026. 6. 10.')).toBeInTheDocument()
-        expect(screen.getByLabelText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
+        expect(screen.getByLabelText('연락 가능 시간 평일 10:00-19:00')).toBeInTheDocument()
         expect(screen.getByText('세금계산서 발행 가능')).toBeInTheDocument()
         await waitFor(() => expect(getFavoriteProductCount).toHaveBeenCalledWith(supabaseProduct.id))
     })
@@ -190,7 +208,7 @@ describe('ExpertDetail', () => {
         expect(getExpertReviews).toHaveBeenCalledWith(supabaseProduct.expertId)
         expect(screen.getByRole('heading', { name: '판매자 정보' })).toBeInTheDocument()
         expect(screen.getAllByText('검증된 AI 전문가').length).toBeGreaterThanOrEqual(1)
-        expect(screen.getAllByText('평점 4.5 · 리뷰 2개').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getAllByText('평점 4.7 · 리뷰 3개').length).toBeGreaterThanOrEqual(1)
         expect(screen.getByRole('link', { name: '판매자 프로필 보기' })).toHaveAttribute(
             'href',
             `/expert/${supabaseProduct.expertId}`,
@@ -282,7 +300,7 @@ describe('ExpertDetail', () => {
         expect(screen.getByRole('heading', { name: '받은 리뷰' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: supabaseProduct.title })).toHaveAttribute('href', `/expert/${supabaseProduct.id}`)
         expect(screen.getByText('AIConnect 전문가')).toBeInTheDocument()
-        expect(screen.getByText('평점 4.5 · 리뷰 2개')).toBeInTheDocument()
+        expect(screen.getByText('평점 4.7 · 리뷰 3개')).toBeInTheDocument()
         expect(screen.getByText('결과물이 깔끔하고 소통이 빨랐습니다.')).toBeInTheDocument()
     })
 
@@ -408,10 +426,18 @@ describe('ExpertDetail', () => {
         const sellerDetail = screen.getByTestId('product-detail-seller')
         expect(within(sellerDetail).getByRole('heading', { name: '판매자 정보' })).toBeInTheDocument()
         expect(within(sellerDetail).getByRole('button', { name: '판매자에게 문의하기' })).toBeInTheDocument()
-        expect(within(sellerDetail).getByLabelText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
-        expect(within(sellerDetail).getByLabelText('평균 응답 시간 평균 2시간 이내')).toBeInTheDocument()
-        expect(within(sellerDetail).getByLabelText('등록 상품 2개')).toBeInTheDocument()
-        expect(within(sellerDetail).getByLabelText('받은 리뷰 2개')).toBeInTheDocument()
+
+        const sellerSummary = screen.getByTestId('seller-info-summary')
+        expect(within(sellerSummary).queryByLabelText('연락 가능 시간 평일 10:00-19:00')).not.toBeInTheDocument()
+        expect(within(sellerSummary).queryByLabelText('평균 응답 시간 보통 2시간 이내')).not.toBeInTheDocument()
+        expect(within(sellerSummary).queryByLabelText('등록 상품 3개')).not.toBeInTheDocument()
+        expect(within(sellerSummary).queryByLabelText('받은 리뷰 3개')).not.toBeInTheDocument()
+
+        const sellerIntro = screen.getByTestId('seller-profile-overview')
+        expect(within(sellerIntro).getByLabelText('연락 가능 시간 평일 10:00-19:00')).toBeInTheDocument()
+        expect(within(sellerIntro).getByLabelText('평균 응답 시간 보통 2시간 이내')).toBeInTheDocument()
+        expect(within(sellerIntro).getByLabelText('등록 상품 3개')).toBeInTheDocument()
+        expect(within(sellerIntro).getByLabelText('받은 리뷰 3개')).toBeInTheDocument()
         expect(within(sellerDetail).getByText('브랜드 영상의 기획과 제작 흐름을 함께 설계합니다.')).toBeInTheDocument()
         expect(within(sellerDetail).getByText('AI 영상 제작을 처음 의뢰하는 분도 이해하기 쉽게 진행 과정을 안내합니다.')).toBeInTheDocument()
         expect(within(sellerDetail).queryByText('Runway')).not.toBeInTheDocument()
