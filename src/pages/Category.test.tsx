@@ -86,6 +86,24 @@ describe('Category', () => {
     expect(screen.getByText(`총 ${mockExpertProducts.length}개의 AI 작업`)).toBeInTheDocument()
   })
 
+  it('renders Fiverr-style category browsing scaffolding before product results', async () => {
+    render(
+      <MemoryRouter>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'AI 작업을 카테고리별로 탐색하세요' })).toBeInTheDocument()
+    expect(screen.getByText('판매자 샘플, 시작가, 납기를 한 화면에서 비교하세요.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: `${AI_CATEGORIES[0].name} 카테고리 보기` })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: `${AI_CATEGORIES[1].name} 카테고리 보기` })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: `${AI_CATEGORIES[2].name} 카테고리 보기` })).toBeInTheDocument()
+    expect(screen.getByText('자주 찾는 AI 작업')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '숏폼 영상 검색' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '업무 자동화 검색' })).toBeInTheDocument()
+  })
+
   it('filters to the clicked category from the initial all-selected state', async () => {
     render(
       <MemoryRouter>

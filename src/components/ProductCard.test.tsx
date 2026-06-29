@@ -109,6 +109,21 @@ describe('ProductCard', () => {
     expect(screen.queryByAltText(`${product.title} 샘플`)).not.toBeInTheDocument()
     expect(screen.getByText('이미지 준비 중')).toBeInTheDocument()
   })
+
+  it('falls back to a placeholder when the product image fails to load', async () => {
+    const product = { ...mockExpertProducts[0], sampleImageUrl: 'https://example.invalid/missing.jpg' }
+
+    render(
+      <MemoryRouter>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    )
+
+    fireEvent.error(screen.getByAltText(`${product.title} 샘플`))
+
+    expect(await screen.findByText('이미지 준비 중')).toBeInTheDocument()
+    expect(screen.queryByAltText(`${product.title} 샘플`)).not.toBeInTheDocument()
+  })
 })
 
 const currencyForTest = (value: number) => new Intl.NumberFormat('ko-KR').format(value)

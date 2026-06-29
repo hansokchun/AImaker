@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import CategoryBrowsePanel from './CategoryBrowsePanel'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { mockExpertProducts } from '../data/mockData'
 import { getExpertProducts } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct } from '../types'
+import './CategoryHero.css'
 import './Category.css'
 
 type SortOption = '추천순' | '가격 낮은순' | '가격 높은순' | '빠른 납기순'
@@ -112,10 +114,26 @@ export default function Category() {
     return (
         <>
             <div className="category-hero">
-                <div className="container">
-                    <span>AIConnect Marketplace</span>
-                    <h1>AI 작업 찾기</h1>
-                    <p>Fiverr처럼 샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 상품을 바로 확인하세요.</p>
+                <div className="container category-hero-inner">
+                    <div className="category-hero-copy">
+                        <span>AIConnect Marketplace</span>
+                        <h1>AI 작업 찾기</h1>
+                        <p>샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 AI 상품을 바로 확인하세요.</p>
+                    </div>
+                    <div className="category-hero-metrics" aria-label="AIConnect 상품찾기 요약">
+                        <div>
+                            <strong>{AI_CATEGORIES.length}</strong>
+                            <span>초기 AI 카테고리</span>
+                        </div>
+                        <div>
+                            <strong>2만 원대</strong>
+                            <span>입문형 작업부터</span>
+                        </div>
+                        <div>
+                            <strong>단계 확인</strong>
+                            <span>작업 진행표 기반</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -133,6 +151,12 @@ export default function Category() {
                         />
                     </div>
                 </form>
+
+                <CategoryBrowsePanel
+                    selectedCategories={selectedCategories}
+                    onSelectCategory={(categoryId) => setSelectedCategories([categoryId])}
+                    onSearchTerm={setSearchKeyword}
+                />
 
                 <div className="category-page-layout">
                     <aside className="filter-sidebar" aria-label="상품 필터">

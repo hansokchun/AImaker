@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { AiCategoryId, ExpertProduct } from '../types'
 import FavoriteProductButton from './FavoriteProductButton'
@@ -17,9 +18,15 @@ const categoryLabels: Record<AiCategoryId, string> = {
 
 export default function ProductCard({ product }: ProductCardProps) {
     const navigate = useNavigate()
+    const [imageFailed, setImageFailed] = useState(false)
     const detailUrl = `/expert/${product.id}`
     const expertUrl = `/expert/${product.expertId}`
+    const showSampleImage = Boolean(product.sampleImageUrl) && !imageFailed
     const openDetail = () => navigate(detailUrl)
+
+    useEffect(() => {
+        setImageFailed(false)
+    }, [product.sampleImageUrl])
 
     return (
         <article
@@ -42,8 +49,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             />
 
             <div className="product-card-image">
-                {product.sampleImageUrl ? (
-                    <img src={product.sampleImageUrl} alt={`${product.title} 샘플`} />
+                {showSampleImage ? (
+                    <img
+                        src={product.sampleImageUrl}
+                        alt={`${product.title} 샘플`}
+                        onError={() => setImageFailed(true)}
+                    />
                 ) : (
                     <div className="product-card-image-placeholder">이미지 준비 중</div>
                 )}
