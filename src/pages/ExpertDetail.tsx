@@ -19,8 +19,6 @@ type SellerProfile = {
     greeting?: string
     activities: string[]
     awards: string[]
-    aiTools: string[]
-    editTools: string[]
     contactAvailableTime?: string
     averageResponseTime?: string
 }
@@ -50,8 +48,6 @@ const mergeSellerProfile = (
     greeting: storedProfile?.greeting || '',
     activities: storedProfile?.activities || [],
     awards: storedProfile?.awards || [],
-    aiTools: storedProfile?.aiTools || [],
-    editTools: storedProfile?.editTools || [],
     contactAvailableTime: storedProfile?.contactAvailableTime || '',
     averageResponseTime: storedProfile?.averageResponseTime || '',
 })
@@ -270,7 +266,6 @@ export default function ExpertDetail() {
 
     if (!product) return null
 
-    const aiTools = Array.isArray(product.aiTools) ? product.aiTools : []
     const sampleLinks = Array.isArray(product.sampleLinks) ? product.sampleLinks : []
     const fallbackPackage: ProductPackage = {
         name: 'Standard',
@@ -309,10 +304,9 @@ export default function ExpertDetail() {
     const similarProducts = allProducts
         .filter((candidate) => candidate.id !== product.id && candidate.category === product.category)
         .slice(0, 4)
-    const sellerTools = [
-        ...(sellerProfile?.aiTools || []),
-        ...(sellerProfile?.editTools || []),
-    ].filter(Boolean)
+    const sellerProfession = sellerProfile?.profession || (sellerProfile?.isExpert ? 'AIConnect 판매자' : 'AI 작업 판매자')
+    const sellerContactAvailableTime = sellerProfile?.contactAvailableTime || '상담 후 안내'
+    const sellerAverageResponseTime = sellerProfile?.averageResponseTime || '응답 정보 준비 중'
 
     return (
         <main className="container">
@@ -502,28 +496,12 @@ export default function ExpertDetail() {
                         </div>
                     </section>
 
-                    {aiTools.length > 0 && (
-                        <section className="detail-section">
-                            <h2>
-                                <span className="material-symbols-outlined">construction</span>
-                                사용 AI 도구
-                            </h2>
-                            <div className="section-content tool-chip-list">
-                                {aiTools.map((tool) => (
-                                    <span key={tool} className="tool-chip">
-                                        {tool}
-                                    </span>
-                                ))}
-                            </div>
-                        </section>
-                    )}
-
                     <section className="detail-section seller-info-section" data-testid="product-detail-seller">
                         <h2 className="seller-clean-heading">
                             <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
                             판매자 정보
                         </h2>
-                        <div className="seller-info-card">
+                        <div className="seller-info-card seller-info-card-fiverr">
                             {sellerImageUrl ? (
                                 <img src={sellerImageUrl} alt={`${sellerName} 프로필`} />
                             ) : (
@@ -531,43 +509,62 @@ export default function ExpertDetail() {
                                     {sellerName.slice(0, 1)}
                                 </div>
                             )}
-                            <div>
-                                <strong>{sellerName}</strong>
+                            <div className="seller-info-main">
+                                <div className="seller-info-topline">
+                                    <div>
+                                        <strong>{sellerName}</strong>
+                                        <p>{sellerProfession}</p>
+                                    </div>
+                                    {user?.id !== product.expertId && (
+                                        <button
+                                            type="button"
+                                            className="seller-contact-button"
+                                            onClick={handleStartConsultation}
+                                            disabled={creatingConsultation}
+                                        >
+                                            {creatingConsultation ? '문의 시작 중' : '판매자에게 문의하기'}
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="seller-clean-details">
-                                    <p>{sellerProfile?.profession || (sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가')}</p>
                                     <p>{reviewSummary}</p>
-                                    {sellerProfile?.contactAvailableTime && (
-                                        <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
-                                    )}
-                                    {sellerProfile?.averageResponseTime && (
-                                        <p>평균 응답 시간 {sellerProfile.averageResponseTime}</p>
-                                    )}
                                     <Link to={`/expert/${product.expertId}`} className="seller-profile-clean-link">
                                         판매자 프로필 보기
                                     </Link>
                                 </div>
+                                <dl className="seller-stats-grid">
+                                    <div aria-label={`연락 가능 시간 ${sellerContactAvailableTime}`}>
+                                        <dt>연락 가능 시간</dt>
+                                        <dd>{sellerContactAvailableTime}</dd>
+                                    </div>
+                                    <div aria-label={`평균 응답 시간 ${sellerAverageResponseTime}`}>
+                                        <dt>평균 응답 시간</dt>
+                                        <dd>{sellerAverageResponseTime}</dd>
+                                    </div>
+                                    <div aria-label={`등록 상품 ${sellerProducts.length}개`}>
+                                        <dt>등록 상품</dt>
+                                        <dd>{sellerProducts.length}개</dd>
+                                    </div>
+                                    <div aria-label={`받은 리뷰 ${expertReviews.length}개`}>
+                                        <dt>받은 리뷰</dt>
+                                        <dd>{expertReviews.length}개</dd>
+                                    </div>
+                                </dl>
                             </div>
                         </div>
-                        <div className="seller-profile-detail-card">
-                            {sellerProfile?.oneLiner && (
-                                <p className="seller-profile-one-liner">{sellerProfile.oneLiner}</p>
-                            )}
-                            {sellerProfile?.greeting && (
-                                <p className="seller-profile-greeting">{sellerProfile.greeting}</p>
-                            )}
-                            {sellerTools.length > 0 && (
-                                <div className="seller-profile-block">
-                                    <strong>사용 도구</strong>
-                                    <div className="tool-chip-list">
-                                        {sellerTools.map((tool) => (
-                                            <span key={tool} className="tool-chip">{tool}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                        <div className="seller-profile-detail-card seller-profile-overview-card">
+                            <div className="seller-profile-intro">
+                                <strong>판매자 소개</strong>
+                                {sellerProfile?.oneLiner && (
+                                    <p className="seller-profile-one-liner">{sellerProfile.oneLiner}</p>
+                                )}
+                                <p className="seller-profile-greeting">
+                                    {sellerProfile?.greeting || 'AI 작업 범위와 진행 방식을 상담 후 안내합니다.'}
+                                </p>
+                            </div>
                             {sellerProfile?.activities && sellerProfile.activities.length > 0 && (
                                 <div className="seller-profile-block">
-                                    <strong>주요 활동</strong>
+                                    <strong>주요 작업 경험</strong>
                                     <ul className="seller-profile-list">
                                         {sellerProfile.activities.map((activity) => (
                                             <li key={activity}>{activity}</li>
@@ -644,7 +641,7 @@ export default function ExpertDetail() {
                         <section className="detail-section similar-products-section" data-testid="similar-product-recommendations">
                             <h2>
                                 <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
-                                비슷한 AI 상품
+                                이 서비스를 본 사람들이 함께 본 AI 상품
                             </h2>
                             <div className="recommendation-grid">
                                 {similarProducts.map((similarProduct) => (

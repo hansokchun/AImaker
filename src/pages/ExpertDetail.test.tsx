@@ -169,7 +169,7 @@ describe('ExpertDetail', () => {
         expect(screen.queryByText('3명 관심')).not.toBeInTheDocument()
         expect(screen.queryByText('0명 관심')).not.toBeInTheDocument()
         expect(screen.getByText('등록일 2026. 6. 10.')).toBeInTheDocument()
-        expect(screen.getByText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
+        expect(screen.getByLabelText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
         expect(screen.getByText('세금계산서 발행 가능')).toBeInTheDocument()
         await waitFor(() => expect(getFavoriteProductCount).toHaveBeenCalledWith(supabaseProduct.id))
     })
@@ -390,6 +390,7 @@ describe('ExpertDetail', () => {
         expect(screen.getByRole('heading', { name: '서비스 설명' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '포트폴리오' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '가격 비교' })).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '사용 AI 도구' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '샘플 링크 보기' })).not.toBeInTheDocument()
     })
 
@@ -406,10 +407,15 @@ describe('ExpertDetail', () => {
 
         const sellerDetail = screen.getByTestId('product-detail-seller')
         expect(within(sellerDetail).getByRole('heading', { name: '판매자 정보' })).toBeInTheDocument()
+        expect(within(sellerDetail).getByRole('button', { name: '판매자에게 문의하기' })).toBeInTheDocument()
+        expect(within(sellerDetail).getByLabelText('연락 가능 시간 평일 10:00-18:00')).toBeInTheDocument()
+        expect(within(sellerDetail).getByLabelText('평균 응답 시간 평균 2시간 이내')).toBeInTheDocument()
+        expect(within(sellerDetail).getByLabelText('등록 상품 2개')).toBeInTheDocument()
+        expect(within(sellerDetail).getByLabelText('받은 리뷰 2개')).toBeInTheDocument()
         expect(within(sellerDetail).getByText('브랜드 영상의 기획과 제작 흐름을 함께 설계합니다.')).toBeInTheDocument()
         expect(within(sellerDetail).getByText('AI 영상 제작을 처음 의뢰하는 분도 이해하기 쉽게 진행 과정을 안내합니다.')).toBeInTheDocument()
-        expect(within(sellerDetail).getByText('Runway')).toBeInTheDocument()
-        expect(within(sellerDetail).getByText('Premiere Pro')).toBeInTheDocument()
+        expect(within(sellerDetail).queryByText('Runway')).not.toBeInTheDocument()
+        expect(within(sellerDetail).queryByText('Premiere Pro')).not.toBeInTheDocument()
         expect(within(sellerDetail).getByText('브랜드 숏폼 캠페인 30건 제작')).toBeInTheDocument()
         expect(within(sellerDetail).getByText('2026 AI 영상 공모전 우수상')).toBeInTheDocument()
 
@@ -425,7 +431,7 @@ describe('ExpertDetail', () => {
         ).length).toBeGreaterThan(0)
 
         const similar = screen.getByTestId('similar-product-recommendations')
-        expect(within(similar).getByRole('heading', { name: '비슷한 AI 상품' })).toBeInTheDocument()
+        expect(within(similar).getByRole('heading', { name: '이 서비스를 본 사람들이 함께 본 AI 상품' })).toBeInTheDocument()
         expect(within(similar).getByRole('link', { name: similarProduct.title })).toHaveAttribute('href', `/expert/${similarProduct.id}`)
         expect(within(similar).queryByRole('link', { name: supabaseProduct.title })).not.toBeInTheDocument()
     })
