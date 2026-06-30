@@ -13,14 +13,21 @@ const currency = new Intl.NumberFormat('ko-KR')
 export default function ProductCard({ product }: ProductCardProps) {
     const navigate = useNavigate()
     const [imageFailed, setImageFailed] = useState(false)
+    const [avatarFailed, setAvatarFailed] = useState(false)
     const detailUrl = `/expert/${product.id}`
     const expertUrl = `/expert/${product.expertId}`
     const showSampleImage = Boolean(product.sampleImageUrl) && !imageFailed
+    const expertImageUrl = product.expertImageUrl || ''
+    const showExpertImage = expertImageUrl.length > 0 && !avatarFailed
     const openDetail = () => navigate(detailUrl)
 
     useEffect(() => {
         setImageFailed(false)
     }, [product.sampleImageUrl])
+
+    useEffect(() => {
+        setAvatarFailed(false)
+    }, [product.expertImageUrl])
 
     return (
         <article
@@ -36,12 +43,6 @@ export default function ProductCard({ product }: ProductCardProps) {
                 }
             }}
         >
-            <FavoriteProductButton
-                productId={product.id}
-                productTitle={product.title}
-                className="product-card-favorite"
-            />
-
             <div className="product-card-image">
                 {showSampleImage ? (
                     <img
@@ -52,6 +53,12 @@ export default function ProductCard({ product }: ProductCardProps) {
                 ) : (
                     <div className="product-card-image-placeholder">이미지 준비 중</div>
                 )}
+                <FavoriteProductButton
+                    productId={product.id}
+                    productTitle={product.title}
+                    className="product-card-favorite"
+                    variant="icon"
+                />
             </div>
 
             <div className="product-card-body">
@@ -61,7 +68,18 @@ export default function ProductCard({ product }: ProductCardProps) {
                     aria-label={`${product.expertName} 프로필 보기`}
                     onClick={(event) => event.stopPropagation()}
                 >
-                    <span className="product-card-avatar" aria-hidden="true">{product.expertName.slice(0, 1)}</span>
+                    {showExpertImage ? (
+                        <img
+                            className="product-card-avatar"
+                            src={expertImageUrl}
+                            alt=""
+                            aria-hidden="true"
+                            loading="lazy"
+                            onError={() => setAvatarFailed(true)}
+                        />
+                    ) : (
+                        <span className="product-card-avatar" aria-hidden="true">{product.expertName.slice(0, 1)}</span>
+                    )}
                     <strong>{product.expertName}</strong>
                 </Link>
 

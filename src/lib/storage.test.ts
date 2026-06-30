@@ -103,7 +103,13 @@ describe('expert product storage', () => {
         })
         const eq = vi.fn(() => ({ order }))
         const select = vi.fn(() => ({ eq }))
-        const from = vi.fn(() => ({ select }))
+        const profileIn = vi.fn().mockResolvedValue({ data: [], error: null })
+        const profileSelect = vi.fn(() => ({ in: profileIn }))
+        const from = vi.fn((table: string) => (
+            table === 'expert_products'
+                ? { select }
+                : { select: profileSelect }
+        ))
 
         vi.doMock('./supabase', () => ({
             supabase: { from },
@@ -111,10 +117,141 @@ describe('expert product storage', () => {
 
         const { getExpertProducts } = await import('./storage')
 
-        await expect(getExpertProducts()).resolves.toEqual([{ ...product, expertName: 'AI 전문가' }])
+        await expect(getExpertProducts()).resolves.toEqual([
+            expect.objectContaining({
+                ...product,
+                expertName: 'AI 전문가',
+                expertImageUrl: '',
+            }),
+        ])
         expect(from).toHaveBeenCalledWith('expert_products')
         expect(select).toHaveBeenCalledWith('*')
         expect(eq).toHaveBeenCalledWith('status', 'published')
+    })
+
+    it('adds seller profile names and avatars to Supabase product listings', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: product.id,
+                    expert_id: product.expertId,
+                    title: product.title,
+                    category: product.category,
+                    summary: product.summary,
+                    description: product.description,
+                    ai_tools: product.aiTools,
+                    sample_links: product.sampleLinks,
+                    sample_file_urls: product.sampleImageUrl ? [product.sampleImageUrl] : [],
+                    starting_price: product.startingPrice,
+                    delivery_days: product.deliveryDays,
+                    revision_count: product.revisionCount,
+                    created_at: product.createdAt,
+                    tax_invoice_available: true,
+                    packages: product.packages,
+                    status: product.status,
+                },
+            ],
+            error: null,
+        })
+        const productEq = vi.fn(() => ({ order }))
+        const productSelect = vi.fn(() => ({ eq: productEq }))
+        const profileIn = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: product.expertId,
+                    name: 'Profile seller',
+                    display_name: 'Display seller',
+                    avatar_url: 'https://example.com/profile-avatar.jpg',
+                },
+            ],
+            error: null,
+        })
+        const profileSelect = vi.fn(() => ({ in: profileIn }))
+        const from = vi.fn((table: string) => (
+            table === 'expert_products'
+                ? { select: productSelect }
+                : { select: profileSelect }
+        ))
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { getExpertProducts } = await import('./storage')
+
+        await expect(getExpertProducts()).resolves.toEqual([
+            expect.objectContaining({
+                expertName: 'Profile seller',
+                expertImageUrl: 'https://example.com/profile-avatar.jpg',
+            }),
+        ])
+        expect(from).toHaveBeenCalledWith('profiles')
+        expect(profileSelect).toHaveBeenCalledWith('id, name, display_name, avatar_url')
+        expect(profileIn).toHaveBeenCalledWith('id', [product.expertId])
+    })
+
+    it('falls back to expert profile images when the basic profile row has no avatar', async () => {
+        vi.resetModules()
+        const order = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    id: product.id,
+                    expert_id: product.expertId,
+                    title: product.title,
+                    category: product.category,
+                    summary: product.summary,
+                    description: product.description,
+                    ai_tools: product.aiTools,
+                    sample_links: product.sampleLinks,
+                    sample_file_urls: product.sampleImageUrl ? [product.sampleImageUrl] : [],
+                    starting_price: product.startingPrice,
+                    delivery_days: product.deliveryDays,
+                    revision_count: product.revisionCount,
+                    created_at: product.createdAt,
+                    tax_invoice_available: true,
+                    packages: product.packages,
+                    status: product.status,
+                },
+            ],
+            error: null,
+        })
+        const productEq = vi.fn(() => ({ order }))
+        const productSelect = vi.fn(() => ({ eq: productEq }))
+        const basicProfileIn = vi.fn().mockResolvedValue({ data: [], error: null })
+        const basicProfileSelect = vi.fn(() => ({ in: basicProfileIn }))
+        const expertProfileIn = vi.fn().mockResolvedValue({
+            data: [
+                {
+                    user_id: product.expertId,
+                    name: 'Expert profile seller',
+                    image_url: 'https://example.com/expert-profile-avatar.jpg',
+                },
+            ],
+            error: null,
+        })
+        const expertProfileSelect = vi.fn(() => ({ in: expertProfileIn }))
+        const from = vi.fn((table: string) => {
+            if (table === 'expert_products') return { select: productSelect }
+            if (table === 'profiles') return { select: basicProfileSelect }
+            return { select: expertProfileSelect }
+        })
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from },
+        }))
+
+        const { getExpertProducts } = await import('./storage')
+
+        await expect(getExpertProducts()).resolves.toEqual([
+            expect.objectContaining({
+                expertName: 'Expert profile seller',
+                expertImageUrl: 'https://example.com/expert-profile-avatar.jpg',
+            }),
+        ])
+        expect(from).toHaveBeenCalledWith('expert_profiles')
+        expect(expertProfileSelect).toHaveBeenCalledWith('user_id, name, image_url')
+        expect(expertProfileIn).toHaveBeenCalledWith('user_id', [product.expertId])
     })
 
     it('normalizes Supabase package includes into the UI package shape', async () => {
@@ -150,7 +287,13 @@ describe('expert product storage', () => {
         })
         const eq = vi.fn(() => ({ order }))
         const select = vi.fn(() => ({ eq }))
-        const from = vi.fn(() => ({ select }))
+        const profileIn = vi.fn().mockResolvedValue({ data: [], error: null })
+        const profileSelect = vi.fn(() => ({ in: profileIn }))
+        const from = vi.fn((table: string) => (
+            table === 'expert_products'
+                ? { select }
+                : { select: profileSelect }
+        ))
 
         vi.doMock('./supabase', () => ({
             supabase: { from },

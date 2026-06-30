@@ -91,25 +91,6 @@ export async function toggleFavoriteProduct(userId: string, productId: string): 
     return nextIds;
 }
 
-const createFallbackProductPackage = (item: any) => ({
-    name: 'Standard' as const,
-    price: Number(item.starting_price) || 0,
-    deliveryDays: Number(item.delivery_days) || 1,
-    revisionCount: Number(item.revision_count) || 1,
-    included: [item.summary || item.title || '상담 후 작업 범위를 확정합니다.'],
-});
-
-const normalizeProductPackages = (item: any) => {
-    const packages = item.packages || {};
-    return packages.standard
-        ? packages
-        : {
-            standard: createFallbackProductPackage(item),
-            deluxe: packages.deluxe || null,
-            premium: packages.premium || null,
-        };
-};
-
 const packageTierNames: Record<PackageTier, ProductPackage['name']> = {
     standard: 'Standard',
     deluxe: 'Deluxe',
@@ -1074,7 +1055,19 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         const stored = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
-        return stored.length ? stored : mockExpertProducts;
+        const products = stored.length ? stored : mockExpertProducts;
+        return Promise.all(products.map(async (product) => {
+            if (product.expertImageUrl) return product;
+
+            const profile = await getStoredProfile(product.expertId);
+            if (!profile) return product;
+
+            return {
+                ...product,
+                expertName: profile.name || product.expertName,
+                expertImageUrl: profile.imageUrl || product.expertImageUrl,
+            };
+        }));
     }
 
     const { data, error } = await supabase
@@ -1088,25 +1081,75 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         return [];
     }
 
-    return (data || []).map((item) => ({
-        id: item.id,
-        expertId: item.expert_id,
-        expertName: item.expert_name || 'AI 전문가',
-        title: item.title,
-        category: item.category,
-        summary: item.summary,
-        description: item.description,
-        aiTools: Array.isArray(item.ai_tools) ? item.ai_tools : [],
-        sampleLinks: Array.isArray(item.sample_links) ? item.sample_links : [],
-        sampleImageUrl: item.sample_file_urls?.[0] || item.sample_links?.[0] || '',
-        startingPrice: Number(item.starting_price) || 0,
-        deliveryDays: Number(item.delivery_days) || 1,
-        revisionCount: Number(item.revision_count) || 1,
-        createdAt: item.created_at,
-        taxInvoiceAvailable: Boolean(item.tax_invoice_available),
-        packages: normalizeDbProductPackages(item),
-        status: item.status,
-    })) as ExpertProduct[];
+    const productRows = data || [];
+    const expertIds = Array.from(new Set(
+        productRows
+            .map((item) => item.expert_id)
+            .filter((expertId): expertId is string => typeof expertId === 'string' && expertId.length > 0),
+    ));
+    const profileById = new Map<string, { name: string; imageUrl: string }>();
+
+    if (expertIds.length > 0) {
+        const { data: profiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, display_name, avatar_url')
+            .in('id', expertIds);
+
+        if (profileError) {
+            console.error('Supabase 판매자 프로필 로딩 실패:', profileError);
+        } else {
+            for (const profile of profiles || []) {
+                profileById.set(profile.id, {
+                    name: profile.name || profile.display_name || '',
+                    imageUrl: profile.avatar_url || '',
+                });
+            }
+        }
+
+        const { data: expertProfiles, error: expertProfileError } = await supabase
+            .from('expert_profiles')
+            .select('user_id, name, image_url')
+            .in('user_id', expertIds);
+
+        if (expertProfileError) {
+            console.error('Supabase 전문가 프로필 로딩 실패:', expertProfileError);
+        } else {
+            for (const profile of expertProfiles || []) {
+                if (typeof profile.user_id !== 'string') continue;
+
+                const existingProfile = profileById.get(profile.user_id);
+                profileById.set(profile.user_id, {
+                    name: existingProfile?.name || profile.name || '',
+                    imageUrl: existingProfile?.imageUrl || profile.image_url || '',
+                });
+            }
+        }
+    }
+
+    return productRows.map((item) => {
+        const profile = profileById.get(item.expert_id);
+
+        return {
+            id: item.id,
+            expertId: item.expert_id,
+            expertName: profile?.name || item.expert_name || 'AI 전문가',
+            expertImageUrl: profile?.imageUrl || item.expert_image_url || item.expert_avatar_url || '',
+            title: item.title,
+            category: item.category,
+            summary: item.summary,
+            description: item.description,
+            aiTools: Array.isArray(item.ai_tools) ? item.ai_tools : [],
+            sampleLinks: Array.isArray(item.sample_links) ? item.sample_links : [],
+            sampleImageUrl: item.sample_file_urls?.[0] || item.sample_links?.[0] || '',
+            startingPrice: Number(item.starting_price) || 0,
+            deliveryDays: Number(item.delivery_days) || 1,
+            revisionCount: Number(item.revision_count) || 1,
+            createdAt: item.created_at,
+            taxInvoiceAvailable: Boolean(item.tax_invoice_available),
+            packages: normalizeDbProductPackages(item),
+            status: item.status,
+        };
+    }) as ExpertProduct[];
 }
 
 export async function saveProposal(proposal: Proposal): Promise<string> {

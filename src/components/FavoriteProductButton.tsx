@@ -9,9 +9,16 @@ interface FavoriteProductButtonProps {
     productTitle: string
     className?: string
     showCount?: boolean
+    variant?: 'text' | 'icon'
 }
 
-export default function FavoriteProductButton({ productId, productTitle, className = '', showCount = false }: FavoriteProductButtonProps) {
+export default function FavoriteProductButton({
+    productId,
+    productTitle,
+    className = '',
+    showCount = false,
+    variant = 'text',
+}: FavoriteProductButtonProps) {
     const location = useLocation()
     const navigate = useNavigate()
     const { user } = useAuth()
@@ -81,13 +88,27 @@ export default function FavoriteProductButton({ productId, productTitle, classNa
     return (
         <button
             type="button"
-            className={`favorite-product-button ${isFavorite ? 'is-active' : ''} ${className}`.trim()}
+            className={`favorite-product-button ${variant === 'icon' ? 'is-icon' : ''} ${isFavorite ? 'is-active' : ''} ${className}`.trim()}
             aria-label={`${productTitle} ${isFavorite ? '관심 상품 해제' : '관심 상품 추가'}`}
             aria-pressed={isFavorite}
             disabled={saving}
             onClick={handleClick}
         >
-            <span>{isFavorite ? '관심 상품' : '관심 추가'}</span>
+            {variant === 'icon' ? (
+                <svg
+                    className="favorite-product-button-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                >
+                    <path
+                        className="favorite-product-button-heart"
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+                    />
+                </svg>
+            ) : (
+                <span>{isFavorite ? '관심 상품' : '관심 추가'}</span>
+            )}
             {showCount && <small>{favoriteCount.toLocaleString('ko-KR')}명 관심</small>}
         </button>
     )

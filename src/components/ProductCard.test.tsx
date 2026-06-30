@@ -64,13 +64,13 @@ describe('ProductCard', () => {
       taxInvoiceAvailable: true,
     }
 
-    render(
+    const { container } = render(
       <MemoryRouter>
         <ProductCard product={product} />
       </MemoryRouter>,
     )
 
-    expect(screen.getByText(product.expertName.slice(0, 1))).toBeInTheDocument()
+    expect(container.querySelector('.product-card-avatar')?.tagName).toBe('IMG')
     expect(screen.getByText(product.expertName)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: product.title })).toBeInTheDocument()
     expect(screen.getByText(product.summary)).toBeInTheDocument()
@@ -81,6 +81,43 @@ describe('ProductCard', () => {
     expect(screen.queryByText(`수정 ${product.revisionCount}회`)).not.toBeInTheDocument()
     expect(screen.queryByText('세금계산서 가능')).not.toBeInTheDocument()
     expect(screen.queryByText(product.aiTools[0])).not.toBeInTheDocument()
+  })
+
+  it('uses the expert profile image instead of a text initial when provided', () => {
+    const product = {
+      ...mockExpertProducts[0],
+      expertImageUrl: 'https://example.com/expert-profile.jpg',
+    }
+
+    const { container } = render(
+      <MemoryRouter>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    )
+
+    const avatar = container.querySelector('.product-card-avatar')
+    expect(avatar?.tagName).toBe('IMG')
+    expect(avatar).toHaveAttribute('src', product.expertImageUrl)
+    expect(screen.getByText(product.expertName)).toBeInTheDocument()
+  })
+
+  it('keeps the favorite action as a thumbnail overlay icon', async () => {
+    const product = mockExpertProducts[0]
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/category']}>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    )
+
+    const imageArea = container.querySelector('.product-card-image')
+    const favoriteButton = await screen.findByRole('button', { name: new RegExp(product.title) })
+
+    expect(imageArea).toContainElement(favoriteButton)
+    expect(favoriteButton).toHaveClass('product-card-favorite')
+    expect(favoriteButton).toHaveClass('is-icon')
+    expect(favoriteButton).not.toHaveTextContent('관심 추가')
+    expect(favoriteButton.querySelector('svg')).toBeInTheDocument()
   })
 
   it('toggles a product as a favorite without opening the detail page', async () => {

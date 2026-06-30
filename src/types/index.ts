@@ -47,6 +47,7 @@ export interface ExpertProduct {
     id: string;
     expertId: string;
     expertName: string;
+    expertImageUrl?: string;
     title: string;
     category: AiCategoryId;
     summary: string;
