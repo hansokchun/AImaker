@@ -2214,6 +2214,28 @@ describe('MyPage', () => {
     })
 
     it('opens and submits a review form for completed work', async () => {
+        getUserProposals.mockResolvedValue([
+            ...defaultProposals(),
+            {
+                id: 'proposal-completed',
+                requestId: 'request-completed',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-02',
+                title: '완료된 실제 작업 제안서',
+                scope: '완료된 실제 작업 범위',
+                deliverables: ['완료 결과물'],
+                totalPrice: 70000,
+                deliveryDays: 4,
+                revisionCount: 1,
+                progressType: 'single' as const,
+                milestones: [],
+                commercialUseAllowed: true,
+                sourceFileIncluded: false,
+                status: 'accepted' as const,
+                expiresAt: '2026-06-01T00:00:00.000Z',
+            },
+        ])
+
         render(
             <MemoryRouter>
                 <MyPage />
@@ -2238,9 +2260,13 @@ describe('MyPage', () => {
                     expertId: 'expert-real-02',
                     rating: 5,
                     content: '결과물이 목적에 잘 맞고 일정 안내도 명확했습니다.',
+                    clientName: 'Demo Maker',
+                    clientImageUrl: 'https://example.com/demo-profile.png',
+                    workDurationDays: 4,
                 }),
             ),
         )
+        expect(getUserDisplayProfile).toHaveBeenCalledWith('user-demo-01')
         expect(await screen.findByText('리뷰가 등록되었습니다.')).toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '리뷰 작성하기' })).not.toBeInTheDocument()
     })

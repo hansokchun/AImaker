@@ -19,4 +19,17 @@ describe('ExpertDetail gallery styles', () => {
         expect(imageRule).toContain('max-width: 100%')
         expect(imageRule).toContain('max-height: 100%')
     })
+
+    it('wraps seller reviews in roomy bordered cards', () => {
+        const listRule = getRule('.seller-review-list')
+        const cardRule = getRule('.seller-review-card')
+        const metaRule = getRule('.seller-review-meta')
+
+        expect(listRule).toContain('gap: var(--space-4)')
+        expect(cardRule).toContain('gap: var(--space-4)')
+        expect(cardRule).toContain('padding: var(--space-5)')
+        expect(cardRule).toContain('border: 1px solid var(--border-color)')
+        expect(cardRule).toContain('border-radius: var(--radius-xl)')
+        expect(metaRule).toContain('gap: var(--space-3)')
+    })
 })

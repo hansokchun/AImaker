@@ -2144,14 +2144,37 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         event.preventDefault()
                                         const reviewWork = selectedReviewWork || completedWork
                                         if (!reviewWork) return
+                                        const reviewClientId = reviewWork.clientId || user?.id || ''
+                                        const [reviewDisplayProfile, reviewStoredProfile] = reviewClientId
+                                            ? await Promise.all([
+                                                getUserDisplayProfile(reviewClientId).catch(() => null),
+                                                getStoredProfile(reviewClientId).catch(() => null),
+                                            ])
+                                            : [null, null] as const
+                                        const reviewProposal = proposals.find(
+                                            (proposal) => proposal.id === reviewWork.proposalId || proposal.requestId === reviewWork.requestId,
+                                        )
+                                        const reviewClientName = reviewDisplayProfile?.name
+                                            || reviewStoredProfile?.name
+                                            || profilePreview?.name
+                                            || name
+                                            || user?.email?.split('@')[0]
+                                            || 'AI 의뢰자'
+                                        const reviewClientImageUrl = reviewDisplayProfile?.imageUrl
+                                            || reviewStoredProfile?.imageUrl
+                                            || profilePreview?.imageUrl
+                                            || ''
                                         const newReview: Review = {
                                             id: `review-${Date.now()}`,
                                             workId: reviewWork.id,
-                                            clientId: reviewWork.clientId || user?.id || '',
+                                            clientId: reviewClientId,
                                             expertId: reviewWork.expertId,
                                             rating: Number(reviewRating) as 1 | 2 | 3 | 4 | 5,
                                             content: reviewContent,
                                             createdAt: new Date().toISOString(),
+                                            clientName: reviewClientName,
+                                            ...(reviewClientImageUrl ? { clientImageUrl: reviewClientImageUrl } : {}),
+                                            ...(reviewProposal?.deliveryDays ? { workDurationDays: reviewProposal.deliveryDays } : {}),
                                         }
                                         await saveReview(newReview)
                                         setReviews((current) => [newReview, ...current])
