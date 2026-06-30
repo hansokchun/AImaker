@@ -766,88 +766,49 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     )
 
     const renderWorkRoleSwitch = () => (
-        <div
-            className="work-role-switch"
-            data-testid="work-dashboard-role-switch"
-            style={{
-                display: 'grid',
-                padding: '0.5rem',
-                borderRadius: '12px',
-                background: 'color-mix(in srgb, var(--background) 68%, var(--surface))',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'none',
-            }}
-        >
-            <div
-                className="work-role-toggle"
-                aria-label="내 작업 역할 전환"
-                style={{
-                    position: 'relative',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    padding: '0.25rem',
-                    borderRadius: '8px',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border-color)',
-                    overflow: 'hidden',
-                }}
-            >
+        <div className="work-role-switch" data-testid="work-dashboard-role-switch">
+            <div className="work-role-toggle" aria-label="내 작업 역할 전환">
                 <span
                     aria-hidden="true"
                     className={`work-role-toggle-indicator ${workRole === 'expert' ? 'is-expert' : 'is-client'}`}
-                    style={{
-                        position: 'absolute',
-                        top: '0.25rem',
-                        bottom: '0.25rem',
-                        left: '0.25rem',
-                        width: 'calc(50% - 0.25rem)',
-                        borderRadius: '6px',
-                        background: 'color-mix(in srgb, var(--primary) 9%, var(--surface))',
-                        border: '1px solid color-mix(in srgb, var(--primary) 28%, var(--border-color))',
-                        transition: 'transform 160ms ease-out, background 160ms ease-out, border-color 160ms ease-out',
-                    }}
                 />
                 <button
                     className="work-role-toggle-button"
                     type="button"
                     aria-pressed={workRole === 'client'}
                     onClick={() => handleWorkRoleChange('client')}
-                    style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        minHeight: '38px',
-                        padding: '0.65rem 0.75rem',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: workRole === 'client' ? 'var(--primary)' : 'var(--text-secondary)',
-                        fontWeight: 900,
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                    }}
                 >
-                    의뢰자
+                    <svg
+                        className="work-role-toggle-icon"
+                        data-testid="work-role-client-icon"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
+                    >
+                        <path d="M12 12.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4Z" />
+                        <path d="M4.8 20.2c0.7-3.4 3.3-5.4 7.2-5.4s6.5 2 7.2 5.4" />
+                    </svg>
+                    <span>의뢰자</span>
                 </button>
                 <button
                     className="work-role-toggle-button"
                     type="button"
                     aria-pressed={workRole === 'expert'}
                     onClick={() => handleWorkRoleChange('expert')}
-                    style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        minHeight: '38px',
-                        padding: '0.65rem 0.75rem',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: workRole === 'expert' ? 'var(--primary)' : 'var(--text-secondary)',
-                        fontWeight: 900,
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                    }}
                 >
-                    전문가
+                    <svg
+                        className="work-role-toggle-icon"
+                        data-testid="work-role-expert-icon"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
+                    >
+                        <path d="M12 11.7a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z" />
+                        <path d="M5 20.2c0.7-3.6 3.2-5.6 7-5.6s6.3 2 7 5.6" />
+                        <path d="M10.4 14.8 12 16.4l1.6-1.6" />
+                        <path className="work-role-toggle-tie" d="M12 16.4 10.9 20.2h2.2L12 16.4Z" />
+                    </svg>
+                    <span>전문가</span>
                 </button>
             </div>
         </div>
