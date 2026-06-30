@@ -11,7 +11,7 @@ AIConnect feels like a clear, practical AI work marketplace: calm enough for fir
 | Role | Token | Light | Dark | Usage |
 |------|-------|-------|------|-------|
 | Surface/primary | `--surface` | `#ffffff` | `#0f172a` | Cards, primary panels |
-| Surface/secondary | `--background` | `#f8fafc` | `#111827` | Page background and soft panels |
+| Surface/secondary | `--background` | `#ffffff` | `#111827` | Page background and soft panels |
 | Text/primary | `--text-primary` | `#0f172a` | `#f8fafc` | Headlines, body emphasis |
 | Text/secondary | `--text-secondary` | `#475569` | `#cbd5e1` | Descriptions, metadata |
 | Text/muted | `--text-muted` | `#94a3b8` | `#64748b` | Empty states, subtle labels |

@@ -2051,7 +2051,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         <div
             className={`mypage-page ${isWorkMode ? 'work-dashboard-page' : ''}`}
             data-testid={isWorkMode ? 'work-dashboard-page' : undefined}
-            style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 60px)', padding: isWorkMode ? '2.5rem 0 6rem' : '4rem 0' }}
+            style={{ backgroundColor: 'var(--surface)', minHeight: 'calc(100vh - 60px)', padding: isWorkMode ? '2.5rem 0 6rem' : '4rem 0' }}
         >
             <main className={`container mypage-container ${isWorkMode ? 'work-dashboard-container' : ''}`}>
                 <div className={`mypage-header ${isWorkMode ? 'work-dashboard-header' : ''}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
@@ -2072,18 +2072,14 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     </div>
                 </div>
 
-                {isWorkMode && (
-                    <div className="work-dashboard-role-row" style={{ marginBottom: '1.25rem', maxWidth: '31rem' }}>
-                        {renderWorkRoleSwitch()}
-                    </div>
-                )}
-
                 <div
                     className={isWorkMode ? 'work-dashboard-shell' : 'mypage-shell'}
                     data-testid={isWorkMode ? 'work-dashboard-shell' : undefined}
                     style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}
                 >
                     <aside className={isWorkMode ? 'work-dashboard-sidebar' : 'mypage-sidebar'} style={{ ...cardStyle, padding: '1.25rem', position: 'sticky', top: '1rem' }}>
+                        {isWorkMode && renderWorkRoleSwitch()}
+
                         {!isWorkMode && (
                             <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
                                 <div>

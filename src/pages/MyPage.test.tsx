@@ -990,6 +990,11 @@ describe('MyPage', () => {
         expect(screen.getByTestId('work-dashboard-shell')).toHaveClass('work-dashboard-shell')
         expect(screen.getByTestId('work-dashboard-role-switch')).toHaveClass('work-role-switch')
         expect(screen.getByTestId('work-dashboard-content')).toHaveClass('work-dashboard-content')
+        const workShell = screen.getByTestId('work-dashboard-shell')
+        const workSidebar = workShell.querySelector('aside')
+        const roleSwitchInSidebar = screen.getByTestId('work-dashboard-role-switch')
+        expect(workSidebar).toContainElement(roleSwitchInSidebar)
+        expect(workSidebar?.firstElementChild).toBe(roleSwitchInSidebar)
 
         expect(screen.getByRole('heading', { name: '내 작업' })).toBeInTheDocument()
         expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
