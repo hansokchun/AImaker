@@ -506,31 +506,28 @@
 
 .seller-review-list {
     display: grid;
-    gap: var(--space-4);
+    gap: var(--space-5);
 }
 
 .seller-review-card {
     display: grid;
-    gap: var(--space-4);
-    padding: var(--space-5);
+    grid-template-columns: 3rem minmax(0, 1fr);
+    column-gap: var(--space-4);
+    row-gap: var(--space-4);
+    min-height: 9rem;
+    padding: var(--space-6);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     background: var(--surface);
 }
 
-.seller-review-header {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
-}
-
 .seller-review-avatar {
-    width: 44px;
-    height: 44px;
+    width: 3rem;
+    height: 3rem;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    flex: 0 0 auto;
+    align-self: start;
     background: var(--background);
     color: var(--primary);
     object-fit: cover;
@@ -539,6 +536,12 @@
 
 img.seller-review-avatar {
     display: block;
+}
+
+.seller-review-content {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
 }
 
 .seller-review-heading {

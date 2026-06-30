@@ -469,6 +469,7 @@ describe('ExpertDetail', () => {
         expect(within(reviewCard).getByText('3일 전')).toBeInTheDocument()
         expect(within(reviewCard).getByText('결과물이 깔끔하고 소통이 빨랐습니다.')).toBeInTheDocument()
         expect(within(reviewCard).queryByText(/가격대/)).not.toBeInTheDocument()
+        expect(within(reviewCard).getByText('3만 원대')).toBeInTheDocument()
         expect(within(reviewCard).getByText('작업 기간 2일')).toBeInTheDocument()
         expect(within(reviews).queryByText(/client-review-01/)).not.toBeInTheDocument()
 
