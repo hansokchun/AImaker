@@ -107,6 +107,8 @@ export default function Category() {
     const selectedCategorySummary = allCategoriesSelected || selectedCategories.length === 0
         ? '전체 카테고리'
         : AI_CATEGORIES.filter((category) => selectedCategories.includes(category.id)).map((category) => category.name).join(', ')
+    const trimmedQueryKeyword = queryKeyword.trim()
+    const heroTitle = trimmedQueryKeyword ? `'${trimmedQueryKeyword}'에 대한 검색결과` : 'AI 작업 찾기'
 
     return (
         <>
@@ -118,8 +120,7 @@ export default function Category() {
                             <span aria-hidden="true">/</span>
                             <span>AI 작업 찾기</span>
                         </nav>
-                        <h1>AI 작업 찾기</h1>
-                        <p>샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 AI 상품을 바로 확인하세요.</p>
+                        <h1>{heroTitle}</h1>
                     </div>
                 </div>
             </div>
@@ -132,7 +133,6 @@ export default function Category() {
                 <div className="category-page-layout">
                     <aside className="filter-sidebar" aria-label="상품 필터">
                         <div className="filter-sidebar-head">
-                            <strong>필터</strong>
                             <span>{selectedCategorySummary}</span>
                         </div>
 

@@ -114,6 +114,8 @@ export default function Navbar() {
         setNotificationMenuOpen(false);
     };
 
+    const showSearch = location.pathname !== ROUTES.HOME;
+
     return (
         <header className="navbar" id="navbar">
             <div className="nav-container container">
@@ -121,18 +123,20 @@ export default function Navbar() {
                     AIConnect
                 </Link>
 
-                <form className="nav-search" role="search" aria-label="AI 작업 검색" onSubmit={handleSearchSubmit}>
-                    <input
-                        type="search"
-                        aria-label="AI 작업 검색어"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="어떤 AI 작업을 찾으세요?"
-                    />
-                    <button type="submit" aria-label="검색">
-                        검색
-                    </button>
-                </form>
+                {showSearch && (
+                    <form className="nav-search" role="search" aria-label="AI 작업 검색" onSubmit={handleSearchSubmit}>
+                        <input
+                            type="search"
+                            aria-label="AI 작업 검색어"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="어떤 AI 작업을 찾으세요?"
+                        />
+                        <button type="submit" aria-label="검색">
+                            검색
+                        </button>
+                    </form>
+                )}
 
                 <div className="nav-actions">
                     {user ? (

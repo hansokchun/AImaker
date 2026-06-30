@@ -101,6 +101,8 @@ describe('Category', () => {
     expect(screen.queryByText('상품 검색')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'AI 작업을 카테고리별로 탐색하세요' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: `${AI_CATEGORIES[0].name} 카테고리 보기` })).not.toBeInTheDocument()
+    expect(screen.queryByText('샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 AI 상품을 바로 확인하세요.')).not.toBeInTheDocument()
+    expect(screen.queryByText('필터')).not.toBeInTheDocument()
     expect(screen.getByText('자주 찾는 AI 작업')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '숏폼 영상 검색' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '업무 자동화 검색' })).toBeInTheDocument()
@@ -108,6 +110,18 @@ describe('Category', () => {
     expect(screen.queryByRole('searchbox', { name: '상품 검색어' })).not.toBeInTheDocument()
     expect(screen.queryByText(/^총 \d+개의 AI 작업$/)).not.toBeInTheDocument()
     expect(screen.queryByText('favorite_border')).not.toBeInTheDocument()
+  })
+
+  it('uses the URL keyword as the category hero search result title', async () => {
+    render(
+      <MemoryRouter initialEntries={['/category?q=쿠팡']}>
+        <Category />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: "'쿠팡'에 대한 검색결과" })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
+    expect(screen.queryByText('샘플, 판매자, 가격, 납기를 한 번에 비교하고 마음에 드는 AI 상품을 바로 확인하세요.')).not.toBeInTheDocument()
   })
 
   it('filters to the clicked category from the initial all-selected state', async () => {

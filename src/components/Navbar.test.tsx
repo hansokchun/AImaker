@@ -26,6 +26,12 @@ function LocationProbe() {
     return <span data-testid="location">{location.pathname}{location.search}</span>
 }
 
+const renderNavbar = (initialEntries: string[] = ['/']) => render(
+    <MemoryRouter initialEntries={initialEntries}>
+        <Navbar />
+    </MemoryRouter>,
+)
+
 describe('Navbar', () => {
     beforeEach(() => {
         mockUseAuth.mockReturnValue({
@@ -38,20 +44,23 @@ describe('Navbar', () => {
         window.localStorage.clear()
     })
 
-    it('keeps the header focused on account actions and global search before login', () => {
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+    it('keeps the home header focused on account actions before login', () => {
+        renderNavbar()
 
         expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'AIConnect' })).toHaveAttribute('href', '/')
         expect(screen.queryByText('handshake')).not.toBeInTheDocument()
+        expect(screen.queryByRole('search', { name: 'AI 작업 검색' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('searchbox', { name: 'AI 작업 검색어' })).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
+    })
+
+    it('shows the global search away from the home page before login', () => {
+        renderNavbar(['/category'])
+
         expect(screen.getByRole('search', { name: 'AI 작업 검색' })).toBeInTheDocument()
         expect(screen.getByRole('searchbox', { name: 'AI 작업 검색어' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
     })
 
     it('submits the global search to the category page with a query string', () => {
@@ -77,11 +86,7 @@ describe('Navbar', () => {
             signOut: vi.fn(),
         })
 
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+        renderNavbar()
 
         expect(await screen.findByRole('link', { name: '내 작업' })).toHaveAttribute('href', '/my-work')
     })
@@ -96,11 +101,7 @@ describe('Navbar', () => {
             imageUrl: 'https://example.com/profile.jpg',
         })
 
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+        renderNavbar()
 
         expect(screen.queryByText('demo@example.com')).not.toBeInTheDocument()
         expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
@@ -129,11 +130,7 @@ describe('Navbar', () => {
             imageUrl: 'https://example.com/basic-avatar.jpg',
         })
 
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+        renderNavbar()
 
         expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
             'src',
@@ -153,11 +150,7 @@ describe('Navbar', () => {
             imageUrl: 'https://example.com/new-basic-avatar.jpg',
         })
 
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+        renderNavbar()
 
         expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
             'src',
@@ -178,11 +171,7 @@ describe('Navbar', () => {
             imageUrl: 'https://example.com/updated-avatar.jpg',
         })
 
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+        renderNavbar()
 
         expect(await screen.findByRole('img', { name: '마이 프로필 메뉴' })).toHaveAttribute(
             'src',
@@ -223,11 +212,7 @@ describe('Navbar', () => {
             },
         ])
 
-        render(
-            <MemoryRouter>
-                <Navbar />
-            </MemoryRouter>,
-        )
+        renderNavbar()
 
         const notificationButton = await screen.findByRole('button', { name: '알림 2개 열기' })
         expect(notificationButton).toHaveTextContent('2')

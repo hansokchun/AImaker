@@ -30,16 +30,8 @@
 .category-hero h1 {
     font-size: 2rem;
     font-weight: 800;
-    margin: 0 0 0.65rem;
-    letter-spacing: 0;
-}
-
-.category-hero p {
-    max-width: 640px;
     margin: 0;
-    color: var(--text-secondary);
-    font-size: 1rem;
-    line-height: 1.65;
+    letter-spacing: 0;
 }
 
 @media (max-width: 640px) {
