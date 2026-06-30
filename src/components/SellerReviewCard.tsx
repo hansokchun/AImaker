@@ -2,7 +2,6 @@ import type { Review } from '../types'
 
 interface SellerReviewCardProps {
     readonly review: Review
-    readonly productTitle?: string
     readonly fallbackPrice?: number
     readonly fallbackDeliveryDays?: number
 }
@@ -37,7 +36,6 @@ const formatPriceRange = (price?: number) => {
 
 export default function SellerReviewCard({
     review,
-    productTitle,
     fallbackPrice,
     fallbackDeliveryDays,
 }: SellerReviewCardProps) {
@@ -50,30 +48,36 @@ export default function SellerReviewCard({
 
     return (
         <article className="seller-review-card" aria-label={`${clientName} 의뢰자의 리뷰`}>
-            {review.clientImageUrl ? (
-                <img className="seller-review-avatar" src={review.clientImageUrl} alt={`${clientName} 프로필`} />
-            ) : (
-                <div className="seller-review-avatar" aria-hidden="true">
-                    {clientName.slice(0, 1)}
-                </div>
-            )}
-            <div className="seller-review-content">
-                <div className="seller-review-heading">
-                    <strong>{clientName}</strong>
-                    <div className="seller-review-rating-row">
-                        <span className="material-symbols-outlined seller-review-stars" aria-hidden="true">
-                            star
-                        </span>
-                        <span>{ratingLabel}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{createdAtLabel}</span>
+            <div className="seller-review-header">
+                {review.clientImageUrl ? (
+                    <img className="seller-review-avatar" src={review.clientImageUrl} alt={`${clientName} 프로필`} />
+                ) : (
+                    <div className="seller-review-avatar" aria-hidden="true">
+                        {clientName.slice(0, 1)}
                     </div>
+                )}
+                <div className="seller-review-identity">
+                    <strong>{clientName}</strong>
                 </div>
-                {productTitle && <p className="seller-review-service">이용 상품: {productTitle}</p>}
-                <p className="seller-review-body">{review.content}</p>
-                <div className="seller-review-meta" aria-label="리뷰 거래 정보">
-                    {priceRangeLabel && <span>{priceRangeLabel}</span>}
-                    <span>작업 기간 {workDurationLabel}</span>
+            </div>
+            <div className="seller-review-divider" aria-hidden="true" />
+            <div className="seller-review-rating-row" aria-label={`${ratingLabel} · ${createdAtLabel}`}>
+                <span className="seller-review-stars" aria-hidden="true">★★★★★</span>
+                <span>{review.rating.toFixed(0)}</span>
+                <span aria-hidden="true">·</span>
+                <span>{createdAtLabel}</span>
+            </div>
+            <p className="seller-review-body">{review.content}</p>
+            <div className="seller-review-meta" aria-label="리뷰 거래 정보">
+                {priceRangeLabel && (
+                    <div className="seller-review-meta-item">
+                        <strong>{priceRangeLabel}</strong>
+                        <span>가격</span>
+                    </div>
+                )}
+                <div className="seller-review-meta-item">
+                    <strong>{workDurationLabel}</strong>
+                    <span>작업 기간</span>
                 </div>
             </div>
         </article>

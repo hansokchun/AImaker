@@ -622,7 +622,6 @@ export default function ExpertDetail() {
                                     <SellerReviewCard
                                         key={review.id}
                                         review={review}
-                                        productTitle={product.title}
                                         fallbackPrice={product.startingPrice}
                                         fallbackDeliveryDays={product.deliveryDays}
                                     />
