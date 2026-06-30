@@ -104,9 +104,9 @@ export default function Category() {
 
     const maxPriceLabel =
         maxPrice >= 1000000 ? '전체 가격' : `${(maxPrice / 10000).toLocaleString()}만원 이하`
-    const selectedCategorySummary = allCategoriesSelected || selectedCategories.length === 0
-        ? '전체 카테고리'
-        : AI_CATEGORIES.filter((category) => selectedCategories.includes(category.id)).map((category) => category.name).join(', ')
+    const selectedCategoryLabels = allCategoriesSelected || selectedCategories.length === 0
+        ? ['전체 카테고리']
+        : AI_CATEGORIES.filter((category) => selectedCategories.includes(category.id)).map((category) => category.name)
     const trimmedQueryKeyword = queryKeyword.trim()
     const heroTitle = trimmedQueryKeyword ? `'${trimmedQueryKeyword}'에 대한 검색결과` : 'AI 작업 찾기'
 
@@ -131,48 +131,57 @@ export default function Category() {
                 />
 
                 <div className="category-page-layout">
-                    <aside className="filter-sidebar" aria-label="상품 필터">
-                        <div className="filter-sidebar-head">
-                            <span>{selectedCategorySummary}</span>
-                        </div>
-
-                        <div className="filter-group">
-                            <h4>카테고리</h4>
-                            {AI_CATEGORIES.map((category) => (
-                                <label key={category.id}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedCategories.includes(category.id)}
-                                        onChange={() => toggleCategory(category.id)}
-                                    />
-                                    {category.name}
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className="filter-group">
-                            <h4>예산</h4>
-                            <label className="range-label" htmlFor="max-price">
-                                최대 가격
-                            </label>
-                            <input
-                                id="max-price"
-                                className="price-range"
-                                type="range"
-                                min="0"
-                                max="1000000"
-                                step="10000"
-                                value={maxPrice}
-                                onChange={(event) => setMaxPrice(Number(event.target.value))}
-                            />
-                            <div className="price-current">{maxPriceLabel}</div>
-                            <div className="price-range-caption">
-                                <span>0원</span>
-                                <span>100만원+</span>
+                    <div className="category-filter-column">
+                        <div className="selected-category-summary" role="status" aria-label="선택된 카테고리">
+                            <span className="selected-category-summary-label">선택 카테고리</span>
+                            <div className="selected-category-chip-list">
+                                {selectedCategoryLabels.map((categoryLabel) => (
+                                    <span className="selected-category-chip" key={categoryLabel}>
+                                        {categoryLabel}
+                                    </span>
+                                ))}
                             </div>
                         </div>
 
-                    </aside>
+                        <aside className="filter-sidebar" aria-label="상품 필터">
+                            <div className="filter-group">
+                                <h4>카테고리</h4>
+                                {AI_CATEGORIES.map((category) => (
+                                    <label key={category.id}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCategories.includes(category.id)}
+                                            onChange={() => toggleCategory(category.id)}
+                                        />
+                                        {category.name}
+                                    </label>
+                                ))}
+                            </div>
+
+                            <div className="filter-group">
+                                <h4>예산</h4>
+                                <label className="range-label" htmlFor="max-price">
+                                    최대 가격
+                                </label>
+                                <input
+                                    id="max-price"
+                                    className="price-range"
+                                    type="range"
+                                    min="0"
+                                    max="1000000"
+                                    step="10000"
+                                    value={maxPrice}
+                                    onChange={(event) => setMaxPrice(Number(event.target.value))}
+                                />
+                                <div className="price-current">{maxPriceLabel}</div>
+                                <div className="price-range-caption">
+                                    <span>0원</span>
+                                    <span>100만원+</span>
+                                </div>
+                            </div>
+
+                        </aside>
+                    </div>
 
                     <div className="product-list-main">
                         <div className="product-list-header">

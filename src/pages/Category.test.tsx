@@ -141,7 +141,7 @@ describe('Category', () => {
   })
 
   it('opens with the category from the URL selected and filtered', async () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/category?category=ai-image-character']}>
         <Category />
       </MemoryRouter>,
@@ -154,6 +154,13 @@ describe('Category', () => {
     expect(screen.getByLabelText(AI_CATEGORIES[0].name)).not.toBeChecked()
     expect(screen.getByLabelText(AI_CATEGORIES[1].name)).toBeChecked()
     expect(screen.getByLabelText(AI_CATEGORIES[2].name)).not.toBeChecked()
+
+    const selectedCategoryStatus = screen.getByRole('status', { name: '선택된 카테고리' })
+    const filterSidebar = screen.getByRole('complementary', { name: '상품 필터' })
+    expect(selectedCategoryStatus).toHaveTextContent(AI_CATEGORIES[1].name)
+    expect(selectedCategoryStatus.querySelector('.selected-category-chip')).toHaveTextContent(AI_CATEGORIES[1].name)
+    expect(filterSidebar).not.toContainElement(selectedCategoryStatus)
+    expect(container.querySelector('.filter-sidebar-head')).not.toBeInTheDocument()
   })
 
   it('filters products by the search keyword from the URL and popular search buttons', async () => {
