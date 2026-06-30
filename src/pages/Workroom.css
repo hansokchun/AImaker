@@ -1,6 +1,6 @@
 .workroom-page {
     min-height: 100vh;
-    background: var(--surface);
+    background: #f8fafc;
 }
 
 .workroom-hero {

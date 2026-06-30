@@ -1012,9 +1012,10 @@ describe('MyPage', () => {
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
         expect(screen.queryByText('현재 주체')).not.toBeInTheDocument()
-        expect(screen.getByText('의뢰자 모드')).toBeInTheDocument()
-        expect(within(roleSwitch).getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
-        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.queryByText('의뢰자 모드')).not.toBeInTheDocument()
+        expect(screen.queryByText('전문가 모드')).not.toBeInTheDocument()
+        expect(within(roleSwitch).getByRole('button', { name: '의뢰자' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'false')
         expect(screen.getByRole('button', { name: '거래관리' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '작업방' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '상담채팅' })).toBeInTheDocument()
@@ -1026,9 +1027,9 @@ describe('MyPage', () => {
         expect(screen.getByRole('button', { name: '진행중인 거래' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('button', { name: '중단된 거래' })).toHaveAttribute('aria-pressed', 'false')
 
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
-        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.queryByText('받은 일 관리')).not.toBeInTheDocument()
     })
 
@@ -1249,7 +1250,7 @@ describe('MyPage', () => {
         )
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
         fireEvent.click(await screen.findByRole('button', { name: '거래관리' }))
 
         expect(await screen.findByText('전문가 문의 - Owned AI product')).toBeInTheDocument()
@@ -2076,7 +2077,7 @@ describe('MyPage', () => {
         expect(screen.queryByRole('link', { name: '전문가 완료 상품' })).not.toBeInTheDocument()
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
         fireEvent.click(screen.getByRole('button', { name: '상담채팅' }))
         await waitFor(() => expect(screen.getAllByText('Owned AI product 상담').length).toBeGreaterThan(0))
@@ -2106,7 +2107,7 @@ describe('MyPage', () => {
         expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument()
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
         expect(await screen.findByRole('button', { name: '내 상품관리' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '거래관리' })).toBeInTheDocument()
@@ -2124,7 +2125,7 @@ describe('MyPage', () => {
         )
 
         const roleSwitch = await screen.findByLabelText('내 작업 역할 전환')
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
         fireEvent.click(await screen.findByRole('button', { name: '내 상품관리' }))
 
         expect(screen.getByRole('heading', { name: '내 상품관리' })).toBeInTheDocument()
@@ -2145,10 +2146,10 @@ describe('MyPage', () => {
         expect(await screen.findByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).toBeInTheDocument()
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
         expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
-        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.queryByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).not.toBeInTheDocument()
     })
 
@@ -2173,9 +2174,9 @@ describe('MyPage', () => {
         )
 
         const roleSwitch = await screen.findByLabelText('내 작업 역할 전환')
-        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
-        expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('heading', { name: '양쪽 역할 상담' })).toBeInTheDocument()
     })
 
@@ -2301,7 +2302,8 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        await waitFor(() => expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true'))
+        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        await waitFor(() => expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true'))
         expect(screen.getByRole('button', { name: '거래관리' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByTestId('location').textContent).toContain('role=expert')
         expect(screen.getByTestId('location').textContent).toContain('panel=client')
@@ -2318,12 +2320,13 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        await waitFor(() => expect(screen.getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true'))
+        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        await waitFor(() => expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true'))
         expect(screen.getByRole('button', { name: '내 상품관리' })).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '의뢰자로 보기' }))
+        fireEvent.click(within(roleSwitch).getByRole('button', { name: '의뢰자' }))
 
-        await waitFor(() => expect(screen.getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true'))
+        await waitFor(() => expect(within(roleSwitch).getByRole('button', { name: '의뢰자' })).toHaveAttribute('aria-pressed', 'true'))
         expect(screen.queryByRole('button', { name: '내 상품관리' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: '거래관리' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByTestId('location').textContent).not.toContain('role=expert')
@@ -2365,7 +2368,8 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'true')
+        const roleSwitch = await screen.findByLabelText('내 작업 역할 전환')
+        expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('link', { name: '받은 의뢰서 보기' })).toHaveAttribute(
             'href',
             '/request/product-owned-01?requestId=request-product-directed-01',

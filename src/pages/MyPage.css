@@ -1,9 +1,9 @@
 .mypage-page {
-    background: var(--surface);
+    background: var(--background);
 }
 
 .work-dashboard-page {
-    background: var(--surface);
+    background: var(--background);
 }
 
 .work-dashboard-container {
@@ -45,38 +45,51 @@
 }
 
 .work-role-switch {
-    gap: var(--space-3) !important;
     margin-bottom: var(--space-5);
-    padding: var(--space-3) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: var(--radius-md) !important;
-    background: var(--surface) !important;
+    padding: var(--space-2) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 10%, var(--border-color)) !important;
+    border-radius: var(--radius-lg) !important;
+    background: color-mix(in srgb, var(--background) 68%, var(--surface)) !important;
     box-shadow: none !important;
-}
-
-.work-role-current {
-    color: var(--primary) !important;
-    display: block;
-    padding-left: var(--space-1);
 }
 
 .work-role-toggle {
     border-radius: var(--radius-md) !important;
     background: var(--surface) !important;
+    border: 1px solid var(--border-color) !important;
 }
 
 .work-role-toggle-indicator {
     border-radius: calc(var(--radius-md) - 2px) !important;
-    background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
-    border-color: color-mix(in srgb, var(--primary) 22%, var(--border-color)) !important;
+    background: color-mix(in srgb, var(--primary) 9%, var(--surface)) !important;
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border-color)) !important;
+    transform: translateX(0);
+    transition: transform 160ms ease-out, background 160ms ease-out, border-color 160ms ease-out;
+    will-change: transform;
+}
+
+.work-role-toggle-indicator.is-expert {
+    transform: translateX(100%);
 }
 
 .work-role-toggle-button {
-    min-height: 42px;
-    padding: 0.72rem var(--space-2) !important;
+    min-height: 38px;
+    padding: 0.65rem var(--space-3) !important;
     border-radius: calc(var(--radius-md) - 2px) !important;
     font-size: 0.92rem;
     white-space: nowrap;
+    transition:
+        color 150ms ease-out,
+        background-color 150ms ease-out;
+}
+
+.work-role-toggle-button:hover {
+    color: var(--primary) !important;
+}
+
+.work-role-toggle-button:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
+    outline-offset: 2px;
 }
 
 .work-dashboard-shell {

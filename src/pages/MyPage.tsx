@@ -771,17 +771,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             data-testid="work-dashboard-role-switch"
             style={{
                 display: 'grid',
-                gap: '0.45rem',
-                padding: '0.55rem',
-                borderRadius: '1.1rem',
-                background: 'white',
+                padding: '0.5rem',
+                borderRadius: '12px',
+                background: 'color-mix(in srgb, var(--background) 68%, var(--surface))',
                 border: '1px solid var(--border-color)',
-                boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
+                boxShadow: 'none',
             }}
         >
-            <strong className={`work-role-current ${workRole === 'expert' ? 'is-expert' : 'is-client'}`} style={{ color: workRole === 'expert' ? '#166534' : '#1d4ed8', fontSize: '0.88rem' }}>
-                {workRole === 'expert' ? '전문가 모드' : '의뢰자 모드'}
-            </strong>
             <div
                 className="work-role-toggle"
                 aria-label="내 작업 역할 전환"
@@ -789,11 +785,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     position: 'relative',
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
-                    padding: '0.3rem',
-                    borderRadius: '999px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    gap: '0.25rem',
+                    padding: '0.25rem',
+                    borderRadius: '8px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-color)',
                     overflow: 'hidden',
                 }}
             >
@@ -802,14 +797,14 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     className={`work-role-toggle-indicator ${workRole === 'expert' ? 'is-expert' : 'is-client'}`}
                     style={{
                         position: 'absolute',
-                        top: '0.3rem',
-                        bottom: '0.3rem',
-                        left: workRole === 'expert' ? 'calc(50% + 0.125rem)' : '0.3rem',
-                        width: 'calc(50% - 0.425rem)',
-                        borderRadius: '999px',
-                        background: workRole === 'expert' ? '#ecfdf5' : '#eff6ff',
-                        border: `1px solid ${workRole === 'expert' ? '#bbf7d0' : '#bfdbfe'}`,
-                        transition: 'left 160ms ease, background 160ms ease, border-color 160ms ease',
+                        top: '0.25rem',
+                        bottom: '0.25rem',
+                        left: '0.25rem',
+                        width: 'calc(50% - 0.25rem)',
+                        borderRadius: '6px',
+                        background: 'color-mix(in srgb, var(--primary) 9%, var(--surface))',
+                        border: '1px solid color-mix(in srgb, var(--primary) 28%, var(--border-color))',
+                        transition: 'transform 160ms ease-out, background 160ms ease-out, border-color 160ms ease-out',
                     }}
                 />
                 <button
@@ -820,17 +815,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     style={{
                         position: 'relative',
                         zIndex: 1,
-                        padding: '0.78rem 1rem',
-                        borderRadius: '999px',
+                        minHeight: '38px',
+                        padding: '0.65rem 0.75rem',
+                        borderRadius: '6px',
                         border: 'none',
                         background: 'transparent',
-                        color: workRole === 'client' ? '#1d4ed8' : '#475569',
+                        color: workRole === 'client' ? 'var(--primary)' : 'var(--text-secondary)',
                         fontWeight: 900,
                         textAlign: 'center',
                         cursor: 'pointer',
                     }}
                 >
-                    의뢰자로 보기
+                    의뢰자
                 </button>
                 <button
                     className="work-role-toggle-button"
@@ -840,17 +836,18 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     style={{
                         position: 'relative',
                         zIndex: 1,
-                        padding: '0.78rem 1rem',
-                        borderRadius: '999px',
+                        minHeight: '38px',
+                        padding: '0.65rem 0.75rem',
+                        borderRadius: '6px',
                         border: 'none',
                         background: 'transparent',
-                        color: workRole === 'expert' ? '#166534' : '#475569',
+                        color: workRole === 'expert' ? 'var(--primary)' : 'var(--text-secondary)',
                         fontWeight: 900,
                         textAlign: 'center',
                         cursor: 'pointer',
                     }}
                 >
-                    전문가로 보기
+                    전문가
                 </button>
             </div>
         </div>
@@ -2051,7 +2048,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         <div
             className={`mypage-page ${isWorkMode ? 'work-dashboard-page' : ''}`}
             data-testid={isWorkMode ? 'work-dashboard-page' : undefined}
-            style={{ backgroundColor: 'var(--surface)', minHeight: 'calc(100vh - 60px)', padding: isWorkMode ? '2.5rem 0 6rem' : '4rem 0' }}
+            style={{ backgroundColor: 'var(--background)', minHeight: 'calc(100vh - 60px)', padding: isWorkMode ? '2.5rem 0 6rem' : '4rem 0' }}
         >
             <main className={`container mypage-container ${isWorkMode ? 'work-dashboard-container' : ''}`}>
                 <div className={`mypage-header ${isWorkMode ? 'work-dashboard-header' : ''}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
