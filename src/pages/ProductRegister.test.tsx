@@ -112,6 +112,17 @@ describe('ProductRegister', () => {
         vi.unstubAllGlobals()
     })
 
+    it('frames product registration with marketplace page navigation and guidance', () => {
+        renderRegister()
+
+        expect(screen.getByTestId('product-register-page')).toHaveClass('product-register-page')
+        expect(screen.getByRole('navigation', { name: '현재 위치' })).toHaveTextContent('홈/AI 작업 등록')
+        expect(screen.getByRole('form', { name: 'AI 상품 등록 폼' })).toHaveClass('product-register-form')
+        expect(screen.getByText('등록 전 확인')).toBeInTheDocument()
+        expect(screen.getByText('AI 작업 찾기에서 비교하기 쉬운 제목, 대표 이미지, 시작가를 먼저 정리하세요.')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: '1. 기본 정보' })).toBeInTheDocument()
+    })
+
     it('keeps the form close to Kmong service registration and publishes a single-price product', async () => {
         renderRegister()
 

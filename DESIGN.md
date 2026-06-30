@@ -19,6 +19,9 @@ AIConnect feels like a clear, practical AI work marketplace: calm enough for fir
 | Accent/primary | `--primary` | `#2563eb` | `#60a5fa` | Primary CTA, links, focus |
 | Accent/hover | `--primary-hover` | `#1d4ed8` | `#93c5fd` | CTA hover state |
 | Accent/secondary | `--secondary` | `#3b82f6` | `#38bdf8` | Secondary accents |
+| Status/danger | `--danger` | `#e11d48` | `#fb7185` | Errors, destructive actions |
+| Status/danger strong | `--danger-strong` | `#991b1b` | `#fecdd3` | Destructive section headings |
+| Status/danger muted | `--danger-muted` | `#7f1d1d` | `#fecaca` | Destructive explanatory copy |
 | Status/rating | `--star` | `#fbbf24` | `#facc15` | Ratings |
 
 ### Rules

@@ -1,0 +1,514 @@
+.product-register-page {
+    min-height: calc(100vh - 80px);
+    background: var(--background);
+}
+
+.product-register-hero {
+    padding: 2.25rem 0 1.35rem;
+    background: var(--background);
+}
+
+.product-register-hero-inner {
+    max-width: 1180px;
+}
+
+.product-register-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.product-register-breadcrumb a {
+    color: var(--primary);
+}
+
+.product-register-breadcrumb a:hover {
+    color: var(--primary-hover);
+}
+
+.product-register-eyebrow {
+    margin: 0 0 var(--space-2);
+    color: var(--primary);
+    font-size: 0.88rem;
+    font-weight: 900;
+}
+
+.product-register-hero h1 {
+    margin: 0 0 var(--space-3);
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.product-register-hero p:last-child {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.product-register-shell {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: var(--space-8);
+    max-width: 1180px;
+    padding-bottom: 7rem;
+}
+
+.product-register-guide {
+    position: sticky;
+    top: 104px;
+    align-self: start;
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+.product-register-guide-label {
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.product-register-guide h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 850;
+    line-height: 1.35;
+}
+
+.product-register-guide p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.product-register-guide-list {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-1) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.product-register-guide-list li {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: start;
+}
+
+.product-register-guide-list li > span {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border-color));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 900;
+}
+
+.product-register-guide-list strong,
+.product-register-guide-list small {
+    display: block;
+}
+
+.product-register-guide-list strong {
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    font-weight: 850;
+}
+
+.product-register-guide-list small {
+    margin-top: var(--space-1);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.product-register-form {
+    display: grid;
+    gap: var(--space-6);
+    min-width: 0;
+    padding: var(--space-8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+}
+
+.product-register-section {
+    display: grid;
+    gap: var(--space-4);
+    padding: 0 0 var(--space-6);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.product-register-section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 850;
+    line-height: 1.35;
+}
+
+.product-register-section h2 span {
+    color: var(--primary);
+    font-size: 0.95rem;
+    font-weight: 900;
+}
+
+.product-register-two-column,
+.product-register-three-column {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.product-register-two-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.product-register-three-column {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.product-register-stack {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.product-register-stack-compact {
+    gap: var(--space-3);
+}
+
+.product-register-field {
+    display: grid;
+    gap: var(--space-2);
+    color: var(--text-primary);
+    font-size: 0.93rem;
+    font-weight: 800;
+}
+
+.product-register-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.78rem 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-weight: 650;
+    outline: none;
+    transition:
+        border-color 150ms ease-out,
+        box-shadow 150ms ease-out,
+        background 150ms ease-out;
+}
+
+.product-register-input::placeholder {
+    color: var(--text-muted);
+    font-weight: 650;
+}
+
+.product-register-input:focus {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border-color));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.product-register-input[type="file"] {
+    padding: 0.72rem 0.85rem;
+    color: var(--text-secondary);
+    background: var(--background);
+}
+
+.product-register-textarea {
+    min-height: 9rem;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.product-register-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-3);
+}
+
+.product-register-preview-card {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--background);
+}
+
+.product-register-preview-card img,
+.product-register-preview-card video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-md);
+    background: var(--border-color);
+    object-fit: cover;
+}
+
+.product-register-preview-card figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.product-register-preview-card button {
+    padding: 0.25rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--danger) 18%, var(--border-color));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+    color: var(--danger);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.product-register-notice,
+.product-register-package-preview {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border-color));
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+.product-register-notice strong,
+.product-register-package-preview strong {
+    color: var(--text-primary);
+    font-weight: 850;
+}
+
+.product-register-notice p,
+.product-register-help-text {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.product-register-check-label,
+.product-register-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-primary);
+    font-weight: 850;
+}
+
+.product-register-check-label input,
+.product-register-toggle input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--primary);
+}
+
+.product-register-package-fieldset {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-4);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+}
+
+.product-register-package-fieldset legend {
+    padding: 0 var(--space-2);
+    color: var(--primary);
+    font-weight: 900;
+}
+
+.product-register-package-preview-copy {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.product-register-package-preview-copy span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.product-register-package-table {
+    display: grid;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+.product-register-package-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.4fr) repeat(3, minmax(92px, 1fr));
+    align-items: center;
+    min-width: 560px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.product-register-package-row:last-child {
+    border-bottom: 0;
+}
+
+.product-register-package-row > * {
+    padding: 0.8rem;
+}
+
+.product-register-package-row strong {
+    background: var(--background);
+    font-size: 0.9rem;
+}
+
+.product-register-package-label {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.product-register-package-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-weight: 850;
+}
+
+.product-register-package-cell .material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.product-register-package-cell.is-included {
+    color: var(--primary);
+}
+
+.product-register-package-cell.is-excluded {
+    color: var(--text-muted);
+}
+
+.product-register-package-empty {
+    padding: var(--space-4);
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.product-register-start-price {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 850;
+}
+
+.product-register-error {
+    margin: 0;
+    color: var(--danger);
+    font-weight: 850;
+}
+
+.product-register-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.product-register-submit {
+    min-height: 48px;
+    padding: 0 1.25rem;
+    border-radius: var(--radius-lg);
+    font-weight: 850;
+}
+
+.product-register-submit:disabled {
+    cursor: progress;
+    opacity: 0.72;
+}
+
+.product-register-danger-zone {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--danger) 20%, var(--border-color));
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+}
+
+.product-register-danger-zone strong {
+    color: var(--danger-strong);
+    font-weight: 850;
+}
+
+.product-register-danger-zone p {
+    margin: 0;
+    color: var(--danger-muted);
+    line-height: 1.6;
+}
+
+.product-register-danger-button {
+    justify-self: start;
+    min-height: 42px;
+    padding: 0 1rem;
+    border: 1px solid color-mix(in srgb, var(--danger) 20%, var(--border-color));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+    color: var(--danger-strong);
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.product-register-danger-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
+@media (max-width: 980px) {
+    .product-register-shell {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+    }
+
+    .product-register-guide {
+        position: static;
+    }
+}
+
+@media (max-width: 720px) {
+    .product-register-hero {
+        padding: 2rem 0 1.2rem;
+    }
+
+    .product-register-form {
+        padding: var(--space-5);
+        border-radius: var(--radius-lg);
+    }
+
+    .product-register-two-column,
+    .product-register-three-column {
+        grid-template-columns: 1fr;
+    }
+}

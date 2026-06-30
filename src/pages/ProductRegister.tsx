@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { deleteExpertProduct, getExpertProducts, saveExpertProduct } from '../lib/storage'
 import { attachOptionValuesToPackage, getPackageOptionRows as getPackageComparisonRows } from '../lib/packageOptions'
 import type { AiCategoryId, ExpertProduct, PackageTier, ProductPackage } from '../types'
+import './ProductRegister.css'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
@@ -250,24 +251,63 @@ export default function ProductRegister() {
 
     if (loading || !session) return null
 
+    const pageTitle = productId ? '상품 수정' : '상품 등록'
+
     return (
-        <main style={{ background: '#f8fafc', minHeight: 'calc(100vh - 60px)', padding: '4rem 0' }}>
-            <section className="container" style={{ maxWidth: '980px' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: '0 0 0.6rem' }}>{productId ? '상품 수정' : '상품 등록'}</h1>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                        크몽식 서비스 등록처럼 제목, 설명, 이미지, 가격 정보를 중심으로 등록합니다.
+        <main className="product-register-page" data-testid="product-register-page">
+            <section className="product-register-hero">
+                <div className="container product-register-hero-inner">
+                    <nav className="product-register-breadcrumb" aria-label="현재 위치">
+                        <Link to="/">홈</Link>
+                        <span aria-hidden="true">/</span>
+                        <span>AI 작업 등록</span>
+                    </nav>
+                    <p className="product-register-eyebrow">AIConnect Marketplace</p>
+                    <h1>{pageTitle}</h1>
+                    <p>
+                        AI 작업 찾기와 상품 상세에서 바로 비교될 수 있도록 제목, 샘플, 가격, 납기를 명확하게 정리합니다.
                     </p>
                 </div>
+            </section>
 
-                <form onSubmit={handleSubmit} style={formStyle}>
-                    <Section title="기본 정보">
-                        <div style={twoColumnStyle}>
+            <section className="container product-register-shell" aria-label={pageTitle}>
+                <aside className="product-register-guide" aria-labelledby="product-register-guide-title">
+                    <span className="product-register-guide-label">등록 가이드</span>
+                    <h2 id="product-register-guide-title">등록 전 확인</h2>
+                    <p>AI 작업 찾기에서 비교하기 쉬운 제목, 대표 이미지, 시작가를 먼저 정리하세요.</p>
+                    <ol className="product-register-guide-list">
+                        <li>
+                            <span>1</span>
+                            <div>
+                                <strong>결과물이 보이는 샘플</strong>
+                                <small>대표 이미지는 목록에서 가장 먼저 보입니다.</small>
+                            </div>
+                        </li>
+                        <li>
+                            <span>2</span>
+                            <div>
+                                <strong>작업 범위와 제외 항목</strong>
+                                <small>의뢰자가 오해하지 않도록 한 번에 확인하게 합니다.</small>
+                            </div>
+                        </li>
+                        <li>
+                            <span>3</span>
+                            <div>
+                                <strong>시작가와 수정 횟수</strong>
+                                <small>저렴한 AI 외주라는 장점을 가격에서 드러냅니다.</small>
+                            </div>
+                        </li>
+                    </ol>
+                </aside>
+
+                <form className="product-register-form" aria-label="AI 상품 등록 폼" onSubmit={handleSubmit}>
+                    <Section step="1" title="기본 정보">
+                        <div className="product-register-two-column">
                             <Field label="상품명">
-                                <input value={title} onChange={(event) => setTitle(event.target.value)} required placeholder="예: AI 숏폼 영상 콘셉트와 1차 시안을 제작해드립니다" style={inputStyle} />
+                                <input className="product-register-input" value={title} onChange={(event) => setTitle(event.target.value)} required placeholder="예: AI 숏폼 영상 콘셉트와 1차 시안을 제작해드립니다" />
                             </Field>
                             <Field label="카테고리">
-                                <select value={category} onChange={(event) => setCategory(event.target.value as AiCategoryId)} required style={inputStyle}>
+                                <select className="product-register-input" value={category} onChange={(event) => setCategory(event.target.value as AiCategoryId)} required>
                                     {AI_CATEGORIES.map((item) => (
                                         <option key={item.id} value={item.id}>{item.name}</option>
                                     ))}
@@ -275,29 +315,29 @@ export default function ProductRegister() {
                             </Field>
                         </div>
                         <Field label="서비스 요약">
-                            <input value={summary} onChange={(event) => setSummary(event.target.value)} required placeholder="검색 목록에서 보일 짧은 설명" style={inputStyle} />
+                            <input className="product-register-input" value={summary} onChange={(event) => setSummary(event.target.value)} required placeholder="검색 목록에서 보일 짧은 설명" />
                         </Field>
                     </Section>
 
-                    <Section title="상세 설명">
+                    <Section step="2" title="상세 설명">
                         <Field label="상세 설명">
                             <textarea
+                                className="product-register-input product-register-textarea"
                                 value={description}
                                 onChange={(event) => setDescription(event.target.value)}
                                 rows={8}
                                 required
                                 placeholder={'작업 범위, 진행 방식, 구매자가 준비할 자료, 제외되는 작업을 한 곳에 적어 주세요.\n\n예:\n- 15초 숏폼 콘셉트와 대본 초안을 제공합니다.\n- 참고 영상과 브랜드 톤을 보내주시면 반영합니다.\n- 성우 녹음과 광고 집행은 포함되지 않습니다.'}
-                                style={{ ...inputStyle, resize: 'vertical' }}
                             />
                         </Field>
                     </Section>
 
-                    <Section title="이미지 등록">
+                    <Section step="3" title="이미지 등록">
                         <Field label="메인 이미지 첨부">
-                            <input ref={thumbnailFileRef} type="file" accept="image/jpeg,image/png" onChange={handleThumbnailFileChange} style={inputStyle} />
+                            <input className="product-register-input" ref={thumbnailFileRef} type="file" accept="image/jpeg,image/png" onChange={handleThumbnailFileChange} />
                         </Field>
                         {(existingThumbnailDataUrl || selectedThumbnailPreviewUrl) && (
-                            <div style={imagePreviewGridStyle}>
+                            <div className="product-register-preview-grid">
                                 {selectedThumbnailPreviewUrl ? (
                                     <ImagePreviewCard src={selectedThumbnailPreviewUrl} alt="새 메인 이미지 미리보기" label="교체 예정 메인 이미지" />
                                 ) : existingThumbnailDataUrl && (
@@ -306,10 +346,10 @@ export default function ProductRegister() {
                             </div>
                         )}
                         <Field label="상세 미디어 첨부">
-                            <input ref={referenceFilesRef} type="file" accept="image/jpeg,image/png,video/mp4,video/webm" multiple onChange={handleReferenceFilesChange} style={inputStyle} />
+                            <input className="product-register-input" ref={referenceFilesRef} type="file" accept="image/jpeg,image/png,video/mp4,video/webm" multiple onChange={handleReferenceFilesChange} />
                         </Field>
                         {(existingReferenceDataUrls.length > 0 || selectedReferenceFiles.length > 0) && (
-                            <div style={imagePreviewGridStyle}>
+                            <div className="product-register-preview-grid">
                                 {existingReferenceDataUrls.map((src, index) => (
                                     <ImagePreviewCard
                                         key={`existing-reference-${src}-${index}`}
@@ -334,12 +374,12 @@ export default function ProductRegister() {
                                 ))}
                             </div>
                         )}
-                        <div style={guideBoxStyle}>
+                        <div className="product-register-notice">
                             <strong>등록 유의사항</strong>
-                            <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                            <p>
                                 대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 미디어는 JPG/PNG 이미지와 MP4/WebM 영상을 등록할 수 있습니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 자료는 넣지 않습니다.
                             </p>
-                            <label style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', fontWeight: 800 }}>
+                            <label className="product-register-check-label">
                                 <input
                                     type="checkbox"
                                     checked={imageGuideAccepted}
@@ -351,8 +391,8 @@ export default function ProductRegister() {
                         </div>
                     </Section>
 
-                    <Section title="가격 정보">
-                        <label style={toggleStyle}>
+                    <Section step="4" title="가격 정보">
+                        <label className="product-register-toggle">
                             <input
                                 type="checkbox"
                                 checked={usePackagePricing}
@@ -360,12 +400,12 @@ export default function ProductRegister() {
                             />
                             패키지 가격 사용
                         </label>
-                        <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        <p className="product-register-help-text">
                             기본은 단일 가격입니다. 작업 범위가 난이도별로 명확히 나뉘는 경우에만 패키지를 켜서 Standard, Deluxe, Premium을 작성하세요.
                         </p>
 
                         {usePackagePricing ? (
-                            <div style={{ display: 'grid', gap: '1rem' }}>
+                            <div className="product-register-stack">
                                 <PackageFields tier="standard" state={packages.standard} onChange={updatePackage} />
                                 <PackageFields tier="deluxe" state={packages.deluxe} onChange={updatePackage} />
                                 <PackageFields tier="premium" state={packages.premium} onChange={updatePackage} />
@@ -377,45 +417,29 @@ export default function ProductRegister() {
                     </Section>
 
                     {(usePackagePricing ? packages.standard.price : basePackage.price) && (
-                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 700 }}>
+                        <p className="product-register-start-price">
                             시작가 {currency.format(Number(usePackagePricing ? packages.standard.price : basePackage.price))}원
                         </p>
                     )}
-                    {errorMessage && <p role="alert" style={{ margin: 0, color: '#e11d48', fontWeight: 800 }}>{errorMessage}</p>}
+                    {errorMessage && <p className="product-register-error" role="alert">{errorMessage}</p>}
 
-                    <button type="submit" className="btn-primary" disabled={submitting} style={{ justifySelf: 'start', padding: '0.85rem 1.1rem' }}>
-                        {submitting ? (productId ? '수정 중' : '등록 중') : (productId ? '수정 저장하기' : '등록하기')}
-                    </button>
+                    <div className="product-register-actions">
+                        <button type="submit" className="btn-primary product-register-submit" disabled={submitting}>
+                            {submitting ? (productId ? '수정 중' : '등록 중') : (productId ? '수정 저장하기' : '등록하기')}
+                        </button>
+                    </div>
 
                     {existingProduct && (
-                        <section
-                            style={{
-                                display: 'grid',
-                                gap: '0.75rem',
-                                padding: '1rem',
-                                borderRadius: '0.85rem',
-                                border: '1px solid #fecaca',
-                                background: '#fff7f7',
-                            }}
-                        >
-                            <strong style={{ color: '#991b1b' }}>상품 삭제</strong>
-                            <p style={{ margin: 0, color: '#7f1d1d', lineHeight: 1.6 }}>
+                        <section className="product-register-danger-zone">
+                            <strong>상품 삭제</strong>
+                            <p>
                                 삭제한 상품은 AI 작업 찾기와 상품 상세에서 더 이상 공개되지 않습니다.
                             </p>
                             <button
+                                className="product-register-danger-button"
                                 type="button"
                                 onClick={handleDeleteProduct}
                                 disabled={submitting}
-                                style={{
-                                    justifySelf: 'start',
-                                    padding: '0.78rem 1rem',
-                                    borderRadius: '0.65rem',
-                                    border: '1px solid #fecaca',
-                                    background: '#fee2e2',
-                                    color: '#991b1b',
-                                    fontWeight: 900,
-                                    cursor: submitting ? 'not-allowed' : 'pointer',
-                                }}
                             >
                                 상품 삭제하기
                             </button>
@@ -435,20 +459,20 @@ function SinglePriceFields({
     onChange: (updates: Partial<PackageFormState>) => void
 }) {
     return (
-        <div style={{ display: 'grid', gap: '0.9rem' }}>
-            <div style={threeColumnStyle}>
+        <div className="product-register-stack product-register-stack-compact">
+            <div className="product-register-three-column">
                 <Field label="가격">
-                    <input type="number" min="1" value={state.price} onChange={(event) => onChange({ price: event.target.value })} required style={inputStyle} />
+                    <input className="product-register-input" type="number" min="1" value={state.price} onChange={(event) => onChange({ price: event.target.value })} required />
                 </Field>
                 <Field label="작업일">
-                    <input type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange({ deliveryDays: event.target.value })} required style={inputStyle} />
+                    <input className="product-register-input" type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange({ deliveryDays: event.target.value })} required />
                 </Field>
                 <Field label="수정 횟수">
-                    <input type="number" min="0" value={state.revisionCount} onChange={(event) => onChange({ revisionCount: event.target.value })} required style={inputStyle} />
+                    <input className="product-register-input" type="number" min="0" value={state.revisionCount} onChange={(event) => onChange({ revisionCount: event.target.value })} required />
                 </Field>
             </div>
             <Field label="기본 제공 항목">
-                <textarea value={state.included} onChange={(event) => onChange({ included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" style={{ ...inputStyle, resize: 'vertical' }} />
+                <textarea className="product-register-input product-register-textarea" value={state.included} onChange={(event) => onChange({ included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" />
             </Field>
         </div>
     )
@@ -466,21 +490,21 @@ function PackageFields({
     const name = packageNames[tier]
 
     return (
-        <fieldset data-testid={`package-${tier}`} style={fieldsetStyle}>
-            <legend style={{ padding: '0 0.4rem', fontWeight: 900 }}>{name}</legend>
-            <div style={threeColumnStyle}>
+        <fieldset className="product-register-package-fieldset" data-testid={`package-${tier}`}>
+            <legend>{name}</legend>
+            <div className="product-register-three-column">
                 <Field label="가격">
-                    <input type="number" min="1" value={state.price} onChange={(event) => onChange(tier, { price: event.target.value })} required style={inputStyle} />
+                    <input className="product-register-input" type="number" min="1" value={state.price} onChange={(event) => onChange(tier, { price: event.target.value })} required />
                 </Field>
                 <Field label="작업일">
-                    <input type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange(tier, { deliveryDays: event.target.value })} required style={inputStyle} />
+                    <input className="product-register-input" type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange(tier, { deliveryDays: event.target.value })} required />
                 </Field>
                 <Field label="수정 횟수">
-                    <input type="number" min="0" value={state.revisionCount} onChange={(event) => onChange(tier, { revisionCount: event.target.value })} required style={inputStyle} />
+                    <input className="product-register-input" type="number" min="0" value={state.revisionCount} onChange={(event) => onChange(tier, { revisionCount: event.target.value })} required />
                 </Field>
             </div>
             <Field label="포함 항목">
-                <textarea value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" style={{ ...inputStyle, resize: 'vertical' }} />
+                <textarea className="product-register-input product-register-textarea" value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" />
             </Field>
         </fieldset>
     )
@@ -490,29 +514,29 @@ function PackageOptionPreview({ packages }: { packages: Record<PackageTier, Pack
     const rows = getPackageOptionRows(packages)
 
     return (
-        <div data-testid="package-option-preview" style={packagePreviewStyle}>
-            <div style={{ display: 'grid', gap: '0.25rem' }}>
+        <div className="product-register-package-preview" data-testid="package-option-preview">
+            <div className="product-register-package-preview-copy">
                 <strong>패키지별 포함 항목 비교</strong>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                <span>
                     상위 패키지에만 들어가는 항목은 하위 패키지에서 회색 미포함으로 표시됩니다.
                 </span>
             </div>
-            <div style={packagePreviewTableStyle} role="table" aria-label="패키지 포함 항목 미리보기">
-                <div style={packagePreviewRowStyle} role="row">
+            <div className="product-register-package-table" role="table" aria-label="패키지 포함 항목 미리보기">
+                <div className="product-register-package-row" role="row">
                     <strong role="columnheader">항목</strong>
                     <strong role="columnheader">Standard</strong>
                     <strong role="columnheader">Deluxe</strong>
                     <strong role="columnheader">Premium</strong>
                 </div>
                 {rows.length > 0 ? rows.map((row) => (
-                    <div key={row.label} style={packagePreviewRowStyle} role="row">
-                        <span role="cell" style={{ fontWeight: 800 }}>{row.label}</span>
+                    <div className="product-register-package-row" key={row.label} role="row">
+                        <span className="product-register-package-label" role="cell">{row.label}</span>
                         <PackageOptionCell included={row.available.standard} value={row.values.standard} />
                         <PackageOptionCell included={row.available.deluxe} value={row.values.deluxe} />
                         <PackageOptionCell included={row.available.premium} value={row.values.premium} />
                     </div>
                 )) : (
-                    <div style={packagePreviewEmptyStyle}>
+                    <div className="product-register-package-empty">
                         포함 항목을 입력하면 패키지별 비교가 여기에 표시됩니다.
                     </div>
                 )}
@@ -523,8 +547,8 @@ function PackageOptionPreview({ packages }: { packages: Record<PackageTier, Pack
 
 function PackageOptionCell({ included, value }: { included: boolean; value: string }) {
     return (
-        <span role="cell" style={included ? packagePreviewIncludedCellStyle : packagePreviewExcludedCellStyle}>
-            <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '1rem' }}>
+        <span className={`product-register-package-cell ${included ? 'is-included' : 'is-excluded'}`} role="cell">
+            <span className="material-symbols-outlined" aria-hidden="true">
                 {included ? 'check' : 'remove'}
             </span>
             {value}
@@ -532,10 +556,14 @@ function PackageOptionCell({ included, value }: { included: boolean; value: stri
     )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ step, title, children }: { step: string; title: string; children: ReactNode }) {
     return (
-        <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>{title}</h2>
+        <section className="product-register-section">
+            <h2>
+                <span>{step}.</span>
+                {' '}
+                {title}
+            </h2>
             {children}
         </section>
     )
@@ -543,15 +571,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
     return (
-        <label style={{ display: 'grid', gap: '0.45rem', fontWeight: 800 }}>
+        <label className="product-register-field">
             {label}
             {children}
         </label>
     )
 }
-
-const parseCommaList = (value: string) =>
-    value.split(',').map((item) => item.trim()).filter(Boolean)
 
 const parseLineList = (value: string) =>
     value.split('\n').map((item) => item.trim()).filter(Boolean)
@@ -591,16 +616,16 @@ function ImagePreviewCard({
     removeLabel?: string
 }) {
     return (
-        <figure style={imagePreviewCardStyle}>
+        <figure className="product-register-preview-card">
             {mediaType === 'video' ? (
-                <video src={src} aria-label={alt} controls style={imagePreviewStyle} />
+                <video src={src} aria-label={alt} controls />
             ) : (
-                <img src={src} alt={alt} style={imagePreviewStyle} />
+                <img src={src} alt={alt} />
             )}
-            <figcaption style={imagePreviewCaptionStyle}>
+            <figcaption>
                 <span>{label}</span>
                 {onRemove && (
-                    <button type="button" aria-label={removeLabel || `${label} 삭제`} onClick={onRemove} style={imageRemoveButtonStyle}>
+                    <button type="button" aria-label={removeLabel || `${label} 삭제`} onClick={onRemove}>
                         삭제
                     </button>
                 )}
@@ -655,162 +680,3 @@ const readImageDimensions = (file: File) =>
         }
         image.src = objectUrl
     })
-
-const formStyle = {
-    display: 'grid',
-    gap: '1rem',
-    background: 'white',
-    padding: '2rem',
-    borderRadius: '1rem',
-    border: '1px solid var(--border-color)',
-} as const
-
-const sectionStyle = {
-    display: 'grid',
-    gap: '1rem',
-    paddingBottom: '1rem',
-    borderBottom: '1px solid var(--border-color)',
-} as const
-
-const sectionTitleStyle = {
-    fontSize: '1.2rem',
-    fontWeight: 900,
-    margin: 0,
-} as const
-
-const twoColumnStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: '1rem',
-} as const
-
-const threeColumnStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gap: '0.75rem',
-} as const
-
-const toggleStyle = {
-    display: 'flex',
-    gap: '0.55rem',
-    alignItems: 'center',
-    fontWeight: 900,
-} as const
-
-const guideBoxStyle = {
-    display: 'grid',
-    gap: '0.7rem',
-    padding: '1rem',
-    borderRadius: '0.85rem',
-    border: '1px solid #bfdbfe',
-    background: '#eff6ff',
-} as const
-
-const imagePreviewGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-    gap: '0.75rem',
-} as const
-
-const imagePreviewCardStyle = {
-    margin: 0,
-    display: 'grid',
-    gap: '0.45rem',
-    padding: '0.75rem',
-    borderRadius: '0.85rem',
-    border: '1px solid var(--border-color)',
-    background: '#f8fafc',
-} as const
-
-const imagePreviewStyle = {
-    width: '100%',
-    aspectRatio: '4 / 3',
-    objectFit: 'cover',
-    borderRadius: '0.65rem',
-    background: '#e2e8f0',
-} as const
-
-const imagePreviewCaptionStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: '0.5rem',
-    alignItems: 'center',
-    color: 'var(--text-secondary)',
-    fontSize: '0.85rem',
-    fontWeight: 800,
-} as const
-
-const imageRemoveButtonStyle = {
-    border: '1px solid #fecdd3',
-    borderRadius: '999px',
-    background: '#fff1f2',
-    color: '#be123c',
-    font: 'inherit',
-    fontSize: '0.78rem',
-    fontWeight: 900,
-    padding: '0.25rem 0.55rem',
-    cursor: 'pointer',
-} as const
-
-const fieldsetStyle = {
-    display: 'grid',
-    gap: '0.9rem',
-    padding: '1rem',
-    borderRadius: '0.85rem',
-    border: '1px solid var(--border-color)',
-} as const
-
-const packagePreviewStyle = {
-    display: 'grid',
-    gap: '0.85rem',
-    padding: '1rem',
-    borderRadius: '0.85rem',
-    border: '1px solid #bfdbfe',
-    background: '#f8fbff',
-} as const
-
-const packagePreviewTableStyle = {
-    display: 'grid',
-    border: '1px solid var(--border-color)',
-    borderRadius: '0.7rem',
-    overflow: 'hidden',
-    background: 'white',
-} as const
-
-const packagePreviewRowStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(150px, 1.4fr) repeat(3, minmax(92px, 1fr))',
-    gap: '0',
-    alignItems: 'center',
-    borderBottom: '1px solid var(--border-color)',
-} as const
-
-const packagePreviewEmptyStyle = {
-    padding: '0.9rem',
-    color: 'var(--text-secondary)',
-    fontWeight: 700,
-} as const
-
-const packagePreviewIncludedCellStyle = {
-    display: 'inline-flex',
-    gap: '0.3rem',
-    alignItems: 'center',
-    color: '#2563eb',
-    fontWeight: 900,
-} as const
-
-const packagePreviewExcludedCellStyle = {
-    display: 'inline-flex',
-    gap: '0.3rem',
-    alignItems: 'center',
-    color: '#94a3b8',
-    fontWeight: 800,
-} as const
-
-const inputStyle = {
-    width: '100%',
-    padding: '0.85rem 1rem',
-    borderRadius: '0.75rem',
-    border: '1px solid var(--border-color)',
-    font: 'inherit',
-} as const
