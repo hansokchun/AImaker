@@ -38,7 +38,7 @@ describe('Navbar', () => {
         window.localStorage.clear()
     })
 
-    it('keeps the header focused on account actions before login', () => {
+    it('keeps the header focused on account actions and global search before login', () => {
         render(
             <MemoryRouter>
                 <Navbar />
@@ -48,7 +48,27 @@ describe('Navbar', () => {
         expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'AIConnect' })).toHaveAttribute('href', '/')
+        expect(screen.queryByText('handshake')).not.toBeInTheDocument()
+        expect(screen.getByRole('search', { name: 'AI 작업 검색' })).toBeInTheDocument()
+        expect(screen.getByRole('searchbox', { name: 'AI 작업 검색어' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
+    })
+
+    it('submits the global search to the category page with a query string', () => {
+        render(
+            <MemoryRouter initialEntries={['/profile']}>
+                <Routes>
+                    <Route path="*" element={<><Navbar /><LocationProbe /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        fireEvent.change(screen.getByRole('searchbox', { name: 'AI 작업 검색어' }), {
+            target: { value: '숏폼 영상' },
+        })
+        fireEvent.submit(screen.getByRole('search', { name: 'AI 작업 검색' }))
+
+        expect(screen.getByTestId('location')).toHaveTextContent('/category?q=%EC%88%8F%ED%8F%BC+%EC%98%81%EC%83%81')
     })
 
     it('surfaces my work as a top-level shortcut after login', async () => {

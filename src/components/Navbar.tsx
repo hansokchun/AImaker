@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { type FormEvent, useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserNotifications, type UserNotification } from '../lib/notifications';
@@ -7,11 +7,19 @@ import { getStoredProfile, getUserDisplayProfile } from '../lib/storage';
 
 export default function Navbar() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, signOut } = useAuth();
+    const [searchTerm, setSearchTerm] = useState('');
     const [profileImageUrl, setProfileImageUrl] = useState('');
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const nextSearchTerm = location.pathname === ROUTES.CATEGORY ? params.get('q') || '' : '';
+        setSearchTerm(nextSearchTerm);
+    }, [location.pathname, location.search]);
 
     useEffect(() => {
         let active = true;
@@ -83,6 +91,22 @@ export default function Navbar() {
         }
     };
 
+    const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmedSearchTerm = searchTerm.trim();
+
+        setProfileMenuOpen(false);
+        setNotificationMenuOpen(false);
+
+        if (!trimmedSearchTerm) {
+            navigate(ROUTES.CATEGORY);
+            return;
+        }
+
+        const params = new URLSearchParams({ q: trimmedSearchTerm });
+        navigate(`${ROUTES.CATEGORY}?${params.toString()}`);
+    };
+
     const handleNotificationOpen = (notification: UserNotification) => {
         if (!user) return;
         markNotificationAsRead(user.id, notification.id);
@@ -94,9 +118,21 @@ export default function Navbar() {
         <header className="navbar" id="navbar">
             <div className="nav-container container">
                 <Link to={ROUTES.HOME} className="logo" aria-label="AIConnect">
-                    <span className="material-symbols-outlined logo-icon" aria-hidden="true">handshake</span>
                     AIConnect
                 </Link>
+
+                <form className="nav-search" role="search" aria-label="AI 작업 검색" onSubmit={handleSearchSubmit}>
+                    <input
+                        type="search"
+                        aria-label="AI 작업 검색어"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="어떤 AI 작업을 찾으세요?"
+                    />
+                    <button type="submit" aria-label="검색">
+                        검색
+                    </button>
+                </form>
 
                 <div className="nav-actions">
                     {user ? (

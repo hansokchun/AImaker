@@ -87,9 +87,6 @@ export default function FavoriteProductButton({ productId, productTitle, classNa
             disabled={saving}
             onClick={handleClick}
         >
-            <span className="material-symbols-outlined" aria-hidden="true">
-                {isFavorite ? 'favorite' : 'favorite_border'}
-            </span>
             <span>{isFavorite ? '관심 상품' : '관심 추가'}</span>
             {showCount && <small>{favoriteCount.toLocaleString('ko-KR')}명 관심</small>}
         </button>

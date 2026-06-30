@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Category from './Category'
 import { AI_CATEGORIES } from '../constants/categories'
@@ -84,7 +84,8 @@ describe('Category', () => {
     )
 
     expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
-    expect(screen.getByText(`총 ${mockExpertProducts.length}개의 AI 작업`)).toBeInTheDocument()
+    expect(screen.queryByText(`총 ${mockExpertProducts.length}개의 AI 작업`)).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: '상품 정렬' })).toHaveValue('추천순')
   })
 
   it('renders breadcrumb navigation and popular searches without the category card panel', async () => {
@@ -104,6 +105,9 @@ describe('Category', () => {
     expect(screen.getByRole('button', { name: '숏폼 영상 검색' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '업무 자동화 검색' })).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: '사용 AI 도구' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('searchbox', { name: '상품 검색어' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/^총 \d+개의 AI 작업$/)).not.toBeInTheDocument()
+    expect(screen.queryByText('favorite_border')).not.toBeInTheDocument()
   })
 
   it('filters to the clicked category from the initial all-selected state', async () => {
@@ -138,7 +142,7 @@ describe('Category', () => {
     expect(screen.getByLabelText(AI_CATEGORIES[2].name)).not.toBeChecked()
   })
 
-  it('filters products by the search keyword from the URL and search input', async () => {
+  it('filters products by the search keyword from the URL and popular search buttons', async () => {
     render(
       <MemoryRouter initialEntries={[`/category?q=${encodeURIComponent(mockExpertProducts[1].title)}`]}>
         <Category />
@@ -147,11 +151,36 @@ describe('Category', () => {
 
     expect(await screen.findByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
-    expect(screen.getByLabelText('상품 검색어')).toHaveValue(mockExpertProducts[1].title)
+    expect(screen.queryByRole('searchbox', { name: '상품 검색어' })).not.toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('상품 검색어'), { target: { value: mockExpertProducts[0].title } })
+    fireEvent.click(screen.getByRole('button', { name: '숏폼 영상 검색' }))
 
     expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
+  })
+
+  it('updates the product results when the URL search query changes on the category route', async () => {
+    render(
+      <MemoryRouter initialEntries={[`/category?q=${encodeURIComponent(mockExpertProducts[1].title)}`]}>
+        <Routes>
+          <Route
+            path="/category"
+            element={(
+              <>
+                <Link to={`/category?q=${encodeURIComponent(mockExpertProducts[0].title)}`}>숏폼으로 다시 검색</Link>
+                <Category />
+              </>
+            )}
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: mockExpertProducts[1].title })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: '숏폼으로 다시 검색' }))
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument())
     expect(screen.queryByRole('heading', { name: mockExpertProducts[1].title })).not.toBeInTheDocument()
   })
 
@@ -180,18 +209,29 @@ describe('Category', () => {
 
     render(
       <MemoryRouter initialEntries={['/category?q=상세페이지']}>
-        <Category />
+        <Routes>
+          <Route
+            path="/category"
+            element={(
+              <>
+                <Link to="/category?q=전환디자인랩">전문가명으로 검색</Link>
+                <Link to="/category?q=Runway">도구명으로 검색</Link>
+                <Category />
+              </>
+            )}
+          />
+        </Routes>
       </MemoryRouter>,
     )
 
     expect(await screen.findByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '다른 상품' })).not.toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('상품 검색어'), { target: { value: '전환디자인랩' } })
+    fireEvent.click(screen.getByRole('link', { name: '전문가명으로 검색' }))
     expect(screen.getByRole('heading', { name: '제목에는 없는 상품' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('상품 검색어'), { target: { value: 'Runway' } })
-    expect(screen.queryByRole('heading', { name: '제목에는 없는 상품' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: '도구명으로 검색' }))
+    await waitFor(() => expect(screen.queryByRole('heading', { name: '제목에는 없는 상품' })).not.toBeInTheDocument())
   })
 
   it('deselects a category when the selected category is clicked again', async () => {

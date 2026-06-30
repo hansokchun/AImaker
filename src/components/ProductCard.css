@@ -54,10 +54,6 @@
     color: #e11d48;
 }
 
-.favorite-product-button .material-symbols-outlined {
-    font-size: 1.05rem;
-}
-
 .favorite-product-button small {
     color: inherit;
     font-size: 0.78rem;

@@ -107,32 +107,12 @@
 
 .product-list-header {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: flex-end;
     gap: 1rem;
-    min-height: 68px;
     margin-bottom: 1rem;
-    padding: 0.85rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
-    background: var(--surface);
-}
-
-.product-list-header div {
-    display: grid;
-    gap: 0.22rem;
-}
-
-.product-list-header strong {
-    color: var(--text-primary);
-    font-size: 1.08rem;
-    font-weight: 950;
-}
-
-.product-list-header span {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    font-weight: 800;
+    padding: 0;
+    background: transparent;
 }
 
 .product-grid {
