@@ -110,6 +110,11 @@ describe('Category', () => {
     expect(screen.queryByRole('searchbox', { name: '상품 검색어' })).not.toBeInTheDocument()
     expect(screen.queryByText(/^총 \d+개의 AI 작업$/)).not.toBeInTheDocument()
     expect(screen.queryByText('favorite_border')).not.toBeInTheDocument()
+
+    const selectedCategoryStatus = screen.getByRole('status', { name: '선택된 카테고리' })
+    expect([...selectedCategoryStatus.querySelectorAll('.selected-category-chip')].map((chip) => chip.textContent)).toEqual(
+      AI_CATEGORIES.map((category) => category.name),
+    )
   })
 
   it('uses the URL keyword as the category hero search result title', async () => {
@@ -157,9 +162,15 @@ describe('Category', () => {
 
     const selectedCategoryStatus = screen.getByRole('status', { name: '선택된 카테고리' })
     const filterSidebar = screen.getByRole('complementary', { name: '상품 필터' })
+    const productListMain = container.querySelector('.product-list-main')
+    const filterColumn = container.querySelector('.category-filter-column')
     expect(selectedCategoryStatus).toHaveTextContent(AI_CATEGORIES[1].name)
     expect(selectedCategoryStatus.querySelector('.selected-category-chip')).toHaveTextContent(AI_CATEGORIES[1].name)
+    expect(productListMain).toContainElement(selectedCategoryStatus)
+    expect(productListMain?.firstElementChild).toBe(selectedCategoryStatus)
     expect(filterSidebar).not.toContainElement(selectedCategoryStatus)
+    expect(filterColumn).not.toBeInTheDocument()
+    expect(screen.queryByText('선택 카테고리')).not.toBeInTheDocument()
     expect(container.querySelector('.filter-sidebar-head')).not.toBeInTheDocument()
   })
 
