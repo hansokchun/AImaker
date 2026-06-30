@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
 import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
+import './MyPage.css'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
     sent: '대기 중',
@@ -291,38 +291,36 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }, [activePanel, defaultPanel, menuItems, mode, selectedClientOrderId, selectedExpertRequestId, selectedConsultationId, searchParamString, setSearchParams, workRole])
 
     useEffect(() => {
-        if (user) {
-            fetchProfile()
-        }
-        if (user) {
-            getUserProposals(user.id).then(setProposals).catch((error) => {
-                console.error('제안서 목록 로딩 오류:', error)
-                setProposals([])
-            })
-            getUserServiceRequests(user.id).then(setServiceRequests).catch((error) => {
-                console.error('의뢰 요청 목록 로딩 오류:', error)
-                setServiceRequests([])
-            })
-            getUserWorks(user.id).then(setWorks).catch((error) => {
-                console.error('작업 목록 로딩 오류:', error)
-                setWorks([])
-            })
-            getUserReviews(user.id).then(setReviews).catch((error) => {
-                console.error('리뷰 목록 로딩 오류:', error)
-                setReviews([])
-            })
-            getUserConsultations(user.id).then(setConsultations).catch((error) => {
-                console.error('상담 목록 로딩 오류:', error)
-                setConsultations([])
-            })
-            getExpertProducts().then(setProducts).catch((error) => {
-                console.error('상품 목록 로딩 오류:', error)
-                setProducts([])
-            })
-            getUserFavoriteProductIds(user.id).then(setFavoriteProductIds).catch(() => {
-                setFavoriteProductIds([])
-            })
-        }
+        if (!userId) return
+
+        fetchProfile()
+        getUserProposals(userId).then(setProposals).catch((error) => {
+            console.error('제안서 목록 로딩 오류:', error)
+            setProposals([])
+        })
+        getUserServiceRequests(userId).then(setServiceRequests).catch((error) => {
+            console.error('의뢰 요청 목록 로딩 오류:', error)
+            setServiceRequests([])
+        })
+        getUserWorks(userId).then(setWorks).catch((error) => {
+            console.error('작업 목록 로딩 오류:', error)
+            setWorks([])
+        })
+        getUserReviews(userId).then(setReviews).catch((error) => {
+            console.error('리뷰 목록 로딩 오류:', error)
+            setReviews([])
+        })
+        getUserConsultations(userId).then(setConsultations).catch((error) => {
+            console.error('상담 목록 로딩 오류:', error)
+            setConsultations([])
+        })
+        getExpertProducts().then(setProducts).catch((error) => {
+            console.error('상품 목록 로딩 오류:', error)
+            setProducts([])
+        })
+        getUserFavoriteProductIds(userId).then(setFavoriteProductIds).catch(() => {
+            setFavoriteProductIds([])
+        })
     }, [fetchProfile, userId])
 
     useEffect(() => {
@@ -485,9 +483,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const selectedConsultation = consultations.find((consultation) => consultation.id === selectedConsultationId) || selectedPanelConsultation || consultations[0] || null
     const selectedClientConsultation = clientConsultationsByCreatedAt.find((consultation) => consultation.id === selectedConsultationId) || clientConsultationsByCreatedAt[0] || null
     const selectedExpertConsultation = expertConsultationsByCreatedAt.find((consultation) => consultation.id === selectedConsultationId) || expertConsultationsByCreatedAt[0] || null
-    const selectedConsultationProduct = selectedConsultation
-        ? products.find((product) => product.id === selectedConsultation.productId)
-        : null
     const selectedPanelConsultationProduct = selectedPanelConsultation
         ? products.find((product) => product.id === selectedPanelConsultation.productId)
         : null
@@ -770,6 +765,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderWorkRoleSwitch = () => (
         <div
+            className="work-role-switch"
+            data-testid="work-dashboard-role-switch"
             style={{
                 display: 'grid',
                 gap: '0.45rem',
@@ -780,13 +777,14 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
             }}
         >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0 0.35rem' }}>
+            <div className="work-role-switch-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0 0.35rem' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 900 }}>현재 주체</span>
-                <strong style={{ color: workRole === 'expert' ? '#166534' : '#1d4ed8', fontSize: '0.88rem' }}>
+                <strong className={`work-role-current ${workRole === 'expert' ? 'is-expert' : 'is-client'}`} style={{ color: workRole === 'expert' ? '#166534' : '#1d4ed8', fontSize: '0.88rem' }}>
                     {workRole === 'expert' ? '전문가 모드' : '의뢰자 모드'}
                 </strong>
             </div>
             <div
+                className="work-role-toggle"
                 aria-label="내 작업 역할 전환"
                 style={{
                     position: 'relative',
@@ -802,6 +800,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             >
                 <span
                     aria-hidden="true"
+                    className={`work-role-toggle-indicator ${workRole === 'expert' ? 'is-expert' : 'is-client'}`}
                     style={{
                         position: 'absolute',
                         top: '0.3rem',
@@ -815,6 +814,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     }}
                 />
                 <button
+                    className="work-role-toggle-button"
                     type="button"
                     aria-pressed={workRole === 'client'}
                     onClick={() => handleWorkRoleChange('client')}
@@ -834,6 +834,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     의뢰자로 보기
                 </button>
                 <button
+                    className="work-role-toggle-button"
                     type="button"
                     aria-pressed={workRole === 'expert'}
                     onClick={() => handleWorkRoleChange('expert')}
@@ -1033,9 +1034,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         emptyText: string,
         onSelect: (item: UnifiedWorkItem) => void,
     ) => (
-        <section data-testid={testId}>
+        <section className="work-list-panel" data-testid={testId}>
             {items.length > 0 ? (
-                <div style={{ display: 'grid', gap: '0.65rem' }}>
+                <div className="work-list-stack" style={{ display: 'grid', gap: '0.65rem' }}>
                     {items.map((item) => {
                         const product = item.kind === 'product'
                             ? products.find((entry) => entry.id === item.request.productId)
@@ -1051,7 +1052,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         return (
                             <button
                                 key={`${item.kind}-${item.id}`}
+                                className={`work-list-card ${selected ? 'is-selected' : ''}`}
                                 type="button"
+                                data-testid="work-dashboard-item"
                                 data-work-item-kind={item.kind}
                                 data-work-item-id={String(item.id)}
                                 aria-pressed={selected}
@@ -1066,6 +1069,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 }}
                             >
                                 <span
+                                    className={`work-list-chip ${item.kind === 'consultation' ? 'is-consultation' : 'is-product'}`}
                                     style={{
                                         display: 'inline-block',
                                         marginBottom: '0.45rem',
@@ -1187,7 +1191,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         )
     }
 
-    const renderClientProductOrderManager = () => (
+    const _renderClientProductOrderManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
             {clientConsultationsByCreatedAt.length > 0 && (
                 <div>
@@ -1278,7 +1282,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </div>
     )
 
-    const renderExpertReceivedWorkManager = () => (
+    const _renderExpertReceivedWorkManager = () => (
         <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
             {expertConsultationsByCreatedAt.length > 0 && (
                 <div>
@@ -1540,9 +1544,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }
 
     const renderClientUnifiedWorkManager = () => (
-        <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
+        <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
             {clientUnifiedWorkItems.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
                     {renderUnifiedWorkList(
                         clientUnifiedWorkItems,
                         selectedClientUnifiedWorkItem,
@@ -1570,9 +1574,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     )
 
     const renderExpertUnifiedWorkManager = () => (
-        <div style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
+        <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
             {expertUnifiedWorkItems.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
                     {renderUnifiedWorkList(
                         expertUnifiedWorkItems,
                         selectedExpertUnifiedWorkItem,
@@ -1962,7 +1966,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (activePanel === 'client') {
             if (mode === 'work') {
                 return (
-                    <section style={cardStyle}>
+                    <section className="work-dashboard-panel" style={cardStyle}>
                         {workRole === 'client' ? (
                             <div>
                                 {renderClientUnifiedWorkManager()}
@@ -2021,27 +2025,51 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     if (!session) return null
 
+    const isWorkMode = mode === 'work'
+
     return (
-        <div style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 60px)', padding: '4rem 0' }}>
-            <main className="container">
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                    <div>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{pageTitle}</h1>
+        <div
+            className={`mypage-page ${isWorkMode ? 'work-dashboard-page' : ''}`}
+            data-testid={isWorkMode ? 'work-dashboard-page' : undefined}
+            style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 60px)', padding: isWorkMode ? '2.5rem 0 6rem' : '4rem 0' }}
+        >
+            <main className={`container mypage-container ${isWorkMode ? 'work-dashboard-container' : ''}`}>
+                <div className={`mypage-header ${isWorkMode ? 'work-dashboard-header' : ''}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                    <div className="mypage-title-block">
+                        {isWorkMode && (
+                            <nav className="work-dashboard-breadcrumb" aria-label="현재 위치">
+                                <Link to="/">홈</Link>
+                                <span aria-hidden="true">/</span>
+                                <span>내 작업</span>
+                            </nav>
+                        )}
+                        {isWorkMode && <p className="work-dashboard-eyebrow">AIConnect Marketplace</p>}
+                        <h1 className="mypage-title" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{pageTitle}</h1>
                         <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
                             {pageDescription}
                         </p>
                     </div>
+                    {isWorkMode && (
+                        <div className="work-dashboard-header-actions" aria-label="내 작업 빠른 이동">
+                            <Link className="work-dashboard-action-secondary" to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
+                            <Link className="work-dashboard-action-primary" to={ROUTES.PRODUCT_NEW}>AI 작업 등록</Link>
+                        </div>
+                    )}
                 </div>
 
-                {mode === 'work' && (
-                    <div style={{ marginBottom: '1.25rem', maxWidth: '31rem' }}>
+                {isWorkMode && (
+                    <div className="work-dashboard-role-row" style={{ marginBottom: '1.25rem', maxWidth: '31rem' }}>
                         {renderWorkRoleSwitch()}
                     </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
-                    <aside style={{ ...cardStyle, padding: '1.25rem', position: 'sticky', top: '1rem' }}>
-                        {mode !== 'work' && (
+                <div
+                    className={isWorkMode ? 'work-dashboard-shell' : 'mypage-shell'}
+                    data-testid={isWorkMode ? 'work-dashboard-shell' : undefined}
+                    style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: '1.5rem', alignItems: 'start' }}
+                >
+                    <aside className={isWorkMode ? 'work-dashboard-sidebar' : 'mypage-sidebar'} style={{ ...cardStyle, padding: '1.25rem', position: 'sticky', top: '1rem' }}>
+                        {!isWorkMode && (
                             <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
                                 <div>
                                     <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>닉네임</span>
@@ -2060,12 +2088,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             </div>
                         )}
 
-                        <nav aria-label={menuLabel} style={{ display: 'grid', gap: '0.45rem' }}>
+                        <nav className={isWorkMode ? 'work-dashboard-menu' : undefined} aria-label={menuLabel} style={{ display: 'grid', gap: '0.45rem' }}>
                             {menuItems.map((item) => {
                                 const selected = activePanel === item.id
                                 return (
                                     <button
                                         key={item.id}
+                                        className={isWorkMode ? `work-dashboard-menu-button ${selected ? 'is-selected' : ''}` : undefined}
                                         type="button"
                                         aria-pressed={selected}
                                         onClick={() => handlePanelChange(item.id)}
@@ -2127,7 +2156,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         </button>
                     </aside>
 
-                    <div>
+                    <div className={isWorkMode ? 'work-dashboard-content' : undefined} data-testid={isWorkMode ? 'work-dashboard-content' : undefined}>
                         {renderPanel()}
 
                         {reviewOpen && (

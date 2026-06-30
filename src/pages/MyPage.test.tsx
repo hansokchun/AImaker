@@ -984,6 +984,13 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
+        const workPage = screen.getByTestId('work-dashboard-page')
+        expect(workPage).toHaveClass('work-dashboard-page')
+        expect(screen.getByRole('navigation', { name: '현재 위치' })).toHaveTextContent('홈/내 작업')
+        expect(screen.getByTestId('work-dashboard-shell')).toHaveClass('work-dashboard-shell')
+        expect(screen.getByTestId('work-dashboard-role-switch')).toHaveClass('work-role-switch')
+        expect(screen.getByTestId('work-dashboard-content')).toHaveClass('work-dashboard-content')
+
         expect(screen.getByRole('heading', { name: '내 작업' })).toBeInTheDocument()
         expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '의뢰자 홈' })).not.toBeInTheDocument()
@@ -1005,6 +1012,8 @@ describe('MyPage', () => {
         expect(screen.getByRole('button', { name: '리뷰' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
+        expect(await screen.findByTestId('client-unified-work-list')).toHaveClass('work-list-panel')
+        expect((await screen.findAllByTestId('work-dashboard-item'))[0]).toHaveClass('work-list-card')
 
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
 
