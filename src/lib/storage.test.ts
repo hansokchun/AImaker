@@ -1739,10 +1739,14 @@ describe('transaction storage', () => {
                     id: review.id,
                     work_id: review.workId,
                     client_id: review.clientId,
+                    client_name: '김민지',
+                    client_image_url: 'https://example.com/client-minji.jpg',
                     expert_id: review.expertId,
                     rating: review.rating,
                     content: review.content,
                     created_at: review.createdAt,
+                    price_range_label: '3만 원대',
+                    work_duration_days: 2,
                 },
             ],
             error: null,
@@ -1754,7 +1758,13 @@ describe('transaction storage', () => {
 
         const { getUserReviews } = await import('./storage')
 
-        await expect(getUserReviews(review.clientId)).resolves.toEqual([review])
+        await expect(getUserReviews(review.clientId)).resolves.toEqual([{
+            ...review,
+            clientName: '김민지',
+            clientImageUrl: 'https://example.com/client-minji.jpg',
+            priceRangeLabel: '3만 원대',
+            workDurationDays: 2,
+        }])
         expect(from).toHaveBeenCalledWith('reviews')
         expect(or).toHaveBeenCalledWith(`client_id.eq.${review.clientId},expert_id.eq.${review.clientId}`)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
@@ -1768,10 +1778,14 @@ describe('transaction storage', () => {
                     id: review.id,
                     work_id: review.workId,
                     client_id: review.clientId,
+                    client_name: '김민지',
+                    client_image_url: 'https://example.com/client-minji.jpg',
                     expert_id: review.expertId,
                     rating: review.rating,
                     content: review.content,
                     created_at: review.createdAt,
+                    price_range_label: '3만 원대',
+                    work_duration_days: 2,
                 },
             ],
             error: null,
@@ -1783,7 +1797,13 @@ describe('transaction storage', () => {
 
         const { getExpertReviews } = await import('./storage')
 
-        await expect(getExpertReviews(review.expertId)).resolves.toEqual([review])
+        await expect(getExpertReviews(review.expertId)).resolves.toEqual([{
+            ...review,
+            clientName: '김민지',
+            clientImageUrl: 'https://example.com/client-minji.jpg',
+            priceRangeLabel: '3만 원대',
+            workDurationDays: 2,
+        }])
         expect(from).toHaveBeenCalledWith('reviews')
         expect(eq).toHaveBeenCalledWith('expert_id', review.expertId)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })

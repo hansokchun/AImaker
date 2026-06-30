@@ -196,10 +196,15 @@ export interface Review {
     id: string;
     workId: string;
     clientId: string;
+    clientName?: string;
+    clientImageUrl?: string;
     expertId: string;
     rating: 1 | 2 | 3 | 4 | 5;
     content: string;
     createdAt: string;
+    createdAtLabel?: string;
+    priceRangeLabel?: string;
+    workDurationDays?: number;
 }
 
 /**

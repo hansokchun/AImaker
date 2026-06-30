@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import FavoriteProductButton from '../components/FavoriteProductButton'
 import PackageCard from '../components/PackageCard'
+import SellerReviewCard from '../components/SellerReviewCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
@@ -61,8 +62,6 @@ const formatProductCreatedAt = (createdAt?: string) => {
 
 const isVideoMedia = (src: string) =>
     /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
-
-const getReviewClientName = (clientId: string) => `의뢰자 ${clientId}`
 
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
@@ -250,10 +249,12 @@ export default function ExpertDetail() {
                     {expertReviews.length > 0 ? (
                         <div className="seller-review-list">
                             {expertReviews.map((review) => (
-                                <article key={review.id} className="seller-review-card">
-                                    <strong>평점 {review.rating}.0</strong>
-                                    <p>{review.content}</p>
-                                </article>
+                                <SellerReviewCard
+                                    key={review.id}
+                                    review={review}
+                                    fallbackPrice={sellerProducts[0]?.startingPrice}
+                                    fallbackDeliveryDays={sellerProducts[0]?.deliveryDays}
+                                />
                             ))}
                         </div>
                     ) : (
@@ -618,18 +619,13 @@ export default function ExpertDetail() {
                         {expertReviews.length > 0 ? (
                             <div className="seller-review-list">
                                 {expertReviews.map((review) => (
-                                    <article key={review.id} className="seller-review-card">
-                                        <div className="seller-review-header">
-                                            <div className="seller-review-avatar" aria-hidden="true">
-                                                {getReviewClientName(review.clientId).slice(-1)}
-                                            </div>
-                                            <div>
-                                                <strong>{getReviewClientName(review.clientId)}</strong>
-                                                <span>평점 {review.rating}.0 · 주문 상품: {product.title}</span>
-                                            </div>
-                                        </div>
-                                        <p>{review.content}</p>
-                                    </article>
+                                    <SellerReviewCard
+                                        key={review.id}
+                                        review={review}
+                                        productTitle={product.title}
+                                        fallbackPrice={product.startingPrice}
+                                        fallbackDeliveryDays={product.deliveryDays}
+                                    />
                                 ))}
                             </div>
                         ) : (

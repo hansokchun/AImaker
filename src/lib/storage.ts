@@ -175,15 +175,28 @@ const toServiceRequest = (item: any): AiServiceRequest => ({
     status: item.status || 'submitted',
 });
 
-const toReview = (item: any): Review => ({
-    id: item.id,
-    workId: item.work_id,
-    clientId: item.client_id,
-    expertId: item.expert_id,
-    rating: item.rating,
-    content: item.content,
-    createdAt: item.created_at,
-});
+const toReview = (item: any): Review => {
+    const clientName = item.client_name || item.clientName || item.reviewer_name;
+    const clientImageUrl = item.client_image_url || item.clientImageUrl || item.reviewer_image_url;
+    const createdAtLabel = item.created_at_label || item.createdAtLabel;
+    const priceRangeLabel = item.price_range_label || item.priceRangeLabel;
+    const workDurationDays = item.work_duration_days ?? item.workDurationDays;
+
+    return {
+        id: item.id,
+        workId: item.work_id,
+        clientId: item.client_id,
+        ...(clientName ? { clientName } : {}),
+        ...(clientImageUrl ? { clientImageUrl } : {}),
+        expertId: item.expert_id,
+        rating: item.rating,
+        content: item.content,
+        createdAt: item.created_at,
+        ...(createdAtLabel ? { createdAtLabel } : {}),
+        ...(priceRangeLabel ? { priceRangeLabel } : {}),
+        ...(workDurationDays !== undefined && workDurationDays !== null ? { workDurationDays: Number(workDurationDays) } : {}),
+    };
+};
 
 const toConsultation = (item: any): Consultation => ({
     id: item.id,

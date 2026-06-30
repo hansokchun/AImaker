@@ -47,28 +47,39 @@ const expertReviews: Review[] = [
         id: 'review-public-01',
         workId: 'work-public-01',
         clientId: 'client-review-01',
+        clientName: '김민지',
+        clientImageUrl: 'https://example.com/client-minji.jpg',
         expertId: supabaseProduct.expertId,
         rating: 5,
         content: '결과물이 깔끔하고 소통이 빨랐습니다.',
         createdAt: '2026-06-01T10:00:00.000Z',
+        createdAtLabel: '3일 전',
+        priceRangeLabel: '3만 원대',
+        workDurationDays: 2,
     },
     {
         id: 'review-public-02',
         workId: 'work-public-02',
         clientId: 'client-review-02',
+        clientName: '박서준',
         expertId: supabaseProduct.expertId,
         rating: 4,
         content: '요구사항 반영이 좋았습니다.',
         createdAt: '2026-06-02T10:00:00.000Z',
+        priceRangeLabel: '7만 원대',
+        workDurationDays: 4,
     },
     {
         id: 'review-public-03',
         workId: 'work-public-03',
         clientId: 'client-review-03',
+        clientName: '이하린',
         expertId: supabaseProduct.expertId,
         rating: 5,
         content: '짧은 일정에도 결과물이 안정적이었습니다.',
         createdAt: '2026-06-03T10:00:00.000Z',
+        priceRangeLabel: '3만 원대',
+        workDurationDays: 2,
     },
 ]
 
@@ -451,10 +462,15 @@ describe('ExpertDetail', () => {
         expect(within(sellerPortfolio).queryByRole('link', { name: supabaseProduct.title })).not.toBeInTheDocument()
 
         const reviews = screen.getByTestId('product-detail-reviews')
-        expect(within(reviews).getByText('의뢰자 client-review-01')).toBeInTheDocument()
-        expect(within(reviews).getAllByText((_, node) =>
-            node?.textContent === `평점 5.0 · 주문 상품: ${supabaseProduct.title}`,
-        ).length).toBeGreaterThan(0)
+        const reviewCard = within(reviews).getByLabelText('김민지 의뢰자의 리뷰')
+        expect(within(reviewCard).getByRole('img', { name: '김민지 프로필' })).toHaveAttribute('src', 'https://example.com/client-minji.jpg')
+        expect(within(reviewCard).getByText('김민지')).toBeInTheDocument()
+        expect(within(reviewCard).getByText('별점 5.0')).toBeInTheDocument()
+        expect(within(reviewCard).getByText('3일 전')).toBeInTheDocument()
+        expect(within(reviewCard).getByText('결과물이 깔끔하고 소통이 빨랐습니다.')).toBeInTheDocument()
+        expect(within(reviewCard).getByText('가격대 3만 원대')).toBeInTheDocument()
+        expect(within(reviewCard).getByText('작업 기간 2일')).toBeInTheDocument()
+        expect(within(reviews).queryByText(/client-review-01/)).not.toBeInTheDocument()
 
         const similar = screen.getByTestId('similar-product-recommendations')
         expect(within(similar).getByRole('heading', { name: '이 서비스를 본 사람들이 함께 본 AI 상품' })).toBeInTheDocument()
