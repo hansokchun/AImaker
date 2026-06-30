@@ -11,8 +11,8 @@
 }
 
 .work-dashboard-header {
-    align-items: flex-end !important;
-    margin-bottom: var(--space-6) !important;
+    align-items: flex-start !important;
+    margin-bottom: var(--space-5) !important;
 }
 
 .mypage-title-block {
@@ -37,78 +37,24 @@
     color: var(--primary-hover);
 }
 
-.work-dashboard-eyebrow {
-    margin: 0 0 var(--space-2);
-    color: var(--primary);
-    font-size: 0.88rem;
-    font-weight: 900;
-}
-
 .work-dashboard-page .mypage-title {
-    margin: 0 0 var(--space-3) !important;
+    margin: 0 !important;
     color: var(--text-primary);
     font-size: 2rem !important;
     line-height: 1.2;
 }
 
-.work-dashboard-header-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    justify-content: flex-end;
-    align-items: center;
-    padding-top: var(--space-8);
-}
-
-.work-dashboard-action-primary,
-.work-dashboard-action-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 40px;
-    padding: 0.68rem 0.9rem;
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    font-weight: 850;
-    text-decoration: none;
-    transition:
-        background 150ms ease-out,
-        border-color 150ms ease-out,
-        color 150ms ease-out;
-}
-
-.work-dashboard-action-primary {
-    border: 1px solid var(--primary);
-    background: var(--primary);
-    color: var(--surface);
-}
-
-.work-dashboard-action-primary:hover {
-    border-color: var(--primary-hover);
-    background: var(--primary-hover);
-    color: var(--surface);
-}
-
-.work-dashboard-action-secondary {
-    border: 1px solid var(--border-color);
-    background: var(--surface);
-    color: var(--text-primary);
-}
-
-.work-dashboard-action-secondary:hover {
-    border-color: color-mix(in srgb, var(--primary) 45%, var(--border-color));
-    color: var(--primary);
-}
-
 .work-dashboard-role-row {
     max-width: 34rem !important;
-    margin-bottom: var(--space-5) !important;
+    margin-bottom: var(--space-6) !important;
 }
 
 .work-role-switch {
-    gap: var(--space-3) !important;
-    padding: var(--space-3) !important;
+    gap: var(--space-2) !important;
+    padding: 0 !important;
+    border: 0 !important;
     border-radius: var(--radius-md) !important;
+    background: transparent !important;
     box-shadow: none !important;
 }
 
@@ -118,6 +64,7 @@
 
 .work-role-current {
     color: var(--primary) !important;
+    padding-left: var(--space-1);
 }
 
 .work-role-current.is-expert {
@@ -143,14 +90,16 @@
 
 .work-dashboard-shell {
     grid-template-columns: 236px minmax(0, 1fr) !important;
-    gap: var(--space-6) !important;
+    gap: 0 !important;
 }
 
 .work-dashboard-sidebar {
     top: 96px !important;
-    padding: var(--space-4) !important;
-    border-radius: var(--radius-md) !important;
-    background: var(--surface) !important;
+    padding: 0 var(--space-6) 0 0 !important;
+    border: 0 !important;
+    border-right: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     box-shadow: none;
 }
 
@@ -183,9 +132,10 @@
 
 .work-dashboard-content > section,
 .work-dashboard-panel {
-    padding: var(--space-6) !important;
-    border-radius: var(--radius-lg) !important;
-    background: var(--surface) !important;
+    padding: 0 0 0 var(--space-6) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     box-shadow: none !important;
 }
 
@@ -197,6 +147,36 @@
 .work-dashboard-split {
     grid-template-columns: minmax(240px, 0.78fr) minmax(0, 1.42fr) !important;
     gap: var(--space-5) !important;
+}
+
+.work-transaction-tabs {
+    display: inline-flex;
+    width: fit-content;
+    gap: var(--space-1);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.work-transaction-tabs button {
+    min-height: 40px;
+    padding: 0.6rem 0.85rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 850;
+    cursor: pointer;
+    transition:
+        background 150ms ease-out,
+        color 150ms ease-out;
+}
+
+.work-transaction-tabs button:hover,
+.work-transaction-tabs button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--primary) 7%, var(--surface));
+    color: var(--primary);
 }
 
 .work-list-panel {
@@ -241,16 +221,54 @@
     color: color-mix(in srgb, var(--primary) 70%, var(--text-primary)) !important;
 }
 
+.work-stopped-transactions {
+    display: grid;
+    gap: var(--space-4);
+    padding: 0 !important;
+}
+
+.work-stopped-transactions h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 850;
+}
+
+.work-stopped-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.work-stopped-item {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.work-stopped-item strong {
+    color: var(--danger-strong);
+    font-size: 0.98rem;
+    font-weight: 850;
+}
+
+.work-stopped-item span {
+    color: var(--danger);
+    font-size: 0.88rem;
+    font-weight: 800;
+}
+
+.work-empty-copy {
+    margin: 0;
+    color: var(--text-secondary);
+    font-weight: 650;
+}
+
 @media (max-width: 960px) {
     .work-dashboard-header {
         display: grid !important;
         gap: var(--space-4) !important;
         align-items: start !important;
-    }
-
-    .work-dashboard-header-actions {
-        justify-content: flex-start;
-        padding-top: 0;
     }
 
     .work-dashboard-shell {
@@ -259,6 +277,9 @@
 
     .work-dashboard-sidebar {
         position: static !important;
+        padding: 0 0 var(--space-5) !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--border-color) !important;
     }
 
     .work-dashboard-split {
@@ -275,12 +296,6 @@
         font-size: 1.75rem !important;
     }
 
-    .work-dashboard-header-actions,
-    .work-dashboard-action-primary,
-    .work-dashboard-action-secondary {
-        width: 100%;
-    }
-
     .work-role-toggle-button {
         padding-inline: var(--space-2) !important;
         font-size: 0.86rem;
@@ -288,6 +303,6 @@
 
     .work-dashboard-content > section,
     .work-dashboard-panel {
-        padding: var(--space-4) !important;
+        padding: 0 !important;
     }
 }

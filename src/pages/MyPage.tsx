@@ -37,6 +37,7 @@ type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | '
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
 type StageAction = { label: string; to?: string; onClick?: () => void; variant?: 'primary' | 'secondary' }
+type WorkTransactionView = 'active' | 'stopped'
 
 const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
     done: {
@@ -182,6 +183,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [selectedClientOrderId, setSelectedClientOrderId] = useState<string | number | null>(searchParams.get('clientOrder'))
     const [selectedExpertRequestId, setSelectedExpertRequestId] = useState<string | number | null>(searchParams.get('expertRequest'))
     const [selectedConsultationId, setSelectedConsultationId] = useState<string | null>(searchParams.get('consultation'))
+    const [workTransactionView, setWorkTransactionView] = useState<WorkTransactionView>('active')
     const [isExpert, setIsExpert] = useState(false)
     const [name, setName] = useState('')
     const [reviewOpen, setReviewOpen] = useState(false)
@@ -777,12 +779,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
             }}
         >
-            <div className="work-role-switch-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0 0.35rem' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 900 }}>현재 주체</span>
-                <strong className={`work-role-current ${workRole === 'expert' ? 'is-expert' : 'is-client'}`} style={{ color: workRole === 'expert' ? '#166534' : '#1d4ed8', fontSize: '0.88rem' }}>
-                    {workRole === 'expert' ? '전문가 모드' : '의뢰자 모드'}
-                </strong>
-            </div>
+            <strong className={`work-role-current ${workRole === 'expert' ? 'is-expert' : 'is-client'}`} style={{ color: workRole === 'expert' ? '#166534' : '#1d4ed8', fontSize: '0.88rem' }}>
+                {workRole === 'expert' ? '전문가 모드' : '의뢰자 모드'}
+            </strong>
             <div
                 className="work-role-toggle"
                 aria-label="내 작업 역할 전환"
@@ -854,6 +853,25 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     전문가로 보기
                 </button>
             </div>
+        </div>
+    )
+
+    const renderWorkTransactionTabs = () => (
+        <div className="work-transaction-tabs" aria-label="거래 상태 보기">
+            <button
+                type="button"
+                aria-pressed={workTransactionView === 'active'}
+                onClick={() => setWorkTransactionView('active')}
+            >
+                진행중인 거래
+            </button>
+            <button
+                type="button"
+                aria-pressed={workTransactionView === 'stopped'}
+                onClick={() => setWorkTransactionView('stopped')}
+            >
+                중단된 거래
+            </button>
         </div>
     )
 
@@ -1116,27 +1134,21 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             })),
         ]
 
-        if (stoppedItems.length === 0) return null
-
         return (
-            <section style={{ ...cardStyle, padding: '1.1rem', marginTop: '1rem' }}>
-                <h3 style={{ margin: '0 0 0.85rem', fontSize: '1.05rem' }}>중단된 거래</h3>
-                <div style={{ display: 'grid', gap: '0.65rem' }}>
-                    {stoppedItems.map((item) => (
-                        <div
-                            key={item.id}
-                            style={{
-                                padding: '0.9rem 1rem',
-                                borderRadius: '0.75rem',
-                                border: '1px solid #fecaca',
-                                background: '#fff7f7',
-                            }}
-                        >
-                            <strong style={{ display: 'block', color: '#991b1b', marginBottom: '0.3rem' }}>{item.title}</strong>
-                            <span style={{ color: '#b91c1c', fontWeight: 800 }}>{item.meta}</span>
-                        </div>
-                    ))}
-                </div>
+            <section className="work-stopped-transactions">
+                <h3>중단된 거래</h3>
+                {stoppedItems.length > 0 ? (
+                    <div className="work-stopped-list">
+                        {stoppedItems.map((item) => (
+                            <div key={item.id} className="work-stopped-item">
+                                <strong>{item.title}</strong>
+                                <span>{item.meta}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="work-empty-copy">중단된 거래가 없습니다.</p>
+                )}
             </section>
         )
     }
@@ -1545,61 +1557,69 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderClientUnifiedWorkManager = () => (
         <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            {clientUnifiedWorkItems.length > 0 ? (
-                <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
-                    {renderUnifiedWorkList(
-                        clientUnifiedWorkItems,
-                        selectedClientUnifiedWorkItem,
-                        'client-unified-work-list',
-                        '작업 내역이 없습니다.',
-                        (item) => {
-                            if (item.kind === 'product') {
-                                setSelectedClientOrderId(item.id)
-                                setSelectedConsultationId(null)
-                            } else {
-                                setSelectedConsultationId(item.id)
-                                setSelectedClientOrderId(null)
-                            }
-                        },
-                    )}
-                    {selectedClientUnifiedWorkItem?.kind === 'consultation'
-                        ? renderConsultationFlow(selectedClientUnifiedWorkItem.consultation, 'client')
-                        : renderClientSelectedProductFlow()}
-                </div>
+            {renderWorkTransactionTabs()}
+            {workTransactionView === 'active' ? (
+                clientUnifiedWorkItems.length > 0 ? (
+                    <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                        {renderUnifiedWorkList(
+                            clientUnifiedWorkItems,
+                            selectedClientUnifiedWorkItem,
+                            'client-unified-work-list',
+                            '작업 내역이 없습니다.',
+                            (item) => {
+                                if (item.kind === 'product') {
+                                    setSelectedClientOrderId(item.id)
+                                    setSelectedConsultationId(null)
+                                } else {
+                                    setSelectedConsultationId(item.id)
+                                    setSelectedClientOrderId(null)
+                                }
+                            },
+                        )}
+                        {selectedClientUnifiedWorkItem?.kind === 'consultation'
+                            ? renderConsultationFlow(selectedClientUnifiedWorkItem.consultation, 'client')
+                            : renderClientSelectedProductFlow()}
+                    </div>
+                ) : (
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 작업 내역이 없습니다.</p>
+                )
             ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 작업 내역이 없습니다.</p>
+                renderStoppedTransactions('client')
             )}
-            {renderStoppedTransactions('client')}
         </div>
     )
 
     const renderExpertUnifiedWorkManager = () => (
         <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            {expertUnifiedWorkItems.length > 0 ? (
-                <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
-                    {renderUnifiedWorkList(
-                        expertUnifiedWorkItems,
-                        selectedExpertUnifiedWorkItem,
-                        'expert-unified-work-list',
-                        '받은 작업 내역이 없습니다.',
-                        (item) => {
-                            if (item.kind === 'product') {
-                                setSelectedExpertRequestId(item.id)
-                                setSelectedConsultationId(null)
-                            } else {
-                                setSelectedConsultationId(item.id)
-                                setSelectedExpertRequestId(null)
-                            }
-                        },
-                    )}
-                    {selectedExpertUnifiedWorkItem?.kind === 'consultation'
-                        ? renderConsultationFlow(selectedExpertUnifiedWorkItem.consultation, 'expert')
-                        : renderExpertSelectedProductFlow()}
-                </div>
+            {renderWorkTransactionTabs()}
+            {workTransactionView === 'active' ? (
+                expertUnifiedWorkItems.length > 0 ? (
+                    <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
+                        {renderUnifiedWorkList(
+                            expertUnifiedWorkItems,
+                            selectedExpertUnifiedWorkItem,
+                            'expert-unified-work-list',
+                            '받은 작업 내역이 없습니다.',
+                            (item) => {
+                                if (item.kind === 'product') {
+                                    setSelectedExpertRequestId(item.id)
+                                    setSelectedConsultationId(null)
+                                } else {
+                                    setSelectedConsultationId(item.id)
+                                    setSelectedExpertRequestId(null)
+                                }
+                            },
+                        )}
+                        {selectedExpertUnifiedWorkItem?.kind === 'consultation'
+                            ? renderConsultationFlow(selectedExpertUnifiedWorkItem.consultation, 'expert')
+                            : renderExpertSelectedProductFlow()}
+                    </div>
+                ) : (
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
+                )
             ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
+                renderStoppedTransactions('expert')
             )}
-            {renderStoppedTransactions('expert')}
         </div>
     )
 
@@ -2043,18 +2063,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 <span>내 작업</span>
                             </nav>
                         )}
-                        {isWorkMode && <p className="work-dashboard-eyebrow">AIConnect Marketplace</p>}
                         <h1 className="mypage-title" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{pageTitle}</h1>
-                        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                            {pageDescription}
-                        </p>
+                        {!isWorkMode && (
+                            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                                {pageDescription}
+                            </p>
+                        )}
                     </div>
-                    {isWorkMode && (
-                        <div className="work-dashboard-header-actions" aria-label="내 작업 빠른 이동">
-                            <Link className="work-dashboard-action-secondary" to={ROUTES.CATEGORY}>AI 작업 찾기</Link>
-                            <Link className="work-dashboard-action-primary" to={ROUTES.PRODUCT_NEW}>AI 작업 등록</Link>
-                        </div>
-                    )}
                 </div>
 
                 {isWorkMode && (

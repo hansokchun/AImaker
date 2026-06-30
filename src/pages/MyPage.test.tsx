@@ -993,6 +993,10 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '내 작업' })).toBeInTheDocument()
         expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
+        expect(screen.queryByText('AIConnect Marketplace')).not.toBeInTheDocument()
+        expect(screen.queryByText('의뢰, 제안, 작업방, 완료 리뷰를 한 곳에서 관리합니다.')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'AI 작업 등록' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '의뢰자 홈' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '전문가 홈' })).not.toBeInTheDocument()
         expect(screen.queryByText('닉네임')).not.toBeInTheDocument()
@@ -1002,7 +1006,7 @@ describe('MyPage', () => {
         expect(screen.queryByText('내가 의뢰한 일과 전문가로 받은 일을 역할을 전환하며 확인합니다.')).not.toBeInTheDocument()
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
-        expect(screen.getByText('현재 주체')).toBeInTheDocument()
+        expect(screen.queryByText('현재 주체')).not.toBeInTheDocument()
         expect(screen.getByText('의뢰자 모드')).toBeInTheDocument()
         expect(within(roleSwitch).getByRole('button', { name: '의뢰자로 보기' })).toHaveAttribute('aria-pressed', 'true')
         expect(within(roleSwitch).getByRole('button', { name: '전문가로 보기' })).toHaveAttribute('aria-pressed', 'false')
@@ -1014,6 +1018,8 @@ describe('MyPage', () => {
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
         expect(await screen.findByTestId('client-unified-work-list')).toHaveClass('work-list-panel')
         expect((await screen.findAllByTestId('work-dashboard-item'))[0]).toHaveClass('work-list-card')
+        expect(screen.getByRole('button', { name: '진행중인 거래' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('button', { name: '중단된 거래' })).toHaveAttribute('aria-pressed', 'false')
 
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가로 보기' }))
 
@@ -1775,6 +1781,8 @@ describe('MyPage', () => {
             '/proposals/new?requestId=request-product-directed-01',
         )
         expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: '중단된 거래' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '중단된 거래' }))
         expect(screen.getByRole('heading', { name: '중단된 거래' })).toBeInTheDocument()
         expect(screen.getByText('취소된 상품 지정 제안서')).toBeInTheDocument()
         expect(screen.getByText('제안 취소')).toBeInTheDocument()
