@@ -33,10 +33,43 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 
 const currency = new Intl.NumberFormat('ko-KR')
 
+const formatDashboardDate = (value?: number | string | null) => {
+    if (!value) return '-'
+    const date = typeof value === 'number' ? new Date(value) : new Date(value)
+    if (Number.isNaN(date.getTime())) return '-'
+    return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
+}
+
+const formatDashboardRelativeTime = (value?: number | string | null) => {
+    if (!value) return '-'
+    const timestamp = typeof value === 'number' ? value : Date.parse(value)
+    if (Number.isNaN(timestamp) || timestamp <= 0) return '-'
+    const diffMs = Math.max(0, Date.now() - timestamp)
+    const minutes = Math.floor(diffMs / 60000)
+    if (minutes < 1) return '방금 전'
+    if (minutes < 60) return `${minutes}분 전`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}시간 전`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days}일 전`
+    return formatDashboardDate(timestamp)
+}
+
+const normalizeStageActions = (action?: StageAction | StageAction[]) =>
+    Array.isArray(action) ? action : action ? [action] : []
+
 type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'favorites' | 'consultations' | 'workroom' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
 type StageAction = { label: string; to?: string; onClick?: () => void; variant?: 'primary' | 'secondary' }
+type WorkStageView = {
+    phase: string
+    title: string
+    description: string
+    state: StageVisualState
+    actions: StageAction[]
+}
+type WorkInfoItem = { label: string; value: string }
 type WorkTransactionView = 'active' | 'stopped'
 
 const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
@@ -814,6 +847,28 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </div>
     )
 
+    const renderWorkMenuIcon = (panel: MyPagePanel) => {
+        const iconPath = {
+            client: 'M4 7.5h16M7 5h10a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm2 7h6m-6 4h4',
+            favorites: 'M12 20.5 10.7 19C6 14.7 3 12 3 8.7A4.7 4.7 0 0 1 7.7 4c1.7 0 3.3.8 4.3 2.1A5.1 5.1 0 0 1 16.3 4 4.7 4.7 0 0 1 21 8.7c0 3.3-3 6-7.7 10.3L12 20.5Z',
+            consultations: 'M5 6.5h14a2 2 0 0 1 2 2v5.5a2 2 0 0 1-2 2h-5l-4 3v-3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z',
+            workroom: 'M4 7h6l1.5 2H20v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z',
+            reviews: 'M12 4.5 14.2 9l5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 9.7l5-.7L12 4.5Z',
+            products: 'M5 5h14v4H5V5Zm0 7h14v7H5v-7Z',
+            expert: 'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 8c.8-3.5 3-5.5 6-5.5s5.2 2 6 5.5',
+            overview: 'M5 5h6v6H5V5Zm8 0h6v6h-6V5ZM5 13h6v6H5v-6Zm8 0h6v6h-6v-6Z',
+            profile: 'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 8c.8-3.5 3-5.5 6-5.5s5.2 2 6 5.5',
+        }[panel] || 'M5 6h14M5 12h14M5 18h14'
+
+        return (
+            <span className="work-dashboard-menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d={iconPath} />
+                </svg>
+            </span>
+        )
+    }
+
     const renderWorkTransactionTabs = () => (
         <div className="work-transaction-tabs" aria-label="거래 상태 보기">
             <button
@@ -832,6 +887,204 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             </button>
         </div>
     )
+
+    const createWorkStage = (
+        phase: string,
+        title: string,
+        description: string,
+        state: StageVisualState,
+        action?: StageAction | StageAction[],
+    ): WorkStageView => ({
+        phase,
+        title,
+        description,
+        state,
+        actions: normalizeStageActions(action),
+    })
+
+    const getRequestStatusLabel = (request: ServiceRequestData) => {
+        const requestWork = getWorkForRequest(request)
+        if (requestWork) return workStatusText[requestWork.status]
+
+        const requestProposal = getProposalForRequest(request)
+        if (requestProposal) {
+            if (requestProposal.paymentStatus === 'paid') return '결제 완료'
+            return proposalStatusText[requestProposal.status]
+        }
+
+        if (request.status === 'completed') return '완료'
+        if (request.status === 'cancelled') return '취소'
+        if (request.status === 'pending') return '접수'
+        return '진행 중'
+    }
+
+    const getConsultationStatusLabel = (consultation: Consultation) => {
+        if (consultation.status === 'proposal_sent') return '제안서 발송'
+        if (consultation.status === 'closed') return '종료'
+        return '상담 중'
+    }
+
+    const getUnifiedWorkStatusLabel = (item: UnifiedWorkItem) =>
+        item.kind === 'product'
+            ? getRequestStatusLabel(item.request)
+            : getConsultationStatusLabel(item.consultation)
+
+    const renderStageActionControl = (stageAction: StageAction, keySuffix: string, compact = false) => {
+        const className = stageAction.variant === 'secondary' ? 'btn-text' : 'btn-primary'
+        const actionClassName = compact ? `${className} work-detail-action is-compact` : `${className} work-detail-action`
+
+        if (stageAction.to) {
+            return (
+                <Link
+                    key={`${stageAction.label}-${stageAction.to}-${keySuffix}`}
+                    className={actionClassName}
+                    to={stageAction.to}
+                    state={myPageReturnState}
+                    onClick={stageAction.onClick}
+                >
+                    {stageAction.label}
+                </Link>
+            )
+        }
+
+        return (
+            <button
+                key={`${stageAction.label}-${keySuffix}`}
+                type="button"
+                className={actionClassName}
+                onClick={stageAction.onClick}
+            >
+                {stageAction.label}
+            </button>
+        )
+    }
+
+    const renderWorkDetailFlow = ({
+        testId,
+        title,
+        meta,
+        stages,
+        infoItems,
+    }: {
+        testId: string
+        title: string
+        meta: string
+        stages: WorkStageView[]
+        infoItems: WorkInfoItem[]
+    }) => {
+        const currentStage = stages.find((stage) => stage.state === 'current') || stages.find((stage) => stage.state === 'pending') || stages[0]
+        const currentVisual = currentStage ? stageVisualConfig[currentStage.state] : null
+        const relatedActions = stages.flatMap((stage) =>
+            stage === currentStage ? [] : stage.actions.map((action) => ({ stage, action })),
+        )
+
+        return (
+            <div className="work-detail-panel" data-testid={testId}>
+                <header className="work-detail-header">
+                    <div>
+                        <h3 className="work-detail-title">{title}</h3>
+                        <p className="work-detail-meta">{meta}</p>
+                    </div>
+                </header>
+
+                <section className="work-detail-section" aria-labelledby={`${testId}-progress-title`}>
+                    <h4 id={`${testId}-progress-title`} className="work-detail-section-title">진행 단계</h4>
+                    <div className="work-progress-stepper" data-testid="work-progress-stepper">
+                        {stages.map((stage, index) => {
+                            const visual = stageVisualConfig[stage.state]
+                            const mutedProps = stage.state === 'pending' ? { 'data-stage-muted': 'true' } : {}
+
+                            return (
+                                <div
+                                    key={`${stage.phase}-${stage.title}`}
+                                    className={`work-progress-step is-${stage.state}`}
+                                    aria-label={`${stage.title} 단계 상태: ${visual.label}`}
+                                >
+                                    <div className="work-progress-marker-row">
+                                        <span className="work-progress-marker" aria-hidden="true">
+                                            {stage.state === 'done' ? '✓' : index + 1}
+                                        </span>
+                                        {index < stages.length - 1 && <span className="work-progress-line" aria-hidden="true" />}
+                                    </div>
+                                    <span className="work-progress-phase" {...mutedProps}>{stage.phase}</span>
+                                    <strong className="work-progress-title" {...mutedProps}>{stage.title}</strong>
+                                    <span className="work-progress-status">{visual.label}</span>
+                                    <p className="work-progress-description" {...mutedProps}>{stage.description}</p>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </section>
+
+                {currentStage && currentVisual && (
+                    <section
+                        className="work-current-stage-card"
+                        data-testid="work-current-stage-card"
+                        aria-label={`현재 단계 카드: ${currentStage.title} 상태 ${currentVisual.label}`}
+                    >
+                        <span className="work-current-stage-icon" aria-hidden="true" />
+                        <div className="work-current-stage-body">
+                            <span className="work-current-stage-eyebrow">{currentStage.phase} 단계</span>
+                            <h4>현재 단계 · {currentStage.title}</h4>
+                            <p>지금은 {currentStage.description}</p>
+                            {currentStage.actions.length > 0 && (
+                                <div
+                                    className="work-current-stage-actions"
+                                    aria-label={`${currentStage.title} 단계 상태: ${currentVisual.label} 작업 버튼`}
+                                >
+                                    {currentStage.actions.map((action, index) =>
+                                        renderStageActionControl(action, `${currentStage.title}-${index}`),
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
+
+                <div className="work-detail-insight-grid">
+                    <section className="work-activity-timeline" data-testid="work-activity-timeline">
+                        <h4 className="work-detail-section-title">최근 활동</h4>
+                        <ol>
+                            {stages.slice(0, 4).map((stage) => {
+                                const visual = stageVisualConfig[stage.state]
+                                return (
+                                    <li key={`${stage.phase}-${stage.title}-activity`} className={`work-timeline-item is-${stage.state}`}>
+                                        <span className="work-timeline-dot" aria-hidden="true" />
+                                        <div>
+                                            <div className="work-timeline-head">
+                                                <strong>{stage.phase} 업데이트</strong>
+                                                <span>{visual.label}</span>
+                                            </div>
+                                            <p>{stage.state === 'current' ? '현재 확인이 필요한 단계입니다.' : stage.state === 'done' ? '이전 단계가 처리되었습니다.' : '다음 단계로 대기 중입니다.'}</p>
+                                        </div>
+                                    </li>
+                                )
+                            })}
+                        </ol>
+                    </section>
+
+                    <aside className="work-transaction-info" data-testid="work-transaction-info">
+                        <h4 className="work-detail-section-title">거래 정보</h4>
+                        <dl>
+                            {infoItems.map((item) => (
+                                <div key={item.label}>
+                                    <dt>{item.label}</dt>
+                                    <dd>{item.value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                        {relatedActions.length > 0 && (
+                            <div className="work-detail-related-actions" aria-label="관련 작업">
+                                {relatedActions.map(({ stage, action }, index) =>
+                                    renderStageActionControl(action, `${stage.title}-${index}`, true),
+                                )}
+                            </div>
+                        )}
+                    </aside>
+                </div>
+            </div>
+        )
+    }
 
     const renderClientOrderStage = (
         phase: string,
@@ -1024,6 +1277,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         const subtitle = item.kind === 'product'
                             ? item.request.desiredResult || item.request.title
                             : item.consultation.title
+                        const typeLabel = item.kind === 'consultation' ? '전문가 문의' : '상품 주문'
+                        const statusLabel = getUnifiedWorkStatusLabel(item)
+                        const timeLabel = formatDashboardRelativeTime(item.createdTime)
 
                         return (
                             <button
@@ -1035,33 +1291,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 data-work-item-id={String(item.id)}
                                 aria-pressed={selected}
                                 onClick={() => onSelect(item)}
-                                style={{
-                                    textAlign: 'left',
-                                    padding: '1rem',
-                                    borderRadius: '0.75rem',
-                                    border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
-                                    background: selected ? '#eff6ff' : '#f8fafc',
-                                    cursor: 'pointer',
-                                }}
                             >
-                                <span
-                                    className={`work-list-chip ${item.kind === 'consultation' ? 'is-consultation' : 'is-product'}`}
-                                    style={{
-                                        display: 'inline-block',
-                                        marginBottom: '0.45rem',
-                                        color: item.kind === 'consultation' ? '#7c3aed' : '#1d4ed8',
-                                        fontSize: '0.78rem',
-                                        fontWeight: 800,
-                                    }}
-                                >
-                                    {item.kind === 'consultation' ? '전문가 문의' : '상품 주문'}
+                                <span className="work-list-meta-row">
+                                    <span className={`work-list-chip ${item.kind === 'consultation' ? 'is-consultation' : 'is-product'}`}>
+                                        {typeLabel}
+                                    </span>
+                                    <span className="work-list-time">{timeLabel}</span>
                                 </span>
-                                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.4rem' }}>
-                                    {title}
-                                </strong>
-                                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                    {subtitle}
-                                </span>
+                                <strong>{title}</strong>
+                                <span className="work-list-description">{subtitle}</span>
+                                <span className="work-list-status-badge">{statusLabel}</span>
                             </button>
                         )
                     })}
@@ -1115,50 +1354,49 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (!consultation) return null
         const product = products.find((item) => item.id === consultation.productId)
         const consultationUrl = `${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`
-        const proposalLabel = '상담 후 제안서 작성'
-        const proposalDescription = '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
+        const statusLabel = getConsultationStatusLabel(consultation)
+        const stages = [
+            createWorkStage(
+                '상담',
+                '상담 채팅',
+                '전문가 문의로 시작한 거래입니다. 채팅에서 범위와 조건을 먼저 협의합니다.',
+                consultation.status === 'open' ? 'current' : 'done',
+                {
+                    label: '상담 채팅 보기',
+                    to: consultationUrl,
+                    onClick: () => {
+                        setActivePanel('consultations')
+                        setSelectedConsultationId(consultation.id)
+                        setSelectedClientOrderId(null)
+                        setSelectedExpertRequestId(null)
+                    },
+                },
+            ),
+            createWorkStage(
+                '결제',
+                role === 'expert' && consultation.status === 'open' ? '상담 후 제안서 작성' : '제안서 승인 및 결제',
+                role === 'expert' && consultation.status === 'open'
+                    ? '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
+                    : '제안서를 승인하고 결제하면 작업방이 생성됩니다.',
+                consultation.status === 'proposal_sent' ? 'current' : 'pending',
+            ),
+            createWorkStage('작업', '작업방 대기', '결제가 끝나면 작업방에서 제작을 진행합니다.', 'pending'),
+            createWorkStage('완료', '상담 완료/리뷰', '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.', 'pending'),
+        ]
 
-        return (
-            <div data-testid={`${role}-consultation-order-flow`} style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
-                    전문가 문의 - {product?.title || consultation.title}
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                    전문가 문의 · {consultation.status === 'proposal_sent' ? '제안서 발송됨' : consultation.status === 'closed' ? '종료됨' : '상담 중'}
-                </p>
-                <p style={{ color: '#1d4ed8', fontWeight: 800, margin: '0 0 1rem' }}>
-                    현재 단계: 상담 채팅
-                </p>
-                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>상담 전체 과정</h4>
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {renderClientOrderStage(
-                        '작업 전',
-                        '상담 채팅',
-                        '전문가 문의로 시작한 거래입니다. 채팅에서 범위와 조건을 먼저 협의합니다.',
-                        consultation.status === 'open' ? 'current' : 'done',
-                        {
-                            label: '상담 채팅 보기',
-                            to: consultationUrl,
-                            onClick: () => {
-                                setActivePanel('consultations')
-                                setSelectedConsultationId(consultation.id)
-                                setSelectedClientOrderId(null)
-                                setSelectedExpertRequestId(null)
-                            },
-                        },
-                    )}
-                    {role === 'expert' && renderClientOrderStage(
-                        '검토 단계',
-                        proposalLabel,
-                        proposalDescription,
-                        consultation.status === 'proposal_sent' ? 'current' : 'pending',
-                    )}
-                    {renderClientOrderStage('결제', '제안서 승인 및 결제', '제안서를 승인하고 결제하면 작업방이 생성됩니다.', consultation.status === 'proposal_sent' ? 'current' : 'pending')}
-                    {renderClientOrderStage('작업 중', '작업방 대기', '결제가 끝나면 작업방에서 제작을 진행합니다.', 'pending')}
-                    {renderClientOrderStage('상담 후', '상담 완료/리뷰', '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.', 'pending')}
-                </div>
-            </div>
-        )
+        return renderWorkDetailFlow({
+            testId: `${role}-consultation-order-flow`,
+            title: `전문가 문의 - ${product?.title || consultation.title}`,
+            meta: `전문가 문의 · ${consultation.status === 'open' ? '진행 상태 확인' : statusLabel}`,
+            stages,
+            infoItems: [
+                { label: '거래 방식', value: '문의형 거래' },
+                { label: '등록일', value: formatDashboardDate(consultation.createdAt) },
+                { label: '예산', value: '협의 중' },
+                { label: '마감일', value: '-' },
+                { label: '첨부 파일', value: '-' },
+            ],
+        })
     }
 
     const _renderClientProductOrderManager = () => (
@@ -1362,155 +1600,159 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const renderClientSelectedProductFlow = () => {
         if (!selectedClientOrder) return null
 
-        return (
-            <div data-testid="client-product-order-flow" style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
-                    {selectedClientOrderProduct?.title || selectedClientOrder.title}
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                    {selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}
-                    마감 {selectedClientOrder.deadline || '미정'}
-                </p>
-                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {renderClientOrderStage(
-                        '작업 전',
-                        '의뢰서 작성',
-                        selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
-                        'done',
-                        selectedClientOrder.productId
-                            ? [
-                                { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` },
-                                { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}`, variant: 'secondary' },
-                            ]
-                            : undefined,
-                    )}
-                    {selectedClientOrderProposal
-                        ? renderClientOrderStage(
-                            '결제',
-                            '제안서 승인 및 결제',
-                            selectedClientOrderWork
-                                ? '결제 완료 후 작업방이 생성되었습니다.'
-                                : selectedClientOrderProposal.paymentStatus === 'paid'
-                                    ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                                    : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
-                            selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
-                            {
-                                label: selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid'
-                                    ? '제안서 보기'
-                                    : '제안서 승인하고 결제하기',
-                                to: `/proposal/${selectedClientOrderProposal.id}`,
-                            },
-                        )
-                        : renderClientOrderStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current')}
-                    {selectedClientOrderWork
-                        ? renderClientOrderStage(
-                            '작업 중',
-                            getClientWorkStageTitle(selectedClientOrderWork),
-                            getClientWorkStageDescription(selectedClientOrderWork),
-                            selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
-                            selectedClientOrderWork.status === 'completed'
-                                ? { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` }
-                                : [
-                                    { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
-                                    { label: '작업방에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
-                                ],
-                        )
-                        : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
-                    {renderClientOrderStage(
-                        '작업 후',
-                        '완료 확인/리뷰',
-                        selectedClientOrderWork?.status === 'completed' ? '결과물을 확인하고 리뷰를 남길 수 있습니다.' : '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.',
-                        selectedClientOrderWork?.status === 'completed' ? 'current' : 'pending',
-                    )}
-                </div>
-            </div>
-        )
+        const stages = [
+            createWorkStage(
+                '작업 전',
+                '의뢰서 작성',
+                selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
+                'done',
+                selectedClientOrder.productId
+                    ? [
+                        { label: '의뢰서 보기/수정', to: `/request/${selectedClientOrder.productId}?requestId=${selectedClientOrder.id}` },
+                        { label: '상품 보기', to: `/expert/${selectedClientOrder.productId}`, variant: 'secondary' },
+                    ]
+                    : undefined,
+            ),
+            selectedClientOrderProposal
+                ? createWorkStage(
+                    '결제',
+                    '제안서 승인 및 결제',
+                    selectedClientOrderWork
+                        ? '결제 완료 후 작업방이 생성되었습니다.'
+                        : selectedClientOrderProposal.paymentStatus === 'paid'
+                            ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                            : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
+                    selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
+                    {
+                        label: selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid'
+                            ? '제안서 보기'
+                            : '제안서 승인하고 결제하기',
+                        to: `/proposal/${selectedClientOrderProposal.id}`,
+                    },
+                )
+                : createWorkStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current'),
+            selectedClientOrderWork
+                ? createWorkStage(
+                    '작업 중',
+                    getClientWorkStageTitle(selectedClientOrderWork),
+                    getClientWorkStageDescription(selectedClientOrderWork),
+                    selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
+                    selectedClientOrderWork.status === 'completed'
+                        ? { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` }
+                        : [
+                            { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
+                            { label: '작업방에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
+                        ],
+                )
+                : createWorkStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending'),
+            createWorkStage(
+                '작업 후',
+                '완료 확인/리뷰',
+                selectedClientOrderWork?.status === 'completed' ? '결과물을 확인하고 리뷰를 남길 수 있습니다.' : '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.',
+                selectedClientOrderWork?.status === 'completed' ? 'current' : 'pending',
+            ),
+        ]
+
+        return renderWorkDetailFlow({
+            testId: 'client-product-order-flow',
+            title: selectedClientOrderProduct?.title || selectedClientOrder.title,
+            meta: `${selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}마감 ${selectedClientOrder.deadline || '미정'}`,
+            stages,
+            infoItems: [
+                { label: '거래 방식', value: '상품 주문' },
+                { label: '등록일', value: formatDashboardDate(selectedClientOrder.createdAt) },
+                { label: '예산', value: selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원` : '협의 중' },
+                { label: '마감일', value: selectedClientOrder.deadline || '미정' },
+                { label: '첨부 파일', value: `${selectedClientOrder.referenceLinks?.length || 0}개` },
+            ],
+        })
     }
 
     const renderExpertSelectedProductFlow = () => {
         if (!selectedExpertRequest) return null
 
-        return (
-            <div data-testid="expert-product-order-flow" style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'white' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.4rem' }}>
-                    {selectedExpertRequest.desiredResult || selectedExpertRequestProduct?.title || selectedExpertRequest.title}
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                    {selectedExpertRequestProduct?.title || '상품 의뢰'} · {selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}
-                    마감 {selectedExpertRequest.deadline || '미정'}
-                </p>
-                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem' }}>전체 과정</h4>
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {renderClientOrderStage(
-                        '작업 전',
-                        '받은 의뢰',
-                        selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
-                        'done',
-                        selectedExpertRequest.productId
-                            ? [
-                                { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` },
-                                { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}`, variant: 'secondary' },
-                            ]
-                            : undefined,
-                    )}
-                    {selectedExpertRequestProposal
-                        ? renderClientOrderStage(
-                            '검토 단계',
-                            '제안서 작성/수정',
-                            `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
-                            selectedExpertRequestWork ? 'done' : 'current',
-                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' || selectedExpertRequestProposal.status !== 'sent'
-                                ? { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` }
-                                : [
-                                    { label: '수정하기', to: `${ROUTES.PROPOSAL_NEW}?proposalId=${selectedExpertRequestProposal.id}` },
-                                    { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}`, variant: 'secondary' },
-                                ],
-                        )
-                        : renderClientOrderStage(
-                            '검토 단계',
-                            '제안서 작성/수정',
-                            '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.',
-                            selectedExpertRequestWork ? 'pending' : 'current',
-                            selectedExpertRequestWork
-                                ? undefined
-                                : { label: '제안서 보내기', to: `${ROUTES.PROPOSAL_NEW}?requestId=${selectedExpertRequest.id}` },
-                        )}
-                    {selectedExpertRequestProposal
-                        ? renderClientOrderStage(
-                            '결제',
-                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '제안서 승인 및 결제 대기',
-                            selectedExpertRequestWork
-                                ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
-                                : selectedExpertRequestProposal.paymentStatus === 'paid'
-                                    ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                                    : '의뢰자가 제안서를 승인하고 결제를 완료하면 작업방이 생성됩니다.',
-                            selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
-                        )
-                        : renderClientOrderStage('결제', '제안서 승인 및 결제 대기', '제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.', 'pending')}
-                    {selectedExpertRequestWork
-                        ? renderClientOrderStage(
-                            '작업 중',
-                            getExpertWorkStageTitle(selectedExpertRequestWork),
-                            getExpertWorkStageDescription(selectedExpertRequestWork),
-                            selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
-                            selectedExpertRequestWork.status === 'completed'
-                                ? { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` }
-                                : [
-                                    { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
-                                    { label: '작업방에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
-                                ],
-                        )
-                        : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
-                    {renderClientOrderStage(
-                        '작업 완료',
-                        '작업 완료',
-                        selectedExpertRequestWork?.status === 'completed' ? '의뢰자에게 결과물을 전달한 완료 작업입니다.' : '결과물을 제출하고 의뢰자 확인을 기다립니다.',
-                        selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
-                    )}
-                </div>
-            </div>
-        )
+        const stages = [
+            createWorkStage(
+                '작업 전',
+                '받은 의뢰',
+                selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
+                'done',
+                selectedExpertRequest.productId
+                    ? [
+                        { label: '받은 의뢰서 보기', to: `/request/${selectedExpertRequest.productId}?requestId=${selectedExpertRequest.id}` },
+                        { label: '상품 보기', to: `/expert/${selectedExpertRequest.productId}`, variant: 'secondary' },
+                    ]
+                    : undefined,
+            ),
+            selectedExpertRequestProposal
+                ? createWorkStage(
+                    '검토 단계',
+                    '제안서 작성/수정',
+                    `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
+                    selectedExpertRequestWork ? 'done' : 'current',
+                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' || selectedExpertRequestProposal.status !== 'sent'
+                        ? { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` }
+                        : [
+                            { label: '수정하기', to: `${ROUTES.PROPOSAL_NEW}?proposalId=${selectedExpertRequestProposal.id}` },
+                            { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}`, variant: 'secondary' },
+                        ],
+                )
+                : createWorkStage(
+                    '검토 단계',
+                    '제안서 작성/수정',
+                    '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.',
+                    selectedExpertRequestWork ? 'pending' : 'current',
+                    selectedExpertRequestWork
+                        ? undefined
+                        : { label: '제안서 보내기', to: `${ROUTES.PROPOSAL_NEW}?requestId=${selectedExpertRequest.id}` },
+                ),
+            selectedExpertRequestProposal
+                ? createWorkStage(
+                    '결제',
+                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '제안서 승인 및 결제 대기',
+                    selectedExpertRequestWork
+                        ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
+                        : selectedExpertRequestProposal.paymentStatus === 'paid'
+                            ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                            : '의뢰자가 제안서를 승인하고 결제를 완료하면 작업방이 생성됩니다.',
+                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
+                )
+                : createWorkStage('결제', '제안서 승인 및 결제 대기', '제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.', 'pending'),
+            selectedExpertRequestWork
+                ? createWorkStage(
+                    '작업 중',
+                    getExpertWorkStageTitle(selectedExpertRequestWork),
+                    getExpertWorkStageDescription(selectedExpertRequestWork),
+                    selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
+                    selectedExpertRequestWork.status === 'completed'
+                        ? { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` }
+                        : [
+                            { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
+                            { label: '작업방에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
+                        ],
+                )
+                : createWorkStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending'),
+            createWorkStage(
+                '작업 완료',
+                '작업 완료',
+                selectedExpertRequestWork?.status === 'completed' ? '의뢰자에게 결과물을 전달한 완료 작업입니다.' : '결과물을 제출하고 의뢰자 확인을 기다립니다.',
+                selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
+            ),
+        ]
+
+        return renderWorkDetailFlow({
+            testId: 'expert-product-order-flow',
+            title: selectedExpertRequest.desiredResult || selectedExpertRequestProduct?.title || selectedExpertRequest.title,
+            meta: `${selectedExpertRequestProduct?.title || '상품 의뢰'} · ${selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}마감 ${selectedExpertRequest.deadline || '미정'}`,
+            stages,
+            infoItems: [
+                { label: '거래 방식', value: '상품 주문' },
+                { label: '등록일', value: formatDashboardDate(selectedExpertRequest.createdAt) },
+                { label: '예산', value: selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원` : '협의 중' },
+                { label: '마감일', value: selectedExpertRequest.deadline || '미정' },
+                { label: '첨부 파일', value: `${selectedExpertRequest.referenceLinks?.length || 0}개` },
+            ],
+        })
     }
 
     const renderClientUnifiedWorkManager = () => (
@@ -2079,7 +2321,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                             cursor: 'pointer',
                                         }}
                                     >
-                                        {item.label}
+                                        {isWorkMode && renderWorkMenuIcon(item.id)}
+                                        <span>{item.label}</span>
                                     </button>
                                 )
                             })}

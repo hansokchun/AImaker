@@ -14,18 +14,24 @@ const getRule = (css: string, selector: string) => {
 }
 
 describe('MyPage work dashboard visual styles', () => {
-    it('uses card separation between the left menu and main work content', () => {
+    it('uses a flat SaaS manager shell with sidebar, list, and detail columns', () => {
         const shellRule = getRule(myPageCss, '.work-dashboard-shell')
         const sidebarRule = getRule(myPageCss, '.work-dashboard-sidebar')
+        const splitRule = getRule(myPageCss, '.work-dashboard-split')
         const contentRule = getRule(myPageCss, '.work-dashboard-content > section,\n.work-dashboard-panel')
+        const detailRule = getRule(myPageCss, '.work-detail-panel')
 
-        expect(shellRule).toContain('gap: var(--space-6)')
-        expect(sidebarRule).toContain('padding: var(--space-4)')
-        expect(sidebarRule).toContain('border: 1px solid var(--border-color)')
+        expect(shellRule).toContain('grid-template-columns: 248px minmax(0, 1fr)')
+        expect(shellRule).toContain('gap: var(--space-5)')
+        expect(sidebarRule).toContain('padding: var(--space-5)')
+        expect(sidebarRule).toContain('border: 1px solid #e5e7eb')
         expect(sidebarRule).toContain('background: var(--surface)')
-        expect(contentRule).toContain('padding: var(--space-6)')
-        expect(contentRule).toContain('border: 1px solid var(--border-color)')
-        expect(contentRule).toContain('background: var(--surface)')
+        expect(contentRule).toContain('padding: 0')
+        expect(contentRule).toContain('border: 0')
+        expect(contentRule).toContain('background: transparent')
+        expect(splitRule).toContain('grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.42fr)')
+        expect(detailRule).toContain('border: 1px solid #e8edf5')
+        expect(detailRule).toContain('border-radius: 16px')
     })
 
     it('restores the original light marketplace backgrounds', () => {
@@ -51,7 +57,7 @@ describe('MyPage work dashboard visual styles', () => {
         expect(switchRule).toContain('padding: var(--space-2)')
         expect(switchRule).toContain('border-radius: 999px')
         expect(switchRule).toContain('max-width: 100%')
-        expect(toggleRule).toContain('min-height: 64px')
+        expect(toggleRule).toContain('min-height: 48px')
         expect(toggleRule).toContain('width: 100%')
         expect(toggleRule).toContain('border-radius: 999px')
         expect(indicatorRule).toContain('width: 50%')
@@ -64,6 +70,30 @@ describe('MyPage work dashboard visual styles', () => {
         expect(buttonRule).toContain('min-width: 0')
         expect(buttonRule).toContain('white-space: nowrap')
         expect(activeButtonRule).toContain('color: var(--surface)')
-        expect(iconRule).toContain('width: 1.45rem')
+        expect(iconRule).toContain('width: 1.15rem')
+    })
+
+    it('uses compact list rows, a progress stepper, timeline, and simple transaction info', () => {
+        const menuButtonRule = getRule(myPageCss, '.work-dashboard-menu-button')
+        const selectedMenuRule = getRule(myPageCss, '.work-dashboard-menu-button.is-selected')
+        const listCardRule = getRule(myPageCss, '.work-list-card')
+        const listMetaRule = getRule(myPageCss, '.work-list-meta-row')
+        const statusBadgeRule = getRule(myPageCss, '.work-list-status-badge')
+        const progressRule = getRule(myPageCss, '.work-progress-stepper')
+        const currentCardRule = getRule(myPageCss, '.work-current-stage-card')
+        const timelineRule = getRule(myPageCss, '.work-activity-timeline')
+        const transactionInfoRule = getRule(myPageCss, '.work-transaction-info')
+
+        expect(menuButtonRule).toContain('display: flex')
+        expect(menuButtonRule).toContain('border-left: 3px solid transparent')
+        expect(selectedMenuRule).toContain('border-left-color: #2563eb')
+        expect(listCardRule).toContain('min-height: 92px')
+        expect(listCardRule).toContain('padding: var(--space-4)')
+        expect(listMetaRule).toContain('justify-content: space-between')
+        expect(statusBadgeRule).toContain('border-radius: 999px')
+        expect(progressRule).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))')
+        expect(currentCardRule).toContain('background: #eff6ff')
+        expect(timelineRule).toContain('display: grid')
+        expect(transactionInfoRule).toContain('border: 1px solid #e8edf5')
     })
 })
