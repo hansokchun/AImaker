@@ -134,7 +134,7 @@ const getExpertProducts = vi.fn(async () => [
         description: 'Client order description',
         aiTools: ['Runway'],
         sampleLinks: [],
-        sampleImageUrl: '',
+        sampleImageUrl: 'https://example.com/product-client.jpg',
         startingPrice: 30000,
         deliveryDays: 2,
         revisionCount: 1,
@@ -1026,18 +1026,24 @@ describe('MyPage', () => {
         expect(screen.getByRole('button', { name: '리뷰' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
-        expect(await screen.findByTestId('client-unified-work-list')).toHaveClass('work-list-panel')
+        const transactionList = await screen.findByTestId('client-unified-work-list')
+        expect(transactionList).toHaveClass('work-list-panel')
+        expect(screen.getByRole('heading', { name: '거래관리' })).toBeInTheDocument()
+        expect(screen.getByText('진행 중이거나 완료된 거래를 한눈에 확인하고 관리할 수 있습니다.')).toBeInTheDocument()
         const selectedMenuButton = screen.getByRole('button', { name: '거래관리' })
         expect(selectedMenuButton.querySelector('.work-dashboard-menu-icon')).toBeInTheDocument()
+        expect(within(transactionList).getByText('거래 정보')).toBeInTheDocument()
+        expect(within(transactionList).getByText('거래 유형')).toBeInTheDocument()
+        expect(within(transactionList).getByText('거래일')).toBeInTheDocument()
+        expect(within(transactionList).getByText('현재 단계')).toBeInTheDocument()
         const firstWorkItem = (await screen.findAllByTestId('work-dashboard-item'))[0]
-        expect(firstWorkItem).toHaveClass('work-list-card')
-        expect(firstWorkItem.querySelector('.work-list-meta-row')).toBeInTheDocument()
-        expect(firstWorkItem.querySelector('.work-list-status-badge')).toBeInTheDocument()
-        expect(firstWorkItem.querySelector('.work-list-time')).toBeInTheDocument()
-        expect(screen.getByTestId('work-progress-stepper')).toBeInTheDocument()
-        expect(screen.getByTestId('work-current-stage-card')).toBeInTheDocument()
-        expect(screen.getByTestId('work-activity-timeline')).toBeInTheDocument()
-        expect(screen.getByTestId('work-transaction-info')).toBeInTheDocument()
+        expect(firstWorkItem).toHaveClass('work-transaction-open-button')
+        expect(firstWorkItem).toHaveTextContent('상세 보기')
+        expect(firstWorkItem).toHaveAttribute('data-work-item-id', 'consult-client-01')
+        expect(screen.queryByTestId('work-progress-stepper')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('work-current-stage-card')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('work-activity-timeline')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('work-transaction-info')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: '진행중인 거래' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('button', { name: '중단된 거래' })).toHaveAttribute('aria-pressed', 'false')
 
@@ -1045,6 +1051,39 @@ describe('MyPage', () => {
 
         expect(expertRoleButton).toHaveAttribute('aria-pressed', 'true')
         expect(screen.queryByText('받은 일 관리')).not.toBeInTheDocument()
+    })
+
+    it('opens a transaction detail from the list and returns to the transaction list', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<><MyPage mode="work" /><LocationProbe /></>} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const list = await screen.findByTestId('client-unified-work-list')
+        const productOrderButton = within(list)
+            .getAllByTestId('work-dashboard-item')
+            .find((button) => button.getAttribute('data-work-item-id') === 'request-product-client-01')
+        expect(productOrderButton).toBeDefined()
+
+        fireEvent.click(productOrderButton!)
+
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('clientOrder=request-product-client-01'))
+        expect(screen.getByRole('button', { name: '거래 목록으로' })).toBeInTheDocument()
+        expect(screen.getByRole('img', { name: 'AI 숏폼 영상 제작 대표 이미지' })).toHaveAttribute('src', 'https://example.com/product-client.jpg')
+        expect(screen.getByText('거래 번호')).toBeInTheDocument()
+        expect(screen.getByTestId('work-progress-stepper')).toBeInTheDocument()
+        expect(screen.getByTestId('work-current-stage-card')).toBeInTheDocument()
+        expect(screen.getByTestId('work-activity-timeline')).toBeInTheDocument()
+        expect(screen.getByTestId('work-transaction-info')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '거래 목록으로' }))
+
+        await waitFor(() => expect(screen.getByTestId('location').textContent).not.toContain('clientOrder='))
+        expect(screen.getByTestId('client-unified-work-list')).toBeInTheDocument()
+        expect(screen.queryByTestId('work-progress-stepper')).not.toBeInTheDocument()
     })
 
     it('opens the consultation chat panel with a selected consultation from the query string', async () => {
@@ -1202,6 +1241,8 @@ describe('MyPage', () => {
         expect(await screen.findByText('전문가 문의')).toBeInTheDocument()
         expect(screen.getByText(/상담 중/)).toBeInTheDocument()
 
+        const list = await screen.findByTestId('client-unified-work-list')
+        fireEvent.click(within(list).getByRole('button', { name: /AI 숏폼 영상 제작 상담/ }))
         fireEvent.click(screen.getByRole('link', { name: '상담 채팅 보기' }))
 
         await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=consultations'))
@@ -1240,8 +1281,9 @@ describe('MyPage', () => {
         )
 
         const list = await screen.findByTestId('client-unified-work-list')
-        const consultationItem = within(list).getByRole('button', { pressed: true })
+        const consultationItem = within(list).getByRole('button', { name: /AI 숏폼 영상 제작 상담/ })
         expect(consultationItem).toHaveAttribute('data-work-item-kind', 'consultation')
+        fireEvent.click(consultationItem)
 
         const chatLink = screen.getAllByRole('link').find((link) =>
             link.getAttribute('href')?.includes('panel=consultations&consultation=consult-client-01'),
@@ -1267,6 +1309,8 @@ describe('MyPage', () => {
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
         fireEvent.click(await screen.findByRole('button', { name: '거래관리' }))
 
+        const list = await screen.findByTestId('expert-unified-work-list')
+        fireEvent.click(within(list).getByRole('button', { name: /Owned AI product 상담/ }))
         expect(await screen.findByText('전문가 문의 - Owned AI product')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '상담 채팅 보기' })).toHaveAttribute(
             'href',
@@ -1390,8 +1434,8 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '진행 단계' })).toBeInTheDocument()
-        expect(screen.getAllByText('작업 전').length).toBeGreaterThan(0)
-        expect(screen.getByText('의뢰서 작성')).toBeInTheDocument()
+        expect(screen.getAllByText('상담').length).toBeGreaterThan(0)
+        expect(screen.getByText('요구사항 확인')).toBeInTheDocument()
         expect(screen.getAllByText('제품 홍보 숏폼').length).toBeGreaterThan(0)
         expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute(
             'href',
@@ -1403,13 +1447,13 @@ describe('MyPage', () => {
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
         expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
         expect(screen.queryByText('테스트 결제 완료')).not.toBeInTheDocument()
-        expect(screen.getAllByText('작업 중').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('작업').length).toBeGreaterThan(0)
         expect(screen.getByText('작업방 진행')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
-        expect(screen.getByText('작업 후')).toBeInTheDocument()
+        expect(screen.getAllByText('완료').length).toBeGreaterThan(0)
         expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
 
-        expect(within(screen.getByLabelText('의뢰서 작성 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('요구사항 확인 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
         expect(within(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
         const pendingReviewStage = screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')
@@ -1659,6 +1703,15 @@ describe('MyPage', () => {
     })
 
     it('labels the expert payment waiting stage as proposal approval and payment waiting', async () => {
+        getUserProposals.mockResolvedValue([
+            ...defaultProposals(),
+            {
+                ...defaultProposals()[1],
+                id: 'proposal-directed-payment-waiting',
+                requestId: 'request-product-directed-01',
+            },
+        ])
+
         render(
             <MemoryRouter initialEntries={['/mypage?panel=expert&expertRequest=request-product-directed-01']}>
                 <MyPage />
@@ -1802,6 +1855,7 @@ describe('MyPage', () => {
         )
         expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '중단된 거래' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '거래 목록으로' }))
         fireEvent.click(screen.getByRole('button', { name: '중단된 거래' }))
         expect(screen.getByRole('heading', { name: '중단된 거래' })).toBeInTheDocument()
         expect(screen.getByText('취소된 상품 지정 제안서')).toBeInTheDocument()
@@ -1818,7 +1872,10 @@ describe('MyPage', () => {
         )
 
         const flow = await screen.findByTestId('client-product-order-flow')
-        expect(flow.querySelectorAll('button')).toHaveLength(0)
+        const nonNavigationButtons = Array.from(flow.querySelectorAll('button')).filter(
+            (button) => !button.textContent?.includes('거래 목록으로'),
+        )
+        expect(nonNavigationButtons).toHaveLength(0)
         expect(cancelWork).not.toHaveBeenCalled()
     })
 
@@ -1859,7 +1916,10 @@ describe('MyPage', () => {
                 link.getAttribute('href') === '/proposals/new?proposalId=proposal-directed-sent',
             ),
         ).toBe(true)
-        expect(flow.querySelectorAll('button')).toHaveLength(0)
+        const nonNavigationButtons = Array.from(flow.querySelectorAll('button')).filter(
+            (button) => !button.textContent?.includes('거래 목록으로'),
+        )
+        expect(nonNavigationButtons).toHaveLength(0)
         expect(cancelProposal).not.toHaveBeenCalled()
     })
 

@@ -33,28 +33,6 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 
 const currency = new Intl.NumberFormat('ko-KR')
 
-const formatDashboardDate = (value?: number | string | null) => {
-    if (!value) return '-'
-    const date = typeof value === 'number' ? new Date(value) : new Date(value)
-    if (Number.isNaN(date.getTime())) return '-'
-    return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
-}
-
-const formatDashboardRelativeTime = (value?: number | string | null) => {
-    if (!value) return '-'
-    const timestamp = typeof value === 'number' ? value : Date.parse(value)
-    if (Number.isNaN(timestamp) || timestamp <= 0) return '-'
-    const diffMs = Math.max(0, Date.now() - timestamp)
-    const minutes = Math.floor(diffMs / 60000)
-    if (minutes < 1) return '방금 전'
-    if (minutes < 60) return `${minutes}분 전`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}시간 전`
-    const days = Math.floor(hours / 24)
-    if (days < 7) return `${days}일 전`
-    return formatDashboardDate(timestamp)
-}
-
 const normalizeStageActions = (action?: StageAction | StageAction[]) =>
     Array.isArray(action) ? action : action ? [action] : []
 
@@ -71,6 +49,17 @@ type WorkStageView = {
 }
 type WorkInfoItem = { label: string; value: string }
 type WorkTransactionView = 'active' | 'stopped'
+type WorkStatusTone = 'consultation' | 'payment' | 'work' | 'done' | 'stopped' | 'neutral'
+type WorkDetailHero = {
+    typeLabel: string
+    statusLabel: string
+    statusTone: WorkStatusTone
+    transactionNumber: string
+    createdAtLabel: string
+    imageUrl?: string
+    imageAlt: string
+    onBack: () => void
+}
 
 const stageVisualConfig: Record<StageVisualState, { label: string; border: string; background: string; badgeBackground: string; badgeColor: string; textColor: string; bodyColor: string }> = {
     done: {
@@ -483,20 +472,33 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             consultation,
         })),
     ])
+    const shouldShowListFirst = mode === 'work'
 
     const selectedClientUnifiedWorkItem =
-        clientUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedClientOrderId) ||
-        clientUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId) ||
-        clientUnifiedWorkItems[0] ||
+        (selectedClientOrderId
+            ? clientUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedClientOrderId)
+            : null) ||
+        (selectedConsultationId
+            ? clientUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId)
+            : null) ||
+        (!shouldShowListFirst ? clientUnifiedWorkItems[0] : null) ||
         null
 
     const selectedExpertUnifiedWorkItem =
-        expertUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedExpertRequestId) ||
-        expertUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId) ||
-        expertUnifiedWorkItems[0] ||
+        (selectedExpertRequestId
+            ? expertUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedExpertRequestId)
+            : null) ||
+        (selectedConsultationId
+            ? expertUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId)
+            : null) ||
+        (!shouldShowListFirst ? expertUnifiedWorkItems[0] : null) ||
         null
 
-    const selectedClientOrder = clientProductRequestsByCreatedAt.find((request) => request.id === selectedClientOrderId) || clientProductRequestsByCreatedAt[0] || null
+    const selectedClientOrder = selectedClientOrderId
+        ? clientProductRequestsByCreatedAt.find((request) => request.id === selectedClientOrderId) || null
+        : !shouldShowListFirst
+            ? clientProductRequestsByCreatedAt[0] || null
+        : null
     const selectedClientOrderProduct = selectedClientOrder
         ? products.find((product) => product.id === selectedClientOrder.productId)
         : null
@@ -506,7 +508,11 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const selectedClientOrderWork = selectedClientOrder
         ? works.find((work) => work.status !== 'cancelled' && (work.requestId === selectedClientOrder.id || work.proposalId === selectedClientOrderProposal?.id))
         : null
-    const selectedExpertRequest = receivedProductRequestsByCreatedAt.find((request) => request.id === selectedExpertRequestId) || receivedProductRequestsByCreatedAt[0] || null
+    const selectedExpertRequest = selectedExpertRequestId
+        ? receivedProductRequestsByCreatedAt.find((request) => request.id === selectedExpertRequestId) || null
+        : !shouldShowListFirst
+            ? receivedProductRequestsByCreatedAt[0] || null
+        : null
     const selectedExpertRequestProduct = selectedExpertRequest
         ? products.find((product) => product.id === selectedExpertRequest.productId)
         : null
@@ -929,6 +935,109 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ? getRequestStatusLabel(item.request)
             : getConsultationStatusLabel(item.consultation)
 
+    const formatTransactionDate = (value?: number | string | null) => {
+        if (!value) return '-'
+        const date = typeof value === 'number' ? new Date(value) : new Date(value)
+        if (Number.isNaN(date.getTime())) return '-'
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}.${month}.${day}`
+    }
+
+    const formatTransactionDateTime = (value?: number | string | null) => {
+        if (!value) return '-'
+        const date = typeof value === 'number' ? new Date(value) : new Date(value)
+        if (Number.isNaN(date.getTime())) return '-'
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        return `${formatTransactionDate(value)} ${hours}:${minutes}`
+    }
+
+    const getUnifiedWorkProduct = (item: UnifiedWorkItem) =>
+        item.kind === 'product'
+            ? products.find((entry) => entry.id === item.request.productId)
+            : products.find((entry) => entry.id === item.consultation.productId)
+
+    const getUnifiedWorkTitle = (item: UnifiedWorkItem) => {
+        const product = getUnifiedWorkProduct(item)
+        return item.kind === 'product'
+            ? product?.title || item.request.desiredResult || item.request.title
+            : product?.title || item.consultation.title
+    }
+
+    const getUnifiedWorkSubtitle = (item: UnifiedWorkItem) =>
+        item.kind === 'product'
+            ? item.request.desiredResult || item.request.description || item.request.title
+            : item.consultation.title
+
+    const getUnifiedWorkTypeLabel = (item: UnifiedWorkItem) =>
+        item.kind === 'consultation' ? '전문가 문의' : '상품 주문'
+
+    const getUnifiedWorkCreatedAt = (item: UnifiedWorkItem) =>
+        item.kind === 'product' ? item.request.createdAt : item.consultation.createdAt
+
+    const getUnifiedWorkStatusTone = (item: UnifiedWorkItem): WorkStatusTone => {
+        if (item.kind === 'consultation') {
+            if (item.consultation.status === 'closed') return 'stopped'
+            if (item.consultation.status === 'proposal_sent') return 'payment'
+            return 'consultation'
+        }
+
+        const requestWork = getWorkForRequest(item.request)
+        if (requestWork?.status === 'cancelled' || item.request.status === 'cancelled') return 'stopped'
+        if (requestWork?.status === 'completed' || item.request.status === 'completed') return 'done'
+        if (requestWork) return 'work'
+
+        const requestProposal = getProposalForRequest(item.request)
+        if (requestProposal && requestProposal.paymentStatus !== 'paid') return 'payment'
+        return 'consultation'
+    }
+
+    const isUnifiedWorkStopped = (item: UnifiedWorkItem) => {
+        if (item.kind === 'consultation') return item.consultation.status === 'closed'
+        const requestWork = getWorkForRequest(item.request)
+        return item.request.status === 'cancelled' || requestWork?.status === 'cancelled'
+    }
+
+    const getTransactionNumber = (item: UnifiedWorkItem) => {
+        const date = new Date(item.createdTime)
+        const year = Number.isNaN(date.getTime()) ? '0000' : String(date.getFullYear())
+        const month = Number.isNaN(date.getTime()) ? '00' : String(date.getMonth() + 1).padStart(2, '0')
+        const day = Number.isNaN(date.getTime()) ? '00' : String(date.getDate()).padStart(2, '0')
+        const rawId = String(item.id).replace(/[^a-zA-Z0-9]/g, '').slice(-3).toUpperCase().padStart(3, '0')
+        return `TR-${year}-${month}${day}-${rawId}`
+    }
+
+    const buildWorkDetailHero = (item: UnifiedWorkItem, onBack: () => void): WorkDetailHero => {
+        const product = getUnifiedWorkProduct(item)
+        const title = getUnifiedWorkTitle(item)
+
+        return {
+            typeLabel: getUnifiedWorkTypeLabel(item),
+            statusLabel: getUnifiedWorkStatusLabel(item),
+            statusTone: getUnifiedWorkStatusTone(item),
+            transactionNumber: getTransactionNumber(item),
+            createdAtLabel: formatTransactionDate(getUnifiedWorkCreatedAt(item)),
+            imageUrl: product?.sampleImageUrl,
+            imageAlt: `${title} 대표 이미지`,
+            onBack,
+        }
+    }
+
+    const clearSelectedTransaction = () => {
+        setSelectedClientOrderId(null)
+        setSelectedExpertRequestId(null)
+        setSelectedConsultationId(null)
+        const nextParams = new URLSearchParams()
+        if (mode === 'work' && workRole === 'expert') nextParams.set('role', 'expert')
+        if (activePanel !== defaultPanel) nextParams.set('panel', activePanel)
+        setSearchParams(nextParams)
+    }
+
+    const clientActiveUnifiedWorkItems = clientUnifiedWorkItems.filter((item) => !isUnifiedWorkStopped(item))
+    const expertActiveUnifiedWorkItems = expertUnifiedWorkItems.filter((item) => !isUnifiedWorkStopped(item))
+
     const renderStageActionControl = (stageAction: StageAction, keySuffix: string, compact = false) => {
         const className = stageAction.variant === 'secondary' ? 'btn-text' : 'btn-primary'
         const actionClassName = compact ? `${className} work-detail-action is-compact` : `${className} work-detail-action`
@@ -965,12 +1074,14 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         meta,
         stages,
         infoItems,
+        hero,
     }: {
         testId: string
         title: string
         meta: string
         stages: WorkStageView[]
         infoItems: WorkInfoItem[]
+        hero?: WorkDetailHero
     }) => {
         const currentStage = stages.find((stage) => stage.state === 'current') || stages.find((stage) => stage.state === 'pending') || stages[0]
         const currentVisual = currentStage ? stageVisualConfig[currentStage.state] : null
@@ -980,12 +1091,48 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         return (
             <div className="work-detail-panel" data-testid={testId}>
-                <header className="work-detail-header">
-                    <div>
-                        <h3 className="work-detail-title">{title}</h3>
-                        <p className="work-detail-meta">{meta}</p>
-                    </div>
-                </header>
+                {hero ? (
+                    <header className="work-detail-hero">
+                        <button type="button" className="work-detail-back-button" onClick={hero.onBack}>
+                            <span aria-hidden="true">←</span>
+                            거래 목록으로
+                        </button>
+                        <div className="work-detail-hero-main">
+                            <div className="work-detail-product-media" data-testid="work-detail-product-media">
+                                {hero.imageUrl ? (
+                                    <img src={hero.imageUrl} alt={hero.imageAlt} />
+                                ) : (
+                                    <span aria-hidden="true">{title.slice(0, 1)}</span>
+                                )}
+                            </div>
+                            <div className="work-detail-hero-copy">
+                                <span className="work-detail-type-label">{hero.typeLabel}</span>
+                                <h3 className="work-detail-title">{title}</h3>
+                                <dl className="work-detail-meta-list">
+                                    <div>
+                                        <dt>거래 번호</dt>
+                                        <dd>{hero.transactionNumber}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>생성일</dt>
+                                        <dd>{hero.createdAtLabel}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            <span className={`work-transaction-status is-${hero.statusTone}`}>
+                                {hero.statusLabel}
+                                <span aria-hidden="true" />
+                            </span>
+                        </div>
+                    </header>
+                ) : (
+                    <header className="work-detail-header">
+                        <div>
+                            <h3 className="work-detail-title">{title}</h3>
+                            <p className="work-detail-meta">{meta}</p>
+                        </div>
+                    </header>
+                )}
 
                 <section className="work-detail-section" aria-labelledby={`${testId}-progress-title`}>
                     <h4 id={`${testId}-progress-title`} className="work-detail-section-title">진행 단계</h4>
@@ -1265,45 +1412,74 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     ) => (
         <section className="work-list-panel" data-testid={testId}>
             {items.length > 0 ? (
-                <div className="work-list-stack" style={{ display: 'grid', gap: '0.65rem' }}>
-                    {items.map((item) => {
-                        const product = item.kind === 'product'
-                            ? products.find((entry) => entry.id === item.request.productId)
-                            : products.find((entry) => entry.id === item.consultation.productId)
-                        const selected = selectedItem?.kind === item.kind && selectedItem.id === item.id
-                        const title = item.kind === 'product'
-                            ? product?.title || item.request.desiredResult || item.request.title
-                            : product?.title || item.consultation.title
-                        const subtitle = item.kind === 'product'
-                            ? item.request.desiredResult || item.request.title
-                            : item.consultation.title
-                        const typeLabel = item.kind === 'consultation' ? '전문가 문의' : '상품 주문'
-                        const statusLabel = getUnifiedWorkStatusLabel(item)
-                        const timeLabel = formatDashboardRelativeTime(item.createdTime)
+                <div className="work-transaction-table-wrap">
+                    <table className="work-transaction-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">거래 정보</th>
+                                <th scope="col">거래 유형</th>
+                                <th scope="col">거래일</th>
+                                <th scope="col">현재 단계</th>
+                                <th scope="col">액션</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map((item) => {
+                                const product = getUnifiedWorkProduct(item)
+                                const selected = selectedItem?.kind === item.kind && selectedItem.id === item.id
+                                const title = getUnifiedWorkTitle(item)
+                                const subtitle = getUnifiedWorkSubtitle(item)
+                                const typeLabel = getUnifiedWorkTypeLabel(item)
+                                const statusLabel = getUnifiedWorkStatusLabel(item)
+                                const statusTone = getUnifiedWorkStatusTone(item)
+                                const dateLabel = formatTransactionDate(getUnifiedWorkCreatedAt(item))
 
-                        return (
-                            <button
-                                key={`${item.kind}-${item.id}`}
-                                className={`work-list-card ${selected ? 'is-selected' : ''}`}
-                                type="button"
-                                data-testid="work-dashboard-item"
-                                data-work-item-kind={item.kind}
-                                data-work-item-id={String(item.id)}
-                                aria-pressed={selected}
-                                onClick={() => onSelect(item)}
-                            >
-                                <span className="work-list-meta-row">
-                                    <span className={`work-list-chip ${item.kind === 'consultation' ? 'is-consultation' : 'is-product'}`}>
-                                        {typeLabel}
-                                    </span>
-                                    <span className="work-list-time">{timeLabel}</span>
-                                </span>
-                                <strong>{title}</strong>
-                                <span className="work-list-description">{subtitle}</span>
-                                <span className="work-list-status-badge">{statusLabel}</span>
-                            </button>
-                        )
-                    })}
+                                return (
+                                    <tr key={`${item.kind}-${item.id}`} className={selected ? 'is-selected' : undefined}>
+                                        <td>
+                                            <div className="work-transaction-summary">
+                                                <div className="work-transaction-thumb">
+                                                    {product?.sampleImageUrl ? (
+                                                        <img src={product.sampleImageUrl} alt={`${title} 대표 이미지`} />
+                                                    ) : (
+                                                        <span aria-hidden="true">{title.slice(0, 1)}</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <strong>{title}</strong>
+                                                    <span>{subtitle}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{typeLabel}</td>
+                                        <td>{dateLabel}</td>
+                                        <td>
+                                            <span className={`work-transaction-status is-${statusTone}`}>
+                                                {statusLabel}
+                                                <span aria-hidden="true" />
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="work-transaction-open-button"
+                                                data-testid="work-dashboard-item"
+                                                data-work-item-kind={item.kind}
+                                                data-work-item-id={String(item.id)}
+                                                aria-label={`${title} ${subtitle} 상세 보기`}
+                                                aria-pressed={selected}
+                                                onClick={() => onSelect(item)}
+                                            >
+                                                <span className="sr-only">{title} {subtitle}</span>
+                                                상세 보기
+                                                <span aria-hidden="true">›</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
@@ -1389,9 +1565,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             title: `전문가 문의 - ${product?.title || consultation.title}`,
             meta: `전문가 문의 · ${consultation.status === 'open' ? '진행 상태 확인' : statusLabel}`,
             stages,
+            hero: buildWorkDetailHero(
+                { kind: 'consultation', id: consultation.id, createdTime: getConsultationCreatedTime(consultation), consultation },
+                clearSelectedTransaction,
+            ),
             infoItems: [
                 { label: '거래 방식', value: '문의형 거래' },
-                { label: '등록일', value: formatDashboardDate(consultation.createdAt) },
+                { label: '등록일', value: formatTransactionDateTime(consultation.createdAt) },
                 { label: '예산', value: '협의 중' },
                 { label: '마감일', value: '-' },
                 { label: '첨부 파일', value: '-' },
@@ -1602,8 +1782,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         const stages = [
             createWorkStage(
-                '작업 전',
-                '의뢰서 작성',
+                '상담',
+                '요구사항 확인',
                 selectedClientOrder.desiredResult || selectedClientOrder.description || '요구사항이 접수되었습니다.',
                 'done',
                 selectedClientOrder.productId
@@ -1633,7 +1813,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 : createWorkStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current'),
             selectedClientOrderWork
                 ? createWorkStage(
-                    '작업 중',
+                    '작업',
                     getClientWorkStageTitle(selectedClientOrderWork),
                     getClientWorkStageDescription(selectedClientOrderWork),
                     selectedClientOrderWork.status === 'completed' ? 'done' : 'current',
@@ -1644,9 +1824,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             { label: '작업방에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
                         ],
                 )
-                : createWorkStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending'),
+                : createWorkStage('작업', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending'),
             createWorkStage(
-                '작업 후',
+                '완료',
                 '완료 확인/리뷰',
                 selectedClientOrderWork?.status === 'completed' ? '결과물을 확인하고 리뷰를 남길 수 있습니다.' : '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.',
                 selectedClientOrderWork?.status === 'completed' ? 'current' : 'pending',
@@ -1658,9 +1838,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             title: selectedClientOrderProduct?.title || selectedClientOrder.title,
             meta: `${selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원 · ` : ''}마감 ${selectedClientOrder.deadline || '미정'}`,
             stages,
+            hero: selectedClientUnifiedWorkItem?.kind === 'product'
+                ? buildWorkDetailHero(selectedClientUnifiedWorkItem, clearSelectedTransaction)
+                : undefined,
             infoItems: [
                 { label: '거래 방식', value: '상품 주문' },
-                { label: '등록일', value: formatDashboardDate(selectedClientOrder.createdAt) },
+                { label: '등록일', value: formatTransactionDateTime(selectedClientOrder.createdAt) },
                 { label: '예산', value: selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원` : '협의 중' },
                 { label: '마감일', value: selectedClientOrder.deadline || '미정' },
                 { label: '첨부 파일', value: `${selectedClientOrder.referenceLinks?.length || 0}개` },
@@ -1673,7 +1856,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         const stages = [
             createWorkStage(
-                '작업 전',
+                '상담',
                 '받은 의뢰',
                 selectedExpertRequest.description || selectedExpertRequest.desiredResult || '상품 의뢰가 접수되었습니다.',
                 'done',
@@ -1686,10 +1869,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ),
             selectedExpertRequestProposal
                 ? createWorkStage(
-                    '검토 단계',
-                    '제안서 작성/수정',
+                    '결제',
+                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid'
+                        ? '결제 완료'
+                        : '제안서 승인 및 결제 대기',
                     `${selectedExpertRequestProposal.totalPrice.toLocaleString()}원 · ${selectedExpertRequestProposal.deliveryDays}일 · ${proposalStatusText[selectedExpertRequestProposal.status]}`,
-                    selectedExpertRequestWork ? 'done' : 'current',
+                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'current',
                     selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' || selectedExpertRequestProposal.status !== 'sent'
                         ? { label: '보낸 제안서 보기', to: `/proposal/${selectedExpertRequestProposal.id}` }
                         : [
@@ -1698,7 +1883,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         ],
                 )
                 : createWorkStage(
-                    '검토 단계',
+                    '결제',
                     '제안서 작성/수정',
                     '의뢰 내용을 확인하고 제안서를 보낼 수 있습니다.',
                     selectedExpertRequestWork ? 'pending' : 'current',
@@ -1706,21 +1891,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         ? undefined
                         : { label: '제안서 보내기', to: `${ROUTES.PROPOSAL_NEW}?requestId=${selectedExpertRequest.id}` },
                 ),
-            selectedExpertRequestProposal
-                ? createWorkStage(
-                    '결제',
-                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '제안서 승인 및 결제 대기',
-                    selectedExpertRequestWork
-                        ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
-                        : selectedExpertRequestProposal.paymentStatus === 'paid'
-                            ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                            : '의뢰자가 제안서를 승인하고 결제를 완료하면 작업방이 생성됩니다.',
-                    selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
-                )
-                : createWorkStage('결제', '제안서 승인 및 결제 대기', '제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.', 'pending'),
             selectedExpertRequestWork
                 ? createWorkStage(
-                    '작업 중',
+                    '작업',
                     getExpertWorkStageTitle(selectedExpertRequestWork),
                     getExpertWorkStageDescription(selectedExpertRequestWork),
                     selectedExpertRequestWork.status === 'completed' ? 'done' : 'current',
@@ -1731,9 +1904,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             { label: '작업방에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
                         ],
                 )
-                : createWorkStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending'),
+                : createWorkStage('작업', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending'),
             createWorkStage(
-                '작업 완료',
+                '완료',
                 '작업 완료',
                 selectedExpertRequestWork?.status === 'completed' ? '의뢰자에게 결과물을 전달한 완료 작업입니다.' : '결과물을 제출하고 의뢰자 확인을 기다립니다.',
                 selectedExpertRequestWork?.status === 'completed' ? 'done' : 'pending',
@@ -1745,9 +1918,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             title: selectedExpertRequest.desiredResult || selectedExpertRequestProduct?.title || selectedExpertRequest.title,
             meta: `${selectedExpertRequestProduct?.title || '상품 의뢰'} · ${selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원 · ` : ''}마감 ${selectedExpertRequest.deadline || '미정'}`,
             stages,
+            hero: selectedExpertUnifiedWorkItem?.kind === 'product'
+                ? buildWorkDetailHero(selectedExpertUnifiedWorkItem, clearSelectedTransaction)
+                : undefined,
             infoItems: [
                 { label: '거래 방식', value: '상품 주문' },
-                { label: '등록일', value: formatDashboardDate(selectedExpertRequest.createdAt) },
+                { label: '등록일', value: formatTransactionDateTime(selectedExpertRequest.createdAt) },
                 { label: '예산', value: selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원` : '협의 중' },
                 { label: '마감일', value: selectedExpertRequest.deadline || '미정' },
                 { label: '첨부 파일', value: `${selectedExpertRequest.referenceLinks?.length || 0}개` },
@@ -1755,10 +1931,51 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         })
     }
 
+    const renderTransactionListFooter = () => (
+        <div className="work-transaction-list-footer" aria-label="거래 목록 페이지네이션">
+            <div className="work-transaction-pages">
+                <button type="button" aria-label="이전 페이지">‹</button>
+                {[1, 2, 3, 4, 5].map((page) => (
+                    <button key={page} type="button" aria-current={page === 1 ? 'page' : undefined}>
+                        {page}
+                    </button>
+                ))}
+                <button type="button" aria-label="다음 페이지">›</button>
+            </div>
+            <label className="work-transaction-page-size">
+                <span className="sr-only">페이지당 거래 수</span>
+                <select defaultValue="10">
+                    <option value="10">10개씩 보기</option>
+                    <option value="20">20개씩 보기</option>
+                </select>
+            </label>
+        </div>
+    )
+
+    const renderTransactionListShell = (
+        items: UnifiedWorkItem[],
+        selectedItem: UnifiedWorkItem | null,
+        testId: string,
+        emptyText: string,
+        role: 'client' | 'expert',
+        onSelect: (item: UnifiedWorkItem) => void,
+    ) => (
+        <>
+            <header className="work-transaction-page-head">
+                <h2>거래관리</h2>
+                <p>진행 중이거나 완료된 거래를 한눈에 확인하고 관리할 수 있습니다.</p>
+            </header>
+            {renderWorkTransactionTabs()}
+            {workTransactionView === 'active'
+                ? renderUnifiedWorkList(items, selectedItem, testId, emptyText, onSelect)
+                : renderStoppedTransactions(role)}
+            {workTransactionView === 'active' && items.length > 0 && renderTransactionListFooter()}
+        </>
+    )
+
     const renderClientUnifiedWorkManager = () => (
         <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            {renderWorkTransactionTabs()}
-            {workTransactionView === 'active' ? (
+            {mode !== 'work' ? (
                 clientUnifiedWorkItems.length > 0 ? (
                     <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
                         {renderUnifiedWorkList(
@@ -1783,16 +2000,34 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ) : (
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 작업 내역이 없습니다.</p>
                 )
+            ) : workTransactionView === 'active' && selectedClientUnifiedWorkItem ? (
+                selectedClientUnifiedWorkItem.kind === 'consultation'
+                    ? renderConsultationFlow(selectedClientUnifiedWorkItem.consultation, 'client')
+                    : renderClientSelectedProductFlow()
             ) : (
-                renderStoppedTransactions('client')
+                renderTransactionListShell(
+                    clientActiveUnifiedWorkItems,
+                    selectedClientUnifiedWorkItem,
+                    'client-unified-work-list',
+                    '작업 내역이 없습니다.',
+                    'client',
+                    (item) => {
+                        if (item.kind === 'product') {
+                            setSelectedClientOrderId(item.id)
+                            setSelectedConsultationId(null)
+                        } else {
+                            setSelectedConsultationId(item.id)
+                            setSelectedClientOrderId(null)
+                        }
+                    },
+                )
             )}
         </div>
     )
 
     const renderExpertUnifiedWorkManager = () => (
         <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
-            {renderWorkTransactionTabs()}
-            {workTransactionView === 'active' ? (
+            {mode !== 'work' ? (
                 expertUnifiedWorkItems.length > 0 ? (
                     <div className="work-dashboard-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.9fr) minmax(0, 1.4fr)', gap: '1rem', alignItems: 'start' }}>
                         {renderUnifiedWorkList(
@@ -1817,8 +2052,27 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ) : (
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
                 )
+            ) : workTransactionView === 'active' && selectedExpertUnifiedWorkItem ? (
+                selectedExpertUnifiedWorkItem.kind === 'consultation'
+                    ? renderConsultationFlow(selectedExpertUnifiedWorkItem.consultation, 'expert')
+                    : renderExpertSelectedProductFlow()
             ) : (
-                renderStoppedTransactions('expert')
+                renderTransactionListShell(
+                    expertActiveUnifiedWorkItems,
+                    selectedExpertUnifiedWorkItem,
+                    'expert-unified-work-list',
+                    '받은 작업 내역이 없습니다.',
+                    'expert',
+                    (item) => {
+                        if (item.kind === 'product') {
+                            setSelectedExpertRequestId(item.id)
+                            setSelectedConsultationId(null)
+                        } else {
+                            setSelectedConsultationId(item.id)
+                            setSelectedExpertRequestId(null)
+                        }
+                    },
+                )
             )}
         </div>
     )

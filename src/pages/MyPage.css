@@ -764,6 +764,362 @@
     font-weight: 650;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.work-transaction-page-head {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.work-transaction-page-head h2 {
+    margin: 0;
+    color: #111827;
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.work-transaction-page-head p {
+    margin: 0;
+    color: #4b5563;
+    font-size: 0.96rem;
+    font-weight: 650;
+}
+
+.work-transaction-table-wrap {
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.work-transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.work-transaction-table th {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fbfdff;
+    color: #64748b;
+    font-size: 0.83rem;
+    font-weight: 850;
+    text-align: left;
+}
+
+.work-transaction-table th:first-child {
+    width: 40%;
+}
+
+.work-transaction-table th:nth-child(2) {
+    width: 16%;
+}
+
+.work-transaction-table th:nth-child(3) {
+    width: 16%;
+}
+
+.work-transaction-table th:nth-child(4) {
+    width: 16%;
+}
+
+.work-transaction-table th:nth-child(5) {
+    width: 12%;
+}
+
+.work-transaction-table td {
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #334155;
+    font-size: 0.93rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.work-transaction-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.work-transaction-table tbody tr {
+    transition: background 150ms ease-out;
+}
+
+.work-transaction-table tbody tr:hover,
+.work-transaction-table tbody tr.is-selected {
+    background: #f8fbff;
+}
+
+.work-transaction-summary {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: center;
+}
+
+.work-transaction-thumb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #eef4ff;
+    color: #2563eb;
+    font-weight: 900;
+}
+
+.work-transaction-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.work-transaction-summary strong {
+    display: block;
+    overflow: hidden;
+    color: #111827;
+    font-size: 0.98rem;
+    font-weight: 900;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.work-transaction-summary span {
+    display: block;
+    margin-top: var(--space-1);
+    overflow: hidden;
+    color: #64748b;
+    font-size: 0.86rem;
+    font-weight: 650;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.work-transaction-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: fit-content;
+    padding: 0.36rem 0.72rem;
+    border-radius: 8px;
+    background: #eef4ff;
+    color: #2563eb;
+    font-size: 0.82rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.work-transaction-status > span {
+    width: 0.38rem;
+    height: 0.38rem;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.work-transaction-status.is-payment {
+    background: #fff7ed;
+    color: #f59e0b;
+}
+
+.work-transaction-status.is-work {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+.work-transaction-status.is-done {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.work-transaction-status.is-stopped {
+    background: #ffe4e6;
+    color: #e11d48;
+}
+
+.work-transaction-status.is-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.work-transaction-open-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 40px;
+    padding: 0.5rem 0.2rem;
+    border: 0;
+    background: transparent;
+    color: #475569;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.work-transaction-open-button:hover {
+    color: #2563eb;
+}
+
+.work-transaction-open-button span {
+    color: currentColor;
+    font-size: 1.35rem;
+    line-height: 0;
+}
+
+.work-transaction-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+}
+
+.work-transaction-pages {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0 auto;
+}
+
+.work-transaction-pages button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    font: inherit;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.work-transaction-pages button[aria-current="page"] {
+    background: #2563eb;
+    color: var(--surface);
+    box-shadow: 0 10px 20px rgb(37 99 235 / 0.2);
+}
+
+.work-transaction-page-size select {
+    min-height: 40px;
+    padding: 0 2.2rem 0 0.9rem;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: var(--surface);
+    color: #475569;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.work-detail-hero {
+    display: grid;
+    gap: var(--space-6);
+}
+
+.work-detail-back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: fit-content;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #475569;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.work-detail-back-button:hover {
+    color: #2563eb;
+}
+
+.work-detail-hero-main {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr) auto;
+    gap: var(--space-6);
+    align-items: center;
+}
+
+.work-detail-product-media {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #eef4ff;
+    color: #2563eb;
+    font-size: 2.5rem;
+    font-weight: 900;
+}
+
+.work-detail-product-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.work-detail-hero-copy {
+    min-width: 0;
+}
+
+.work-detail-type-label {
+    display: block;
+    margin-bottom: var(--space-3);
+    color: #2563eb;
+    font-size: 0.92rem;
+    font-weight: 900;
+}
+
+.work-detail-meta-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-4);
+    margin: 0;
+}
+
+.work-detail-meta-list div {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.work-detail-meta-list dt {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.work-detail-meta-list dd {
+    margin: 0;
+    color: #475569;
+    font-size: 0.92rem;
+    font-weight: 850;
+}
+
 @media (max-width: 1120px) {
     .work-dashboard-split {
         grid-template-columns: 1fr !important;
@@ -771,6 +1127,19 @@
 
     .work-detail-insight-grid {
         grid-template-columns: 1fr;
+    }
+
+    .work-detail-hero-main {
+        grid-template-columns: 112px minmax(0, 1fr);
+    }
+
+    .work-detail-hero-main > .work-transaction-status {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .work-detail-product-media {
+        width: 112px;
     }
 }
 
@@ -823,5 +1192,34 @@
 
     .work-progress-stepper {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .work-transaction-table-wrap {
+        overflow-x: auto;
+    }
+
+    .work-transaction-table {
+        min-width: 760px;
+    }
+
+    .work-transaction-list-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .work-transaction-pages {
+        margin: 0;
+    }
+
+    .work-detail-hero-main {
+        grid-template-columns: 1fr;
+    }
+
+    .work-detail-hero-main > .work-transaction-status {
+        grid-column: auto;
+    }
+
+    .work-detail-product-media {
+        width: min(100%, 180px);
     }
 }
