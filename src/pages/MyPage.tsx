@@ -1435,7 +1435,22 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 const dateLabel = formatTransactionDate(getUnifiedWorkCreatedAt(item))
 
                                 return (
-                                    <tr key={`${item.kind}-${item.id}`} className={selected ? 'is-selected' : undefined}>
+                                    <tr
+                                        key={`${item.kind}-${item.id}`}
+                                        className={selected ? 'is-selected' : undefined}
+                                        data-testid="work-transaction-row"
+                                        data-work-item-kind={item.kind}
+                                        data-work-item-id={String(item.id)}
+                                        tabIndex={0}
+                                        aria-label={`${title} ${subtitle} 상세 보기`}
+                                        onClick={() => onSelect(item)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault()
+                                                onSelect(item)
+                                            }
+                                        }}
+                                    >
                                         <td>
                                             <div className="work-transaction-summary">
                                                 <div className="work-transaction-thumb">
@@ -1468,7 +1483,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                                 data-work-item-id={String(item.id)}
                                                 aria-label={`${title} ${subtitle} 상세 보기`}
                                                 aria-pressed={selected}
-                                                onClick={() => onSelect(item)}
+                                                onClick={(event) => {
+                                                    event.stopPropagation()
+                                                    onSelect(item)
+                                                }}
                                             >
                                                 <span className="sr-only">{title} {subtitle}</span>
                                                 상세 보기

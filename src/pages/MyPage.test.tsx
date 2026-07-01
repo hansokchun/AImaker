@@ -1063,12 +1063,12 @@ describe('MyPage', () => {
         )
 
         const list = await screen.findByTestId('client-unified-work-list')
-        const productOrderButton = within(list)
-            .getAllByTestId('work-dashboard-item')
-            .find((button) => button.getAttribute('data-work-item-id') === 'request-product-client-01')
-        expect(productOrderButton).toBeDefined()
+        const productOrderRow = within(list)
+            .getAllByTestId('work-transaction-row')
+            .find((row) => row.getAttribute('data-work-item-id') === 'request-product-client-01')
+        expect(productOrderRow).toBeDefined()
 
-        fireEvent.click(productOrderButton!)
+        fireEvent.click(productOrderRow!)
 
         await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('clientOrder=request-product-client-01'))
         expect(screen.getByRole('button', { name: '거래 목록으로' })).toBeInTheDocument()
