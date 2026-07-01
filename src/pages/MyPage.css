@@ -781,7 +781,7 @@
 }
 
 .work-transaction-table th {
-    padding: 0.8rem 1rem;
+    padding: 0.9rem 1.25rem;
     border-bottom: 1px solid #e5e7eb;
     background: #fbfdff;
     color: #64748b;
@@ -791,11 +791,11 @@
 }
 
 .work-transaction-table th:first-child {
-    width: 42%;
+    width: 46%;
 }
 
 .work-transaction-table th:nth-child(2) {
-    width: 15%;
+    width: 16%;
 }
 
 .work-transaction-table th:nth-child(3) {
@@ -803,15 +803,15 @@
 }
 
 .work-transaction-table th:nth-child(4) {
-    width: 15%;
+    width: 16%;
 }
 
 .work-transaction-table th:nth-child(5) {
-    width: 14%;
+    width: 8%;
 }
 
 .work-transaction-table td {
-    padding: 0.8rem 1rem;
+    padding: 1.55rem 1.25rem;
     border-bottom: 1px solid #e5e7eb;
     color: #334155;
     font-size: 0.93rem;
@@ -839,27 +839,37 @@
     box-shadow: inset 3px 0 0 var(--primary);
 }
 
+.work-transaction-table th:nth-child(2),
+.work-transaction-table th:nth-child(3),
+.work-transaction-table th:nth-child(4),
+.work-transaction-table td:nth-child(2),
+.work-transaction-table td:nth-child(3),
+.work-transaction-table td:nth-child(4),
 .work-transaction-table td:last-child,
 .work-transaction-table th:last-child {
-    text-align: right;
+    text-align: center;
 }
 
 .work-transaction-summary {
     display: grid;
-    grid-template-columns: 56px minmax(0, 1fr);
-    gap: var(--space-3);
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: var(--space-5);
     align-items: center;
+}
+
+.work-transaction-summary > div:last-child {
+    min-width: 0;
 }
 
 .work-transaction-thumb {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
+    width: 96px;
     aspect-ratio: 1;
     overflow: hidden;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #eef4ff;
     color: #2563eb;
     font-weight: 900;
@@ -875,21 +885,9 @@
     display: block;
     overflow: hidden;
     color: #111827;
-    font-size: 0.98rem;
+    font-size: 1.05rem;
     font-weight: 900;
     line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.work-transaction-summary span {
-    display: block;
-    margin-top: var(--space-1);
-    overflow: hidden;
-    color: #64748b;
-    font-size: 0.86rem;
-    font-weight: 650;
-    line-height: 1.4;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -906,6 +904,10 @@
     font-size: 0.82rem;
     font-weight: 900;
     white-space: nowrap;
+}
+
+.work-transaction-table td:nth-child(4) .work-transaction-status {
+    margin-inline: auto;
 }
 
 .work-transaction-status > span {
@@ -943,9 +945,13 @@
 .work-transaction-open-button {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2);
-    min-height: 36px;
-    padding: 0.4rem 0;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    margin-inline: auto;
+    padding: 0;
+    border-radius: 999px;
     border: 0;
     background: transparent;
     color: #475569;
@@ -958,6 +964,7 @@
 
 .work-transaction-open-button:hover {
     color: #2563eb;
+    background: #eff6ff;
 }
 
 .work-transaction-open-button span {

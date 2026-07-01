@@ -407,9 +407,17 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const getProposalForRequest = (request: ServiceRequestData) =>
         activeProposals.find((proposal) => proposal.requestId === request.id)
 
+    const getProposalsForRequest = (request: ServiceRequestData) =>
+        proposals.filter((proposal) => proposal.requestId === request.id)
+
     const getWorkForRequest = (request: ServiceRequestData) => {
         const requestProposal = getProposalForRequest(request)
         return works.find((work) => work.status !== 'cancelled' && (work.requestId === request.id || work.proposalId === requestProposal?.id)) || null
+    }
+
+    const getWorkForRequestIncludingStopped = (request: ServiceRequestData) => {
+        const proposalIds = getProposalsForRequest(request).map((proposal) => proposal.id)
+        return works.find((work) => work.requestId === request.id || proposalIds.includes(work.proposalId)) || null
     }
 
     const getRequestCreatedTime = (request: ServiceRequestData) => {
@@ -436,8 +444,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         ? workRole === 'client' ? clientConsultationsByCreatedAt : expertConsultationsByCreatedAt
         : consultations
 
+    type UnifiedWorkStopReason = 'cancelled-request' | 'cancelled-work' | 'cancelled-proposal'
     type UnifiedWorkItem =
-        | { kind: 'product'; id: string | number; createdTime: number; request: ServiceRequestData }
+        | { kind: 'product'; id: string | number; createdTime: number; request: ServiceRequestData; stoppedReason?: UnifiedWorkStopReason }
         | { kind: 'consultation'; id: string; createdTime: number; consultation: Consultation }
 
     const sortUnifiedWorkItems = (items: UnifiedWorkItem[]) =>
@@ -931,7 +940,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }
 
     const getUnifiedWorkStatusLabel = (item: UnifiedWorkItem) =>
-        item.kind === 'product'
+        isUnifiedWorkStopped(item)
+            ? '중단'
+            : item.kind === 'product'
             ? getRequestStatusLabel(item.request)
             : getConsultationStatusLabel(item.consultation)
 
@@ -978,6 +989,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         item.kind === 'product' ? item.request.createdAt : item.consultation.createdAt
 
     const getUnifiedWorkStatusTone = (item: UnifiedWorkItem): WorkStatusTone => {
+        if (isUnifiedWorkStopped(item)) return 'stopped'
+
         if (item.kind === 'consultation') {
             if (item.consultation.status === 'closed') return 'stopped'
             if (item.consultation.status === 'proposal_sent') return 'payment'
@@ -996,9 +1009,32 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const isUnifiedWorkStopped = (item: UnifiedWorkItem) => {
         if (item.kind === 'consultation') return item.consultation.status === 'closed'
-        const requestWork = getWorkForRequest(item.request)
+        if (item.stoppedReason) return true
+        const requestWork = getWorkForRequestIncludingStopped(item.request)
         return item.request.status === 'cancelled' || requestWork?.status === 'cancelled'
     }
+
+    const getStoppedProductReason = (request: ServiceRequestData): UnifiedWorkStopReason | undefined => {
+        const requestWork = getWorkForRequestIncludingStopped(request)
+        if (request.status === 'cancelled') return 'cancelled-request'
+        if (requestWork?.status === 'cancelled') return 'cancelled-work'
+        if (getProposalsForRequest(request).some((proposal) => proposal.status === 'cancelled')) return 'cancelled-proposal'
+        return undefined
+    }
+
+    const createStoppedProductItem = (request: ServiceRequestData): UnifiedWorkItem | null => {
+        const stoppedReason = getStoppedProductReason(request)
+        if (!stoppedReason) return null
+        return {
+            kind: 'product',
+            id: request.id,
+            createdTime: getRequestCreatedTime(request),
+            request,
+            stoppedReason,
+        }
+    }
+
+    const isPresentUnifiedWorkItem = (item: UnifiedWorkItem | null): item is UnifiedWorkItem => Boolean(item)
 
     const getTransactionNumber = (item: UnifiedWorkItem) => {
         const date = new Date(item.createdTime)
@@ -1037,6 +1073,54 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const clientActiveUnifiedWorkItems = clientUnifiedWorkItems.filter((item) => !isUnifiedWorkStopped(item))
     const expertActiveUnifiedWorkItems = expertUnifiedWorkItems.filter((item) => !isUnifiedWorkStopped(item))
+    const clientStoppedUnifiedWorkItems = sortUnifiedWorkItems([
+        ...clientProductRequestsByCreatedAt.map(createStoppedProductItem).filter(isPresentUnifiedWorkItem),
+        ...clientConsultationsByCreatedAt
+            .filter((consultation) => consultation.status === 'closed')
+            .map((consultation): UnifiedWorkItem => ({
+                kind: 'consultation',
+                id: consultation.id,
+                createdTime: getConsultationCreatedTime(consultation),
+                consultation,
+            })),
+    ])
+    const expertStoppedUnifiedWorkItems = sortUnifiedWorkItems([
+        ...receivedProductRequestsByCreatedAt.map(createStoppedProductItem).filter(isPresentUnifiedWorkItem),
+        ...expertConsultationsByCreatedAt
+            .filter((consultation) => consultation.status === 'closed')
+            .map((consultation): UnifiedWorkItem => ({
+                kind: 'consultation',
+                id: consultation.id,
+                createdTime: getConsultationCreatedTime(consultation),
+                consultation,
+            })),
+    ])
+    const selectedClientStoppedUnifiedWorkItem =
+        (selectedClientOrderId
+            ? clientStoppedUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedClientOrderId)
+            : null) ||
+        (selectedConsultationId
+            ? clientStoppedUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId)
+            : null) ||
+        null
+    const selectedExpertStoppedUnifiedWorkItem =
+        (selectedExpertRequestId
+            ? expertStoppedUnifiedWorkItems.find((item) => item.kind === 'product' && item.id === selectedExpertRequestId)
+            : null) ||
+        (selectedConsultationId
+            ? expertStoppedUnifiedWorkItems.find((item) => item.kind === 'consultation' && item.id === selectedConsultationId)
+            : null) ||
+        null
+    const selectedClientVisibleUnifiedWorkItem = workTransactionView === 'stopped'
+        ? selectedClientStoppedUnifiedWorkItem
+        : selectedClientUnifiedWorkItem && !isUnifiedWorkStopped(selectedClientUnifiedWorkItem)
+            ? selectedClientUnifiedWorkItem
+            : null
+    const selectedExpertVisibleUnifiedWorkItem = workTransactionView === 'stopped'
+        ? selectedExpertStoppedUnifiedWorkItem
+        : selectedExpertUnifiedWorkItem && !isUnifiedWorkStopped(selectedExpertUnifiedWorkItem)
+            ? selectedExpertUnifiedWorkItem
+            : null
 
     const renderStageActionControl = (stageAction: StageAction, keySuffix: string, compact = false) => {
         const className = stageAction.variant === 'secondary' ? 'btn-text' : 'btn-primary'
@@ -1418,7 +1502,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 <th scope="col">거래 유형</th>
                                 <th scope="col">거래일</th>
                                 <th scope="col">현재 단계</th>
-                                <th scope="col">액션</th>
+                                <th scope="col" aria-label="상세 열기" />
                             </tr>
                         </thead>
                         <tbody>
@@ -1427,6 +1511,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 const selected = selectedItem?.kind === item.kind && selectedItem.id === item.id
                                 const title = getUnifiedWorkTitle(item)
                                 const subtitle = getUnifiedWorkSubtitle(item)
+                                const detailLabel = subtitle && subtitle !== title
+                                    ? `${title} ${subtitle} 상세 보기`
+                                    : `${title} 상세 보기`
                                 const typeLabel = getUnifiedWorkTypeLabel(item)
                                 const statusLabel = getUnifiedWorkStatusLabel(item)
                                 const statusTone = getUnifiedWorkStatusTone(item)
@@ -1440,7 +1527,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         data-work-item-kind={item.kind}
                                         data-work-item-id={String(item.id)}
                                         tabIndex={0}
-                                        aria-label={`${title} ${subtitle} 상세 보기`}
+                                        aria-label={detailLabel}
                                         onClick={() => onSelect(item)}
                                         onKeyDown={(event) => {
                                             if (event.key === 'Enter' || event.key === ' ') {
@@ -1460,7 +1547,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                                 </div>
                                                 <div>
                                                     <strong>{title}</strong>
-                                                    <span>{subtitle}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -1479,15 +1565,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                                 data-testid="work-dashboard-item"
                                                 data-work-item-kind={item.kind}
                                                 data-work-item-id={String(item.id)}
-                                                aria-label={`${title} ${subtitle} 상세 보기`}
+                                                aria-label={detailLabel}
                                                 aria-pressed={selected}
                                                 onClick={(event) => {
                                                     event.stopPropagation()
                                                     onSelect(item)
                                                 }}
                                             >
-                                                <span className="sr-only">{title} {subtitle}</span>
-                                                상세 보기
                                                 <span aria-hidden="true">›</span>
                                             </button>
                                         </td>
@@ -1503,43 +1587,31 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         </section>
     )
 
-    const renderStoppedTransactions = (role: 'client' | 'expert') => {
-        const stoppedProposals = proposals.filter((proposal) =>
-            proposal.status === 'cancelled' && (role === 'client' ? proposal.clientId === user?.id : proposal.expertId === user?.id),
-        )
-        const stoppedWorks = works.filter((work) =>
-            work.status === 'cancelled' && (role === 'client' ? work.clientId === user?.id : work.expertId === user?.id),
-        )
-        const stoppedItems = [
-            ...stoppedProposals.map((proposal) => ({
-                id: `proposal-${proposal.id}`,
-                title: proposal.title,
-                meta: '제안 취소',
-            })),
-            ...stoppedWorks.map((work) => ({
-                id: `work-${work.id}`,
-                title: work.title,
-                meta: '거래 중단',
-            })),
+    const renderStoppedTransactionFlow = (item: UnifiedWorkItem, role: 'client' | 'expert') => {
+        const title = getUnifiedWorkTitle(item)
+        const stoppedAt = item.kind === 'product'
+            ? getWorkForRequestIncludingStopped(item.request)?.cancelledAt
+            : item.consultation.lastMessageAt
+        const infoItems: WorkInfoItem[] = [
+            { label: '거래 방식', value: getUnifiedWorkTypeLabel(item) },
+            { label: '등록일', value: formatTransactionDateTime(getUnifiedWorkCreatedAt(item)) },
+            { label: '현재 상태', value: '중단' },
+            ...(stoppedAt ? [{ label: '중단일', value: formatTransactionDateTime(stoppedAt) }] : []),
         ]
 
-        return (
-            <section className="work-stopped-transactions">
-                <h3>중단된 거래</h3>
-                {stoppedItems.length > 0 ? (
-                    <div className="work-stopped-list">
-                        {stoppedItems.map((item) => (
-                            <div key={item.id} className="work-stopped-item">
-                                <strong>{item.title}</strong>
-                                <span>{item.meta}</span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="work-empty-copy">중단된 거래가 없습니다.</p>
-                )}
-            </section>
-        )
+        return renderWorkDetailFlow({
+            testId: `${role}-stopped-transaction-flow`,
+            title,
+            meta: `${getUnifiedWorkTypeLabel(item)} · 중단`,
+            hero: buildWorkDetailHero(item, clearSelectedTransaction),
+            stages: [
+                createWorkStage('상담', '상담', '거래 조건 확인 단계가 처리되었습니다.', 'done'),
+                createWorkStage('결제', '결제', '결제 또는 제안 단계가 처리되었습니다.', 'done'),
+                createWorkStage('작업', '작업', '작업 진행 중 거래가 중단되었습니다.', 'done'),
+                createWorkStage('중단', '중단', '이 거래는 중단된 상태입니다.', 'current'),
+            ],
+            infoItems,
+        })
     }
 
     const renderConsultationFlow = (consultation: Consultation | null, role: 'client' | 'expert') => {
@@ -1993,25 +2065,28 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     )
 
     const renderTransactionListShell = (
-        items: UnifiedWorkItem[],
+        activeItems: UnifiedWorkItem[],
+        stoppedItems: UnifiedWorkItem[],
         selectedItem: UnifiedWorkItem | null,
         testId: string,
         emptyText: string,
-        role: 'client' | 'expert',
         onSelect: (item: UnifiedWorkItem) => void,
-    ) => (
-        <>
-            <header className="work-transaction-page-head">
-                <h2>거래관리</h2>
-                <p>진행 중이거나 완료된 거래를 한눈에 확인하고 관리할 수 있습니다.</p>
-            </header>
-            {renderWorkTransactionTabs()}
-            {workTransactionView === 'active'
-                ? renderUnifiedWorkList(items, selectedItem, testId, emptyText, onSelect)
-                : renderStoppedTransactions(role)}
-            {workTransactionView === 'active' && items.length > 0 && renderTransactionListFooter()}
-        </>
-    )
+    ) => {
+        const visibleItems = workTransactionView === 'active' ? activeItems : stoppedItems
+        const visibleEmptyText = workTransactionView === 'active' ? emptyText : '중단된 거래가 없습니다.'
+
+        return (
+            <>
+                <header className="work-transaction-page-head">
+                    <h2>거래관리</h2>
+                    <p>진행 중이거나 완료된 거래를 한눈에 확인하고 관리할 수 있습니다.</p>
+                </header>
+                {renderWorkTransactionTabs()}
+                {renderUnifiedWorkList(visibleItems, selectedItem, testId, visibleEmptyText, onSelect)}
+                {visibleItems.length > 0 && renderTransactionListFooter()}
+            </>
+        )
+    }
 
     const renderClientUnifiedWorkManager = () => (
         <div className="work-dashboard-manager" style={{ display: 'grid', gap: '1rem', marginTop: '1.5rem' }}>
@@ -2040,17 +2115,19 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ) : (
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 작업 내역이 없습니다.</p>
                 )
-            ) : workTransactionView === 'active' && selectedClientUnifiedWorkItem ? (
-                selectedClientUnifiedWorkItem.kind === 'consultation'
-                    ? renderConsultationFlow(selectedClientUnifiedWorkItem.consultation, 'client')
-                    : renderClientSelectedProductFlow()
+            ) : selectedClientVisibleUnifiedWorkItem ? (
+                workTransactionView === 'stopped'
+                    ? renderStoppedTransactionFlow(selectedClientVisibleUnifiedWorkItem, 'client')
+                    : selectedClientVisibleUnifiedWorkItem.kind === 'consultation'
+                        ? renderConsultationFlow(selectedClientVisibleUnifiedWorkItem.consultation, 'client')
+                        : renderClientSelectedProductFlow()
             ) : (
                 renderTransactionListShell(
                     clientActiveUnifiedWorkItems,
-                    selectedClientUnifiedWorkItem,
+                    clientStoppedUnifiedWorkItems,
+                    selectedClientVisibleUnifiedWorkItem,
                     'client-unified-work-list',
                     '작업 내역이 없습니다.',
-                    'client',
                     (item) => {
                         if (item.kind === 'product') {
                             setSelectedClientOrderId(item.id)
@@ -2092,17 +2169,19 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ) : (
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 받은 작업 내역이 없습니다.</p>
                 )
-            ) : workTransactionView === 'active' && selectedExpertUnifiedWorkItem ? (
-                selectedExpertUnifiedWorkItem.kind === 'consultation'
-                    ? renderConsultationFlow(selectedExpertUnifiedWorkItem.consultation, 'expert')
-                    : renderExpertSelectedProductFlow()
+            ) : selectedExpertVisibleUnifiedWorkItem ? (
+                workTransactionView === 'stopped'
+                    ? renderStoppedTransactionFlow(selectedExpertVisibleUnifiedWorkItem, 'expert')
+                    : selectedExpertVisibleUnifiedWorkItem.kind === 'consultation'
+                        ? renderConsultationFlow(selectedExpertVisibleUnifiedWorkItem.consultation, 'expert')
+                        : renderExpertSelectedProductFlow()
             ) : (
                 renderTransactionListShell(
                     expertActiveUnifiedWorkItems,
-                    selectedExpertUnifiedWorkItem,
+                    expertStoppedUnifiedWorkItems,
+                    selectedExpertVisibleUnifiedWorkItem,
                     'expert-unified-work-list',
                     '받은 작업 내역이 없습니다.',
-                    'expert',
                     (item) => {
                         if (item.kind === 'product') {
                             setSelectedExpertRequestId(item.id)
