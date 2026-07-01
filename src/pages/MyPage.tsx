@@ -1084,6 +1084,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         hero?: WorkDetailHero
     }) => {
         const currentStage = stages.find((stage) => stage.state === 'current') || stages.find((stage) => stage.state === 'pending') || stages[0]
+        const currentStageIndex = currentStage ? stages.indexOf(currentStage) : -1
         const currentVisual = currentStage ? stageVisualConfig[currentStage.state] : null
         const relatedActions = stages.flatMap((stage) =>
             stage === currentStage ? [] : stage.actions.map((action) => ({ stage, action })),
@@ -1154,9 +1155,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         {index < stages.length - 1 && <span className="work-progress-line" aria-hidden="true" />}
                                     </div>
                                     <span className="work-progress-phase" {...mutedProps}>{stage.phase}</span>
-                                    <strong className="work-progress-title" {...mutedProps}>{stage.title}</strong>
-                                    <span className="work-progress-status">{visual.label}</span>
-                                    <p className="work-progress-description" {...mutedProps}>{stage.description}</p>
                                 </div>
                             )
                         })}
@@ -1169,11 +1167,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         data-testid="work-current-stage-card"
                         aria-label={`현재 단계 카드: ${currentStage.title} 상태 ${currentVisual.label}`}
                     >
-                        <span className="work-current-stage-icon" aria-hidden="true" />
+                        <span className="work-current-stage-icon" aria-hidden="true">
+                            {currentStageIndex + 1}
+                        </span>
                         <div className="work-current-stage-body">
-                            <span className="work-current-stage-eyebrow">{currentStage.phase} 단계</span>
-                            <h4>현재 단계 · {currentStage.title}</h4>
-                            <p>지금은 {currentStage.description}</p>
+                            <h4>{currentStage.phase}</h4>
+                            <p>{currentStage.description}</p>
                             {currentStage.actions.length > 0 && (
                                 <div
                                     className="work-current-stage-actions"
@@ -1202,7 +1201,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                                 <strong>{stage.phase} 업데이트</strong>
                                                 <span>{visual.label}</span>
                                             </div>
-                                            <p>{stage.state === 'current' ? '현재 확인이 필요한 단계입니다.' : stage.state === 'done' ? '이전 단계가 처리되었습니다.' : '다음 단계로 대기 중입니다.'}</p>
                                         </div>
                                     </li>
                                 )
@@ -1549,6 +1547,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         const product = products.find((item) => item.id === consultation.productId)
         const consultationUrl = `${ROUTES.WORK_DASHBOARD}?panel=consultations&consultation=${consultation.id}`
         const statusLabel = getConsultationStatusLabel(consultation)
+        const consultationProposal = proposals.find((proposal) => proposal.requestId === `consultation-${consultation.id}`)
+        const consultationPaymentCompleted = consultationProposal?.paymentStatus === 'paid'
         const stages = [
             createWorkStage(
                 '상담',
@@ -1590,9 +1590,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             infoItems: [
                 { label: '거래 방식', value: '문의형 거래' },
                 { label: '등록일', value: formatTransactionDateTime(consultation.createdAt) },
-                { label: '예산', value: '협의 중' },
-                { label: '마감일', value: '-' },
-                { label: '첨부 파일', value: '-' },
+                ...(consultationPaymentCompleted && consultationProposal
+                    ? [
+                        { label: '예산', value: `${consultationProposal.totalPrice.toLocaleString()}원` },
+                        { label: '마감일', value: `${consultationProposal.deliveryDays}일` },
+                    ]
+                    : []),
             ],
         })
     }
@@ -1797,6 +1800,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const renderClientSelectedProductFlow = () => {
         if (!selectedClientOrder) return null
+        const clientOrderPaymentCompleted = Boolean(
+            selectedClientOrderWork || selectedClientOrderProposal?.paymentStatus === 'paid',
+        )
 
         const stages = [
             createWorkStage(
@@ -1828,7 +1834,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         to: `/proposal/${selectedClientOrderProposal.id}`,
                     },
                 )
-                : createWorkStage('결제', '제안서 승인 및 결제', '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.', 'current'),
+                : createWorkStage(
+                    '결제',
+                    '제안서 승인 및 결제',
+                    selectedClientOrderWork ? '작업방이 생성된 거래입니다.' : '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.',
+                    selectedClientOrderWork ? 'done' : 'current',
+                ),
             selectedClientOrderWork
                 ? createWorkStage(
                     '작업',
@@ -1862,15 +1873,22 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             infoItems: [
                 { label: '거래 방식', value: '상품 주문' },
                 { label: '등록일', value: formatTransactionDateTime(selectedClientOrder.createdAt) },
-                { label: '예산', value: selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원` : '협의 중' },
-                { label: '마감일', value: selectedClientOrder.deadline || '미정' },
-                { label: '첨부 파일', value: `${selectedClientOrder.referenceLinks?.length || 0}개` },
+                ...(clientOrderPaymentCompleted
+                    ? [
+                        { label: '예산', value: selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원` : '협의 중' },
+                        { label: '마감일', value: selectedClientOrder.deadline || '미정' },
+                        { label: '참고자료', value: `${selectedClientOrder.referenceLinks?.length || 0}개` },
+                    ]
+                    : []),
             ],
         })
     }
 
     const renderExpertSelectedProductFlow = () => {
         if (!selectedExpertRequest) return null
+        const expertOrderPaymentCompleted = Boolean(
+            selectedExpertRequestWork || selectedExpertRequestProposal?.paymentStatus === 'paid',
+        )
 
         const stages = [
             createWorkStage(
@@ -1942,9 +1960,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             infoItems: [
                 { label: '거래 방식', value: '상품 주문' },
                 { label: '등록일', value: formatTransactionDateTime(selectedExpertRequest.createdAt) },
-                { label: '예산', value: selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원` : '협의 중' },
-                { label: '마감일', value: selectedExpertRequest.deadline || '미정' },
-                { label: '첨부 파일', value: `${selectedExpertRequest.referenceLinks?.length || 0}개` },
+                ...(expertOrderPaymentCompleted
+                    ? [
+                        { label: '예산', value: selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원` : '협의 중' },
+                        { label: '마감일', value: selectedExpertRequest.deadline || '미정' },
+                        { label: '참고자료', value: `${selectedExpertRequest.referenceLinks?.length || 0}개` },
+                    ]
+                    : []),
             ],
         })
     }

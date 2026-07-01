@@ -1435,31 +1435,39 @@ describe('MyPage', () => {
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '진행 단계' })).toBeInTheDocument()
         expect(screen.getAllByText('상담').length).toBeGreaterThan(0)
-        expect(screen.getByText('요구사항 확인')).toBeInTheDocument()
+        expect(screen.queryByText('요구사항 확인')).not.toBeInTheDocument()
         expect(screen.getAllByText('제품 홍보 숏폼').length).toBeGreaterThan(0)
         expect(screen.getByRole('link', { name: '의뢰서 보기/수정' })).toHaveAttribute(
             'href',
             '/request/product-client-01?requestId=request-product-client-01',
         )
-        expect(screen.getByText('제안서 승인 및 결제')).toBeInTheDocument()
+        expect(screen.queryByText('제안서 승인 및 결제')).not.toBeInTheDocument()
         expect(screen.queryByText('제안서 대기')).not.toBeInTheDocument()
         expect(screen.queryByText('상담 후 제안서 대기')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
-        expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
         expect(screen.queryByText('테스트 결제 완료')).not.toBeInTheDocument()
         expect(screen.getAllByText('작업').length).toBeGreaterThan(0)
-        expect(screen.getByText('작업방 진행')).toBeInTheDocument()
+        expect(screen.queryByText('작업방 진행')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: '작업방 열기' })).toHaveAttribute('href', '/workroom/work-real-active')
         expect(screen.getAllByText('완료').length).toBeGreaterThan(0)
-        expect(screen.getByText('완료 확인/리뷰')).toBeInTheDocument()
+        expect(screen.queryByText('완료 확인/리뷰')).not.toBeInTheDocument()
+        expect(screen.queryByText(/이전 단계가 처리되었습니다/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/현재 확인이 필요한 단계입니다/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/현재 단계 ·/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/지금은/)).not.toBeInTheDocument()
 
-        expect(within(screen.getByLabelText('요구사항 확인 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
-        expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 완료됨')).getByText('완료됨')).toBeInTheDocument()
-        expect(within(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+        const currentStageCard = screen.getByTestId('work-current-stage-card')
+        expect(within(currentStageCard).getByText('3')).toBeInTheDocument()
+        expect(within(currentStageCard).getByRole('heading', { name: '작업' })).toBeInTheDocument()
+        expect(screen.getByLabelText('요구사항 확인 단계 상태: 완료됨')).toBeInTheDocument()
+        expect(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 완료됨')).toBeInTheDocument()
+        expect(screen.getByLabelText('작업방 진행 단계 상태: 진행 중')).toBeInTheDocument()
         const pendingReviewStage = screen.getByLabelText('완료 확인/리뷰 단계 상태: 대기')
-        expect(within(pendingReviewStage).getByText('대기')).toBeInTheDocument()
-        expect(within(pendingReviewStage).getByText('완료 확인/리뷰')).toHaveAttribute('data-stage-muted', 'true')
-        expect(within(pendingReviewStage).getByText('작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.')).toHaveAttribute('data-stage-muted', 'true')
+        expect(pendingReviewStage).toBeInTheDocument()
+        const transactionInfo = screen.getByTestId('work-transaction-info')
+        expect(within(transactionInfo).getByText('예산')).toBeInTheDocument()
+        expect(within(transactionInfo).getByText('마감일')).toBeInTheDocument()
+        expect(within(transactionInfo).getByText('참고자료')).toBeInTheDocument()
     })
 
     it('shows only payment as the current stage after a proposal is received but unpaid', async () => {
@@ -1492,14 +1500,19 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('제안서 승인 및 결제')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: '결제' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
-        expect(within(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 진행 중')).getAllByText('진행 중').length).toBeGreaterThan(0)
+        expect(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 진행 중')).toBeInTheDocument()
         const paymentAction = screen.getByRole('link', { name: '제안서 승인하고 결제하기' })
         expect(paymentAction).toHaveAttribute('href', '/proposal/proposal-client-before-payment')
         expect(paymentAction.closest('[aria-label]')?.getAttribute('aria-label')).toContain('제안서 승인 및 결제')
         expect(screen.queryByRole('link', { name: '제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByLabelText('테스트 결제 대기 단계 상태: 진행 중')).not.toBeInTheDocument()
+        const transactionInfo = screen.getByTestId('work-transaction-info')
+        expect(within(transactionInfo).queryByText('예산')).not.toBeInTheDocument()
+        expect(within(transactionInfo).queryByText('마감일')).not.toBeInTheDocument()
+        expect(within(transactionInfo).queryByText('첨부 파일')).not.toBeInTheDocument()
+        expect(within(transactionInfo).queryByText('참고자료')).not.toBeInTheDocument()
     })
 
     it('lists client product orders by request creation time without phase groups', async () => {
@@ -1578,15 +1591,15 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '결과물 검토 테스트 상품' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
-        expect(screen.getByText('결과물 검토 대기')).toBeInTheDocument()
+        const submittedStageCard = screen.getByTestId('work-current-stage-card')
+        expect(within(submittedStageCard).getByText('3')).toBeInTheDocument()
+        expect(within(submittedStageCard).getByRole('heading', { name: '작업' })).toBeInTheDocument()
         expect(screen.getByText('전문가가 제출한 결과물을 확인하고 승인 또는 수정 요청을 진행합니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '결과물 확인하기' })).toHaveAttribute(
             'href',
             '/workroom/work-client-submitted-order',
         )
-        expect(
-            within(screen.getByLabelText('결과물 검토 대기 단계 상태: 진행 중')).getAllByText('진행 중').length,
-        ).toBeGreaterThan(0)
+        expect(screen.getByLabelText('결과물 검토 대기 단계 상태: 진행 중')).toBeInTheDocument()
     })
 
     it('shows revision requested product orders as waiting for expert fixes', async () => {
@@ -1603,7 +1616,9 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '수정 요청 테스트 상품' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
-        expect(screen.getByText('수정 요청 보냄')).toBeInTheDocument()
+        const revisionStageCard = screen.getByTestId('work-current-stage-card')
+        expect(within(revisionStageCard).getByText('3')).toBeInTheDocument()
+        expect(within(revisionStageCard).getByRole('heading', { name: '작업' })).toBeInTheDocument()
         expect(screen.getByText('전문가에게 수정 요청을 보냈고 재제출을 기다립니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '수정 요청 확인하기' })).toHaveAttribute(
             'href',
@@ -1676,8 +1691,11 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: '오래된 받은 의뢰서' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '진행 단계' })).toBeInTheDocument()
-        expect(screen.getByText('받은 의뢰')).toBeInTheDocument()
-        expect(screen.getByText('제안서 작성/수정')).toBeInTheDocument()
+        const expertRequestStageCard = screen.getByTestId('work-current-stage-card')
+        expect(within(expertRequestStageCard).getByText('2')).toBeInTheDocument()
+        expect(within(expertRequestStageCard).getByRole('heading', { name: '결제' })).toBeInTheDocument()
+        expect(screen.getByLabelText('받은 의뢰 단계 상태: 완료됨')).toBeInTheDocument()
+        expect(screen.getByLabelText('제안서 작성/수정 단계 상태: 진행 중')).toBeInTheDocument()
     })
 
     it('shows submitted expert work as waiting for client approval', async () => {
@@ -1694,7 +1712,9 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '전문가 제출 완료 요구사항' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
-        expect(screen.getByText('제출 완료 - 승인 대기')).toBeInTheDocument()
+        const submittedExpertStageCard = screen.getByTestId('work-current-stage-card')
+        expect(within(submittedExpertStageCard).getByText('3')).toBeInTheDocument()
+        expect(within(submittedExpertStageCard).getByRole('heading', { name: '작업' })).toBeInTheDocument()
         expect(screen.getByText('결과물을 제출했고 의뢰자의 승인 또는 수정 요청을 기다립니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제출물 확인하기' })).toHaveAttribute(
             'href',
@@ -1718,7 +1738,8 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('제안서 승인 및 결제 대기')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: '결제' })).toBeInTheDocument()
+        expect(screen.getByLabelText('제안서 승인 및 결제 대기 단계 상태: 진행 중')).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
         expect(screen.queryByText('의뢰자 결제 대기')).not.toBeInTheDocument()
     })
@@ -1737,7 +1758,9 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '전문가 수정 요청 요구사항' })).toBeInTheDocument()
         expect(screen.queryByText(/현재 단계:/)).not.toBeInTheDocument()
-        expect(screen.getByText('수정 대응 필요')).toBeInTheDocument()
+        const revisionExpertStageCard = screen.getByTestId('work-current-stage-card')
+        expect(within(revisionExpertStageCard).getByText('3')).toBeInTheDocument()
+        expect(within(revisionExpertStageCard).getByRole('heading', { name: '작업' })).toBeInTheDocument()
         expect(screen.getByText('의뢰자가 수정 요청을 보냈습니다. 작업방에서 수정본을 다시 제출합니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '수정본 제출하기' })).toHaveAttribute(
             'href',
@@ -2076,15 +2099,17 @@ describe('MyPage', () => {
             .find((button) => button.getAttribute('data-work-item-id') === 'request-product-client-01')
         expect(clientProductOrder).toBeDefined()
         fireEvent.click(clientProductOrder!)
-        expect(await screen.findByText('제안서 승인 및 결제')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(within(screen.getByTestId('work-current-stage-card')).getByRole('heading', { name: '작업' })).toBeInTheDocument()
+        })
+        expect(screen.getByLabelText('제안서 승인 및 결제 단계 상태: 완료됨')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '제안서 보기' })).toHaveAttribute('href', '/proposal/proposal-real-client')
         expect(screen.queryByText('테스트 결제 완료')).not.toBeInTheDocument()
-        expect(screen.getByText('결제 완료 후 작업방이 생성되었습니다.')).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '전문가 홈' }))
         const groups = await screen.findByTestId('expert-unified-work-list')
         fireEvent.click(within(groups).getByRole('button', { name: /상품 지정 요구사항/ }))
-        expect(screen.getByText('제안서 승인 및 결제 대기')).toBeInTheDocument()
+        expect(screen.getByLabelText('제안서 승인 및 결제 대기 단계 상태: 진행 중')).toBeInTheDocument()
         expect(
             screen
                 .getAllByRole('link')
