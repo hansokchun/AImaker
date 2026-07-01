@@ -23,6 +23,7 @@ import type {
 } from '../types';
 import { supabase } from './supabase';
 import { mockExpertProducts } from '../data/mockData';
+import { buildDemoAccountData, isDemoAccountRecordId, isDemoTestAccountEmail } from '../data/demoAccountData';
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
 import { validateMarketplaceMessage } from './tradeSafety';
 import type { User } from '@supabase/supabase-js';
@@ -44,6 +45,8 @@ const STORAGE_KEYS = {
 } as const;
 
 const PLATFORM_FEE_RATE = 0.12;
+const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
+const DEMO_ACCOUNT_USER_NAME_KEY = 'ai_demo_account_user_name';
 
 const isUuid = (value?: string) =>
     Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -54,6 +57,134 @@ const toOptionalNumber = (value?: string): number | null => {
 };
 
 const getFavoriteProductsStorageKey = (userId: string) => `${STORAGE_KEYS.FAVORITE_PRODUCTS}_${userId}`;
+
+const readLocalArray = <T>(key: string): T[] => {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? (JSON.parse(raw) as T[]) : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeLocalArray = <T>(key: string, items: T[]): void => {
+    localStorage.setItem(key, JSON.stringify(items));
+};
+
+const mergeById = <T extends { id: string | number }>(first: T[], second: T[]): T[] => {
+    const seen = new Set<string>();
+    const merged: T[] = [];
+
+    for (const item of [...first, ...second]) {
+        const key = String(item.id);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(item);
+    }
+
+    return merged;
+};
+
+const demoRecordsOnly = <T extends { id: string | number }>(items: T[]) =>
+    items.filter((item) => isDemoAccountRecordId(item.id));
+
+const getLocalProfile = (userId: string): ExpertProfile | null => {
+    try {
+        const raw = localStorage.getItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return typeof parsed === 'object' && parsed !== null ? parsed as ExpertProfile : null;
+    } catch {
+        return null;
+    }
+};
+
+const getLocalUserRequests = (userId: string) =>
+    readLocalArray<ServiceRequestData>(STORAGE_KEYS.REQUESTS)
+        .filter((request) => request.clientId === userId || request.expertId === userId);
+
+const getLocalUserConsultations = (userId: string) =>
+    readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS)
+        .filter((consultation) => consultation.clientId === userId || consultation.expertId === userId)
+        .sort((first, second) => Date.parse(second.lastMessageAt || second.createdAt) - Date.parse(first.lastMessageAt || first.createdAt));
+
+const getLocalConsultationMessages = (consultationId: string) =>
+    readLocalArray<ConsultationMessage>(STORAGE_KEYS.CONSULTATION_MESSAGES)
+        .filter((message) => message.consultationId === consultationId)
+        .sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
+
+const getLocalUserProposals = (userId: string) =>
+    readLocalArray<Proposal>(STORAGE_KEYS.PROPOSALS)
+        .filter((proposal) => proposal.clientId === userId || proposal.expertId === userId)
+        .map(normalizeProposalStatus);
+
+const getLocalUserWorks = (userId: string) =>
+    readLocalArray<Work>(STORAGE_KEYS.WORKS)
+        .filter((work) => work.clientId === userId || work.expertId === userId);
+
+const getLocalWorkMessages = (workId: string) =>
+    readLocalArray<WorkMessage>(STORAGE_KEYS.WORK_MESSAGES)
+        .filter((message) => message.workId === workId)
+        .sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
+
+const getLocalUserReviews = (userId: string) =>
+    readLocalArray<Review>(STORAGE_KEYS.REVIEWS)
+        .filter((review) => review.clientId === userId || review.expertId === userId);
+
+const getLocalExpertReviews = (expertId: string) =>
+    readLocalArray<Review>(STORAGE_KEYS.REVIEWS)
+        .filter((review) => review.expertId === expertId)
+        .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
+
+const hasLocalDemoWork = (workId: string) =>
+    isDemoAccountRecordId(workId) && readLocalArray<Work>(STORAGE_KEYS.WORKS).some((work) => work.id === workId);
+
+const hasLocalDemoConsultation = (consultationId: string) =>
+    isDemoAccountRecordId(consultationId) && readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS).some((consultation) => consultation.id === consultationId);
+
+const hasLocalDemoProposal = (proposalId: string) =>
+    isDemoAccountRecordId(proposalId) && readLocalArray<Proposal>(STORAGE_KEYS.PROPOSALS).some((proposal) => proposal.id === proposalId);
+
+const shouldStoreProposalLocally = (proposal: Proposal) =>
+    hasLocalDemoProposal(proposal.id)
+    || isDemoAccountRecordId(proposal.requestId)
+    || proposal.id.includes('demo-consultation')
+    || proposal.requestId.includes('demo-consultation');
+
+const seedDemoArray = <T extends { id: string | number }>(key: string, items: T[]) => {
+    const demoIds = new Set(items.map((item) => String(item.id)));
+    const existing = readLocalArray<T>(key).filter((item) => !demoIds.has(String(item.id)));
+    writeLocalArray(key, [...items, ...existing]);
+};
+
+const seedDemoAccountData = (userId: string, userName: string) => {
+    const data = buildDemoAccountData(userId, userName);
+
+    for (const [profileId, profile] of Object.entries(data.profiles)) {
+        localStorage.setItem(`${STORAGE_KEYS.PROFILE}_${profileId}`, JSON.stringify(profile));
+    }
+
+    seedDemoArray(STORAGE_KEYS.PRODUCTS, data.products);
+    seedDemoArray(STORAGE_KEYS.REQUESTS, data.requests);
+    seedDemoArray(STORAGE_KEYS.PROPOSALS, data.proposals);
+    seedDemoArray(STORAGE_KEYS.WORKS, data.works);
+    seedDemoArray(STORAGE_KEYS.WORK_STEPS, data.workSteps);
+    seedDemoArray(STORAGE_KEYS.DELIVERABLES, data.deliverables);
+    seedDemoArray(STORAGE_KEYS.REVIEWS, data.reviews);
+    seedDemoArray(STORAGE_KEYS.CONSULTATIONS, data.consultations);
+    seedDemoArray(STORAGE_KEYS.CONSULTATION_MESSAGES, data.consultationMessages);
+    seedDemoArray(STORAGE_KEYS.WORK_MESSAGES, data.workMessages);
+    localStorage.setItem(getFavoriteProductsStorageKey(userId), JSON.stringify(data.favoriteProductIds));
+};
+
+const rememberDemoAccountIfNeeded = (user: Pick<User, 'id' | 'email' | 'user_metadata'>) => {
+    if (!isDemoTestAccountEmail(user.email)) return;
+
+    const displayName = user.user_metadata?.display_name || user.user_metadata?.name || user.email?.split('@')[0] || '석준';
+    localStorage.setItem(DEMO_ACCOUNT_USER_ID_KEY, user.id);
+    localStorage.setItem(DEMO_ACCOUNT_USER_NAME_KEY, displayName);
+    seedDemoAccountData(user.id, displayName);
+};
 
 export async function getUserFavoriteProductIds(userId: string): Promise<string[]> {
     if (!userId) return [];
@@ -367,6 +498,8 @@ const buildInitialWorkSteps = (proposal: Proposal, workId: string): WorkStep[] =
 };
 
 export async function ensureUserProfile(user: Pick<User, 'id' | 'email' | 'user_metadata'>): Promise<void> {
+    rememberDemoAccountIfNeeded(user);
+
     if (!supabase) return;
 
     const { error } = await supabase.from('profiles').upsert(
@@ -385,7 +518,16 @@ export async function ensureUserProfile(user: Pick<User, 'id' | 'email' | 'user_
 }
 
 export async function getUserDisplayProfile(userId: string): Promise<{ name: string; imageUrl: string; isExpert: boolean } | null> {
-    if (!supabase) return null;
+    const localProfile = getLocalProfile(userId);
+    const localDisplayProfile = localProfile
+        ? {
+            name: localProfile.name || '',
+            imageUrl: localProfile.imageUrl || '',
+            isExpert: Boolean(localProfile.profession || localProfile.aiTools.length),
+        }
+        : null;
+
+    if (!supabase) return localDisplayProfile;
 
     const { data, error } = await supabase
         .from('profiles')
@@ -394,12 +536,12 @@ export async function getUserDisplayProfile(userId: string): Promise<{ name: str
         .single();
 
     if (error) {
-        if (error.code === 'PGRST116') return null;
+        if (error.code === 'PGRST116') return localDisplayProfile;
         console.error('profiles 표시 정보 로딩 실패:', error);
-        return null;
+        return localDisplayProfile;
     }
 
-    if (!data) return null;
+    if (!data) return localDisplayProfile;
 
     return {
         name: data.name || data.display_name || '',
@@ -480,9 +622,7 @@ export async function getStoredRequests(): Promise<ServiceRequestData[]> {
 
 export async function getUserServiceRequests(userId: string): Promise<ServiceRequestData[]> {
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.REQUESTS);
-        const requests = raw ? (JSON.parse(raw) as ServiceRequestData[]) : [];
-        return requests.filter((request) => request.clientId === userId || request.expertId === userId);
+        return getLocalUserRequests(userId);
     }
 
     const { data, error } = await supabase
@@ -493,19 +633,15 @@ export async function getUserServiceRequests(userId: string): Promise<ServiceReq
 
     if (error) {
         console.error('사용자 의뢰 요청 목록 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalUserRequests(userId));
     }
 
-    return (data || []).map(toServiceRequestData);
+    return mergeById(demoRecordsOnly(getLocalUserRequests(userId)), (data || []).map(toServiceRequestData));
 }
 
 export async function getUserConsultations(userId: string): Promise<Consultation[]> {
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
-        const consultations = raw ? (JSON.parse(raw) as Consultation[]) : [];
-        return consultations
-            .filter((consultation) => consultation.clientId === userId || consultation.expertId === userId)
-            .sort((first, second) => Date.parse(second.lastMessageAt || second.createdAt) - Date.parse(first.lastMessageAt || first.createdAt));
+        return getLocalUserConsultations(userId);
     }
 
     const { data, error } = await supabase
@@ -516,19 +652,15 @@ export async function getUserConsultations(userId: string): Promise<Consultation
 
     if (error) {
         console.error('상담 목록 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalUserConsultations(userId));
     }
 
-    return (data || []).map(toConsultation);
+    return mergeById(demoRecordsOnly(getLocalUserConsultations(userId)), (data || []).map(toConsultation));
 }
 
 export async function getConsultationMessages(consultationId: string): Promise<ConsultationMessage[]> {
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
-        const messages = raw ? (JSON.parse(raw) as ConsultationMessage[]) : [];
-        return messages
-            .filter((message) => message.consultationId === consultationId)
-            .sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
+        return getLocalConsultationMessages(consultationId);
     }
 
     const { data, error } = await supabase
@@ -539,10 +671,10 @@ export async function getConsultationMessages(consultationId: string): Promise<C
 
     if (error) {
         console.error('상담 메시지 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalConsultationMessages(consultationId));
     }
 
-    return (data || []).map(toConsultationMessage);
+    return mergeById(demoRecordsOnly(getLocalConsultationMessages(consultationId)), (data || []).map(toConsultationMessage));
 }
 
 export async function createConsultation(input: CreateConsultationInput): Promise<Consultation> {
@@ -623,7 +755,7 @@ export async function saveConsultationMessage(input: {
     if (!body) throw new Error('상담 메시지를 입력해주세요.');
     const now = new Date().toISOString();
 
-    if (!supabase) {
+    if (!supabase || hasLocalDemoConsultation(input.consultationId)) {
         const message: ConsultationMessage = {
             id: `consultation-message-${Date.now()}`,
             consultationId: input.consultationId,
@@ -752,9 +884,11 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
 }
 
 export async function getRequestById(requestId: string | number): Promise<ServiceRequestData | null> {
+    const localRequest = readLocalArray<ServiceRequestData>(STORAGE_KEYS.REQUESTS)
+        .find((request) => String(request.id) === String(requestId));
+
     if (!supabase) {
-        const requests = await getStoredRequestsLegacy();
-        return requests.find((request) => String(request.id) === String(requestId)) || null;
+        return localRequest || null;
     }
 
     const { data, error } = await supabase
@@ -765,10 +899,10 @@ export async function getRequestById(requestId: string | number): Promise<Servic
 
     if (error) {
         console.error('의뢰 요청 로딩 실패:', error);
-        return null;
+        return localRequest && isDemoAccountRecordId(localRequest.id) ? localRequest : null;
     }
 
-    return data ? toServiceRequestData(data) : null;
+    return data ? toServiceRequestData(data) : localRequest && isDemoAccountRecordId(localRequest.id) ? localRequest : null;
 }
 
 export async function updateRequest(request: ServiceRequestData, userId?: string | null): Promise<void> {
@@ -885,16 +1019,10 @@ export function createDefaultProfile(): ExpertProfile {
  * 특정 사용자의 프로필을 Supabase(또는 localStorage)에서 불러온다.
  */
 export async function getStoredProfile(userId: string): Promise<ExpertProfile | null> {
+    const localProfile = getLocalProfile(userId);
+
     if (!supabase) {
-        // 폴백: localStorage
-        try {
-            const raw = localStorage.getItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return typeof parsed === 'object' && parsed !== null ? parsed as ExpertProfile : null;
-        } catch {
-            return null;
-        }
+        return localProfile;
     }
 
     // Supabase 연동
@@ -906,12 +1034,12 @@ export async function getStoredProfile(userId: string): Promise<ExpertProfile | 
 
     if (error) {
         // 아직 프로필이 없으면(PGRST116) null 반환 (정상)
-        if (error.code === 'PGRST116') return null;
+        if (error.code === 'PGRST116') return localProfile;
         console.error('Supabase 프로필 로딩 실패:', error);
-        return null;
+        return localProfile;
     }
 
-    if (!data) return null;
+    if (!data) return localProfile;
 
     // DB 스키마(snake_case)를 앱 타입(camelCase)으로 매핑
     return {
@@ -1070,6 +1198,7 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         }));
     }
 
+    const localProducts = readLocalArray<ExpertProduct>(STORAGE_KEYS.PRODUCTS);
     const { data, error } = await supabase
         .from('expert_products')
         .select('*')
@@ -1078,7 +1207,7 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
 
     if (error) {
         console.error('Supabase 상품 목록 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(localProducts);
     }
 
     const productRows = data || [];
@@ -1126,7 +1255,7 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         }
     }
 
-    return productRows.map((item) => {
+    const supabaseProducts = productRows.map((item) => {
         const profile = profileById.get(item.expert_id);
 
         return {
@@ -1150,10 +1279,12 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
             status: item.status,
         };
     }) as ExpertProduct[];
+
+    return mergeById(demoRecordsOnly(localProducts), supabaseProducts);
 }
 
 export async function saveProposal(proposal: Proposal): Promise<string> {
-    if (!supabase) {
+    if (!supabase || shouldStoreProposalLocally(proposal)) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
         localStorage.setItem(STORAGE_KEYS.PROPOSALS, JSON.stringify([...proposals, proposal]));
@@ -1194,7 +1325,7 @@ export async function saveProposal(proposal: Proposal): Promise<string> {
 }
 
 export async function updateProposal(proposal: Proposal): Promise<void> {
-    if (!supabase) {
+    if (!supabase || shouldStoreProposalLocally(proposal)) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
         localStorage.setItem(
@@ -1228,10 +1359,11 @@ export async function updateProposal(proposal: Proposal): Promise<void> {
 }
 
 export async function getProposal(proposalId: string): Promise<Proposal | null> {
+    const localProposal = readLocalArray<Proposal>(STORAGE_KEYS.PROPOSALS)
+        .find((proposal) => proposal.id === proposalId);
+
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
-        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
-        return proposals.find((proposal) => proposal.id === proposalId) || null;
+        return localProposal ? normalizeProposalStatus(localProposal) : null;
     }
 
     const { data, error } = await supabase
@@ -1240,17 +1372,17 @@ export async function getProposal(proposalId: string): Promise<Proposal | null> 
         .eq('id', proposalId)
         .single();
 
-    if (error) return null;
-    return data ? toProposal(data) : null;
+    if (error) return localProposal && isDemoAccountRecordId(localProposal.id) ? normalizeProposalStatus(localProposal) : null;
+    return data
+        ? toProposal(data)
+        : localProposal && isDemoAccountRecordId(localProposal.id)
+            ? normalizeProposalStatus(localProposal)
+            : null;
 }
 
 export async function getUserProposals(userId: string): Promise<Proposal[]> {
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
-        const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
-        return proposals
-            .filter((proposal) => proposal.clientId === userId || proposal.expertId === userId)
-            .map(normalizeProposalStatus);
+        return getLocalUserProposals(userId);
     }
 
     const { data, error } = await supabase
@@ -1261,10 +1393,10 @@ export async function getUserProposals(userId: string): Promise<Proposal[]> {
 
     if (error) {
         console.error('사용자 제안서 목록 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalUserProposals(userId));
     }
 
-    return (data || []).map(toProposal);
+    return mergeById(demoRecordsOnly(getLocalUserProposals(userId)), (data || []).map(toProposal));
 }
 
 export async function acceptProposal(proposal: Proposal): Promise<string> {
@@ -1274,7 +1406,7 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
 
     const money = getProposalMoney(proposal);
 
-    if (!supabase) {
+    if (!supabase || shouldStoreProposalLocally(proposal)) {
         const raw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = raw ? (JSON.parse(raw) as Work[]) : [];
         const existingWork = works.find((work) => work.proposalId === proposal.id);
@@ -1398,7 +1530,7 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
 }
 
 export async function requestProposalRevision(proposalId: string): Promise<void> {
-    if (!supabase) {
+    if (!supabase || hasLocalDemoProposal(proposalId) || proposalId.includes('demo-consultation')) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
         localStorage.setItem(
@@ -1421,7 +1553,7 @@ export async function requestProposalRevision(proposalId: string): Promise<void>
 }
 
 export async function cancelProposal(proposalId: string): Promise<void> {
-    if (!supabase) {
+    if (!supabase || hasLocalDemoProposal(proposalId) || proposalId.includes('demo-consultation')) {
         const raw = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
         const proposals = raw ? (JSON.parse(raw) as Proposal[]) : [];
         localStorage.setItem(
@@ -1443,22 +1575,27 @@ export async function getWorkroomData(workId: string): Promise<{
     steps: WorkStep[];
     deliverables: Deliverable[];
 }> {
-    if (!supabase) {
-        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
-        const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
-        const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
-        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
-        const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
-        const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
+    const getLocalWorkroomData = () => {
+        const works = readLocalArray<Work>(STORAGE_KEYS.WORKS);
+        const steps = readLocalArray<WorkStep>(STORAGE_KEYS.WORK_STEPS);
+        const deliverables = readLocalArray<Deliverable>(STORAGE_KEYS.DELIVERABLES);
         const workDeliverables = deliverables
             .filter((deliverable) => deliverable.workId === workId)
             .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+
         return {
             work: works.find((work) => work.id === workId) || null,
             steps: steps.filter((step) => step.workId === workId),
             deliverables: workDeliverables,
         };
+    };
+
+    if (!supabase) {
+        return getLocalWorkroomData();
     }
+
+    const localWorkroom = getLocalWorkroomData();
+    if (localWorkroom.work && isDemoAccountRecordId(localWorkroom.work.id)) return localWorkroom;
 
     const { data: workData, error: workError } = await supabase
         .from('works')
@@ -1466,7 +1603,11 @@ export async function getWorkroomData(workId: string): Promise<{
         .eq('id', workId)
         .single();
 
-    if (workError || !workData) return { work: null, steps: [], deliverables: [] };
+    if (workError || !workData) {
+        return localWorkroom.work && isDemoAccountRecordId(localWorkroom.work.id)
+            ? localWorkroom
+            : { work: null, steps: [], deliverables: [] };
+    }
 
     const { data: stepData } = await supabase
         .from('work_steps')
@@ -1491,10 +1632,11 @@ export async function getWorkroomData(workId: string): Promise<{
 }
 
 export async function getWorkByProposal(proposalId: string): Promise<Work | null> {
+    const localWork = readLocalArray<Work>(STORAGE_KEYS.WORKS)
+        .find((work) => work.proposalId === proposalId) || null;
+
     if (!supabase) {
-        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
-        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
-        return works.find((work) => work.proposalId === proposalId) || null;
+        return localWork;
     }
 
     const { data, error } = await supabase
@@ -1503,16 +1645,14 @@ export async function getWorkByProposal(proposalId: string): Promise<Work | null
         .eq('proposal_id', proposalId)
         .single();
 
-    if (error || !data) return null;
+    if (error || !data) return localWork && isDemoAccountRecordId(localWork.id) ? localWork : null;
 
     return toWork(data);
 }
 
 export async function getUserWorks(userId: string): Promise<Work[]> {
     if (!supabase) {
-        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
-        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
-        return works.filter((work) => work.clientId === userId || work.expertId === userId);
+        return getLocalUserWorks(userId);
     }
 
     const { data, error } = await supabase
@@ -1523,10 +1663,10 @@ export async function getUserWorks(userId: string): Promise<Work[]> {
 
     if (error) {
         console.error('사용자 작업 목록 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalUserWorks(userId));
     }
 
-    return (data || []).map(toWork);
+    return mergeById(demoRecordsOnly(getLocalUserWorks(userId)), (data || []).map(toWork));
 }
 
 export async function cancelWork(
@@ -1534,7 +1674,7 @@ export async function cancelWork(
     reason: NonNullable<Work['cancellationReason']> = 'mutual_after_start',
 ): Promise<void> {
     const cancelledAt = new Date().toISOString();
-    if (!supabase) {
+    if (!supabase || hasLocalDemoWork(workId)) {
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         localStorage.setItem(
@@ -1571,15 +1711,7 @@ export async function cancelWork(
 }
 
 export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
-    const getLocalMessages = () => {
-        const raw = localStorage.getItem(STORAGE_KEYS.WORK_MESSAGES);
-        const messages = raw ? (JSON.parse(raw) as WorkMessage[]) : [];
-        return messages
-            .filter((message) => message.workId === workId)
-            .sort((first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt));
-    };
-
-    if (!supabase) return getLocalMessages();
+    if (!supabase) return getLocalWorkMessages(workId);
 
     const { data, error } = await supabase
         .from('work_messages')
@@ -1589,10 +1721,10 @@ export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
 
     if (error) {
         console.error('?묒뾽諛?硫붿떆吏 濡쒕뵫 ?ㅽ뙣:', error);
-        return getLocalMessages();
+        return demoRecordsOnly(getLocalWorkMessages(workId));
     }
 
-    return (data || []).map(toWorkMessage);
+    return mergeById(demoRecordsOnly(getLocalWorkMessages(workId)), (data || []).map(toWorkMessage));
 }
 
 export async function saveWorkMessage(input: {
@@ -1621,7 +1753,7 @@ export async function saveWorkMessage(input: {
         return message;
     };
 
-    if (!supabase) return saveLocalMessage();
+    if (!supabase || hasLocalDemoWork(input.workId)) return saveLocalMessage();
 
     const { data, error } = await supabase
         .from('work_messages')
@@ -1647,7 +1779,7 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
         throw new Error(EXTERNAL_CONTACT_WARNING);
     }
 
-    if (!supabase) {
+    if (!supabase || hasLocalDemoWork(deliverable.workId)) {
         const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const deliverables = raw ? (JSON.parse(raw) as Deliverable[]) : [];
         localStorage.setItem(STORAGE_KEYS.DELIVERABLES, JSON.stringify([...deliverables, deliverable]));
@@ -1708,7 +1840,7 @@ export async function approveWorkDeliverable(
     requestId?: string,
     stepId?: string,
 ): Promise<void> {
-    if (!supabase) {
+    if (!supabase || hasLocalDemoWork(workId)) {
         const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
@@ -1790,7 +1922,7 @@ export async function approveWorkDeliverable(
 }
 
 export async function requestWorkRevision(workId: string, deliverableId: string, stepId?: string): Promise<void> {
-    if (!supabase) {
+    if (!supabase || hasLocalDemoWork(workId)) {
         const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const stepsRaw = localStorage.getItem(STORAGE_KEYS.WORK_STEPS);
@@ -1878,7 +2010,7 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
 }
 
 export async function saveReview(review: Review): Promise<void> {
-    if (!supabase) {
+    if (!supabase || hasLocalDemoWork(review.workId)) {
         const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
         const reviews = raw ? (JSON.parse(raw) as Review[]) : [];
         localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify([...reviews, review]));
@@ -1899,9 +2031,7 @@ export async function saveReview(review: Review): Promise<void> {
 
 export async function getUserReviews(userId: string): Promise<Review[]> {
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
-        const reviews = raw ? (JSON.parse(raw) as Review[]) : [];
-        return reviews.filter((review) => review.clientId === userId || review.expertId === userId);
+        return getLocalUserReviews(userId);
     }
 
     const { data, error } = await supabase
@@ -1912,19 +2042,15 @@ export async function getUserReviews(userId: string): Promise<Review[]> {
 
     if (error) {
         console.error('리뷰 목록 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalUserReviews(userId));
     }
 
-    return (data || []).map(toReview);
+    return mergeById(demoRecordsOnly(getLocalUserReviews(userId)), (data || []).map(toReview));
 }
 
 export async function getExpertReviews(expertId: string): Promise<Review[]> {
     if (!supabase) {
-        const raw = localStorage.getItem(STORAGE_KEYS.REVIEWS);
-        const reviews = raw ? (JSON.parse(raw) as Review[]) : [];
-        return reviews
-            .filter((review) => review.expertId === expertId)
-            .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
+        return getLocalExpertReviews(expertId);
     }
 
     const { data, error } = await supabase
@@ -1935,10 +2061,10 @@ export async function getExpertReviews(expertId: string): Promise<Review[]> {
 
     if (error) {
         console.error('전문가 공개 리뷰 로딩 실패:', error);
-        return [];
+        return demoRecordsOnly(getLocalExpertReviews(expertId));
     }
 
-    return (data || []).map(toReview);
+    return mergeById(demoRecordsOnly(getLocalExpertReviews(expertId)), (data || []).map(toReview));
 }
 
 export async function getExpertList(): Promise<Expert[]> {

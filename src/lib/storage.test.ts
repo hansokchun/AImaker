@@ -1951,4 +1951,116 @@ describe('transaction storage', () => {
         expect(eq).toHaveBeenCalledWith('expert_id', review.expertId)
         expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
     })
+
+    it('enables the benet9827 demo account to inspect every trade stage and review flow', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+
+        const {
+            ensureUserProfile,
+            getConsultationMessages,
+            getExpertProducts,
+            getExpertReviews,
+            getProposal,
+            getRequestById,
+            getStoredProfile,
+            getUserConsultations,
+            getUserProposals,
+            getUserReviews,
+            getUserServiceRequests,
+            getUserWorks,
+            getWorkByProposal,
+            getWorkMessages,
+            getWorkroomData,
+        } = await import('./storage')
+
+        const demoUser = {
+            id: 'benet-user-01',
+            email: 'benet9827@gmail.com',
+            user_metadata: { display_name: '석준' },
+        }
+
+        await ensureUserProfile(demoUser)
+
+        const [products, requests, proposals, works, consultations, reviews, profile] = await Promise.all([
+            getExpertProducts(),
+            getUserServiceRequests(demoUser.id),
+            getUserProposals(demoUser.id),
+            getUserWorks(demoUser.id),
+            getUserConsultations(demoUser.id),
+            getUserReviews(demoUser.id),
+            getStoredProfile(demoUser.id),
+        ])
+
+        expect(profile).toEqual(expect.objectContaining({
+            name: '석준',
+            contactAvailableTime: '평일 10:00-19:00',
+            averageResponseTime: '보통 2시간 이내',
+        }))
+        expect(products.some((item) => item.expertId === demoUser.id)).toBe(true)
+        expect(products.some((item) => item.expertId !== demoUser.id)).toBe(true)
+        expect(requests.some((item) => item.clientId === demoUser.id && item.expertId !== demoUser.id)).toBe(true)
+        expect(requests.some((item) => item.expertId === demoUser.id && item.clientId !== demoUser.id)).toBe(true)
+        expect(requests.map((item) => item.status)).toEqual(expect.arrayContaining(['pending', 'in_progress', 'completed']))
+        expect(proposals.map((item) => item.status)).toEqual(expect.arrayContaining(['sent', 'accepted', 'revision_requested']))
+        expect(proposals.map((item) => item.paymentStatus)).toEqual(expect.arrayContaining(['unpaid', 'paid']))
+        expect(works.map((item) => item.status)).toEqual(expect.arrayContaining([
+            'in_progress',
+            'submitted',
+            'revision_requested',
+            'completed',
+            'cancelled',
+        ]))
+        expect(works.some((item) => item.clientId === demoUser.id)).toBe(true)
+        expect(works.some((item) => item.expertId === demoUser.id)).toBe(true)
+        expect(works.some((item) => item.status === 'completed' && item.clientId === demoUser.id)).toBe(true)
+        expect(consultations.map((item) => item.status)).toEqual(expect.arrayContaining(['open', 'proposal_sent']))
+        expect(reviews[0]).toEqual(expect.objectContaining({
+            clientName: expect.any(String),
+            clientImageUrl: expect.stringContaining('https://'),
+            priceRangeLabel: expect.any(String),
+            workDurationDays: expect.any(Number),
+        }))
+
+        const submittedWork = works.find((item) => item.status === 'submitted')
+        expect(submittedWork).toBeDefined()
+        if (!submittedWork) return
+
+        const workroom = await getWorkroomData(submittedWork.id)
+        expect(workroom.work).toEqual(expect.objectContaining({ id: submittedWork.id, status: 'submitted' }))
+        expect(workroom.steps).toEqual(expect.arrayContaining([
+            expect.objectContaining({ status: 'submitted' }),
+            expect.objectContaining({ title: '결과물 승인 및 정산' }),
+        ]))
+        expect(workroom.deliverables).toEqual([
+            expect.objectContaining({
+                workId: submittedWork.id,
+                status: 'submitted',
+                externalUrl: expect.stringContaining('https://'),
+            }),
+        ])
+
+        const demoProposal = proposals.find((item) => item.id === submittedWork.proposalId)
+        expect(demoProposal).toBeDefined()
+        if (!demoProposal) return
+
+        await expect(getProposal(demoProposal.id)).resolves.toEqual(expect.objectContaining({ id: demoProposal.id }))
+        await expect(getWorkByProposal(demoProposal.id)).resolves.toEqual(expect.objectContaining({ id: submittedWork.id }))
+        await expect(getRequestById(submittedWork.requestId)).resolves.toEqual(expect.objectContaining({ id: submittedWork.requestId }))
+        await expect(getWorkMessages(submittedWork.id)).resolves.toEqual(expect.arrayContaining([
+            expect.objectContaining({ workId: submittedWork.id, senderId: demoUser.id }),
+        ]))
+
+        const firstConsultation = consultations[0]
+        expect(firstConsultation).toBeDefined()
+        if (!firstConsultation) return
+
+        await expect(getConsultationMessages(firstConsultation.id)).resolves.toEqual(expect.arrayContaining([
+            expect.objectContaining({ consultationId: firstConsultation.id }),
+        ]))
+        await expect(getExpertReviews(firstConsultation.expertId)).resolves.toEqual(expect.arrayContaining([
+            expect.objectContaining({ expertId: firstConsultation.expertId }),
+        ]))
+    })
 })
