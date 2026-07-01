@@ -130,7 +130,7 @@ export function buildUserNotifications({
             return {
                 id: `work-message-${latestMessage.id}`,
                 kind: 'message',
-                title: '작업방 메시지',
+                title: '프로젝트 메시지',
                 body: latestMessage.body || work.title,
                 to: `${ROUTES.WORKROOM.replace(':workId', work.id)}`,
                 createdAt: latestMessage.createdAt,

@@ -368,7 +368,7 @@ export default function Workroom() {
         return (
             <main className="workroom-page">
                 <section className="container workroom-layout">
-                    <div className="workroom-main-card">작업방을 불러오는 중입니다.</div>
+                    <div className="workroom-main-card">프로젝트를 불러오는 중입니다.</div>
                 </section>
             </main>
         )
@@ -379,7 +379,7 @@ export default function Workroom() {
             <main className="workroom-page">
                 <section className="container workroom-layout">
                     <div className="workroom-main-card">
-                        <h1>작업방을 찾을 수 없습니다.</h1>
+                        <h1>프로젝트를 찾을 수 없습니다.</h1>
                         <p>작업이 삭제되었거나 접근할 수 없는 상태입니다.</p>
                         <Link to={myPageReturnTo} className="btn-text">
                             마이페이지로 돌아가기
@@ -478,7 +478,7 @@ export default function Workroom() {
                     <section className="workroom-chat-panel">
                         <div className="workroom-header-row">
                             <div>
-                                <h2>작업방 대화</h2>
+                                <h2>프로젝트 대화</h2>
                                 <p>결제 후 작업 진행에 필요한 질문, 확인, 수정 의견을 이곳에서 주고받습니다.</p>
                             </div>
                         </div>
@@ -494,14 +494,14 @@ export default function Workroom() {
                                     </div>
                                 ))
                             ) : (
-                                <p className="submitted-deliverable">아직 작업방 메시지가 없습니다.</p>
+                                <p className="submitted-deliverable">아직 프로젝트 메시지가 없습니다.</p>
                             )}
                         </div>
                         <div className="workroom-message-form">
-                            <label htmlFor="workroom-message">작업방 메시지</label>
+                            <label htmlFor="workroom-message">프로젝트 메시지</label>
                             <textarea
                                 id="workroom-message"
-                                aria-label="작업방 메시지"
+                                aria-label="프로젝트 메시지"
                                 value={messageBody}
                                 onChange={(event) => setMessageBody(event.target.value)}
                                 placeholder="작업 진행에 필요한 내용을 입력하세요."

@@ -48,6 +48,12 @@ type WorkStageView = {
     actions: StageAction[]
 }
 type WorkInfoItem = { label: string; value: string }
+type WorkActivityItem = {
+    title: string
+    description: string
+    timeLabel: string
+    state: StageVisualState
+}
 type WorkTransactionView = 'active' | 'stopped'
 type WorkStatusTone = 'consultation' | 'payment' | 'work' | 'done' | 'stopped' | 'neutral'
 type WorkDetailHero = {
@@ -100,7 +106,7 @@ const clientWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '거래관리' },
     { id: 'favorites', label: '관심 상품' },
     { id: 'consultations', label: '상담채팅' },
-    { id: 'workroom', label: '작업방' },
+    { id: 'workroom', label: '프로젝트' },
     { id: 'reviews', label: '리뷰' },
 ]
 
@@ -108,14 +114,14 @@ const expertWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'products', label: '내 상품관리' },
     { id: 'client', label: '거래관리' },
     { id: 'consultations', label: '상담채팅' },
-    { id: 'workroom', label: '작업방' },
+    { id: 'workroom', label: '프로젝트' },
     { id: 'reviews', label: '완료' },
 ]
 
 const legacyWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '의뢰자 홈' },
     { id: 'expert', label: '전문가 홈' },
-    { id: 'workroom', label: '작업방' },
+    { id: 'workroom', label: '프로젝트' },
     { id: 'reviews', label: '완료 / 리뷰' },
 ]
 
@@ -131,7 +137,7 @@ const getClientWorkStageTitle = (work: Work) => {
     if (work.status === 'completed') return '작업 완료'
     if (work.status === 'submitted') return '결과물 검토 대기'
     if (work.status === 'revision_requested') return '수정 요청 보냄'
-    return '작업방 진행'
+    return '프로젝트 진행'
 }
 
 const getClientWorkStageDescription = (work: Work) => {
@@ -144,7 +150,7 @@ const getClientWorkStageActionLabel = (work: Work) => {
     if (work.status === 'completed') return '완료 작업 보기'
     if (work.status === 'submitted') return '결과물 확인하기'
     if (work.status === 'revision_requested') return '수정 요청 확인하기'
-    return '작업방 열기'
+    return '프로젝트 열기'
 }
 
 const getExpertWorkStageTitle = (work: Work) => {
@@ -156,7 +162,7 @@ const getExpertWorkStageTitle = (work: Work) => {
 
 const getExpertWorkStageDescription = (work: Work) => {
     if (work.status === 'submitted') return '결과물을 제출했고 의뢰자의 승인 또는 수정 요청을 기다립니다.'
-    if (work.status === 'revision_requested') return '의뢰자가 수정 요청을 보냈습니다. 작업방에서 수정본을 다시 제출합니다.'
+    if (work.status === 'revision_requested') return '의뢰자가 수정 요청을 보냈습니다. 프로젝트에서 수정본을 다시 제출합니다.'
     return workStatusText[work.status]
 }
 
@@ -164,7 +170,7 @@ const getExpertWorkStageActionLabel = (work: Work) => {
     if (work.status === 'completed') return '완료 작업 보기'
     if (work.status === 'submitted') return '제출물 확인하기'
     if (work.status === 'revision_requested') return '수정본 제출하기'
-    return '작업방 열기'
+    return '프로젝트 열기'
 }
 
 const cardStyle = {
@@ -401,7 +407,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const pageTitle = mode === 'work' ? '내 작업' : '마이페이지'
     const pageDescription = mode === 'profile'
         ? '프로필과 계정 기본 정보를 확인합니다.'
-        : '의뢰, 제안, 작업방, 완료 리뷰를 한 곳에서 관리합니다.'
+        : '의뢰, 제안, 프로젝트, 완료 리뷰를 한 곳에서 관리합니다.'
     const menuLabel = mode === 'work' ? '내 작업 메뉴' : '마이페이지 메뉴'
 
     const getProposalForRequest = (request: ServiceRequestData) =>
@@ -977,11 +983,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             : product?.title || item.consultation.title
     }
 
-    const getUnifiedWorkSubtitle = (item: UnifiedWorkItem) =>
-        item.kind === 'product'
-            ? item.request.desiredResult || item.request.description || item.request.title
-            : item.consultation.title
-
     const getUnifiedWorkTypeLabel = (item: UnifiedWorkItem) =>
         item.kind === 'consultation' ? '전문가 문의' : '상품 주문'
 
@@ -1059,6 +1060,122 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             imageAlt: `${title} 대표 이미지`,
             onBack,
         }
+    }
+
+    const getBudgetInfoValue = (request: ServiceRequestData, isConfirmed: boolean) => {
+        if (!isConfirmed) return '-'
+        return request.budget ? `${Number(request.budget).toLocaleString()}원` : '-'
+    }
+
+    const getDeadlineInfoValue = (request: ServiceRequestData, isConfirmed: boolean) =>
+        isConfirmed ? request.deadline || '-' : '-'
+
+    const getReferenceInfoValue = (request: ServiceRequestData, isConfirmed: boolean) =>
+        isConfirmed ? `${request.referenceLinks?.length || 0}개` : '-'
+
+    const getProductInfoItems = (request: ServiceRequestData, isConfirmed: boolean): WorkInfoItem[] => [
+        { label: '거래 방식', value: '상품 주문' },
+        { label: '등록일', value: formatTransactionDateTime(request.createdAt) },
+        { label: '예산', value: getBudgetInfoValue(request, isConfirmed) },
+        { label: '마감일', value: getDeadlineInfoValue(request, isConfirmed) },
+        { label: '참고자료', value: getReferenceInfoValue(request, isConfirmed) },
+    ]
+
+    const getConsultationInfoItems = (
+        consultation: Consultation,
+        proposal: Proposal | undefined,
+        isConfirmed: boolean,
+    ): WorkInfoItem[] => [
+        { label: '거래 방식', value: '문의형 거래' },
+        { label: '등록일', value: formatTransactionDateTime(consultation.createdAt) },
+        { label: '예산', value: isConfirmed && proposal ? `${proposal.totalPrice.toLocaleString()}원` : '-' },
+        { label: '마감일', value: isConfirmed && proposal ? `${proposal.deliveryDays}일` : '-' },
+        { label: '참고자료', value: '-' },
+    ]
+
+    const getProductActivityItems = (
+        request: ServiceRequestData,
+        proposal: Proposal | undefined,
+        work: Work | undefined,
+        role: 'client' | 'expert',
+    ): WorkActivityItem[] => {
+        const items: WorkActivityItem[] = [
+            {
+                title: role === 'expert' ? '의뢰서 접수' : '의뢰서 작성',
+                description: request.desiredResult || request.description || request.title || '의뢰서 내용이 접수되었습니다.',
+                timeLabel: formatTransactionDateTime(request.createdAt),
+                state: 'done',
+            },
+        ]
+
+        if (proposal) {
+            const proposalIsConfirmed = Boolean(work || proposal.paymentStatus === 'paid')
+            items.push({
+                title: '제안서 작성',
+                description: proposal.scope || proposal.title,
+                timeLabel: proposalIsConfirmed ? '완료됨' : proposalStatusText[proposal.status],
+                state: proposalIsConfirmed ? 'done' : 'current',
+            })
+
+            if (proposalIsConfirmed) {
+                items.push({
+                    title: '결제 완료',
+                    description: `${proposal.totalPrice.toLocaleString()}원 · ${proposal.deliveryDays}일 작업`,
+                    timeLabel: '완료됨',
+                    state: 'done',
+                })
+            }
+        }
+
+        if (work) {
+            const workTitle =
+                work.status === 'submitted'
+                    ? '결과물 제출'
+                    : work.status === 'revision_requested'
+                        ? '수정 요청'
+                        : work.status === 'completed'
+                            ? '프로젝트 완료'
+                            : '프로젝트 진행'
+            items.push({
+                title: workTitle,
+                description: role === 'expert' ? getExpertWorkStageDescription(work) : getClientWorkStageDescription(work),
+                timeLabel: workStatusText[work.status],
+                state: work.status === 'completed' ? 'done' : 'current',
+            })
+        }
+
+        return items
+    }
+
+    const getConsultationActivityItems = (
+        consultation: Consultation,
+        proposal: Proposal | undefined,
+    ): WorkActivityItem[] => {
+        const items: WorkActivityItem[] = [
+            {
+                title: '상담 시작',
+                description: consultation.title,
+                timeLabel: formatTransactionDateTime(consultation.createdAt),
+                state: consultation.status === 'open' ? 'current' : 'done',
+            },
+            {
+                title: '최근 상담 메시지',
+                description: '채팅에서 작업 범위와 조건을 협의했습니다.',
+                timeLabel: formatTransactionDateTime(consultation.lastMessageAt),
+                state: consultation.status === 'open' ? 'current' : 'done',
+            },
+        ]
+
+        if (proposal) {
+            items.push({
+                title: '제안서 작성',
+                description: proposal.scope || proposal.title,
+                timeLabel: proposal.paymentStatus === 'paid' ? '완료됨' : proposalStatusText[proposal.status],
+                state: proposal.paymentStatus === 'paid' ? 'done' : 'current',
+            })
+        }
+
+        return items
     }
 
     const clearSelectedTransaction = () => {
@@ -1158,6 +1275,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         meta,
         stages,
         infoItems,
+        activityItems = [],
         hero,
     }: {
         testId: string
@@ -1165,11 +1283,20 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         meta: string
         stages: WorkStageView[]
         infoItems: WorkInfoItem[]
+        activityItems?: WorkActivityItem[]
         hero?: WorkDetailHero
     }) => {
         const currentStage = stages.find((stage) => stage.state === 'current') || stages.find((stage) => stage.state === 'pending') || stages[0]
         const currentStageIndex = currentStage ? stages.indexOf(currentStage) : -1
         const currentVisual = currentStage ? stageVisualConfig[currentStage.state] : null
+        const visibleActivityItems = activityItems.length > 0
+            ? activityItems
+            : stages.slice(0, 4).map((stage) => ({
+                title: `${stage.phase} 업데이트`,
+                description: stage.description,
+                timeLabel: stageVisualConfig[stage.state].label,
+                state: stage.state,
+            }))
         const relatedActions = stages.flatMap((stage) =>
             stage === currentStage ? [] : stage.actions.map((action) => ({ stage, action })),
         )
@@ -1239,6 +1366,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         {index < stages.length - 1 && <span className="work-progress-line" aria-hidden="true" />}
                                     </div>
                                     <span className="work-progress-phase" {...mutedProps}>{stage.phase}</span>
+                                    <span className="work-progress-status" {...mutedProps}>{visual.label}</span>
                                 </div>
                             )
                         })}
@@ -1275,16 +1403,16 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     <section className="work-activity-timeline" data-testid="work-activity-timeline">
                         <h4 className="work-detail-section-title">최근 활동</h4>
                         <ol>
-                            {stages.slice(0, 4).map((stage) => {
-                                const visual = stageVisualConfig[stage.state]
+                            {visibleActivityItems.map((activity) => {
                                 return (
-                                    <li key={`${stage.phase}-${stage.title}-activity`} className={`work-timeline-item is-${stage.state}`}>
+                                    <li key={`${activity.title}-${activity.description}`} className={`work-timeline-item is-${activity.state}`}>
                                         <span className="work-timeline-dot" aria-hidden="true" />
                                         <div>
                                             <div className="work-timeline-head">
-                                                <strong>{stage.phase} 업데이트</strong>
-                                                <span>{visual.label}</span>
+                                                <strong>{activity.title}</strong>
+                                                <span>{activity.timeLabel}</span>
                                             </div>
+                                            <p>{activity.description}</p>
                                         </div>
                                     </li>
                                 )
@@ -1510,10 +1638,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 const product = getUnifiedWorkProduct(item)
                                 const selected = selectedItem?.kind === item.kind && selectedItem.id === item.id
                                 const title = getUnifiedWorkTitle(item)
-                                const subtitle = getUnifiedWorkSubtitle(item)
-                                const detailLabel = subtitle && subtitle !== title
-                                    ? `${title} ${subtitle} 상세 보기`
-                                    : `${title} 상세 보기`
+                                const detailLabel = `${title} 상세 보기`
                                 const typeLabel = getUnifiedWorkTypeLabel(item)
                                 const statusLabel = getUnifiedWorkStatusLabel(item)
                                 const statusTone = getUnifiedWorkStatusTone(item)
@@ -1627,26 +1752,31 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 '상담 채팅',
                 '전문가 문의로 시작한 거래입니다. 채팅에서 범위와 조건을 먼저 협의합니다.',
                 consultation.status === 'open' ? 'current' : 'done',
-                {
-                    label: '상담 채팅 보기',
-                    to: consultationUrl,
-                    onClick: () => {
-                        setActivePanel('consultations')
-                        setSelectedConsultationId(consultation.id)
-                        setSelectedClientOrderId(null)
-                        setSelectedExpertRequestId(null)
+                [
+                    {
+                        label: '상담 채팅 보기',
+                        to: consultationUrl,
+                        onClick: () => {
+                            setActivePanel('consultations')
+                            setSelectedConsultationId(consultation.id)
+                            setSelectedClientOrderId(null)
+                            setSelectedExpertRequestId(null)
+                        },
                     },
-                },
+                    ...(role === 'client' && consultation.productId
+                        ? [{ label: '의뢰서 작성', to: `/request/${consultation.productId}`, variant: 'secondary' as const }]
+                        : []),
+                ],
             ),
             createWorkStage(
                 '결제',
                 role === 'expert' && consultation.status === 'open' ? '상담 후 제안서 작성' : '제안서 승인 및 결제',
                 role === 'expert' && consultation.status === 'open'
                     ? '상담 내용을 바탕으로 제안서를 작성해 의뢰자에게 보냅니다.'
-                    : '제안서를 승인하고 결제하면 작업방이 생성됩니다.',
+                    : '제안서를 승인하고 결제하면 프로젝트가 생성됩니다.',
                 consultation.status === 'proposal_sent' ? 'current' : 'pending',
             ),
-            createWorkStage('작업', '작업방 대기', '결제가 끝나면 작업방에서 제작을 진행합니다.', 'pending'),
+            createWorkStage('작업', '프로젝트 대기', '결제가 끝나면 프로젝트에서 제작을 진행합니다.', 'pending'),
             createWorkStage('완료', '상담 완료/리뷰', '작업이 완료되면 결과 확인과 리뷰 작성이 가능합니다.', 'pending'),
         ]
 
@@ -1659,16 +1789,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 { kind: 'consultation', id: consultation.id, createdTime: getConsultationCreatedTime(consultation), consultation },
                 clearSelectedTransaction,
             ),
-            infoItems: [
-                { label: '거래 방식', value: '문의형 거래' },
-                { label: '등록일', value: formatTransactionDateTime(consultation.createdAt) },
-                ...(consultationPaymentCompleted && consultationProposal
-                    ? [
-                        { label: '예산', value: `${consultationProposal.totalPrice.toLocaleString()}원` },
-                        { label: '마감일', value: `${consultationProposal.deliveryDays}일` },
-                    ]
-                    : []),
-            ],
+            infoItems: getConsultationInfoItems(consultation, consultationProposal, consultationPaymentCompleted),
+            activityItems: getConsultationActivityItems(consultation, consultationProposal),
         })
     }
 
@@ -1720,9 +1842,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         '결제',
                                         '제안서 승인 및 결제',
                                         selectedClientOrderWork
-                                            ? '결제 완료 후 작업방이 생성되었습니다.'
+                                            ? '결제 완료 후 프로젝트가 생성되었습니다.'
                                             : selectedClientOrderProposal.paymentStatus === 'paid'
-                                                ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                                                ? '결제 완료 처리가 반영되었습니다. 프로젝트 생성을 기다립니다.'
                                                 : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
                                         selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
                                         {
@@ -1743,10 +1865,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                             ? { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` }
                                             : [
                                                 { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
-                                                { label: '작업방에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
+                                                { label: '프로젝트에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
                                             ],
                                     )
-                                    : renderClientOrderStage('작업 중', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending')}
+                                    : renderClientOrderStage('작업 중', '프로젝트 대기', '제안서를 승인하면 프로젝트가 생성됩니다.', 'pending')}
                                 {renderClientOrderStage(
                                     '작업 후',
                                     '완료 확인/리뷰',
@@ -1833,10 +1955,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         '결제',
                                         selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? '테스트 결제 완료' : '제안서 승인 및 결제 대기',
                                         selectedExpertRequestWork
-                                            ? '의뢰자가 결제 완료 처리 후 작업방이 생성되었습니다.'
+                                            ? '의뢰자가 결제 완료 처리 후 프로젝트가 생성되었습니다.'
                                             : selectedExpertRequestProposal.paymentStatus === 'paid'
-                                                ? '의뢰자의 결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
-                                                : '의뢰자가 제안서를 승인하고 결제를 완료하면 작업방이 생성됩니다.',
+                                                ? '의뢰자의 결제 완료 처리가 반영되었습니다. 프로젝트 생성을 기다립니다.'
+                                                : '의뢰자가 제안서를 승인하고 결제를 완료하면 프로젝트가 생성됩니다.',
                                         selectedExpertRequestWork || selectedExpertRequestProposal.paymentStatus === 'paid' ? 'done' : 'pending',
                                     )
                                     : renderClientOrderStage('결제', '제안서 승인 및 결제 대기', '제안서를 보낸 뒤 의뢰자의 승인과 결제를 기다립니다.', 'pending')}
@@ -1850,10 +1972,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                             ? { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` }
                                             : [
                                                 { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
-                                                { label: '작업방에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
+                                                { label: '프로젝트에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
                                             ],
                                     )
-                                    : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending')}
+                                    : renderClientOrderStage('작업 중', '작업 진행', '제안서가 승인되면 프로젝트에서 진행합니다.', 'pending')}
                                 {renderClientOrderStage(
                                     '작업 완료',
                                     '작업 완료',
@@ -1894,9 +2016,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     '결제',
                     '제안서 승인 및 결제',
                     selectedClientOrderWork
-                        ? '결제 완료 후 작업방이 생성되었습니다.'
+                        ? '결제 완료 후 프로젝트가 생성되었습니다.'
                         : selectedClientOrderProposal.paymentStatus === 'paid'
-                            ? '결제 완료 처리가 반영되었습니다. 작업방 생성을 기다립니다.'
+                            ? '결제 완료 처리가 반영되었습니다. 프로젝트 생성을 기다립니다.'
                             : `${selectedClientOrderProposal.totalPrice.toLocaleString()}원 · ${selectedClientOrderProposal.deliveryDays}일 · ${proposalStatusText[selectedClientOrderProposal.status]} · 제안서 화면에서 승인 및 결제를 진행합니다.`,
                     selectedClientOrderWork || selectedClientOrderProposal.paymentStatus === 'paid' ? 'done' : 'current',
                     {
@@ -1909,7 +2031,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 : createWorkStage(
                     '결제',
                     '제안서 승인 및 결제',
-                    selectedClientOrderWork ? '작업방이 생성된 거래입니다.' : '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.',
+                    selectedClientOrderWork ? '프로젝트가 생성된 거래입니다.' : '전문가가 제안서를 보내면 이 단계에서 승인과 결제를 진행합니다.',
                     selectedClientOrderWork ? 'done' : 'current',
                 ),
             selectedClientOrderWork
@@ -1922,10 +2044,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         ? { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` }
                         : [
                             { label: getClientWorkStageActionLabel(selectedClientOrderWork), to: `/workroom/${selectedClientOrderWork.id}` },
-                            { label: '작업방에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
+                            { label: '프로젝트에서 거래 관리', to: `/workroom/${selectedClientOrderWork.id}`, variant: 'secondary' },
                         ],
                 )
-                : createWorkStage('작업', '작업방 대기', '제안서를 승인하면 작업방이 생성됩니다.', 'pending'),
+                : createWorkStage('작업', '프로젝트 대기', '제안서를 승인하면 프로젝트가 생성됩니다.', 'pending'),
             createWorkStage(
                 '완료',
                 '완료 확인/리뷰',
@@ -1942,17 +2064,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             hero: selectedClientUnifiedWorkItem?.kind === 'product'
                 ? buildWorkDetailHero(selectedClientUnifiedWorkItem, clearSelectedTransaction)
                 : undefined,
-            infoItems: [
-                { label: '거래 방식', value: '상품 주문' },
-                { label: '등록일', value: formatTransactionDateTime(selectedClientOrder.createdAt) },
-                ...(clientOrderPaymentCompleted
-                    ? [
-                        { label: '예산', value: selectedClientOrder.budget ? `${Number(selectedClientOrder.budget).toLocaleString()}원` : '협의 중' },
-                        { label: '마감일', value: selectedClientOrder.deadline || '미정' },
-                        { label: '참고자료', value: `${selectedClientOrder.referenceLinks?.length || 0}개` },
-                    ]
-                    : []),
-            ],
+            infoItems: getProductInfoItems(selectedClientOrder, clientOrderPaymentCompleted),
+            activityItems: getProductActivityItems(selectedClientOrder, selectedClientOrderProposal, selectedClientOrderWork, 'client'),
         })
     }
 
@@ -2009,10 +2122,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         ? { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` }
                         : [
                             { label: getExpertWorkStageActionLabel(selectedExpertRequestWork), to: `/workroom/${selectedExpertRequestWork.id}` },
-                            { label: '작업방에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
+                            { label: '프로젝트에서 거래 관리', to: `/workroom/${selectedExpertRequestWork.id}`, variant: 'secondary' },
                         ],
                 )
-                : createWorkStage('작업', '작업 진행', '제안서가 승인되면 작업방에서 진행합니다.', 'pending'),
+                : createWorkStage('작업', '작업 진행', '제안서가 승인되면 프로젝트에서 진행합니다.', 'pending'),
             createWorkStage(
                 '완료',
                 '작업 완료',
@@ -2029,17 +2142,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             hero: selectedExpertUnifiedWorkItem?.kind === 'product'
                 ? buildWorkDetailHero(selectedExpertUnifiedWorkItem, clearSelectedTransaction)
                 : undefined,
-            infoItems: [
-                { label: '거래 방식', value: '상품 주문' },
-                { label: '등록일', value: formatTransactionDateTime(selectedExpertRequest.createdAt) },
-                ...(expertOrderPaymentCompleted
-                    ? [
-                        { label: '예산', value: selectedExpertRequest.budget ? `${Number(selectedExpertRequest.budget).toLocaleString()}원` : '협의 중' },
-                        { label: '마감일', value: selectedExpertRequest.deadline || '미정' },
-                        { label: '참고자료', value: `${selectedExpertRequest.referenceLinks?.length || 0}개` },
-                    ]
-                    : []),
-            ],
+            infoItems: getProductInfoItems(selectedExpertRequest, expertOrderPaymentCompleted),
+            activityItems: getProductActivityItems(selectedExpertRequest, selectedExpertRequestProposal, selectedExpertRequestWork, 'expert'),
         })
     }
 
@@ -2289,7 +2393,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         <section style={cardStyle}>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.5rem' }}>상담 채팅</h2>
             <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
-                전문가 문의로 시작한 상담을 한 곳에서 확인합니다. 상담 후 제안서를 받아야 결제와 작업방 생성으로 이어집니다.
+                전문가 문의로 시작한 상담을 한 곳에서 확인합니다. 상담 후 제안서를 받아야 결제와 프로젝트 생성으로 이어집니다.
             </p>
 
             {roleFilteredConsultations.length > 0 ? (
@@ -2594,7 +2698,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (activePanel === 'workroom') {
             return (
                 <section style={cardStyle}>
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>작업방</h2>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>프로젝트</h2>
                     {renderWorkCards(roleFilteredActiveWorks, '진행 중인 작업이 없습니다.')}
                 </section>
             )

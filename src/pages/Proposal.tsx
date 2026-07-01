@@ -124,7 +124,7 @@ export default function Proposal() {
         const workId = await acceptProposal(proposal)
         setProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid', platformFeeRate: 0.12 })
         setCreatedWorkId(workId)
-        setStatusMessage('제안서를 승인하고 결제를 완료했습니다. 작업방이 열렸습니다.')
+        setStatusMessage('제안서를 승인하고 결제를 완료했습니다. 프로젝트가 열렸습니다.')
     }
 
     return (
@@ -196,16 +196,16 @@ export default function Proposal() {
                         <p>제안 유효 기간은 발송일로부터 3일입니다.</p>
                     </div>
 
-                    <p className="proposal-start-notice">승인과 결제가 완료되어야 작업방이 생성됩니다.</p>
+                    <p className="proposal-start-notice">승인과 결제가 완료되어야 프로젝트가 생성됩니다.</p>
                     <p className="proposal-start-notice">완료 승인 후 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
                     <div className="proposal-test-payment">
                         <strong>테스트 결제 모드</strong>
-                        <p>승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리하고 작업방을 생성합니다.</p>
+                        <p>승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리하고 프로젝트를 생성합니다.</p>
                     </div>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
                     {createdWorkId && (
                         <Link to={`/workroom/${createdWorkId}`} className="proposal-back-link" state={myPageReturnState}>
-                            작업방으로 이동
+                            프로젝트로 이동
                         </Link>
                     )}
 

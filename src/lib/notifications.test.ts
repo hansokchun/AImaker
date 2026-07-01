@@ -234,7 +234,7 @@ describe('buildUserNotifications', () => {
                 requestId: 'request-01',
                 clientId: 'client-01',
                 expertId: 'expert-01',
-                title: '작업방 메시지 거래',
+                title: '프로젝트 메시지 거래',
                 progressType: 'single',
                 status: 'in_progress',
                 stepIds: [],
@@ -274,7 +274,7 @@ describe('buildUserNotifications', () => {
 
         expect(expertNotifications[0]).toMatchObject({
             id: 'work-message-work-message-client-01',
-            title: '작업방 메시지',
+            title: '프로젝트 메시지',
             body: '초안 방향 확인 부탁드립니다.',
             to: '/workroom/work-message-01',
             createdAt: '2026-06-11T12:00:00.000Z',

@@ -399,8 +399,8 @@
 
 .work-detail-panel {
     display: grid;
-    gap: var(--space-5);
-    padding: var(--space-6);
+    gap: var(--space-4);
+    padding: var(--space-5);
     border: 1px solid #e8edf5;
     border-radius: 16px;
     background: var(--surface);
@@ -417,7 +417,7 @@
 .work-detail-title {
     margin: 0 0 var(--space-2);
     color: #111827;
-    font-size: 1.75rem;
+    font-size: 1.55rem;
     font-weight: 900;
     line-height: 1.25;
     letter-spacing: 0;
@@ -432,28 +432,30 @@
 
 .work-detail-section {
     display: grid;
-    gap: var(--space-3);
+    gap: var(--space-2);
+    justify-items: stretch;
 }
 
 .work-detail-section-title {
     margin: 0;
     color: #111827;
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     font-weight: 850;
 }
 
 .work-progress-stepper {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-3);
-    width: min(100%, 920px);
+    gap: var(--space-2);
+    width: min(100%, 860px);
     margin-inline: auto;
-    align-items: start;
+    align-items: center;
 }
 
 .work-progress-step {
     min-width: 0;
     color: #6b7280;
+    text-align: center;
 }
 
 .work-progress-marker-row {
@@ -461,7 +463,7 @@
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: var(--space-2);
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-1);
 }
 
 .work-progress-marker {
@@ -502,15 +504,28 @@
     font-weight: 800;
 }
 
-.work-progress-step.is-current .work-progress-phase {
+.work-progress-status {
+    display: block;
+    margin-top: 0.12rem;
+    color: #94a3b8;
+    font-size: 0.74rem;
+    font-weight: 850;
+}
+
+.work-progress-step.is-current .work-progress-phase,
+.work-progress-step.is-current .work-progress-status {
     color: #2563eb;
+}
+
+.work-progress-step.is-done .work-progress-status {
+    color: #16a34a;
 }
 
 .work-current-stage-card {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--space-4);
-    padding: var(--space-5);
+    gap: var(--space-3);
+    padding: var(--space-4);
     border: 1px solid #bfdbfe;
     border-radius: 16px;
     background: #eff6ff;
@@ -520,8 +535,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 3rem;
-    height: 3rem;
+    width: 2.65rem;
+    height: 2.65rem;
     border-radius: 999px;
     background: #2563eb;
     color: var(--surface);
@@ -536,7 +551,7 @@
 .work-current-stage-card h4 {
     margin: 0 0 var(--space-1);
     color: #111827;
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     font-weight: 900;
     line-height: 1.35;
 }
@@ -544,7 +559,7 @@
 .work-current-stage-card p {
     margin: 0;
     color: #4b5563;
-    font-size: 0.96rem;
+    font-size: 0.92rem;
     font-weight: 650;
     line-height: 1.55;
 }
@@ -553,7 +568,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
-    margin-top: var(--space-4);
+    margin-top: var(--space-3);
 }
 
 .work-detail-action {
@@ -578,7 +593,7 @@
 .work-activity-timeline,
 .work-transaction-info {
     display: grid;
-    gap: var(--space-3);
+    gap: var(--space-2);
     padding: var(--space-4);
     border: 1px solid #e8edf5;
     border-radius: 16px;
@@ -656,6 +671,14 @@
     color: #6b7280;
     font-size: 0.78rem;
     font-weight: 800;
+}
+
+.work-timeline-item p {
+    margin: 0.24rem 0 0;
+    color: #64748b;
+    font-size: 0.86rem;
+    font-weight: 650;
+    line-height: 1.45;
 }
 
 .work-transaction-info dl {

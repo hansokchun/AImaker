@@ -200,7 +200,7 @@ describe('Workroom', () => {
         )
         expect(screen.getByRole('button', { name: '거래 중단 요청' })).toBeInTheDocument()
 
-        fireEvent.change(screen.getByLabelText('작업방 메시지'), {
+        fireEvent.change(screen.getByLabelText('프로젝트 메시지'), {
             target: { value: 'Please check the updated draft.' },
         })
         fireEvent.click(screen.getByRole('button', { name: '메시지 보내기' }))
@@ -229,7 +229,7 @@ describe('Workroom', () => {
         )
 
         await screen.findByText('Workroom message from client')
-        const input = screen.getByLabelText('작업방 메시지')
+        const input = screen.getByLabelText('프로젝트 메시지')
         fireEvent.change(input, {
             target: { value: '수수료 아까우니 계좌이체로 따로 거래해요.' },
         })
@@ -402,7 +402,7 @@ describe('Workroom', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('작업방을 찾을 수 없습니다.')).toBeInTheDocument()
+        expect(await screen.findByText('프로젝트를 찾을 수 없습니다.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '마이페이지로 돌아가기' })).toHaveAttribute('href', '/mypage')
         expect(screen.queryByText(mockWorkTitle)).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '결과물 승인' })).not.toBeInTheDocument()
