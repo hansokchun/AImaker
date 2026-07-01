@@ -607,7 +607,105 @@ create trigger set_reviews_updated_at
   before update on public.reviews
   for each row execute function public.set_updated_at();
 
--- 10. Storage buckets and policies
+create table if not exists public.admin_users (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  role text not null default 'admin' check (role in ('admin', 'owner')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_users enable row level security;
+
+drop policy if exists "Users can view own admin role" on public.admin_users;
+create policy "Users can view own admin role"
+  on public.admin_users for select
+  using (auth.uid() = user_id);
+
+create table if not exists public.admin_actions (
+  id uuid primary key default gen_random_uuid(),
+  admin_id uuid references public.profiles(id) on delete set null,
+  target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review')),
+  target_id text not null,
+  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'hide_product', 'close_consultation', 'cancel_trade')),
+  reason text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_actions enable row level security;
+
+drop policy if exists "Admins can view admin actions" on public.admin_actions;
+create policy "Admins can view admin actions"
+  on public.admin_actions for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can insert admin actions" on public.admin_actions;
+create policy "Admins can insert admin actions"
+  on public.admin_actions for insert
+  with check (
+    admin_id = auth.uid()
+    and exists (select 1 from public.admin_users where admin_users.user_id = auth.uid())
+  );
+
+drop policy if exists "Admins can view profiles" on public.profiles;
+create policy "Admins can view profiles"
+  on public.profiles for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view products" on public.expert_products;
+create policy "Admins can view products"
+  on public.expert_products for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can update products" on public.expert_products;
+create policy "Admins can update products"
+  on public.expert_products for update
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
+  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view consultations" on public.consultations;
+create policy "Admins can view consultations"
+  on public.consultations for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view consultation messages" on public.consultation_messages;
+create policy "Admins can view consultation messages"
+  on public.consultation_messages for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view service requests" on public.service_requests;
+create policy "Admins can view service requests"
+  on public.service_requests for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view proposals" on public.proposals;
+create policy "Admins can view proposals"
+  on public.proposals for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view works" on public.works;
+create policy "Admins can view works"
+  on public.works for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view work steps" on public.work_steps;
+create policy "Admins can view work steps"
+  on public.work_steps for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view deliverables" on public.deliverables;
+create policy "Admins can view deliverables"
+  on public.deliverables for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view work messages" on public.work_messages;
+create policy "Admins can view work messages"
+  on public.work_messages for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can view reviews" on public.reviews;
+create policy "Admins can view reviews"
+  on public.reviews for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
 insert into storage.buckets (id, name, public)
 values
   ('product-samples', 'product-samples', true),

@@ -2,11 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AdminSnapshot } from '../lib/adminStorage';
-import { getAdminSnapshot } from '../lib/adminStorage';
+import { getAdminSnapshot, saveAdminAction } from '../lib/adminStorage';
 import Admin from './Admin';
 
 const mockUseAuth = vi.fn();
 const mockNavigate = vi.fn();
+
+const clickAdminTab = (index: number) => {
+    fireEvent.click(screen.getAllByRole('button')[index]);
+};
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => mockUseAuth(),
@@ -25,6 +29,7 @@ vi.mock('../lib/adminStorage', async () => {
     return {
         ...actual,
         getAdminSnapshot: vi.fn(),
+        saveAdminAction: vi.fn(),
     };
 });
 
@@ -133,6 +138,26 @@ const snapshot: AdminSnapshot = {
             createdAt: '2026-07-01T00:00:00.000Z',
         },
     ],
+    consultationMessages: [
+        {
+            id: 'consultation-message-admin-01',
+            consultationId: 'consultation-admin-01',
+            senderId: 'client-admin-01',
+            body: 'Need price estimate for shortform.',
+            attachmentUrls: [],
+            createdAt: '2026-07-01T00:10:00.000Z',
+        },
+    ],
+    workMessages: [
+        {
+            id: 'work-message-admin-01',
+            workId: 'work-admin-01',
+            senderId: 'expert-admin-01',
+            body: 'Draft delivery is ready.',
+            attachmentUrls: [],
+            createdAt: '2026-07-01T00:20:00.000Z',
+        },
+    ],
     reviews: [
         {
             id: 'review-admin-01',
@@ -144,6 +169,7 @@ const snapshot: AdminSnapshot = {
             createdAt: '2026-07-01T00:00:00.000Z',
         },
     ],
+    adminActions: [],
 };
 
 describe('Admin', () => {
@@ -156,14 +182,20 @@ describe('Admin', () => {
         });
         vi.mocked(getAdminSnapshot).mockClear();
         vi.mocked(getAdminSnapshot).mockResolvedValue(snapshot);
+        vi.mocked(saveAdminAction).mockClear();
+        vi.mocked(saveAdminAction).mockImplementation(async (input) => ({
+            id: 'admin-action-test-01',
+            adminId: input.adminId,
+            targetType: input.targetType,
+            targetId: input.targetId,
+            actionType: input.actionType,
+            reason: input.reason,
+            createdAt: '2026-07-01T00:30:00.000Z',
+        }));
     });
 
     it('renders an operation dashboard for an admin account', async () => {
-        render(
-            <MemoryRouter>
-                <Admin />
-            </MemoryRouter>,
-        );
+        render(<MemoryRouter><Admin /></MemoryRouter>);
 
         expect(await screen.findByRole('heading', { name: '운영 관리자' })).toBeInTheDocument();
         expect(screen.getByText('전체 회원')).toBeInTheDocument();
@@ -173,27 +205,21 @@ describe('Admin', () => {
     });
 
     it('shows product, trade, workroom, and review data from the admin snapshot', async () => {
-        render(
-            <MemoryRouter>
-                <Admin />
-            </MemoryRouter>,
-        );
-
+        render(<MemoryRouter><Admin /></MemoryRouter>);
         await screen.findByRole('heading', { name: '운영 관리자' });
 
-        fireEvent.click(screen.getByRole('button', { name: /상품/ }));
+        clickAdminTab(2);
         expect(screen.getByText('AI 영상 제작')).toBeInTheDocument();
         expect(screen.getByText('50,000원')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /거래/ }));
+        clickAdminTab(3);
         expect(screen.getByText('의뢰서 · 숏폼 의뢰')).toBeInTheDocument();
         expect(screen.getByText('제안서 · 숏폼 제안서')).toBeInTheDocument();
-        expect(screen.getByText('결제 완료')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /작업방/ }));
+        clickAdminTab(5);
         expect(screen.getByText('숏폼 작업방')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /리뷰/ }));
+        clickAdminTab(6);
         expect(screen.getByText('좋았습니다.')).toBeInTheDocument();
     });
 
@@ -204,13 +230,38 @@ describe('Admin', () => {
             user: { id: 'user-normal-01', email: 'normal@example.com' },
         });
 
-        render(
-            <MemoryRouter>
-                <Admin />
-            </MemoryRouter>,
-        );
+        render(<MemoryRouter><Admin /></MemoryRouter>);
 
         expect(screen.getByRole('heading', { name: '관리자 권한이 필요합니다' })).toBeInTheDocument();
         await waitFor(() => expect(getAdminSnapshot).not.toHaveBeenCalled());
+    });
+
+    it('shows consultation and workroom message contents to admins', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(4);
+        expect(screen.getByText('Need price estimate for shortform.')).toBeInTheDocument();
+
+        clickAdminTab(5);
+        expect(screen.getByText('Draft delivery is ready.')).toBeInTheDocument();
+    });
+
+    it('records moderation actions from the admin screen', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(1);
+        fireEvent.click(screen.getByRole('button', { name: '경고 기록' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'user',
+            targetId: 'user-admin-01',
+            actionType: 'warn',
+            reason: '관리자가 회원 경고를 기록했습니다.',
+        }));
+        expect(await screen.findByText('최근 운영 조치')).toBeInTheDocument();
+        expect(screen.getByText('관리자가 회원 경고를 기록했습니다.')).toBeInTheDocument();
     });
 });

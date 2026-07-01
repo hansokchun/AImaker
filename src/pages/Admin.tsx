@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
-import { getAdminSnapshot, isAdminEmail, type AdminSnapshot } from '../lib/adminStorage';
+import { getAdminSnapshot, isAdminEmail, saveAdminAction, type AdminSnapshot } from '../lib/adminStorage';
 import AdminDashboardPanel from './AdminDashboardPanel';
-import AdminDataPanels from './AdminDataPanels';
+import AdminDataPanels, { type AdminActionRequest } from './AdminDataPanels';
 import './Admin.css';
 
-type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews';
+type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews' | 'actions';
 
 interface AdminTabItem {
     readonly id: AdminTab;
@@ -21,6 +21,7 @@ export default function Admin() {
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
     const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null);
     const [loadError, setLoadError] = useState('');
+    const [actionNotice, setActionNotice] = useState('');
     const canAccessAdmin = isAdminEmail(user?.email);
 
     useEffect(() => {
@@ -47,6 +48,21 @@ export default function Admin() {
     const tabs = useMemo(() => buildTabs(snapshot), [snapshot]);
     const stats = useMemo(() => buildStats(snapshot), [snapshot]);
 
+    const handleAdminAction = (input: AdminActionRequest) => {
+        if (!user?.id) return;
+
+        saveAdminAction({ ...input, adminId: user.id })
+            .then((action) => {
+                setSnapshot((current) => current ? {
+                    ...current,
+                    adminActions: [action, ...current.adminActions.filter((item) => item.id !== action.id)],
+                } : current);
+                setActionNotice('운영 조치가 기록되었습니다.');
+                setActiveTab('actions');
+            })
+            .catch(() => setActionNotice('운영 조치를 기록하지 못했습니다. 관리자 권한과 Supabase 정책을 확인해 주세요.'));
+    };
+
     if (loading || (!snapshot && canAccessAdmin && !loadError)) {
         return <AdminShell>관리자 데이터를 불러오는 중입니다.</AdminShell>;
     }
@@ -72,6 +88,7 @@ export default function Admin() {
         <AdminShell>
             <AdminHeader source={snapshot?.source || 'local'} />
             {loadError && <div className="admin-alert">{loadError}</div>}
+            {actionNotice && <div className="admin-success-alert">{actionNotice}</div>}
             <div className="admin-alert">
                 관리자 화면은 클라이언트에서 RLS를 우회하지 않습니다. 전체 회원 강제 삭제, 정산 변경,
                 분쟁 확정 같은 고위험 조치는 서버 함수가 연결된 뒤 활성화하는 것이 안전합니다.
@@ -81,7 +98,7 @@ export default function Admin() {
                 <section className="admin-main">
                     {snapshot && activeTab === 'dashboard' && <AdminDashboardPanel stats={stats} />}
                     {snapshot && activeTab !== 'dashboard' && (
-                        <AdminDataPanels activeTab={activeTab} snapshot={snapshot} />
+                        <AdminDataPanels activeTab={activeTab} snapshot={snapshot} onAction={handleAdminAction} />
                     )}
                 </section>
             </div>
@@ -104,8 +121,8 @@ function AdminHeader({ source }: { readonly source: AdminSnapshot['source'] }) {
                 <p className="admin-kicker">AIConnect Admin</p>
                 <h1 className="admin-title">운영 관리자</h1>
                 <p className="admin-description">
-                    회원, 상품, 거래, 상담채팅, 작업방, 리뷰를 한 곳에서 확인합니다.
-                    첫 버전은 안전을 위해 강제 삭제보다 상태 파악과 운영 메모 중심으로 구성했습니다.
+                    회원, 상품, 거래, 상담채팅, 작업방, 리뷰를 한 곳에서 확인합니다. 운영 조치는 삭제보다
+                    기록 중심으로 남겨 추적 가능하게 관리합니다.
                 </p>
             </div>
             <span className="admin-source-badge">데이터: {source === 'supabase' ? 'Supabase' : '로컬/데모'}</span>
@@ -148,6 +165,7 @@ function buildTabs(snapshot: AdminSnapshot | null): AdminTabItem[] {
         { id: 'consultations', label: '상담채팅', count: snapshot?.consultations.length || 0 },
         { id: 'workrooms', label: '작업방', count: snapshot?.works.length || 0 },
         { id: 'reviews', label: '리뷰', count: snapshot?.reviews.length || 0 },
+        { id: 'actions', label: '운영 조치', count: snapshot?.adminActions.length || 0 },
     ];
 }
 

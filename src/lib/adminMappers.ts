@@ -1,5 +1,5 @@
-import type { Consultation, Proposal, Review, ServiceRequestData, Work } from '../types';
-import type { AdminProfile } from './adminStorage';
+import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData, Work, WorkMessage } from '../types';
+import type { AdminAction, AdminProfile } from './adminStorage';
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null;
@@ -162,6 +162,52 @@ export const toConsultation = (item: unknown): Consultation | null => {
                 : 'open',
         title: stringValue(item, 'title') || '상담채팅',
         lastMessageAt: stringValue(item, 'last_message_at'),
+        createdAt: stringValue(item, 'created_at'),
+    };
+};
+
+export const toConsultationMessage = (item: unknown): ConsultationMessage | null => {
+    if (!isRecord(item)) return null;
+    const id = stringValue(item, 'id');
+    if (!id) return null;
+
+    return {
+        id,
+        consultationId: stringValue(item, 'consultation_id'),
+        senderId: stringValue(item, 'sender_id'),
+        body: stringValue(item, 'body'),
+        attachmentUrls: stringArrayValue(item, 'attachment_urls'),
+        createdAt: stringValue(item, 'created_at'),
+    };
+};
+
+export const toWorkMessage = (item: unknown): WorkMessage | null => {
+    if (!isRecord(item)) return null;
+    const id = stringValue(item, 'id');
+    if (!id) return null;
+
+    return {
+        id,
+        workId: stringValue(item, 'work_id'),
+        senderId: stringValue(item, 'sender_id'),
+        body: stringValue(item, 'body'),
+        attachmentUrls: stringArrayValue(item, 'attachment_urls'),
+        createdAt: stringValue(item, 'created_at'),
+    };
+};
+
+export const toAdminAction = (item: unknown): AdminAction | null => {
+    if (!isRecord(item)) return null;
+    const id = stringValue(item, 'id');
+    if (!id) return null;
+
+    return {
+        id,
+        adminId: stringValue(item, 'admin_id'),
+        targetType: stringValue(item, 'target_type') as AdminAction['targetType'],
+        targetId: stringValue(item, 'target_id'),
+        actionType: stringValue(item, 'action_type') as AdminAction['actionType'],
+        reason: stringValue(item, 'reason'),
         createdAt: stringValue(item, 'created_at'),
     };
 };

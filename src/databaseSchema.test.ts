@@ -64,6 +64,16 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Work participants can read deliverable files"/i)
     })
 
+    it('defines admin role and audit action tables for operations', () => {
+        expect(sql).toMatch(/create table(?: if not exists)? public\.admin_users/i)
+        expect(sql).toMatch(/create table(?: if not exists)? public\.admin_actions/i)
+        expect(sql).toMatch(/alter table public\.admin_users enable row level security/i)
+        expect(sql).toMatch(/alter table public\.admin_actions enable row level security/i)
+        expect(sql).toMatch(/create policy "Admins can view consultation messages"/i)
+        expect(sql).toMatch(/create policy "Admins can view work messages"/i)
+        expect(sql).toMatch(/create policy "Admins can insert admin actions"/i)
+    })
+
     it('drops policies and triggers before recreating them for safe reruns', () => {
         expect(sql).toMatch(/drop policy if exists "Users can view own profile" on public\.profiles;/i)
         expect(sql).toMatch(/drop trigger if exists set_work_steps_updated_at on public\.work_steps;/i)

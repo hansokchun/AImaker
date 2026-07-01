@@ -1,15 +1,27 @@
-import type { Consultation, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types';
+import type {
+    Consultation,
+    ConsultationMessage,
+    ExpertProduct,
+    Proposal,
+    Review,
+    ServiceRequestData,
+    Work,
+    WorkMessage,
+} from '../types';
 import { mockExpertProducts } from '../data/mockData';
 import { getExpertProducts } from './storage';
 import { supabase } from './supabase';
 import {
     isRecord,
+    toAdminAction,
     toConsultation,
+    toConsultationMessage,
     toProfile,
     toProposal,
     toReview,
     toServiceRequestData,
     toWork,
+    toWorkMessage,
 } from './adminMappers';
 
 export interface AdminProfile {
@@ -28,8 +40,32 @@ export interface AdminSnapshot {
     readonly proposals: readonly Proposal[];
     readonly works: readonly Work[];
     readonly consultations: readonly Consultation[];
+    readonly consultationMessages: readonly ConsultationMessage[];
+    readonly workMessages: readonly WorkMessage[];
     readonly reviews: readonly Review[];
+    readonly adminActions: readonly AdminAction[];
     readonly source: 'supabase' | 'local';
+}
+
+export type AdminActionTargetType = 'user' | 'product' | 'trade' | 'consultation' | 'work' | 'review';
+export type AdminActionType = 'note' | 'warn' | 'restrict' | 'hide_product' | 'close_consultation' | 'cancel_trade';
+
+export interface AdminAction {
+    readonly id: string;
+    readonly adminId: string;
+    readonly targetType: AdminActionTargetType;
+    readonly targetId: string;
+    readonly actionType: AdminActionType;
+    readonly reason: string;
+    readonly createdAt: string;
+}
+
+export interface CreateAdminActionInput {
+    readonly adminId: string;
+    readonly targetType: AdminActionTargetType;
+    readonly targetId: string;
+    readonly actionType: AdminActionType;
+    readonly reason: string;
 }
 
 const ADMIN_EMAILS = new Set(
@@ -50,6 +86,9 @@ const STORAGE_KEYS = {
     WORKS: 'ai_works',
     REVIEWS: 'ai_reviews',
     CONSULTATIONS: 'ai_consultations',
+    CONSULTATION_MESSAGES: 'ai_consultation_messages',
+    WORK_MESSAGES: 'ai_work_messages',
+    ADMIN_ACTIONS: 'ai_admin_actions',
 } as const;
 
 const readLocalArray = <T>(key: string): T[] => {
@@ -101,6 +140,17 @@ const selectAll = async <T>(table: string, mapper: (item: unknown) => T | null):
     return data.map(mapper).filter((item): item is T => Boolean(item));
 };
 
+const createAdminActionId = (): string => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+    return `admin-action-${Date.now()}`;
+};
+
+const saveLocalAdminAction = (action: AdminAction): AdminAction => {
+    const actions = readLocalArray<AdminAction>(STORAGE_KEYS.ADMIN_ACTIONS);
+    window.localStorage.setItem(STORAGE_KEYS.ADMIN_ACTIONS, JSON.stringify([action, ...actions]));
+    return action;
+};
+
 export const isAdminEmail = (email?: string | null): boolean =>
     Boolean(email && ADMIN_EMAILS.has(email.toLowerCase()));
 
@@ -108,14 +158,28 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
     const localSnapshot = getLocalAdminSnapshot();
     if (!supabase) return localSnapshot;
 
-    const [products, profiles, serviceRequests, proposals, works, consultations, reviews] = await Promise.all([
+    const [
+        products,
+        profiles,
+        serviceRequests,
+        proposals,
+        works,
+        consultations,
+        consultationMessages,
+        workMessages,
+        reviews,
+        adminActions,
+    ] = await Promise.all([
         getExpertProducts(),
         selectAll('profiles', toProfile),
         selectAll('service_requests', toServiceRequestData),
         selectAll('proposals', toProposal),
         selectAll('works', toWork),
         selectAll('consultations', toConsultation),
+        selectAll('consultation_messages', toConsultationMessage),
+        selectAll('work_messages', toWorkMessage),
         selectAll('reviews', toReview),
+        selectAll('admin_actions', toAdminAction),
     ]);
 
     return {
@@ -125,9 +189,39 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         proposals: proposals.length > 0 ? proposals : localSnapshot.proposals,
         works: works.length > 0 ? works : localSnapshot.works,
         consultations: consultations.length > 0 ? consultations : localSnapshot.consultations,
+        consultationMessages: consultationMessages.length > 0 ? consultationMessages : localSnapshot.consultationMessages,
+        workMessages: workMessages.length > 0 ? workMessages : localSnapshot.workMessages,
         reviews: reviews.length > 0 ? reviews : localSnapshot.reviews,
+        adminActions: adminActions.length > 0 ? adminActions : localSnapshot.adminActions,
         source: profiles.length || serviceRequests.length || proposals.length || works.length ? 'supabase' : 'local',
     };
+}
+
+export async function saveAdminAction(input: CreateAdminActionInput): Promise<AdminAction> {
+    const action: AdminAction = {
+        id: createAdminActionId(),
+        adminId: input.adminId,
+        targetType: input.targetType,
+        targetId: input.targetId,
+        actionType: input.actionType,
+        reason: input.reason,
+        createdAt: new Date().toISOString(),
+    };
+
+    if (!supabase) return saveLocalAdminAction(action);
+
+    const { error } = await supabase.from('admin_actions').insert({
+        id: action.id,
+        admin_id: action.adminId,
+        target_type: action.targetType,
+        target_id: action.targetId,
+        action_type: action.actionType,
+        reason: action.reason,
+        created_at: action.createdAt,
+    });
+
+    if (error) return saveLocalAdminAction(action);
+    return action;
 }
 
 function getLocalAdminSnapshot(): AdminSnapshot {
@@ -140,7 +234,10 @@ function getLocalAdminSnapshot(): AdminSnapshot {
         proposals: readLocalArray<Proposal>(STORAGE_KEYS.PROPOSALS),
         works: readLocalArray<Work>(STORAGE_KEYS.WORKS),
         consultations: readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS),
+        consultationMessages: readLocalArray<ConsultationMessage>(STORAGE_KEYS.CONSULTATION_MESSAGES),
+        workMessages: readLocalArray<WorkMessage>(STORAGE_KEYS.WORK_MESSAGES),
         reviews: readLocalArray<Review>(STORAGE_KEYS.REVIEWS),
+        adminActions: readLocalArray<AdminAction>(STORAGE_KEYS.ADMIN_ACTIONS),
         source: 'local',
     };
 }
