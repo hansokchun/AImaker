@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { AdminAction, AdminActionType, AdminSnapshot, AdminActionTargetType } from '../lib/adminStorage';
+import type { AdminAction, AdminActionType, AdminActionTargetType, AdminSnapshot } from '../lib/adminStorage';
 import { AdminStatus, AdminTablePanel, EmptyState, formatCurrency } from './AdminShared';
 
 interface AdminDataPanelsProps {
@@ -61,7 +61,7 @@ function MembersPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot
 
 function ProductsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot; readonly onAction: (input: AdminActionRequest) => void }) {
     return (
-        <AdminTablePanel title="상품 관리" copy="등록된 상품의 공개 상태와 상품 품질 검토 조치를 확인합니다.">
+        <AdminTablePanel title="상품 관리" copy="등록된 상품의 공개 상태와 상품 품질 조치를 확인합니다.">
             <table className="admin-table">
                 <thead><tr><th>상품</th><th>전문가</th><th>가격</th><th>상태</th><th>조치</th></tr></thead>
                 <tbody>{snapshot.products.map((product) => (
@@ -72,12 +72,12 @@ function ProductsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsho
                         <td><AdminStatus value={product.status} /></td>
                         <td className="admin-action-row">
                             <Link className="admin-disabled-action" to={`/expert/${product.id}`}>상세 보기</Link>
-                            <button className="admin-action-button" type="button" onClick={() => onAction({
+                            <button className="admin-danger-action" type="button" onClick={() => onAction({
                                 targetType: 'product',
                                 targetId: product.id,
                                 actionType: 'hide_product',
-                                reason: '관리자가 상품 숨김 검토를 기록했습니다.',
-                            })}>상품 숨김 기록</button>
+                                reason: '관리자가 상품 숨김 처리를 실행했습니다.',
+                            })}>상품 숨김 처리</button>
                         </td>
                     </tr>
                 ))}</tbody>
@@ -131,12 +131,12 @@ function ConsultationsPanel({ snapshot, onAction }: { readonly snapshot: AdminSn
                     meta={`의뢰자 ${consultation.clientId} / 전문가 ${consultation.expertId} / 상품 ${consultation.productId}`}
                     status={consultation.status}
                     messages={snapshot.consultationMessages.filter((message) => message.consultationId === consultation.id)}
-                    actionLabel="상담 종료 기록"
+                    actionLabel="상담 종료 처리"
                     onAction={() => onAction({
                         targetType: 'consultation',
                         targetId: consultation.id,
                         actionType: 'close_consultation',
-                        reason: '관리자가 상담 종료 검토를 기록했습니다.',
+                        reason: '관리자가 상담 종료 처리를 실행했습니다.',
                     })}
                 />
             ))}
@@ -154,13 +154,13 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                     meta={`의뢰자 ${work.clientId} / 전문가 ${work.expertId} / ${formatCurrency(work.totalPrice)}`}
                     status={work.status}
                     messages={snapshot.workMessages.filter((message) => message.workId === work.id)}
-                    actionLabel="거래 중단 기록"
+                    actionLabel="거래 중단 처리"
                     linkTo={`/workroom/${work.id}`}
                     onAction={() => onAction({
                         targetType: 'work',
                         targetId: work.id,
                         actionType: 'cancel_trade',
-                        reason: '관리자가 작업방 거래 중단 검토를 기록했습니다.',
+                        reason: '관리자가 작업방 거래 중단 처리를 실행했습니다.',
                     })}
                 />
             ))}
@@ -168,15 +168,7 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
     );
 }
 
-function MessageCard({
-    title,
-    meta,
-    status,
-    messages,
-    actionLabel,
-    linkTo,
-    onAction,
-}: {
+function MessageCard(props: {
     readonly title: string;
     readonly meta: string;
     readonly status: string;
@@ -189,20 +181,20 @@ function MessageCard({
         <article className="admin-message-card">
             <div className="admin-message-heading">
                 <div>
-                    <h3>{linkTo ? <Link to={linkTo}>{title}</Link> : title}</h3>
-                    <p>{meta}</p>
+                    <h3>{props.linkTo ? <Link to={props.linkTo}>{props.title}</Link> : props.title}</h3>
+                    <p>{props.meta}</p>
                 </div>
-                <AdminStatus value={status} />
+                <AdminStatus value={props.status} />
             </div>
             <div className="admin-message-list">
-                {messages.length === 0 ? <EmptyState label="표시할 메시지가 없습니다." /> : messages.map((message) => (
+                {props.messages.length === 0 ? <EmptyState label="표시할 메시지가 없습니다." /> : props.messages.map((message) => (
                     <div className="admin-message-item" key={message.id}>
                         <div className="admin-message-meta">{message.senderId} · {message.createdAt}</div>
                         <p>{message.body}</p>
                     </div>
                 ))}
             </div>
-            <button className="admin-danger-action" type="button" onClick={onAction}>{actionLabel}</button>
+            <button className="admin-danger-action" type="button" onClick={props.onAction}>{props.actionLabel}</button>
         </article>
     );
 }

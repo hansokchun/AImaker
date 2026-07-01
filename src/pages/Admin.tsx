@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
-import { getAdminSnapshot, isAdminEmail, saveAdminAction, type AdminSnapshot } from '../lib/adminStorage';
+import { getAdminSnapshot, isAdminEmail, saveAdminAction, type AdminAction, type AdminSnapshot } from '../lib/adminStorage';
 import AdminDashboardPanel from './AdminDashboardPanel';
 import AdminDataPanels, { type AdminActionRequest } from './AdminDataPanels';
 import './Admin.css';
@@ -53,14 +53,11 @@ export default function Admin() {
 
         saveAdminAction({ ...input, adminId: user.id })
             .then((action) => {
-                setSnapshot((current) => current ? {
-                    ...current,
-                    adminActions: [action, ...current.adminActions.filter((item) => item.id !== action.id)],
-                } : current);
-                setActionNotice('운영 조치가 기록되었습니다.');
+                setSnapshot((current) => current ? applyAdminActionToSnapshot(current, action) : current);
+                setActionNotice('운영 조치가 처리되었습니다.');
                 setActiveTab('actions');
             })
-            .catch(() => setActionNotice('운영 조치를 기록하지 못했습니다. 관리자 권한과 Supabase 정책을 확인해 주세요.'));
+            .catch(() => setActionNotice('운영 조치를 처리하지 못했습니다. 관리자 권한과 Supabase 정책을 확인해 주세요.'));
     };
 
     if (loading || (!snapshot && canAccessAdmin && !loadError)) {
@@ -90,8 +87,7 @@ export default function Admin() {
             {loadError && <div className="admin-alert">{loadError}</div>}
             {actionNotice && <div className="admin-success-alert">{actionNotice}</div>}
             <div className="admin-alert">
-                관리자 화면은 클라이언트에서 RLS를 우회하지 않습니다. 전체 회원 강제 삭제, 정산 변경,
-                분쟁 확정 같은 고위험 조치는 서버 함수가 연결된 뒤 활성화하는 것이 안전합니다.
+                관리자 화면은 클라이언트에서 RLS를 우회하지 않습니다. 회원 삭제, 정산 변경, 분쟁 확정 같은 고위험 조치는 서버 함수가 연결된 뒤 활성화하는 것이 안전합니다.
             </div>
             <div className="admin-layout">
                 <AdminSidebar activeTab={activeTab} tabs={tabs} onSelect={setActiveTab} />
@@ -104,6 +100,33 @@ export default function Admin() {
             </div>
         </AdminShell>
     );
+}
+
+function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction): AdminSnapshot {
+    return {
+        ...snapshot,
+        products: snapshot.products.map((product) =>
+            action.actionType === 'hide_product' && product.id === action.targetId ? { ...product, status: 'hidden' } : product,
+        ),
+        works: snapshot.works.map((work) =>
+            action.actionType === 'cancel_trade' && work.id === action.targetId
+                ? {
+                    ...work,
+                    status: 'cancelled',
+                    settlementStatus: work.settlementStatus || 'held',
+                    refundStatus: 'fee_excluded_refund_pending',
+                    cancellationReason: 'mutual_after_start',
+                    cancelledAt: action.createdAt,
+                }
+                : work,
+        ),
+        consultations: snapshot.consultations.map((consultation) =>
+            action.actionType === 'close_consultation' && consultation.id === action.targetId
+                ? { ...consultation, status: 'closed' }
+                : consultation,
+        ),
+        adminActions: [action, ...snapshot.adminActions.filter((item) => item.id !== action.id)],
+    };
 }
 
 function AdminShell({ children }: { readonly children: ReactNode }) {
@@ -121,8 +144,7 @@ function AdminHeader({ source }: { readonly source: AdminSnapshot['source'] }) {
                 <p className="admin-kicker">AIConnect Admin</p>
                 <h1 className="admin-title">운영 관리자</h1>
                 <p className="admin-description">
-                    회원, 상품, 거래, 상담채팅, 작업방, 리뷰를 한 곳에서 확인합니다. 운영 조치는 삭제보다
-                    기록 중심으로 남겨 추적 가능하게 관리합니다.
+                    회원, 상품, 거래, 상담채팅, 작업방, 리뷰를 한 곳에서 확인합니다. 운영 조치는 기록과 실제 상태 변경을 함께 남깁니다.
                 </p>
             </div>
             <span className="admin-source-badge">데이터: {source === 'supabase' ? 'Supabase' : '로컬/데모'}</span>
@@ -130,11 +152,7 @@ function AdminHeader({ source }: { readonly source: AdminSnapshot['source'] }) {
     );
 }
 
-function AdminSidebar({
-    activeTab,
-    tabs,
-    onSelect,
-}: {
+function AdminSidebar({ activeTab, tabs, onSelect }: {
     readonly activeTab: AdminTab;
     readonly tabs: readonly AdminTabItem[];
     readonly onSelect: (tab: AdminTab) => void;

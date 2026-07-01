@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { mockExpertProducts } from '../data/mockData';
 import { getExpertProducts } from './storage';
+import { applyAdminActionEffect } from './adminModeration';
 import { supabase } from './supabase';
 import {
     isRecord,
@@ -207,6 +208,8 @@ export async function saveAdminAction(input: CreateAdminActionInput): Promise<Ad
         reason: input.reason,
         createdAt: new Date().toISOString(),
     };
+
+    await applyAdminActionEffect(action);
 
     if (!supabase) return saveLocalAdminAction(action);
 

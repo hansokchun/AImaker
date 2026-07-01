@@ -71,6 +71,8 @@ describe('database.sql', () => {
         expect(sql).toMatch(/alter table public\.admin_actions enable row level security/i)
         expect(sql).toMatch(/create policy "Admins can view consultation messages"/i)
         expect(sql).toMatch(/create policy "Admins can view work messages"/i)
+        expect(sql).toMatch(/create policy "Admins can update consultations"/i)
+        expect(sql).toMatch(/create policy "Admins can update works"/i)
         expect(sql).toMatch(/create policy "Admins can insert admin actions"/i)
     })
 

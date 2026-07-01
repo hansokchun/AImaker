@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AdminSnapshot } from '../lib/adminStorage';
 import { getAdminSnapshot, saveAdminAction } from '../lib/adminStorage';
 import Admin from './Admin';
+import { adminSnapshot } from './adminTestFixtures';
 
 const mockUseAuth = vi.fn();
 const mockNavigate = vi.fn();
@@ -33,145 +33,6 @@ vi.mock('../lib/adminStorage', async () => {
     };
 });
 
-const snapshot: AdminSnapshot = {
-    source: 'local',
-    profiles: [
-        {
-            id: 'user-admin-01',
-            email: 'benet9827@gmail.com',
-            name: '관리자',
-            avatarUrl: '',
-            isExpert: true,
-            createdAt: '2026-06-01T00:00:00.000Z',
-        },
-    ],
-    products: [
-        {
-            id: 'product-admin-01',
-            expertId: 'expert-admin-01',
-            expertName: '한석준',
-            title: 'AI 영상 제작',
-            category: 'ai-video-shortform',
-            summary: '숏폼 제작',
-            description: 'AI 숏폼 영상 제작',
-            aiTools: ['Runway'],
-            sampleLinks: [],
-            sampleImageUrl: 'https://example.com/product.jpg',
-            startingPrice: 50000,
-            deliveryDays: 3,
-            revisionCount: 1,
-            status: 'published',
-            packages: {
-                standard: {
-                    name: 'Standard',
-                    price: 50000,
-                    deliveryDays: 3,
-                    revisionCount: 1,
-                    included: ['영상 1개'],
-                },
-                deluxe: null,
-                premium: null,
-            },
-        },
-    ],
-    serviceRequests: [
-        {
-            id: 'request-admin-01',
-            title: '숏폼 의뢰',
-            description: '광고 숏폼',
-            budget: '',
-            deadline: '2026-07-05',
-            categories: [],
-            createdAt: '2026-07-01T00:00:00.000Z',
-            clientId: 'client-admin-01',
-            expertId: 'expert-admin-01',
-            status: 'pending',
-            productId: 'product-admin-01',
-            selectedPackage: 'standard',
-        },
-    ],
-    proposals: [
-        {
-            id: 'proposal-admin-01',
-            requestId: 'request-admin-01',
-            clientId: 'client-admin-01',
-            expertId: 'expert-admin-01',
-            title: '숏폼 제안서',
-            scope: '영상 제작',
-            deliverables: ['영상'],
-            totalPrice: 50000,
-            deliveryDays: 3,
-            revisionCount: 1,
-            progressType: 'single',
-            milestones: [],
-            commercialUseAllowed: true,
-            sourceFileIncluded: false,
-            status: 'accepted',
-            paymentStatus: 'paid',
-            expiresAt: '2026-07-10T00:00:00.000Z',
-        },
-    ],
-    works: [
-        {
-            id: 'work-admin-01',
-            proposalId: 'proposal-admin-01',
-            requestId: 'request-admin-01',
-            clientId: 'client-admin-01',
-            expertId: 'expert-admin-01',
-            title: '숏폼 작업방',
-            progressType: 'single',
-            status: 'in_progress',
-            totalPrice: 50000,
-            settlementStatus: 'held',
-            stepIds: [],
-        },
-    ],
-    consultations: [
-        {
-            id: 'consultation-admin-01',
-            clientId: 'client-admin-01',
-            expertId: 'expert-admin-01',
-            productId: 'product-admin-01',
-            status: 'open',
-            title: '가격 문의',
-            lastMessageAt: '2026-07-01T00:00:00.000Z',
-            createdAt: '2026-07-01T00:00:00.000Z',
-        },
-    ],
-    consultationMessages: [
-        {
-            id: 'consultation-message-admin-01',
-            consultationId: 'consultation-admin-01',
-            senderId: 'client-admin-01',
-            body: 'Need price estimate for shortform.',
-            attachmentUrls: [],
-            createdAt: '2026-07-01T00:10:00.000Z',
-        },
-    ],
-    workMessages: [
-        {
-            id: 'work-message-admin-01',
-            workId: 'work-admin-01',
-            senderId: 'expert-admin-01',
-            body: 'Draft delivery is ready.',
-            attachmentUrls: [],
-            createdAt: '2026-07-01T00:20:00.000Z',
-        },
-    ],
-    reviews: [
-        {
-            id: 'review-admin-01',
-            workId: 'work-admin-01',
-            clientId: 'client-admin-01',
-            expertId: 'expert-admin-01',
-            rating: 5,
-            content: '좋았습니다.',
-            createdAt: '2026-07-01T00:00:00.000Z',
-        },
-    ],
-    adminActions: [],
-};
-
 describe('Admin', () => {
     beforeEach(() => {
         mockNavigate.mockReset();
@@ -181,7 +42,7 @@ describe('Admin', () => {
             user: { id: 'user-admin-01', email: 'benet9827@gmail.com' },
         });
         vi.mocked(getAdminSnapshot).mockClear();
-        vi.mocked(getAdminSnapshot).mockResolvedValue(snapshot);
+        vi.mocked(getAdminSnapshot).mockResolvedValue(adminSnapshot);
         vi.mocked(saveAdminAction).mockClear();
         vi.mocked(saveAdminAction).mockImplementation(async (input) => ({
             id: 'admin-action-test-01',
@@ -263,5 +124,37 @@ describe('Admin', () => {
         }));
         expect(await screen.findByText('최근 운영 조치')).toBeInTheDocument();
         expect(screen.getByText('관리자가 회원 경고를 기록했습니다.')).toBeInTheDocument();
+    });
+
+    it('runs product hiding from the admin product panel', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(2);
+        fireEvent.click(screen.getByRole('button', { name: '상품 숨김 처리' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'product',
+            targetId: 'product-admin-01',
+            actionType: 'hide_product',
+            reason: '관리자가 상품 숨김 처리를 실행했습니다.',
+        }));
+    });
+
+    it('runs work cancellation from the admin workroom panel', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(5);
+        fireEvent.click(screen.getByRole('button', { name: '거래 중단 처리' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-01',
+            actionType: 'cancel_trade',
+            reason: '관리자가 작업방 거래 중단 처리를 실행했습니다.',
+        }));
     });
 });

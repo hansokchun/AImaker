@@ -666,6 +666,12 @@ create policy "Admins can view consultations"
   on public.consultations for select
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
+drop policy if exists "Admins can update consultations" on public.consultations;
+create policy "Admins can update consultations"
+  on public.consultations for update
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
+  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
 drop policy if exists "Admins can view consultation messages" on public.consultation_messages;
 create policy "Admins can view consultation messages"
   on public.consultation_messages for select
@@ -685,6 +691,12 @@ drop policy if exists "Admins can view works" on public.works;
 create policy "Admins can view works"
   on public.works for select
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can update works" on public.works;
+create policy "Admins can update works"
+  on public.works for update
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
+  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can view work steps" on public.work_steps;
 create policy "Admins can view work steps"

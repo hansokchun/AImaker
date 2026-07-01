@@ -13,23 +13,29 @@ const statusClass = (status?: string): string => {
 const statusLabel = (status?: string): string => {
     const labels: Record<string, string> = {
         accepted: '승인됨',
+        cancel_trade: '거래 중단',
         cancelled: '취소됨',
+        close_consultation: '상담 종료',
         closed: '종료',
         completed: '완료',
         draft: '임시저장',
         hidden: '숨김',
+        hide_product: '상품 숨김',
         held: '보관 중',
         in_progress: '진행 중',
+        note: '메모',
         open: '상담 중',
         paid: '결제 완료',
         pending: '대기',
         proposal_sent: '제안서 발송',
         published: '공개',
         refunded: '환불',
+        restrict: '활동 제한',
         revision_requested: '수정 요청',
         sent: '발송됨',
         submitted: '제출됨',
         unpaid: '미결제',
+        warn: '경고',
     };
     return status ? labels[status] || status : '상태 없음';
 };
