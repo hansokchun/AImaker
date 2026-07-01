@@ -459,14 +459,16 @@
 }
 
 .work-progress-marker-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    position: relative;
+    display: flex;
     align-items: center;
-    gap: var(--space-2);
+    justify-content: center;
     margin-bottom: var(--space-1);
 }
 
 .work-progress-marker {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -481,6 +483,11 @@
 }
 
 .work-progress-line {
+    position: absolute;
+    top: 50%;
+    left: calc(50% + 1.35rem);
+    right: calc(-50% + 1.35rem);
+    transform: translateY(-50%);
     height: 1px;
     border-radius: 999px;
     background: #dbe3ef;
