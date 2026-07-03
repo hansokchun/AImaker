@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
+import { defaultAdminFilters, filterAdminSnapshot, type AdminFilterState } from '../lib/adminFilters';
 import { getAdminSnapshot, isAdminEmail, saveAdminAction, type AdminAction, type AdminSnapshot } from '../lib/adminStorage';
 import AdminDashboardPanel from './AdminDashboardPanel';
 import AdminDataPanels, { type AdminActionRequest } from './AdminDataPanels';
+import AdminFilters from './AdminFilters';
 import './Admin.css';
 
 type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews' | 'actions';
@@ -19,6 +21,7 @@ export default function Admin() {
     const { session, user, loading } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+    const [filters, setFilters] = useState<AdminFilterState>(defaultAdminFilters);
     const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null);
     const [loadError, setLoadError] = useState('');
     const [actionNotice, setActionNotice] = useState('');
@@ -45,8 +48,12 @@ export default function Admin() {
         };
     }, [canAccessAdmin]);
 
-    const tabs = useMemo(() => buildTabs(snapshot), [snapshot]);
-    const stats = useMemo(() => buildStats(snapshot), [snapshot]);
+    const visibleSnapshot = useMemo(
+        () => snapshot ? filterAdminSnapshot(snapshot, filters) : null,
+        [filters, snapshot],
+    );
+    const tabs = useMemo(() => buildTabs(visibleSnapshot), [visibleSnapshot]);
+    const stats = useMemo(() => buildStats(visibleSnapshot), [visibleSnapshot]);
 
     const handleAdminAction = (input: AdminActionRequest) => {
         if (!user?.id) return;
@@ -89,12 +96,13 @@ export default function Admin() {
             <div className="admin-alert">
                 관리자 화면은 클라이언트에서 RLS를 우회하지 않습니다. 회원 삭제, 정산 변경, 분쟁 확정 같은 고위험 조치는 서버 함수가 연결된 뒤 활성화하는 것이 안전합니다.
             </div>
+            <AdminFilters value={filters} onChange={setFilters} />
             <div className="admin-layout">
                 <AdminSidebar activeTab={activeTab} tabs={tabs} onSelect={setActiveTab} />
                 <section className="admin-main">
-                    {snapshot && activeTab === 'dashboard' && <AdminDashboardPanel stats={stats} />}
-                    {snapshot && activeTab !== 'dashboard' && (
-                        <AdminDataPanels activeTab={activeTab} snapshot={snapshot} onAction={handleAdminAction} />
+                    {visibleSnapshot && activeTab === 'dashboard' && <AdminDashboardPanel stats={stats} />}
+                    {visibleSnapshot && activeTab !== 'dashboard' && (
+                        <AdminDataPanels activeTab={activeTab} snapshot={visibleSnapshot} onAction={handleAdminAction} />
                     )}
                 </section>
             </div>

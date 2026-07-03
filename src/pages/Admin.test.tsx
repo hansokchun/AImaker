@@ -63,6 +63,7 @@ describe('Admin', () => {
         expect(screen.getByText('공개 상품')).toBeInTheDocument();
         expect(screen.getByText('진행 중 작업')).toBeInTheDocument();
         expect(screen.getByText('데이터: 로컬/데모')).toBeInTheDocument();
+        expect(screen.getByLabelText('관리자 검색')).toBeInTheDocument();
     });
 
     it('shows product, trade, workroom, and review data from the admin snapshot', async () => {
@@ -82,6 +83,26 @@ describe('Admin', () => {
 
         clickAdminTab(6);
         expect(screen.getByText('좋았습니다.')).toBeInTheDocument();
+    });
+
+    it('filters admin records by search query and status', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        fireEvent.change(screen.getByLabelText('관리자 검색'), { target: { value: 'price estimate' } });
+        clickAdminTab(4);
+
+        expect(screen.getByText('Need price estimate for shortform.')).toBeInTheDocument();
+        clickAdminTab(2);
+        expect(screen.queryByText('AI 영상 제작')).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText('관리자 검색'), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText('상태 필터'), { target: { value: 'in_progress' } });
+        clickAdminTab(5);
+
+        expect(screen.getByText('숏폼 작업방')).toBeInTheDocument();
+        clickAdminTab(2);
+        expect(screen.queryByText('AI 영상 제작')).not.toBeInTheDocument();
     });
 
     it('blocks non-admin accounts from the admin screen', async () => {
