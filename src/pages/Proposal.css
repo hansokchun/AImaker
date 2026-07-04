@@ -156,7 +156,7 @@
     line-height: 1.5;
 }
 
-.proposal-test-payment {
+.proposal-payment-notice {
     display: grid;
     gap: 0.35rem;
     margin: 1.5rem 0;
@@ -166,12 +166,12 @@
     border-radius: var(--radius-lg);
 }
 
-.proposal-test-payment strong {
+.proposal-payment-notice strong {
     color: #1d4ed8;
     font-weight: 900;
 }
 
-.proposal-test-payment p {
+.proposal-payment-notice p {
     margin: 0;
     color: #475569;
     font-weight: 800;
@@ -210,6 +210,68 @@
     text-align: center;
     font-size: 0.92rem;
     font-weight: 800;
+}
+
+.proposal-result-layout {
+    padding: 5rem 0 6rem;
+}
+
+.proposal-result-card {
+    display: grid;
+    gap: 1rem;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.proposal-result-card h1 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.proposal-result-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.proposal-result-card .btn-primary {
+    justify-self: start;
+    margin-top: 0.5rem;
+    padding: 0.9rem 1.2rem;
+    border-radius: var(--radius-lg);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.proposal-fail-reason {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 1rem;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: var(--radius-lg);
+}
+
+.proposal-fail-reason div {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.proposal-fail-reason dt {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-weight: 800;
+}
+
+.proposal-fail-reason dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 800;
+    overflow-wrap: anywhere;
 }
 
 .proposal-create-page {

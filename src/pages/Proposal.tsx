@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { acceptProposal, getProposal, getWorkByProposal } from '../lib/storage'
+import { getProposal, getWorkByProposal } from '../lib/storage'
+import { startTossProposalPayment } from '../lib/tossPayments'
 import type { Proposal as ProposalData } from '../types'
 import './Proposal.css'
 
@@ -32,6 +33,7 @@ const mockProposals: ProposalData[] = [
 ]
 
 const currency = new Intl.NumberFormat('ko-KR')
+const PAYMENT_START_TIMEOUT_MS = 20_000
 
 const statusText: Record<ProposalData['status'], string> = {
     sent: '제안 대기',
@@ -52,12 +54,31 @@ function formatDate(value: string) {
 const isMyPageReturnPath = (pathname?: string) =>
     pathname === ROUTES.MY_PAGE || pathname === ROUTES.WORK_DASHBOARD
 
+const withPaymentStartTimeout = async (paymentPromise: Promise<void>) => {
+    let timeoutId: number | undefined
+    paymentPromise.catch(() => undefined)
+
+    try {
+        await Promise.race([
+            paymentPromise,
+            new Promise<never>((_, reject) => {
+                timeoutId = window.setTimeout(() => {
+                    reject(new Error('토스페이먼츠 결제창 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.'))
+                }, PAYMENT_START_TIMEOUT_MS)
+            }),
+        ])
+    } finally {
+        if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
+}
+
 export default function Proposal() {
     const { proposalId } = useParams<{ proposalId: string }>()
     const location = useLocation()
     const { user } = useAuth()
     const [proposal, setProposal] = useState<ProposalData | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
+    const [isStartingPayment, setIsStartingPayment] = useState(false)
     const [statusMessage, setStatusMessage] = useState('')
     const [createdWorkId, setCreatedWorkId] = useState('')
     const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
@@ -121,10 +142,30 @@ export default function Proposal() {
     const canClientRespond = isClientOwner && !isClosed
 
     const handleAccept = async () => {
-        const workId = await acceptProposal(proposal)
-        setProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid', platformFeeRate: 0.12 })
-        setCreatedWorkId(workId)
-        setStatusMessage('제안서를 승인하고 결제를 완료했습니다. 프로젝트가 열렸습니다.')
+        if (!user) {
+            setStatusMessage('로그인 후 결제를 진행할 수 있습니다.')
+            return
+        }
+
+        setIsStartingPayment(true)
+        setStatusMessage('토스페이먼츠 결제창을 여는 중입니다.')
+
+        try {
+            await withPaymentStartTimeout(
+                startTossProposalPayment(proposal, {
+                    id: user.id,
+                    email: user.email,
+                    name: typeof user.user_metadata?.name === 'string' ? user.user_metadata.name : undefined,
+                }),
+            )
+        } catch (error) {
+            if (error instanceof Error) {
+                setStatusMessage(error.message)
+            } else {
+                setStatusMessage('결제를 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+            }
+            setIsStartingPayment(false)
+        }
     }
 
     return (
@@ -196,11 +237,11 @@ export default function Proposal() {
                         <p>제안 유효 기간은 발송일로부터 3일입니다.</p>
                     </div>
 
-                    <p className="proposal-start-notice">승인과 결제가 완료되어야 프로젝트가 생성됩니다.</p>
+                    <p className="proposal-start-notice">토스페이먼츠 결제 승인 후 프로젝트가 자동으로 생성됩니다.</p>
                     <p className="proposal-start-notice">완료 승인 후 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
-                    <div className="proposal-test-payment">
-                        <strong>테스트 결제 모드</strong>
-                        <p>승인 및 결제하기를 누르면 실제 PG 결제 없이 결제 완료 상태로 처리하고 프로젝트를 생성합니다.</p>
+                    <div className="proposal-payment-notice">
+                        <strong>토스페이먼츠 안전결제</strong>
+                        <p>결제 금액은 서버에서 제안서 금액과 다시 대조한 뒤 승인합니다.</p>
                     </div>
                     {statusMessage && <p className="proposal-start-notice">{statusMessage}</p>}
                     {createdWorkId && (
@@ -215,8 +256,8 @@ export default function Proposal() {
                                 수정하기
                             </Link>
                         ) : isClientOwner ? (
-                            <button type="button" className="btn-primary" disabled={!canClientRespond} onClick={handleAccept}>
-                                승인 및 결제하기
+                            <button type="button" className="btn-primary" disabled={!canClientRespond || isStartingPayment} onClick={handleAccept}>
+                                {isStartingPayment ? '결제창 여는 중' : '토스로 결제하기'}
                             </button>
                         ) : null}
                     </div>

@@ -13,6 +13,7 @@ describe('database.sql', () => {
             'consultation_messages',
             'service_requests',
             'proposals',
+            'payment_orders',
             'works',
             'work_steps',
             'deliverables',
@@ -158,6 +159,24 @@ describe('database.sql', () => {
         expect(sql).toMatch(/cancelled_at timestamptz/i)
         expect(sql).toMatch(/add column if not exists payment_status/i)
         expect(sql).toMatch(/add column if not exists settlement_status/i)
+    })
+
+    it('stores Toss payment orders without exposing write access to clients', () => {
+        expect(sql).toMatch(/create table(?: if not exists)? public\.payment_orders/i)
+        expect(sql).toMatch(/order_id text not null unique/i)
+        expect(sql).toMatch(/proposal_id uuid not null references public\.proposals\(id\)/i)
+        expect(sql).toMatch(/amount integer not null check \(amount > 0\)/i)
+        expect(sql).toMatch(/status text not null default 'ready' check \(status in \('ready', 'approved', 'failed'\)\)/i)
+        expect(sql).toMatch(/payment_key text/i)
+        expect(sql).toMatch(/approved_at timestamptz/i)
+
+        const policyMatch = sql.match(/create policy "Clients can view own payment orders"[\s\S]*?;/i)
+        const policySql = policyMatch?.[0] || ''
+
+        expect(policySql).toMatch(/on public\.payment_orders for select/i)
+        expect(policySql).toMatch(/using \(auth\.uid\(\) = client_id\)/i)
+        expect(sql).not.toMatch(/on public\.payment_orders for insert/i)
+        expect(sql).not.toMatch(/on public\.payment_orders for update/i)
     })
 
     it('stores profile and product trust fields used by launch UI', () => {

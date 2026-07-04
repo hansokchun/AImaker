@@ -50,6 +50,7 @@ const getWorkByProposal = vi.fn(async (_proposalId: string): Promise<Work | null
 const getProposal = vi.fn(async (id: string): Promise<ProposalData | null> =>
     id === expiredProposal.id ? expiredProposal : activeProposal,
 )
+const startTossProposalPayment = vi.fn(async (_proposal: ProposalData, _customer: { readonly id: string; readonly email?: string; readonly name?: string }) => undefined)
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -61,7 +62,11 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../lib/storage', () => ({
     getProposal: (proposalId: string) => getProposal(proposalId),
     getWorkByProposal: (proposalId: string) => getWorkByProposal(proposalId),
-    acceptProposal: (proposal: ProposalData) => acceptProposal(proposal),
+}))
+
+vi.mock('../lib/tossPayments', () => ({
+    startTossProposalPayment: (proposal: ProposalData, customer: { readonly id: string; readonly email?: string; readonly name?: string }) =>
+        startTossProposalPayment(proposal, customer),
 }))
 
 function renderProposal(path = '/proposal/proposal-demo-01') {
@@ -78,10 +83,12 @@ const linkHrefs = () => screen.queryAllByRole('link').map((link) => link.getAttr
 
 describe('Proposal', () => {
     beforeEach(() => {
+        vi.useRealTimers()
         currentUserId = 'client-demo-01'
         getProposal.mockReset()
         getProposal.mockImplementation(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal))
         acceptProposal.mockClear()
+        startTossProposalPayment.mockClear()
         getWorkByProposal.mockReset()
         getWorkByProposal.mockResolvedValue(null)
     })
@@ -96,7 +103,7 @@ describe('Proposal', () => {
         expect(screen.queryAllByRole('button')).toHaveLength(0)
     })
 
-    it('lets clients accept active proposals without revision, reject, or cancel actions', async () => {
+    it('starts Toss payment for active client proposals without completing the work locally', async () => {
         renderProposal()
 
         expect(await screen.findByText(activeProposal.scope)).toBeInTheDocument()
@@ -104,8 +111,15 @@ describe('Proposal', () => {
 
         fireEvent.click(screen.getAllByRole('button')[0])
 
-        await waitFor(() => expect(acceptProposal).toHaveBeenCalledWith(activeProposal))
-        expect(linkHrefs()).toContain('/workroom/work-created-01')
+        await waitFor(() =>
+            expect(startTossProposalPayment).toHaveBeenCalledWith(activeProposal, {
+                id: 'client-demo-01',
+                email: 'client-demo-01@example.com',
+                name: undefined,
+            }),
+        )
+        expect(acceptProposal).not.toHaveBeenCalled()
+        expect(linkHrefs()).not.toContain('/workroom/work-created-01')
     })
 
     it('blocks expert editing when reopening a paid accepted proposal', async () => {

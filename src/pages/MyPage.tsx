@@ -26,13 +26,6 @@ const workStatusText: Record<Work['status'], string> = {
     cancelled: '취소',
 }
 
-const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string> = {
-    held: '작업 진행 중 보관',
-    pending: '정산 대기',
-    settled: '정산 완료',
-    refunded: '환불 처리',
-}
-
 const currency = new Intl.NumberFormat('ko-KR')
 
 const normalizeStageActions = (action?: StageAction | StageAction[]) =>

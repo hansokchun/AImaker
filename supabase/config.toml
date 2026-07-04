@@ -1,0 +1,8 @@
+[functions.toss-payment-order]
+verify_jwt = true
+
+[functions.toss-payment-confirm]
+verify_jwt = true
+
+[functions.toss-payment-webhook]
+verify_jwt = false

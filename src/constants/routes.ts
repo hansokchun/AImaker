@@ -12,6 +12,8 @@ export const ROUTES = {
     SERVICE_REQUEST_PRODUCT: '/request/:productId',
     PROPOSAL_NEW: '/proposals/new',
     PROPOSAL: '/proposal/:proposalId',
+    TOSS_PAYMENT_SUCCESS: '/payments/toss/success',
+    TOSS_PAYMENT_FAIL: '/payments/toss/fail',
     WORKROOM: '/workroom/:workId',
     WORK_DASHBOARD: '/my-work',
     LOGIN: '/login',

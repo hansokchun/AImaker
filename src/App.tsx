@@ -13,6 +13,8 @@ import Category from './pages/Category';
 import ExpertDetail from './pages/ExpertDetail';
 import ServiceRequest from './pages/ServiceRequest';
 import Proposal from './pages/Proposal';
+import TossPaymentFail from './pages/TossPaymentFail';
+import TossPaymentSuccess from './pages/TossPaymentSuccess';
 import ProposalCreate from './pages/ProposalCreate';
 import Workroom from './pages/Workroom';
 import Login from './pages/Login';
@@ -38,6 +40,8 @@ function App() {
                     <Route path={ROUTES.SERVICE_REQUEST_PRODUCT} element={<ServiceRequest />} />
                     <Route path={ROUTES.PROPOSAL_NEW} element={<ProposalCreate />} />
                     <Route path={ROUTES.PROPOSAL} element={<Proposal />} />
+                    <Route path={ROUTES.TOSS_PAYMENT_SUCCESS} element={<TossPaymentSuccess />} />
+                    <Route path={ROUTES.TOSS_PAYMENT_FAIL} element={<TossPaymentFail />} />
                     <Route path={ROUTES.WORKROOM} element={<Workroom />} />
                     <Route path={ROUTES.LOGIN} element={<Login />} />
                     <Route path={ROUTES.ONBOARDING} element={<Onboarding />} />
