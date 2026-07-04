@@ -1117,6 +1117,50 @@ describe('MyPage', () => {
         expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
     })
 
+    it('maps proposal-sent consultations to 상담 중 in the chat UI', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-expert-01&role=expert']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
+        expect(screen.getAllByText('상담 중').length).toBeGreaterThan(0)
+        expect(screen.queryByText('제안서 발송됨')).not.toBeInTheDocument()
+    })
+
+    it('disables the consultation message composer when the selected consultation is closed', async () => {
+        getUserConsultations.mockResolvedValue([
+            {
+                id: 'consult-closed-01',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-01',
+                productId: 'product-client-01',
+                status: 'closed',
+                title: '종료된 캐릭터 상담',
+                lastMessageAt: '2026-06-03T10:00:00.000Z',
+                createdAt: '2026-06-03T09:30:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-closed-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const input = await screen.findByLabelText('상담 메시지 입력')
+
+        expect(screen.getAllByText('종료됨').length).toBeGreaterThan(0)
+        expect(screen.getByText('이 상담은 종료되었습니다. 더 이상 메시지를 보낼 수 없습니다.')).toBeInTheDocument()
+        expect(input).toBeDisabled()
+        expect(screen.getByRole('button', { name: '메시지 보내기' })).toBeDisabled()
+    })
+
     it('sends a consultation message from the selected chat panel', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
@@ -2336,9 +2380,9 @@ describe('MyPage', () => {
         const list = screen.getByLabelText('상담 채팅 목록')
         const chatTitle = await screen.findByRole('button', { name: /AI 숏폼 영상 제작 상담/ })
 
-        expect(layout).toHaveStyle({ gridTemplateColumns: 'minmax(150px, 0.42fr) minmax(0, 1.95fr)' })
-        expect(list).toHaveStyle({ gap: '0.45rem' })
-        expect(chatTitle).toHaveStyle({ padding: '0.75rem' })
+        expect(layout).toHaveClass('consultation-chat-layout')
+        expect(list).toHaveClass('consultation-chat-list')
+        expect(chatTitle).toHaveClass('consultation-list-card')
     })
 
     it('does not offer another review for work already reviewed by the client', async () => {

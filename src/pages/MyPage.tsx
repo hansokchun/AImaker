@@ -6,6 +6,7 @@ import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
+import { ConsultationChatPanel } from './ConsultationChatPanel'
 import './MyPage.css'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
@@ -2390,151 +2391,25 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     )
 
     const renderConsultationPanel = () => (
-        <section style={cardStyle}>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.5rem' }}>상담 채팅</h2>
-            <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
-                전문가 문의로 시작한 상담을 한 곳에서 확인합니다. 상담 후 제안서를 받아야 결제와 프로젝트 생성으로 이어집니다.
-            </p>
-
-            {roleFilteredConsultations.length > 0 ? (
-                <div
-                    aria-label="상담 채팅 레이아웃"
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(150px, 0.42fr) minmax(0, 1.95fr)',
-                        gap: '1rem',
-                        alignItems: 'start',
-                    }}
-                >
-                    <div aria-label="상담 채팅 목록" style={{ display: 'grid', gap: '0.45rem' }}>
-                        {roleFilteredConsultations.map((consultation) => {
-                            const selected = selectedPanelConsultation?.id === consultation.id
-                            const product = products.find((item) => item.id === consultation.productId)
-                            return (
-                                <button
-                                    key={consultation.id}
-                                    type="button"
-                                    aria-pressed={selected}
-                                    onClick={() => {
-                                        setActivePanel('consultations')
-                                        setSelectedConsultationId(consultation.id)
-                                    }}
-                                    style={{
-                                        textAlign: 'left',
-                                        padding: '0.75rem',
-                                        borderRadius: '0.75rem',
-                                        border: selected ? '1px solid #2563eb' : '1px solid var(--border-color)',
-                                        background: selected ? '#eff6ff' : '#f8fafc',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.25rem', fontSize: '0.9rem', lineHeight: 1.35 }}>
-                                        {consultation.title}
-                                    </strong>
-                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.35 }}>
-                                        {product?.title || '상품 상담'} · {consultation.status === 'proposal_sent' ? '제안서 발송됨' : consultation.status === 'closed' ? '종료됨' : '상담 중'}
-                                    </span>
-                                </button>
-                            )
-                        })}
-                    </div>
-
-                    <div style={{ padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: '#fff' }}>
-                        {selectedPanelConsultation ? (
-                            <>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.35rem' }}>
-                                    {selectedPanelConsultation.title}
-                                </h3>
-                                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem' }}>
-                                    {selectedPanelConsultationProduct?.title || '상품 상담'} · {selectedPanelConsultation.status === 'proposal_sent' ? '제안서 발송됨' : selectedPanelConsultation.status === 'closed' ? '종료됨' : '상담 중'}
-                                </p>
-                                <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
-                                    {consultationMessages.length > 0 ? (
-                                        consultationMessages.map((message) => {
-                                            const mine = message.senderId === user?.id
-                                            return (
-                                                <div
-                                                    key={message.id}
-                                                    style={{
-                                                        justifySelf: mine ? 'end' : 'start',
-                                                        maxWidth: '78%',
-                                                        padding: '0.8rem 0.9rem',
-                                                        borderRadius: '0.75rem',
-                                                        background: mine ? '#2563eb' : '#f1f5f9',
-                                                        color: mine ? 'white' : '#0f172a',
-                                                        fontWeight: 700,
-                                                        lineHeight: 1.5,
-                                                    }}
-                                                >
-                                                    {message.body}
-                                                </div>
-                                            )
-                                        })
-                                    ) : (
-                                        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 상담 메시지가 없습니다.</p>
-                                    )}
-                                </div>
-                                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                    <label
-                                        htmlFor="consultation-message-input"
-                                        style={{ fontWeight: 800, color: '#0f172a' }}
-                                    >
-                                        메시지
-                                    </label>
-                                    <textarea
-                                        id="consultation-message-input"
-                                        aria-label="상담 메시지 입력"
-                                        value={consultationMessageBody}
-                                        onChange={(event) => setConsultationMessageBody(event.target.value)}
-                                        rows={3}
-                                        placeholder="상담 메시지를 입력하세요."
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.85rem 1rem',
-                                            borderRadius: '0.75rem',
-                                            border: '1px solid var(--border-color)',
-                                            resize: 'vertical',
-                                            font: 'inherit',
-                                            lineHeight: 1.5,
-                                        }}
-                                    />
-                                    {consultationMessageError && (
-                                        <p role="alert" style={{ margin: 0, color: '#e11d48', fontWeight: 700 }}>
-                                            {consultationMessageError}
-                                        </p>
-                                    )}
-                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                        <button
-                                            type="button"
-                                            className="btn-primary"
-                                            disabled={consultationMessageSubmitting || !consultationMessageBody.trim()}
-                                            onClick={handleSendConsultationMessage}
-                                            style={{ padding: '0.75rem 1rem' }}
-                                        >
-                                            {consultationMessageSubmitting ? '전송 중' : '메시지 보내기'}
-                                        </button>
-                                        {selectedPanelConsultation.expertId === user?.id && (
-                                            <button
-                                                type="button"
-                                                className="btn-text"
-                                                disabled={consultationProposalSubmitting}
-                                                onClick={handleCreateConsultationProposal}
-                                            >
-                                                {consultationProposalSubmitting ? '제안서 작성 중' : '제안서 작성'}
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
-                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>상담을 선택해주세요.</p>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 상담 채팅이 없습니다.</p>
-            )}
-        </section>
+        <ConsultationChatPanel
+            consultations={roleFilteredConsultations}
+            products={products}
+            selectedConsultation={selectedPanelConsultation}
+            selectedProduct={selectedPanelConsultationProduct}
+            messages={consultationMessages}
+            currentUserId={user?.id || ''}
+            messageBody={consultationMessageBody}
+            messageError={consultationMessageError}
+            messageSubmitting={consultationMessageSubmitting}
+            proposalSubmitting={consultationProposalSubmitting}
+            onSelectConsultation={(consultationId) => {
+                setActivePanel('consultations')
+                setSelectedConsultationId(consultationId)
+            }}
+            onMessageBodyChange={setConsultationMessageBody}
+            onSendMessage={handleSendConsultationMessage}
+            onCreateProposal={handleCreateConsultationProposal}
+        />
     )
 
     const renderProfileViewPanel = () => {
