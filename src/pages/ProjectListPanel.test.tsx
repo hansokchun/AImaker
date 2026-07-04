@@ -121,7 +121,7 @@ describe('ProjectListPanel', () => {
 
         expect(thumbnail).toHaveAttribute('src', 'https://example.com/product-image.jpg')
         expect(within(card).getByText('진행 중')).toBeInTheDocument()
-        expect(within(card).getByText('새 진행 상태 확인')).toBeInTheDocument()
+        expect(within(card).queryByText('새 진행 상태 확인')).not.toBeInTheDocument()
     })
 
     it('shows a category placeholder when the linked product has no image', () => {
@@ -132,7 +132,7 @@ describe('ProjectListPanel', () => {
         expect(within(card).queryByAltText('AI 자동화 설계 프로젝트 썸네일')).not.toBeInTheDocument()
         expect(within(card).getByLabelText('AI 개발/자동화 프로젝트 기본 이미지')).toBeInTheDocument()
         expect(within(card).getByText('검토 대기')).toBeInTheDocument()
-        expect(within(card).getByText('결과물 확인 필요')).toBeInTheDocument()
+        expect(within(card).queryByText('결과물 확인 필요')).not.toBeInTheDocument()
     })
 
     it('keeps completed review cards white while reusing the product thumbnail and review action', () => {

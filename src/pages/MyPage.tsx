@@ -112,8 +112,8 @@ const clientWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
 ]
 
 const expertWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
-    { id: 'products', label: '내 상품관리' },
     { id: 'client', label: '거래관리' },
+    { id: 'products', label: '내 상품관리' },
     { id: 'consultations', label: '상담채팅' },
     { id: 'workroom', label: '프로젝트' },
 ]

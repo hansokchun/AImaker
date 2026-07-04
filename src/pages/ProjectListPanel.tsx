@@ -50,14 +50,6 @@ const categoryLabel: Record<ExpertProduct['category'], string> = {
     'ai-development-automation': 'AI 개발/자동화',
 }
 
-const getActionLabel = (work: Work, canWriteReview: boolean) => {
-    if (work.status === 'submitted') return '결과물 확인 필요'
-    if (work.status === 'revision_requested') return '수정요청 진행 중'
-    if (work.status === 'in_progress') return '새 진행 상태 확인'
-    if (work.status === 'completed' && canWriteReview) return '리뷰 작성'
-    return '상세 보기'
-}
-
 const isCompletedWork = (work: Work) => work.status === 'completed'
 
 function ProjectThumbnail({ imageUrl, title, tone, category }: { readonly imageUrl?: string; readonly title: string; readonly tone: ProjectCardViewTone; readonly category?: ExpertProduct['category'] }) {
@@ -95,7 +87,6 @@ function ProjectCard({ view, reviews, currentUserId, returnState, onReviewOpen, 
     const status = statusView[work.status]
     const hasReview = reviews.some((review) => review.workId === work.id && review.clientId === currentUserId)
     const canWriteReview = work.status === 'completed' && work.clientId === currentUserId && !hasReview
-    const actionLabel = getActionLabel(work, canWriteReview)
     const imageTitle = product?.title || work.title
     const dateText = request?.createdAt ? `${status.dateLabel} ${request.createdAt}` : status.label
     const workroomPath = `/workroom/${work.id}`
@@ -110,7 +101,7 @@ function ProjectCard({ view, reviews, currentUserId, returnState, onReviewOpen, 
                 aria-label={work.title}
             >
                 <ProjectThumbnail imageUrl={product?.sampleImageUrl} title={imageTitle} tone={status.tone} category={product?.category} />
-                <ProjectCardBody actionLabel={actionLabel} dateText={dateText} statusLabel={status.label} title={work.title} tone={status.tone} />
+                <ProjectCardBody dateText={dateText} statusLabel={status.label} title={work.title} tone={status.tone} />
             </Link>
         )
     }
@@ -122,7 +113,7 @@ function ProjectCard({ view, reviews, currentUserId, returnState, onReviewOpen, 
             onClick={() => navigate(workroomPath, { state: returnState })}
         >
             <ProjectThumbnail imageUrl={product?.sampleImageUrl} title={imageTitle} tone={status.tone} category={product?.category} />
-            <ProjectCardBody actionLabel={actionLabel} dateText={dateText} statusLabel={status.label} title={work.title} tone={status.tone}>
+            <ProjectCardBody dateText={dateText} statusLabel={status.label} title={work.title} tone={status.tone}>
                 {work.settlementStatus && (
                     <div className="project-list-settlement">
                         <span>{settlementStatusText[work.settlementStatus]}</span>
@@ -153,7 +144,7 @@ function ProjectCard({ view, reviews, currentUserId, returnState, onReviewOpen, 
     )
 }
 
-function ProjectCardBody({ actionLabel, children, dateText, statusLabel, title, tone }: { readonly actionLabel: string; readonly children?: ReactNode; readonly dateText: string; readonly statusLabel: string; readonly title: string; readonly tone: ProjectCardViewTone }) {
+function ProjectCardBody({ children, dateText, statusLabel, title, tone }: { readonly children?: ReactNode; readonly dateText: string; readonly statusLabel: string; readonly title: string; readonly tone: ProjectCardViewTone }) {
     return (
         <div className="project-list-card-body">
             <div className="project-list-card-main">
@@ -166,7 +157,6 @@ function ProjectCardBody({ actionLabel, children, dateText, statusLabel, title, 
                 </p>
                 {children}
             </div>
-            <span className="project-list-action">{actionLabel}</span>
         </div>
     )
 }

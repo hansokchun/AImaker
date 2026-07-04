@@ -2244,7 +2244,7 @@ describe('MyPage', () => {
         const submittedCard = await screen.findByRole('link', { name: 'Submitted work' })
         expect(submittedCard).toHaveAttribute('href', '/workroom/work-real-submitted')
         expect(submittedCard).toHaveAttribute('data-testid', 'active-work')
-        expect(within(submittedCard).getByText('결과물 확인 필요')).toBeInTheDocument()
+        expect(within(submittedCard).queryByText('결과물 확인 필요')).not.toBeInTheDocument()
     })
 
     it('opens the merged project page on the completed filter for legacy review URLs', async () => {
@@ -2317,6 +2317,9 @@ describe('MyPage', () => {
         expect(screen.getByRole('button', { name: '프로젝트' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '리뷰' })).not.toBeInTheDocument()
+
+        const expertMenu = screen.getByLabelText('내 작업 메뉴')
+        expect(within(expertMenu).getAllByRole('button')[0]).toHaveTextContent('거래관리')
     })
 
     it('links experts to product registration and opens owned products from product management', async () => {
@@ -2510,7 +2513,7 @@ describe('MyPage', () => {
         await waitFor(() => expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true'))
         expect(screen.getByRole('button', { name: '거래관리' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByTestId('location').textContent).toContain('role=expert')
-        expect(screen.getByTestId('location').textContent).toContain('panel=client')
+        expect(screen.getByTestId('location').textContent).not.toContain('panel=')
         expect(screen.getByTestId('location').textContent).toContain('expertRequest=request-product-directed-01')
         expect(screen.getByRole('heading', { name: /상품 지정 요구사항/ })).toBeInTheDocument()
     })

@@ -1749,7 +1749,6 @@
     background: #22c55e;
 }
 
-.project-list-action,
 .project-list-action-button {
     display: inline-flex;
     align-items: center;
@@ -1988,8 +1987,4 @@
         gap: var(--space-3);
     }
 
-    .project-list-action {
-        justify-self: start;
-        min-height: 38px;
-    }
 }
