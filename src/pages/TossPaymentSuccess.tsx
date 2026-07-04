@@ -35,6 +35,11 @@ export default function TossPaymentSuccess() {
 
             try {
                 const confirmation = await confirmTossProposalPayment({ paymentKey, orderId, amount })
+                if (confirmation.workId) {
+                    if (active) setResult({ status: 'done', workId: confirmation.workId })
+                    return
+                }
+
                 const proposal = await getProposal(confirmation.proposalId)
 
                 if (!proposal) {
@@ -46,7 +51,6 @@ export default function TossPaymentSuccess() {
                     ...proposal,
                     status: 'accepted',
                     paymentStatus: 'paid',
-                    platformFeeRate: 0.12,
                 })
 
                 if (active) setResult({ status: 'done', workId })

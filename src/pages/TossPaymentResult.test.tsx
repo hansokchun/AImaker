@@ -37,7 +37,7 @@ const work: Work = {
     stepIds: [],
 }
 
-const confirmTossProposalPayment = vi.fn(async () => ({ proposalId: paidProposal.id }))
+const confirmTossProposalPayment = vi.fn(async () => ({ proposalId: paidProposal.id, workId: work.id }))
 const getProposal = vi.fn(async () => paidProposal)
 const acceptProposal = vi.fn(async () => work.id)
 
@@ -58,7 +58,7 @@ describe('Toss payment result pages', () => {
         acceptProposal.mockClear()
     })
 
-    it('confirms payment and creates a workroom on the success redirect', async () => {
+    it('confirms payment and opens the server-created workroom on the success redirect', async () => {
         render(
             <MemoryRouter initialEntries={['/payments/toss/success?paymentKey=pay_123&orderId=order_123&amount=50000']}>
                 <Routes>
@@ -74,9 +74,25 @@ describe('Toss payment result pages', () => {
                 amount: 50000,
             }),
         )
+        expect(acceptProposal).not.toHaveBeenCalled()
+        expect(await screen.findByRole('link', { name: '프로젝트로 이동' })).toHaveAttribute('href', '/workroom/work-paid-01')
+    })
+
+    it('falls back to creating a workroom when the confirm response has no work id', async () => {
+        confirmTossProposalPayment.mockResolvedValueOnce({ proposalId: paidProposal.id })
+
+        render(
+            <MemoryRouter initialEntries={['/payments/toss/success?paymentKey=pay_123&orderId=order_123&amount=50000']}>
+                <Routes>
+                    <Route path="/payments/toss/success" element={<TossPaymentSuccess />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
         await waitFor(() => expect(acceptProposal).toHaveBeenCalledWith({
             ...paidProposal,
-            platformFeeRate: 0.12,
+            status: 'accepted',
+            paymentStatus: 'paid',
         }))
         expect(await screen.findByRole('link', { name: '프로젝트로 이동' })).toHaveAttribute('href', '/workroom/work-paid-01')
     })

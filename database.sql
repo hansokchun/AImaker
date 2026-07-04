@@ -360,6 +360,9 @@ create table if not exists public.payment_orders (
   amount integer not null check (amount > 0),
   currency text not null default 'KRW' check (currency = 'KRW'),
   order_name text not null,
+  platform_fee_rate numeric(5,4) not null default 0.12,
+  platform_fee integer not null default 0 check (platform_fee >= 0),
+  expert_payout integer not null default 0 check (expert_payout >= 0),
   payment_key text,
   status text not null default 'ready' check (status in ('ready', 'approved', 'failed')),
   failure_code text,
@@ -370,6 +373,9 @@ create table if not exists public.payment_orders (
 );
 
 alter table public.payment_orders add column if not exists payment_key text;
+alter table public.payment_orders add column if not exists platform_fee_rate numeric(5,4) not null default 0.12;
+alter table public.payment_orders add column if not exists platform_fee integer not null default 0;
+alter table public.payment_orders add column if not exists expert_payout integer not null default 0;
 alter table public.payment_orders add column if not exists failure_code text;
 alter table public.payment_orders add column if not exists failure_message text;
 alter table public.payment_orders add column if not exists approved_at timestamptz;

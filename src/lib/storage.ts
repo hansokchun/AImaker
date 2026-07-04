@@ -22,6 +22,7 @@ import type {
     WorkStep,
 } from '../types';
 import { supabase } from './supabase';
+import { PLATFORM_FEE_RATE, calculateSettlementAmounts } from '../constants/settlement';
 import { mockExpertProducts } from '../data/mockData';
 import { buildDemoAccountData, isDemoAccountRecordId, isDemoTestAccountEmail } from '../data/demoAccountData';
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
@@ -44,7 +45,6 @@ const STORAGE_KEYS = {
     FAVORITE_PRODUCTS: 'ai_favorite_products',
 } as const;
 
-const PLATFORM_FEE_RATE = 0.12;
 const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
 const DEMO_ACCOUNT_USER_NAME_KEY = 'ai_demo_account_user_name';
 
@@ -453,13 +453,8 @@ const toWork = (item: any): Work => ({
     stepIds: [],
 });
 
-const getProposalMoney = (proposal: Proposal) => {
-    const platformFee = Math.round(proposal.totalPrice * PLATFORM_FEE_RATE);
-    return {
-        platformFee,
-        expertPayout: proposal.totalPrice - platformFee,
-    };
-};
+const getProposalMoney = (proposal: Proposal) =>
+    calculateSettlementAmounts(proposal.totalPrice, proposal.platformFeeRate ?? PLATFORM_FEE_RATE);
 
 const toWorkStep = (item: any): WorkStep => ({
     id: item.id,
@@ -1447,7 +1442,7 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
                             ...storedProposal,
                             status: 'accepted',
                             paymentStatus: 'paid',
-                            platformFeeRate: PLATFORM_FEE_RATE,
+                            platformFeeRate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
                         }
                         : storedProposal,
                 ),
@@ -1483,7 +1478,7 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             status: 'accepted',
             payment_status: 'paid',
             paid_at: new Date().toISOString(),
-            platform_fee_rate: PLATFORM_FEE_RATE,
+            platform_fee_rate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
         })
         .eq('id', proposal.id);
 

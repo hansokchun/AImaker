@@ -57,6 +57,7 @@ type TossOrderResponse = {
 
 export type TossConfirmResponse = {
     readonly proposalId: string
+    readonly workId?: string
 }
 
 export class PaymentConfigurationError extends Error {
@@ -105,6 +106,7 @@ const isTossConfirmResponse = (value: unknown): value is TossConfirmResponse => 
     if (!value || typeof value !== 'object') return false
     const candidate = value as Partial<TossConfirmResponse>
     return typeof candidate.proposalId === 'string'
+        && (candidate.workId === undefined || typeof candidate.workId === 'string')
 }
 
 const loadTossPayments = async (): Promise<TossPaymentsFactory> => {

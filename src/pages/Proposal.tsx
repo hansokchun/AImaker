@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
+import { PLATFORM_FEE_RATE } from '../constants/settlement'
 import { useAuth } from '../contexts/AuthContext'
 import { getProposal, getWorkByProposal } from '../lib/storage'
 import { startTossProposalPayment } from '../lib/tossPayments'
@@ -33,6 +34,7 @@ const mockProposals: ProposalData[] = [
 ]
 
 const currency = new Intl.NumberFormat('ko-KR')
+const percent = new Intl.NumberFormat('ko-KR', { style: 'percent', maximumFractionDigits: 1 })
 const PAYMENT_START_TIMEOUT_MS = 20_000
 
 const statusText: Record<ProposalData['status'], string> = {
@@ -140,6 +142,7 @@ export default function Proposal() {
     const hasStartedWork = Boolean(createdWorkId) || proposal.paymentStatus === 'paid' || proposal.status === 'accepted'
     const canExpertManage = isExpertOwner && !isClosed && !hasStartedWork
     const canClientRespond = isClientOwner && !isClosed
+    const platformFeeRate = proposal.platformFeeRate ?? PLATFORM_FEE_RATE
 
     const handleAccept = async () => {
         if (!user) {
@@ -238,7 +241,9 @@ export default function Proposal() {
                     </div>
 
                     <p className="proposal-start-notice">토스페이먼츠 결제 승인 후 프로젝트가 자동으로 생성됩니다.</p>
-                    <p className="proposal-start-notice">완료 승인 후 AIConnect 수수료 12%를 제외한 금액이 전문가 정산 대기 상태가 됩니다.</p>
+                    <p className="proposal-start-notice">
+                        완료 승인 후 AIConnect 수수료 {percent.format(platformFeeRate)}를 제외한 금액이 전문가 정산 대기 상태가 됩니다.
+                    </p>
                     <div className="proposal-payment-notice">
                         <strong>토스페이먼츠 안전결제</strong>
                         <p>결제 금액은 서버에서 제안서 금액과 다시 대조한 뒤 승인합니다.</p>

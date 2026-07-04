@@ -1,5 +1,6 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient, requireUser } from '../_shared/supabase.ts'
+import { calculateSettlementAmounts, getPlatformFeeRate } from '../_shared/settlement.ts'
 
 type OrderRequest = {
     readonly proposalId: string
@@ -69,6 +70,8 @@ Deno.serve(async (request) => {
 
         const orderId = crypto.randomUUID()
         const orderName = `${proposal.title} 결제`
+        const platformFeeRate = getPlatformFeeRate()
+        const settlement = calculateSettlementAmounts(proposal.total_price, platformFeeRate)
         const { error: insertError } = await client.from('payment_orders').insert({
             order_id: orderId,
             proposal_id: proposal.id,
@@ -76,6 +79,9 @@ Deno.serve(async (request) => {
             amount: proposal.total_price,
             currency: 'KRW',
             order_name: orderName,
+            platform_fee_rate: platformFeeRate,
+            platform_fee: settlement.platformFee,
+            expert_payout: settlement.expertPayout,
             status: 'ready',
         })
 
