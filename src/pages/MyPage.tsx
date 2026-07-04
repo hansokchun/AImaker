@@ -7,6 +7,7 @@ import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
 import { ConsultationChatPanel } from './ConsultationChatPanel'
+import { ProjectListPanel } from './ProjectListPanel'
 import './MyPage.css'
 
 const proposalStatusText: Record<Proposal['status'], string> = {
@@ -706,119 +707,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             alert(error instanceof Error ? error.message : '회원 탈퇴 처리에 실패했습니다.')
         }
     }
-
-    const getWorkAttentionLabel = (work: Work) => {
-        if (work.status === 'submitted') return '결과물 확인 필요'
-        if (work.status === 'revision_requested') return '수정요청 진행 중'
-        if (work.status === 'in_progress') return '새 진행 상태 확인'
-        return ''
-    }
-
-    const renderWorkCards = (items: Work[], emptyText: string) => (
-        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-            {items.length > 0 ? (
-                items.map((work) => {
-                    const attentionLabel = getWorkAttentionLabel(work)
-                    const cardStyle = {
-                        padding: '1rem',
-                        borderRadius: '0.75rem',
-                        background: work.status === 'completed' ? '#f0fdf4' : '#f8fafc',
-                        border: attentionLabel ? '1px solid #bfdbfe' : '1px solid var(--border-color)',
-                    }
-
-                    if (work.status !== 'completed') {
-                        return (
-                            <Link
-                                key={work.id}
-                                to={`/workroom/${work.id}`}
-                                state={myPageReturnState}
-                                data-testid="active-work"
-                                aria-label={work.title}
-                                style={{
-                                    ...cardStyle,
-                                    display: 'grid',
-                                    gap: '0.45rem',
-                                    color: 'inherit',
-                                    textDecoration: 'none',
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-                                    <strong style={{ color: '#0f172a', fontWeight: 800 }}>{work.title}</strong>
-                                    {attentionLabel && (
-                                        <span style={{ padding: '0.25rem 0.55rem', borderRadius: '999px', background: '#dbeafe', color: '#1d4ed8', fontSize: '0.78rem', fontWeight: 900, whiteSpace: 'nowrap' }}>
-                                            {attentionLabel}
-                                        </span>
-                                    )}
-                                </div>
-                                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                                    {workStatusText[work.status]}
-                                </p>
-                            </Link>
-                        )
-                    }
-
-                    return (
-                    <div
-                        key={work.id}
-                        data-testid="completed-work"
-                        style={cardStyle}
-                    >
-                        <Link
-                            to={`/workroom/${work.id}`}
-                            state={myPageReturnState}
-                            style={{
-                                display: 'inline-block',
-                                color: '#0f172a',
-                                fontWeight: 800,
-                                textDecoration: 'none',
-                                marginBottom: '0.45rem',
-                            }}
-                        >
-                            {work.title}
-                        </Link>
-                        <p style={{ color: 'var(--text-secondary)', margin: '0 0 0.8rem' }}>
-                            {workStatusText[work.status]}
-                        </p>
-                        {work.settlementStatus && (
-                            <div style={{ display: 'grid', gap: '0.25rem', marginBottom: '0.8rem', color: '#475569', fontWeight: 800 }}>
-                                <span>{settlementStatusText[work.settlementStatus]}</span>
-                                {typeof work.expertPayout === 'number' && work.expertPayout > 0 && (
-                                    <span>전문가 정산 예정 {currency.format(work.expertPayout)}원</span>
-                                )}
-                            </div>
-                        )}
-                        {work.status === 'completed' && work.clientId === user?.id && !reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
-                            <button
-                                type="button"
-                                className="btn-primary"
-                                style={{ padding: '0.65rem 0.9rem' }}
-                                onClick={() => {
-                                    setSelectedReviewWork(work)
-                                    setReviewOpen(true)
-                                    setReviewSubmitted(false)
-                                }}
-                            >
-                                리뷰 작성
-                            </button>
-                        )}
-                        {work.status === 'completed' && work.clientId === user?.id && reviews.some((review) => review.workId === work.id && review.clientId === user?.id) && (
-                            <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
-                                리뷰 등록 완료
-                            </p>
-                        )}
-                        {reviewSubmitted && selectedReviewWork?.id === work.id && work.clientId === user?.id && (
-                            <p style={{ color: '#166534', fontWeight: 800, margin: '0.8rem 0 0' }}>
-                                리뷰가 등록되었습니다.
-                            </p>
-                        )}
-                    </div>
-                    )
-                })
-            ) : (
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{emptyText}</p>
-            )}
-        </div>
-    )
 
     const renderWorkRoleSwitch = () => (
         <div className="work-role-switch" data-testid="work-dashboard-role-switch">
@@ -2572,18 +2460,42 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         if (activePanel === 'workroom') {
             return (
-                <section style={cardStyle}>
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>프로젝트</h2>
-                    {renderWorkCards(roleFilteredActiveWorks, '진행 중인 작업이 없습니다.')}
-                </section>
+                <ProjectListPanel
+                    currentUserId={user?.id}
+                    emptyText="진행 중인 작업이 없습니다."
+                    onReviewOpen={(work) => {
+                        setSelectedReviewWork(work)
+                        setReviewOpen(true)
+                        setReviewSubmitted(false)
+                    }}
+                    products={products}
+                    requests={serviceRequests}
+                    returnState={myPageReturnState}
+                    reviews={reviews}
+                    submittedReviewWorkId={reviewSubmitted ? selectedReviewWork?.id : undefined}
+                    title="프로젝트"
+                    works={roleFilteredActiveWorks}
+                />
             )
         }
 
         return (
-            <section style={cardStyle}>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 1rem' }}>완료 / 리뷰</h2>
-                {renderWorkCards(roleFilteredCompletedWorks, '완료된 작업이 없습니다.')}
-            </section>
+            <ProjectListPanel
+                currentUserId={user?.id}
+                emptyText="완료된 작업이 없습니다."
+                onReviewOpen={(work) => {
+                    setSelectedReviewWork(work)
+                    setReviewOpen(true)
+                    setReviewSubmitted(false)
+                }}
+                products={products}
+                requests={serviceRequests}
+                returnState={myPageReturnState}
+                reviews={reviews}
+                submittedReviewWorkId={reviewSubmitted ? selectedReviewWork?.id : undefined}
+                title={workRole === 'expert' && mode === 'work' ? '완료' : '완료 / 리뷰'}
+                works={roleFilteredCompletedWorks}
+            />
         )
     }
 
