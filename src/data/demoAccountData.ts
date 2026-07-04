@@ -126,7 +126,7 @@ const createProposal = (
     sourceFileIncluded: false,
     status,
     paymentStatus,
-    platformFeeRate: 0.12,
+    platformFeeRate: 0,
     expiresAt: '2026-07-08T23:59:59.000Z',
 });
 
@@ -145,8 +145,8 @@ const createWork = (
     progressType: proposal.progressType,
     status,
     totalPrice: proposal.totalPrice,
-    platformFee: Math.round(proposal.totalPrice * 0.12),
-    expertPayout: proposal.totalPrice - Math.round(proposal.totalPrice * 0.12),
+    platformFee: 0,
+    expertPayout: proposal.totalPrice,
     settlementStatus,
     ...(status === 'cancelled' ? {
         refundStatus: 'fee_excluded_refund_pending' as const,

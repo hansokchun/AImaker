@@ -5,11 +5,11 @@ describe('settlement configuration', () => {
     it('calculates platform fee and expert payout from the configured default rate', () => {
         const settlement = calculateSettlementAmounts(100_000)
 
-        expect(DEFAULT_PLATFORM_FEE_RATE).toBe(0.12)
-        expect(PLATFORM_FEE_RATE).toBe(0.12)
+        expect(DEFAULT_PLATFORM_FEE_RATE).toBe(0)
+        expect(PLATFORM_FEE_RATE).toBe(0)
         expect(settlement).toEqual({
-            platformFee: 12_000,
-            expertPayout: 88_000,
+            platformFee: 0,
+            expertPayout: 100_000,
         })
     })
 

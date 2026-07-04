@@ -18,8 +18,8 @@ const work: Work = {
     progressType: 'milestone',
     status: 'submitted',
     totalPrice: 70000,
-    platformFee: 8400,
-    expertPayout: 61600,
+    platformFee: 0,
+    expertPayout: 70000,
     settlementStatus: 'held',
     revisionLimit: 2,
     revisionUsed: 1,
@@ -161,8 +161,8 @@ describe('Workroom', () => {
         expect(screen.getByRole('heading', { name: '결제/정산' })).toBeInTheDocument()
         expect(screen.getByText('결제 완료')).toBeInTheDocument()
         expect(screen.getByText('70,000원')).toBeInTheDocument()
-        expect(screen.getByText('AIConnect 수수료 8,400원')).toBeInTheDocument()
-        expect(screen.getByText('전문가 정산 예정 61,600원')).toBeInTheDocument()
+        expect(screen.getByText('AIConnect 수수료 0원')).toBeInTheDocument()
+        expect(screen.getByText('전문가 정산 예정 70,000원')).toBeInTheDocument()
         expect(screen.getByText('작업 진행 중 보관')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('제출물 링크'), {
@@ -216,7 +216,7 @@ describe('Workroom', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '거래 중단 요청' }))
         await waitFor(() => expect(cancelWork).toHaveBeenCalledWith(work.id, 'mutual_after_start'))
-        expect(screen.getByText('수수료 제외 환불 예정 상태로 처리되었습니다.')).toBeInTheDocument()
+        expect(await screen.findByText('수수료 제외 환불 예정 상태로 처리되었습니다.')).toBeInTheDocument()
     })
 
     it('blocks off-platform payment attempts before sending a workroom message', async () => {

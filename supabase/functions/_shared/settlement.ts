@@ -1,4 +1,4 @@
-export const DEFAULT_PLATFORM_FEE_RATE = 0.12
+export const DEFAULT_PLATFORM_FEE_RATE = 0
 
 export const getPlatformFeeRate = () => {
     const rawRate = Deno.env.get('PLATFORM_FEE_RATE')?.trim()

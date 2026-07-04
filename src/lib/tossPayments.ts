@@ -76,6 +76,7 @@ export class PaymentRequestError extends Error {
 
 let sdkPromise: Promise<TossPaymentsFactory> | null = null
 const TOSS_SDK_LOAD_TIMEOUT_MS = 15_000
+const FALLBACK_TOSS_PAYMENTS_TEST_CLIENT_KEY = 'test_ck_AQ92ymxN34ZbgeYk2mY4rajRKXvd'
 
 const assertConfiguredSupabase = () => {
     if (!supabase) {
@@ -87,6 +88,7 @@ const assertConfiguredSupabase = () => {
 
 const getClientKey = () => {
     const clientKey = import.meta.env.VITE_TOSS_PAYMENTS_CLIENT_KEY?.trim()
+        || FALLBACK_TOSS_PAYMENTS_TEST_CLIENT_KEY
     if (!clientKey) {
         throw new PaymentConfigurationError('VITE_TOSS_PAYMENTS_CLIENT_KEY가 설정되어 있지 않습니다.')
     }

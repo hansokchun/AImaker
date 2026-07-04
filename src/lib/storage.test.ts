@@ -871,7 +871,7 @@ describe('transaction storage', () => {
                 request_id: proposal.requestId,
                 total_price: proposal.totalPrice,
                 payment_status: 'unpaid',
-                platform_fee_rate: 0.12,
+                platform_fee_rate: 0,
                 expires_at: proposal.expiresAt,
             }),
         ])
@@ -881,7 +881,7 @@ describe('transaction storage', () => {
             expect.objectContaining({
                 status: 'accepted',
                 payment_status: 'paid',
-                platform_fee_rate: 0.12,
+                platform_fee_rate: 0,
             }),
         )
         expect(from).toHaveBeenCalledWith('works')
@@ -889,8 +889,8 @@ describe('transaction storage', () => {
             expect.objectContaining({
                 proposal_id: proposal.id,
                 total_price: proposal.totalPrice,
-                platform_fee: 8400,
-                expert_payout: 61600,
+                platform_fee: 0,
+                expert_payout: 70000,
                 settlement_status: 'held',
             }),
         ])
@@ -1063,8 +1063,8 @@ describe('transaction storage', () => {
                 status: 'in_progress',
                 settlementStatus: 'held',
                 totalPrice: proposal.totalPrice,
-                platformFee: 8400,
-                expertPayout: 61600,
+                platformFee: 0,
+                expertPayout: 70000,
                 revisionLimit: proposal.revisionCount,
                 revisionUsed: 0,
             }),
@@ -1276,7 +1276,7 @@ describe('transaction storage', () => {
         const { getUserProposals } = await import('./storage')
 
         await expect(getUserProposals(request.clientId)).resolves.toEqual([
-            { ...proposal, paymentStatus: 'unpaid', platformFeeRate: 0.12 },
+            { ...proposal, paymentStatus: 'unpaid', platformFeeRate: 0 },
         ])
         expect(from).toHaveBeenCalledWith('proposals')
         expect(or).toHaveBeenCalledWith(`client_id.eq.${request.clientId},expert_id.eq.${request.clientId}`)

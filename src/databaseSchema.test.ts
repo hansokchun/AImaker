@@ -146,7 +146,7 @@ describe('database.sql', () => {
 
     it('stores MVP payment, platform fee, and settlement status fields', () => {
         expect(sql).toMatch(/payment_status text not null default 'unpaid'/i)
-        expect(sql).toMatch(/platform_fee_rate numeric\(5,4\) not null default 0\.12/i)
+        expect(sql).toMatch(/platform_fee_rate numeric\(5,4\) not null default 0/i)
         expect(sql).toMatch(/paid_at timestamptz/i)
         expect(sql).toMatch(/total_price integer not null default 0/i)
         expect(sql).toMatch(/platform_fee integer not null default 0/i)
@@ -166,7 +166,7 @@ describe('database.sql', () => {
         expect(sql).toMatch(/order_id text not null unique/i)
         expect(sql).toMatch(/proposal_id uuid not null references public\.proposals\(id\)/i)
         expect(sql).toMatch(/amount integer not null check \(amount > 0\)/i)
-        expect(sql).toMatch(/platform_fee_rate numeric\(5,4\) not null default 0\.12/i)
+        expect(sql).toMatch(/platform_fee_rate numeric\(5,4\) not null default 0/i)
         expect(sql).toMatch(/platform_fee integer not null default 0/i)
         expect(sql).toMatch(/expert_payout integer not null default 0/i)
         expect(sql).toMatch(/status text not null default 'ready' check \(status in \('ready', 'approved', 'failed'\)\)/i)

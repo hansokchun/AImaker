@@ -391,8 +391,8 @@ const getUserWorks = vi.fn(async (_userId: string) => [
         progressType: 'single',
         status: 'completed',
         totalPrice: 70000,
-        platformFee: 8400,
-        expertPayout: 61600,
+        platformFee: 0,
+        expertPayout: 70000,
         settlementStatus: 'pending',
         stepIds: [],
     },
@@ -557,8 +557,8 @@ const defaultWorks = () => [
         progressType: 'single' as const,
         status: 'completed' as const,
         totalPrice: 70000,
-        platformFee: 8400,
-        expertPayout: 61600,
+        platformFee: 0,
+        expertPayout: 70000,
         settlementStatus: 'pending' as const,
         stepIds: [],
     },
@@ -2228,7 +2228,7 @@ describe('MyPage', () => {
         )
         const completedWorks = await screen.findAllByTestId('completed-work')
         expect(within(completedWorks[0]).getByText('정산 대기')).toBeInTheDocument()
-        expect(within(completedWorks[0]).getByText('전문가 정산 예정 61,600원')).toBeInTheDocument()
+        expect(within(completedWorks[0]).getByText('전문가 정산 예정 70,000원')).toBeInTheDocument()
         expect(screen.getAllByRole('button', { name: '리뷰 작성' })).toHaveLength(3)
     })
 

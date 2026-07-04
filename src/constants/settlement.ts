@@ -1,4 +1,4 @@
-export const DEFAULT_PLATFORM_FEE_RATE = 0.12
+export const DEFAULT_PLATFORM_FEE_RATE = 0
 
 const readPlatformFeeRate = () => {
     const rawRate = import.meta.env.VITE_PLATFORM_FEE_RATE?.trim()

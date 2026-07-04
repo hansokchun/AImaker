@@ -294,7 +294,7 @@ create table if not exists public.proposals (
   source_file_included boolean not null default false,
   status text not null default 'sent' check (status in ('sent', 'revision_requested', 'accepted', 'cancelled', 'expired')),
   payment_status text not null default 'unpaid' check (payment_status in ('unpaid', 'paid', 'refunded')),
-  platform_fee_rate numeric(5,4) not null default 0.12,
+  platform_fee_rate numeric(5,4) not null default 0,
   paid_at timestamptz,
   refunded_at timestamptz,
   expires_at timestamptz not null default (now() + interval '3 days'),
@@ -303,7 +303,7 @@ create table if not exists public.proposals (
 );
 
 alter table public.proposals add column if not exists payment_status text not null default 'unpaid';
-alter table public.proposals add column if not exists platform_fee_rate numeric(5,4) not null default 0.12;
+alter table public.proposals add column if not exists platform_fee_rate numeric(5,4) not null default 0;
 alter table public.proposals add column if not exists paid_at timestamptz;
 alter table public.proposals add column if not exists refunded_at timestamptz;
 alter table public.proposals add column if not exists consultation_id uuid references public.consultations(id) on delete cascade;
@@ -360,7 +360,7 @@ create table if not exists public.payment_orders (
   amount integer not null check (amount > 0),
   currency text not null default 'KRW' check (currency = 'KRW'),
   order_name text not null,
-  platform_fee_rate numeric(5,4) not null default 0.12,
+  platform_fee_rate numeric(5,4) not null default 0,
   platform_fee integer not null default 0 check (platform_fee >= 0),
   expert_payout integer not null default 0 check (expert_payout >= 0),
   payment_key text,
@@ -373,7 +373,7 @@ create table if not exists public.payment_orders (
 );
 
 alter table public.payment_orders add column if not exists payment_key text;
-alter table public.payment_orders add column if not exists platform_fee_rate numeric(5,4) not null default 0.12;
+alter table public.payment_orders add column if not exists platform_fee_rate numeric(5,4) not null default 0;
 alter table public.payment_orders add column if not exists platform_fee integer not null default 0;
 alter table public.payment_orders add column if not exists expert_payout integer not null default 0;
 alter table public.payment_orders add column if not exists failure_code text;
