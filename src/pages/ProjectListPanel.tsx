@@ -21,12 +21,15 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 }
 
 type ProjectListPanelProps = {
+    readonly completedEmptyText?: string
     readonly currentUserId?: string
     readonly emptyText: string
+    readonly initialStatusFilter?: ProjectStatusFilter
     readonly products: readonly ExpertProduct[]
     readonly requests: readonly ServiceRequestData[]
     readonly returnState?: unknown
     readonly reviews: readonly Review[]
+    readonly showStatusFilter?: boolean
     readonly title: string
     readonly works: readonly Work[]
     readonly onReviewOpen: (work: Work) => void
@@ -38,6 +41,8 @@ type ProjectCardView = {
     readonly request?: ServiceRequestData
     readonly work: Work
 }
+
+type ProjectStatusFilter = 'active' | 'completed'
 
 const categoryLabel: Record<ExpertProduct['category'], string> = {
     'ai-video-shortform': 'AI 영상',
@@ -52,6 +57,8 @@ const getActionLabel = (work: Work, canWriteReview: boolean) => {
     if (work.status === 'completed' && canWriteReview) return '리뷰 작성'
     return '상세 보기'
 }
+
+const isCompletedWork = (work: Work) => work.status === 'completed'
 
 function ProjectThumbnail({ imageUrl, title, tone, category }: { readonly imageUrl?: string; readonly title: string; readonly tone: ProjectCardViewTone; readonly category?: ExpertProduct['category'] }) {
     const [hasImageError, setHasImageError] = useState(false)
@@ -164,8 +171,16 @@ function ProjectCardBody({ actionLabel, children, dateText, statusLabel, title, 
     )
 }
 
-export function ProjectListPanel({ currentUserId, emptyText, products, requests, returnState, reviews, title, works, onReviewOpen, submittedReviewWorkId }: ProjectListPanelProps) {
-    const cardViews = works.map((work) => {
+export function ProjectListPanel({ completedEmptyText = '완료된 작업이 없습니다.', currentUserId, emptyText, initialStatusFilter = 'active', products, requests, returnState, reviews, showStatusFilter = false, title, works, onReviewOpen, submittedReviewWorkId }: ProjectListPanelProps) {
+    const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>(initialStatusFilter)
+    const activeWorks = works.filter((work) => !isCompletedWork(work))
+    const completedWorks = works.filter(isCompletedWork)
+    const visibleWorks = showStatusFilter
+        ? statusFilter === 'completed' ? completedWorks : activeWorks
+        : works
+    const visibleEmptyText = showStatusFilter && statusFilter === 'completed' ? completedEmptyText : emptyText
+
+    const cardViews = visibleWorks.map((work) => {
         const request = requests.find((item) => item.id === work.requestId)
         const product = request?.productId ? products.find((item) => item.id === request.productId) : undefined
 
@@ -175,15 +190,37 @@ export function ProjectListPanel({ currentUserId, emptyText, products, requests,
     return (
         <section className="project-list-panel">
             <div className="project-list-header">
-                <nav className="project-list-breadcrumb" aria-label="현재 위치">
-                    <Link to="/">홈</Link>
-                    <span aria-hidden="true">/</span>
-                    <Link to="/my-work">내 작업</Link>
-                    <span aria-hidden="true">/</span>
-                    <span>{title}</span>
-                </nav>
-                <h2>{title}</h2>
-                <p>진행 중인 프로젝트의 상태를 한눈에 확인하고 관리할 수 있습니다.</p>
+                <div className="project-list-heading-row">
+                    <div>
+                        <nav className="project-list-breadcrumb" aria-label="현재 위치">
+                            <Link to="/">홈</Link>
+                            <span aria-hidden="true">/</span>
+                            <Link to="/my-work">내 작업</Link>
+                            <span aria-hidden="true">/</span>
+                            <span>{title}</span>
+                        </nav>
+                        <h2>{title}</h2>
+                        <p>진행 중인 프로젝트의 상태를 한눈에 확인하고 관리할 수 있습니다.</p>
+                    </div>
+                    {showStatusFilter && (
+                        <div className="project-list-filter" aria-label="프로젝트 상태 필터">
+                            <button
+                                type="button"
+                                aria-pressed={statusFilter === 'active'}
+                                onClick={() => setStatusFilter('active')}
+                            >
+                                진행중 <span>{activeWorks.length}</span>
+                            </button>
+                            <button
+                                type="button"
+                                aria-pressed={statusFilter === 'completed'}
+                                onClick={() => setStatusFilter('completed')}
+                            >
+                                완료됨 <span>{completedWorks.length}</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
             <div className="project-list-stack">
                 {cardViews.length > 0 ? (
@@ -199,7 +236,7 @@ export function ProjectListPanel({ currentUserId, emptyText, products, requests,
                         />
                     ))
                 ) : (
-                    <p className="project-list-empty">{emptyText}</p>
+                    <p className="project-list-empty">{visibleEmptyText}</p>
                 )}
             </div>
         </section>

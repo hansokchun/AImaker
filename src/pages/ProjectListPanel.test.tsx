@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { ProjectListPanel } from './ProjectListPanel'
@@ -147,5 +147,34 @@ describe('ProjectListPanel', () => {
         expect(within(card).getByText('완료')).toBeInTheDocument()
         expect(within(card).getByText('전문가 정산 예정 44,000원')).toBeInTheDocument()
         expect(within(card).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
+    })
+
+    it('filters active and completed projects inside the project panel', () => {
+        render(
+            <MemoryRouter>
+                <ProjectListPanel
+                    currentUserId="client-1"
+                    completedEmptyText="완료된 작업이 없습니다."
+                    emptyText="진행 중인 작업이 없습니다."
+                    products={[productWithImage, productWithoutImage]}
+                    requests={[requestWithImageProduct, requestWithoutImageProduct]}
+                    reviews={[]}
+                    showStatusFilter
+                    title="프로젝트"
+                    works={[activeWork, completedWork]}
+                    onReviewOpen={vi.fn()}
+                />
+            </MemoryRouter>,
+        )
+
+        expect(screen.getByRole('button', { name: '진행중 1' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('link', { name: '신제품 이미지 제작' })).toBeInTheDocument()
+        expect(screen.queryByTestId('completed-work')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '완료됨 1' }))
+
+        expect(screen.getByRole('button', { name: '완료됨 1' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByTestId('completed-work')).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: '신제품 이미지 제작' })).not.toBeInTheDocument()
     })
 })

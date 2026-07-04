@@ -1031,7 +1031,7 @@ describe('MyPage', () => {
         expect(screen.getByRole('button', { name: '거래관리' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '프로젝트' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '상담채팅' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '리뷰' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '리뷰' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '개요' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '마이 프로필' })).not.toBeInTheDocument()
         const transactionList = await screen.findByTestId('client-unified-work-list')
@@ -2157,11 +2157,12 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
+        fireEvent.click(screen.getByRole('button', { name: '프로젝트' }))
+        fireEvent.click(await screen.findByRole('button', { name: /완료됨/ }))
         const completedWork = (await screen.findAllByTestId('completed-work'))[0]
         expect(within(completedWork).getByRole('button', { name: '리뷰 작성' })).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '프로젝트' }))
+        fireEvent.click(screen.getByRole('button', { name: /진행중/ }))
         const activeWork = (await screen.findAllByTestId('active-work'))[0]
 
         expect(within(activeWork).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
@@ -2220,7 +2221,7 @@ describe('MyPage', () => {
             'href',
             '/workroom/work-real-submitted',
         )
-        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
+        fireEvent.click(screen.getByRole('button', { name: /완료됨/ }))
         expect(await screen.findByRole('link', { name: 'Second completed work' })).toHaveAttribute(
             'href',
             '/workroom/work-real-completed-second',
@@ -2246,6 +2247,18 @@ describe('MyPage', () => {
         expect(within(submittedCard).getByText('결과물 확인 필요')).toBeInTheDocument()
     })
 
+    it('opens the merged project page on the completed filter for legacy review URLs', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=reviews']}>
+                <MyPage mode="work" />
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '프로젝트' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /완료됨/ })).toHaveAttribute('aria-pressed', 'true')
+        expect(await screen.findByRole('link', { name: 'Second completed work' })).toBeInTheDocument()
+    })
+
     it('filters consultations, workrooms, and reviews by the selected work role', async () => {
         render(
             <MemoryRouter>
@@ -2261,7 +2274,7 @@ describe('MyPage', () => {
         expect(await screen.findByRole('link', { name: '진행 중인 실제 작업' })).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '전문가 진행 중 상품' })).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '리뷰' }))
+        fireEvent.click(screen.getByRole('button', { name: /완료됨/ }))
         expect(await screen.findByRole('link', { name: 'Second completed work' })).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '전문가 완료 상품' })).not.toBeInTheDocument()
 
@@ -2276,7 +2289,7 @@ describe('MyPage', () => {
         expect(await screen.findByRole('link', { name: '전문가 진행 중 상품' })).toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '진행 중인 실제 작업' })).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '완료' }))
+        fireEvent.click(screen.getByRole('button', { name: /완료됨/ }))
         expect(await screen.findByRole('link', { name: '전문가 완료 상품' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
     })
@@ -2291,7 +2304,7 @@ describe('MyPage', () => {
         expect(await screen.findByRole('button', { name: '거래관리' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '상담채팅' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '프로젝트' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '리뷰' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '리뷰' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '내 상품관리' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument()
 
@@ -2302,7 +2315,7 @@ describe('MyPage', () => {
         expect(screen.getByRole('button', { name: '거래관리' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '상담채팅' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '프로젝트' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '완료' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '리뷰' })).not.toBeInTheDocument()
     })
 
@@ -2404,7 +2417,8 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
+        fireEvent.click(screen.getByRole('button', { name: '프로젝트' }))
+        fireEvent.click(await screen.findByRole('button', { name: /완료됨/ }))
         const completedWorks = await screen.findAllByTestId('completed-work')
 
         expect(within(completedWorks[0]).queryByRole('button', { name: '리뷰 작성' })).not.toBeInTheDocument()
@@ -2454,7 +2468,8 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        fireEvent.click(screen.getByRole('button', { name: '완료 / 리뷰' }))
+        fireEvent.click(screen.getByRole('button', { name: '프로젝트' }))
+        fireEvent.click(await screen.findByRole('button', { name: /완료됨/ }))
         fireEvent.click(within((await screen.findAllByTestId('completed-work'))[0]).getByRole('button', { name: '리뷰 작성' }))
 
         expect(screen.getByRole('heading', { name: '리뷰 작성하기' })).toBeInTheDocument()

@@ -109,7 +109,6 @@ const clientWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'favorites', label: '관심 상품' },
     { id: 'consultations', label: '상담채팅' },
     { id: 'workroom', label: '프로젝트' },
-    { id: 'reviews', label: '리뷰' },
 ]
 
 const expertWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
@@ -117,14 +116,12 @@ const expertWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '거래관리' },
     { id: 'consultations', label: '상담채팅' },
     { id: 'workroom', label: '프로젝트' },
-    { id: 'reviews', label: '완료' },
 ]
 
 const legacyWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'client', label: '의뢰자 홈' },
     { id: 'expert', label: '전문가 홈' },
     { id: 'workroom', label: '프로젝트' },
-    { id: 'reviews', label: '완료 / 리뷰' },
 ]
 
 const allMenuItems = [...profileMenuItems, ...legacyWorkMenuItems]
@@ -133,6 +130,7 @@ const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; lab
     Boolean(value && items.some((item) => item.id === value))
 
 const normalizeWorkPanel = (value: string | null, mode: MyPageMode) =>
+    value === 'reviews' ? 'workroom' :
     mode === 'work' && value === 'expert' ? 'client' : value
 
 const getClientWorkStageTitle = (work: Work) => {
@@ -406,6 +404,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const roleFilteredCompletedWorks = mode === 'work'
         ? workRole === 'client' ? clientCompletedWorks : expertCompletedWorks
         : completedWorks
+    const roleFilteredProjectWorks = [...roleFilteredActiveWorks, ...roleFilteredCompletedWorks]
     const pageTitle = mode === 'work' ? '내 작업' : '마이페이지'
     const pageDescription = mode === 'profile'
         ? '프로필과 계정 기본 정보를 확인합니다.'
@@ -2461,8 +2460,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         if (activePanel === 'workroom') {
             return (
                 <ProjectListPanel
+                    completedEmptyText="완료된 작업이 없습니다."
                     currentUserId={user?.id}
                     emptyText="진행 중인 작업이 없습니다."
+                    initialStatusFilter={searchParams.get('panel') === 'reviews' ? 'completed' : 'active'}
                     onReviewOpen={(work) => {
                         setSelectedReviewWork(work)
                         setReviewOpen(true)
@@ -2472,17 +2473,20 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     requests={serviceRequests}
                     returnState={myPageReturnState}
                     reviews={reviews}
+                    showStatusFilter
                     submittedReviewWorkId={reviewSubmitted ? selectedReviewWork?.id : undefined}
                     title="프로젝트"
-                    works={roleFilteredActiveWorks}
+                    works={roleFilteredProjectWorks}
                 />
             )
         }
 
         return (
             <ProjectListPanel
+                completedEmptyText="완료된 작업이 없습니다."
                 currentUserId={user?.id}
-                emptyText="완료된 작업이 없습니다."
+                emptyText="진행 중인 작업이 없습니다."
+                initialStatusFilter="completed"
                 onReviewOpen={(work) => {
                     setSelectedReviewWork(work)
                     setReviewOpen(true)
@@ -2492,9 +2496,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 requests={serviceRequests}
                 returnState={myPageReturnState}
                 reviews={reviews}
+                showStatusFilter
                 submittedReviewWorkId={reviewSubmitted ? selectedReviewWork?.id : undefined}
-                title={workRole === 'expert' && mode === 'work' ? '완료' : '완료 / 리뷰'}
-                works={roleFilteredCompletedWorks}
+                title="프로젝트"
+                works={roleFilteredProjectWorks}
             />
         )
     }
