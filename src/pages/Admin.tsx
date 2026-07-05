@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
+import { hasExternalContact } from '../constants/policies';
 import { useAuth } from '../contexts/AuthContext';
 import { defaultAdminFilters, filterAdminSnapshot, type AdminFilterState } from '../lib/adminFilters';
 import { getAdminSnapshot, isAdminEmail, saveAdminAction, type AdminAction, type AdminSnapshot } from '../lib/adminStorage';
@@ -121,18 +122,13 @@ function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction
         products: snapshot.products.map((product) =>
             applyProductAction(product, action),
         ).sort(compareAdminProductPlacement),
-        works: snapshot.works.map((work) =>
-            action.actionType === 'cancel_trade' && work.id === action.targetId
-                ? {
-                    ...work,
-                    status: 'cancelled',
-                    settlementStatus: work.settlementStatus || 'held',
-                    refundStatus: 'fee_excluded_refund_pending',
-                    cancellationReason: 'mutual_after_start',
-                    cancelledAt: action.createdAt,
-                }
-                : work,
-        ),
+        works: snapshot.works.map((work) => applyWorkAction(work, action)),
+        reviews: snapshot.reviews.map((review) => {
+            if (action.targetType !== 'review' || review.id !== action.targetId) return review;
+            if (action.actionType === 'hide_review') return { ...review, status: 'hidden' };
+            if (action.actionType === 'restore_review') return { ...review, status: 'published' };
+            return review;
+        }),
         consultations: snapshot.consultations.map((consultation) =>
             action.actionType === 'close_consultation' && consultation.id === action.targetId
                 ? { ...consultation, status: 'closed' }
@@ -157,6 +153,26 @@ function applyProductAction(product: AdminSnapshot['products'][number], action: 
     if (action.actionType === 'move_product_up') return { ...product, displayOrder: Math.max(1, (product.displayOrder || 1) - 1) };
     if (action.actionType === 'move_product_down') return { ...product, displayOrder: (product.displayOrder || 1) + 1 };
     return product;
+}
+
+function applyWorkAction(work: AdminSnapshot['works'][number], action: AdminAction): AdminSnapshot['works'][number] {
+    if (action.targetType !== 'work' || work.id !== action.targetId) return work;
+    if (action.actionType === 'cancel_trade') {
+        return {
+            ...work,
+            status: 'cancelled',
+            settlementStatus: work.settlementStatus || 'held',
+            refundStatus: 'fee_excluded_refund_pending',
+            cancellationReason: 'mutual_after_start',
+            cancelledAt: action.createdAt,
+        };
+    }
+    if (action.actionType === 'mark_settlement_pending') return { ...work, settlementStatus: 'pending' };
+    if (action.actionType === 'mark_settlement_settled') return { ...work, settlementStatus: 'settled', refundStatus: undefined };
+    if (action.actionType === 'mark_refund_pending') return { ...work, settlementStatus: 'refunded', refundStatus: 'fee_excluded_refund_pending' };
+    if (action.actionType === 'open_dispute') return { ...work, disputeStatus: 'open' };
+    if (action.actionType === 'resolve_dispute') return { ...work, disputeStatus: 'resolved' };
+    return work;
 }
 
 function compareAdminProductPlacement(first: AdminSnapshot['products'][number], second: AdminSnapshot['products'][number]): number {
@@ -221,7 +237,7 @@ function buildTabs(snapshot: AdminSnapshot | null): AdminTabItem[] {
         { id: 'consultations', label: '상담채팅', count: snapshot?.consultations.length || 0 },
         { id: 'workrooms', label: '작업방', count: snapshot?.works.length || 0 },
         { id: 'reviews', label: '리뷰', count: snapshot?.reviews.length || 0 },
-        { id: 'reports', label: '검수 큐', count: snapshot?.reports.filter((report) => report.status === 'pending').length || 0 },
+        { id: 'reports', label: '검수 큐', count: countPendingModerationItems(snapshot) },
         { id: 'actions', label: '운영 조치', count: snapshot?.adminActions.length || 0 },
     ];
 }
@@ -233,11 +249,22 @@ function buildStats(snapshot: AdminSnapshot | null) {
     const paidProposals = snapshot.proposals.filter((proposal) => proposal.paymentStatus === 'paid');
     const reportedWorks = snapshot.works.filter((work) => work.status === 'revision_requested' || work.status === 'cancelled');
     const pendingReports = snapshot.reports.filter((report) => report.status === 'pending');
+    const policyViolations = countPolicyViolations(snapshot);
 
     return [
         { label: '전체 회원', value: snapshot.profiles.length },
         { label: '공개 상품', value: snapshot.products.filter((product) => product.status === 'published').length },
         { label: '진행 중 작업', value: activeWorks.length },
-        { label: '검토 필요', value: reportedWorks.length + pendingReports.length + paidProposals.filter((proposal) => proposal.status !== 'accepted').length },
+        { label: '검토 필요', value: reportedWorks.length + pendingReports.length + policyViolations + paidProposals.filter((proposal) => proposal.status !== 'accepted').length },
     ];
+}
+
+function countPendingModerationItems(snapshot: AdminSnapshot | null): number {
+    if (!snapshot) return 0;
+    return snapshot.reports.filter((report) => report.status === 'pending').length + countPolicyViolations(snapshot);
+}
+
+function countPolicyViolations(snapshot: AdminSnapshot): number {
+    return snapshot.consultationMessages.filter((message) => hasExternalContact(message.body)).length
+        + snapshot.workMessages.filter((message) => hasExternalContact(message.body)).length;
 }

@@ -13,6 +13,16 @@ begin
 end;
 $$;
 
+create or replace function public.is_admin(user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admin_users where admin_users.user_id = $1);
+$$;
+
 -- 1. profiles
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -428,7 +438,8 @@ create table if not exists public.works (
   settlement_status text not null default 'held' check (settlement_status in ('held', 'pending', 'settled', 'refunded')),
   revision_limit integer not null default 0 check (revision_limit >= 0),
   revision_used integer not null default 0 check (revision_used >= 0),
-  refund_status text check (refund_status in ('fee_excluded_refund_pending')),
+  refund_status text check (refund_status in ('fee_excluded_refund_pending', 'refunded')),
+  dispute_status text check (dispute_status in ('open', 'resolved')),
   cancellation_reason text check (cancellation_reason in ('before_start', 'mutual_after_start')),
   cancelled_at timestamptz,
   started_at timestamptz not null default now(),
@@ -444,6 +455,7 @@ alter table public.works add column if not exists settlement_status text not nul
 alter table public.works add column if not exists revision_limit integer not null default 0;
 alter table public.works add column if not exists revision_used integer not null default 0;
 alter table public.works add column if not exists refund_status text;
+alter table public.works add column if not exists dispute_status text;
 alter table public.works add column if not exists cancellation_reason text;
 alter table public.works add column if not exists cancelled_at timestamptz;
 
@@ -637,17 +649,20 @@ create table if not exists public.reviews (
   expert_id uuid references public.profiles(id) on delete cascade,
   rating integer not null check (rating between 1 and 5),
   content text not null,
+  status text not null default 'published' check (status in ('published', 'hidden')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (work_id, client_id)
 );
+
+alter table public.reviews add column if not exists status text not null default 'published';
 
 alter table public.reviews enable row level security;
 
 drop policy if exists "Public can read reviews" on public.reviews;
 create policy "Public can read reviews"
   on public.reviews for select
-  using (true);
+  using (status = 'published' or public.is_admin(auth.uid()));
 
 drop policy if exists "Clients can review completed work" on public.reviews;
 create policy "Clients can review completed work"
@@ -701,7 +716,7 @@ create table if not exists public.admin_actions (
   admin_id uuid references public.profiles(id) on delete set null,
   target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review', 'report')),
   target_id text not null,
-  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'close_consultation', 'cancel_trade')),
+  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'hide_review', 'restore_review', 'mark_settlement_pending', 'mark_settlement_settled', 'mark_refund_pending', 'open_dispute', 'resolve_dispute', 'close_consultation', 'cancel_trade')),
   reason text not null,
   created_at timestamptz not null default now()
 );
@@ -810,6 +825,12 @@ drop policy if exists "Admins can view reviews" on public.reviews;
 create policy "Admins can view reviews"
   on public.reviews for select
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can update reviews" on public.reviews;
+create policy "Admins can update reviews"
+  on public.reviews for update
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
 
 insert into storage.buckets (id, name, public)
 values

@@ -11,6 +11,9 @@ export type AdminStatusFilter =
     | 'completed'
     | 'cancelled'
     | 'hidden'
+    | 'held'
+    | 'settled'
+    | 'refunded'
     | 'resolved'
     | 'dismissed';
 
@@ -44,7 +47,7 @@ export function filterAdminSnapshot(snapshot: AdminSnapshot, filters: AdminFilte
     );
     const works = snapshot.works.filter((work) =>
         matchesQuery(query, [work.id, work.title, work.clientId, work.expertId, work.requestId, work.proposalId])
-        && matchesStatus(filters.status, work.status),
+        && (matchesStatus(filters.status, work.status) || matchesStatus(filters.status, work.settlementStatus) || matchesStatus(filters.status, work.refundStatus) || matchesStatus(filters.status, work.disputeStatus)),
     );
     const matchedConsultationMessages = snapshot.consultationMessages.filter((message) =>
         matchesQuery(query, [message.id, message.consultationId, message.senderId, message.body]),
@@ -61,7 +64,7 @@ export function filterAdminSnapshot(snapshot: AdminSnapshot, filters: AdminFilte
     );
     const reviews = snapshot.reviews.filter((review) =>
         matchesQuery(query, [review.id, review.workId, review.clientId, review.expertId, review.content])
-        && matchesStatus(filters.status, 'completed'),
+        && (matchesStatus(filters.status, 'completed') || matchesStatus(filters.status, review.status || 'published')),
     );
     const reports = snapshot.reports.filter((report) =>
         matchesQuery(query, [report.id, report.reporterId, report.targetType, report.targetId, report.reason, report.severity])

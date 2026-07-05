@@ -134,11 +134,11 @@ const getLocalWorkMessages = (workId: string) =>
 
 const getLocalUserReviews = (userId: string) =>
     readLocalArray<Review>(STORAGE_KEYS.REVIEWS)
-        .filter((review) => review.clientId === userId || review.expertId === userId);
+        .filter((review) => (review.clientId === userId || review.expertId === userId) && review.status !== 'hidden');
 
 const getLocalExpertReviews = (expertId: string) =>
     readLocalArray<Review>(STORAGE_KEYS.REVIEWS)
-        .filter((review) => review.expertId === expertId)
+        .filter((review) => review.expertId === expertId && review.status !== 'hidden')
         .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
 
 const hasLocalDemoWork = (workId: string) =>
@@ -298,6 +298,7 @@ const toReview = (item: any): Review => {
     const createdAtLabel = item.created_at_label || item.createdAtLabel;
     const priceRangeLabel = item.price_range_label || item.priceRangeLabel;
     const workDurationDays = item.work_duration_days ?? item.workDurationDays;
+    const status = item.status === 'hidden' ? 'hidden' : undefined;
 
     return {
         id: item.id,
@@ -309,6 +310,7 @@ const toReview = (item: any): Review => {
         rating: item.rating,
         content: item.content,
         createdAt: item.created_at,
+        ...(status ? { status } : {}),
         ...(createdAtLabel ? { createdAtLabel } : {}),
         ...(priceRangeLabel ? { priceRangeLabel } : {}),
         ...(workDurationDays !== undefined && workDurationDays !== null ? { workDurationDays: Number(workDurationDays) } : {}),
@@ -2061,7 +2063,8 @@ export async function getUserReviews(userId: string): Promise<Review[]> {
         return demoRecordsOnly(getLocalUserReviews(userId));
     }
 
-    return mergeById(demoRecordsOnly(getLocalUserReviews(userId)), (data || []).map(toReview));
+    return mergeById(demoRecordsOnly(getLocalUserReviews(userId)), (data || []).map(toReview))
+        .filter((review) => review.status !== 'hidden');
 }
 
 export async function getExpertReviews(expertId: string): Promise<Review[]> {
@@ -2080,7 +2083,8 @@ export async function getExpertReviews(expertId: string): Promise<Review[]> {
         return demoRecordsOnly(getLocalExpertReviews(expertId));
     }
 
-    return mergeById(demoRecordsOnly(getLocalExpertReviews(expertId)), (data || []).map(toReview));
+    return mergeById(demoRecordsOnly(getLocalExpertReviews(expertId)), (data || []).map(toReview))
+        .filter((review) => review.status !== 'hidden');
 }
 
 export async function getExpertList(): Promise<Expert[]> {

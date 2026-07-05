@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExpertProduct, Work } from '../types';
+import type { ExpertProduct, Review, Work } from '../types';
 
 vi.mock('./supabase', () => ({ supabase: null }));
 vi.mock('../data/mockData', () => ({ mockExpertProducts: [] }));
@@ -52,6 +52,17 @@ const work: Work = {
     totalPrice: 50000,
     settlementStatus: 'held',
     stepIds: [],
+};
+
+const review: Review = {
+    id: 'review-admin-hide-01',
+    workId: work.id,
+    clientId: 'client-admin-01',
+    expertId: 'expert-admin-01',
+    rating: 5,
+    content: 'Useful delivery.',
+    status: 'published',
+    createdAt: '2026-07-01T00:00:00.000Z',
 };
 
 describe('adminStorage', () => {
@@ -150,6 +161,65 @@ describe('adminStorage', () => {
         const storedWorks = JSON.parse(localStorage.getItem('ai_works') || '[]') as Work[];
         expect(storedWorks[0]?.status).toBe('cancelled');
         expect(storedWorks[0]?.refundStatus).toBe('fee_excluded_refund_pending');
+    });
+
+    it('hides and restores a review when an admin records review actions', async () => {
+        localStorage.setItem('ai_reviews', JSON.stringify([review]));
+        const { saveAdminAction } = await import('./adminStorage');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'review',
+            targetId: review.id,
+            actionType: 'hide_review',
+            reason: '관리자가 리뷰를 숨김 처리했습니다.',
+        });
+
+        let storedReviews = JSON.parse(localStorage.getItem('ai_reviews') || '[]') as Review[];
+        expect(storedReviews[0]?.status).toBe('hidden');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'review',
+            targetId: review.id,
+            actionType: 'restore_review',
+            reason: '관리자가 숨김 리뷰를 공개 복구했습니다.',
+        });
+
+        storedReviews = JSON.parse(localStorage.getItem('ai_reviews') || '[]') as Review[];
+        expect(storedReviews[0]?.status).toBe('published');
+    });
+
+    it('updates settlement, refund, and dispute state from admin work actions', async () => {
+        localStorage.setItem('ai_works', JSON.stringify([work]));
+        const { saveAdminAction } = await import('./adminStorage');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'work',
+            targetId: work.id,
+            actionType: 'mark_settlement_pending',
+            reason: '관리자가 작업방을 정산 대기 상태로 변경했습니다.',
+        });
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'work',
+            targetId: work.id,
+            actionType: 'open_dispute',
+            reason: '관리자가 작업방 분쟁 관리를 시작했습니다.',
+        });
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'work',
+            targetId: work.id,
+            actionType: 'mark_refund_pending',
+            reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
+        });
+
+        const storedWorks = JSON.parse(localStorage.getItem('ai_works') || '[]') as Work[];
+        expect(storedWorks[0]?.settlementStatus).toBe('refunded');
+        expect(storedWorks[0]?.refundStatus).toBe('fee_excluded_refund_pending');
+        expect(storedWorks[0]?.disputeStatus).toBe('open');
     });
 
     it('resolves a pending report when an admin records a resolve report action', async () => {

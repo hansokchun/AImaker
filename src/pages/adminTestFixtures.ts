@@ -153,6 +153,14 @@ export const adminSnapshot: AdminSnapshot = {
             attachmentUrls: [],
             createdAt: '2026-07-01T00:20:00.000Z',
         },
+        {
+            id: 'work-message-admin-02',
+            workId: 'work-admin-01',
+            senderId: 'client-admin-01',
+            body: 'Please contact me at client@example.com outside the platform.',
+            attachmentUrls: [],
+            createdAt: '2026-07-01T00:25:00.000Z',
+        },
     ],
     reviews: [
         {
@@ -162,6 +170,7 @@ export const adminSnapshot: AdminSnapshot = {
             expertId: 'expert-admin-01',
             rating: 5,
             content: '좋았습니다.',
+            status: 'published',
             createdAt: '2026-07-01T00:00:00.000Z',
         },
     ],

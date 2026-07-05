@@ -225,6 +225,16 @@ export const toWork = (item: unknown): Work | null => {
                 : stringValue(item, 'settlement_status') === 'refunded'
                     ? 'refunded'
                     : 'held',
+        refundStatus: stringValue(item, 'refund_status') === 'refunded'
+            ? 'refunded'
+            : stringValue(item, 'refund_status') === 'fee_excluded_refund_pending'
+                ? 'fee_excluded_refund_pending'
+                : undefined,
+        disputeStatus: stringValue(item, 'dispute_status') === 'open'
+            ? 'open'
+            : stringValue(item, 'dispute_status') === 'resolved'
+                ? 'resolved'
+                : undefined,
         stepIds: [],
     };
 };
@@ -310,6 +320,7 @@ export const toReview = (item: unknown): Review | null => {
         expertId: stringValue(item, 'expert_id'),
         rating: rating === 1 || rating === 2 || rating === 3 || rating === 4 || rating === 5 ? rating : 5,
         content: stringValue(item, 'content'),
+        status: stringValue(item, 'status') === 'hidden' ? 'hidden' : 'published',
         createdAt: stringValue(item, 'created_at'),
     };
 };

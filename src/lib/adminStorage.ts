@@ -83,6 +83,13 @@ export type AdminActionType =
     | 'move_product_down'
     | 'resolve_report'
     | 'dismiss_report'
+    | 'hide_review'
+    | 'restore_review'
+    | 'mark_settlement_pending'
+    | 'mark_settlement_settled'
+    | 'mark_refund_pending'
+    | 'open_dispute'
+    | 'resolve_dispute'
     | 'close_consultation'
     | 'cancel_trade';
 

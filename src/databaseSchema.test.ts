@@ -86,6 +86,14 @@ describe('database.sql', () => {
         expect(sql).toMatch(/move_product_up/i)
         expect(sql).toMatch(/resolve_report/i)
         expect(sql).toMatch(/dismiss_report/i)
+        expect(sql).toMatch(/hide_review/i)
+        expect(sql).toMatch(/restore_review/i)
+        expect(sql).toMatch(/mark_settlement_pending/i)
+        expect(sql).toMatch(/mark_settlement_settled/i)
+        expect(sql).toMatch(/mark_refund_pending/i)
+        expect(sql).toMatch(/open_dispute/i)
+        expect(sql).toMatch(/resolve_dispute/i)
+        expect(sql).toMatch(/create policy "Admins can update reviews"/i)
     })
 
     it('drops policies and triggers before recreating them for safe reruns', () => {
@@ -166,10 +174,12 @@ describe('database.sql', () => {
         expect(sql).toMatch(/revision_limit integer not null default 0/i)
         expect(sql).toMatch(/revision_used integer not null default 0/i)
         expect(sql).toMatch(/refund_status text/i)
+        expect(sql).toMatch(/dispute_status text/i)
         expect(sql).toMatch(/cancellation_reason text/i)
         expect(sql).toMatch(/cancelled_at timestamptz/i)
         expect(sql).toMatch(/add column if not exists payment_status/i)
         expect(sql).toMatch(/add column if not exists settlement_status/i)
+        expect(sql).toMatch(/add column if not exists dispute_status/i)
     })
 
     it('stores Toss payment orders without exposing write access to clients', () => {
@@ -225,8 +235,13 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/works\.status = 'completed'/i)
     })
 
-    it('does not allow review updates in the initial launch policy', () => {
-        expect(sql).not.toMatch(/on public\.reviews for update/i)
+    it('allows only admins to update review moderation status', () => {
+        expect(sql).toMatch(/status text not null default 'published' check \(status in \('published', 'hidden'\)\)/i)
+        const policyMatch = sql.match(/create policy "Admins can update reviews"[\s\S]*?;/i)
+        const policySql = policyMatch?.[0] || ''
+
+        expect(policySql).toMatch(/on public\.reviews for update/i)
+        expect(policySql).toMatch(/is_admin\(auth\.uid\(\)\)/i)
     })
 
     it('does not contain trailing commas before statement terminators', () => {

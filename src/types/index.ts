@@ -165,7 +165,8 @@ export interface Work {
     platformFee?: number;
     expertPayout?: number;
     settlementStatus?: 'held' | 'pending' | 'settled' | 'refunded';
-    refundStatus?: 'fee_excluded_refund_pending';
+    refundStatus?: 'fee_excluded_refund_pending' | 'refunded';
+    disputeStatus?: 'open' | 'resolved';
     cancellationReason?: 'before_start' | 'mutual_after_start';
     cancelledAt?: string;
     revisionLimit?: number;
@@ -203,6 +204,7 @@ export interface Review {
     expertId: string;
     rating: 1 | 2 | 3 | 4 | 5;
     content: string;
+    status?: 'published' | 'hidden';
     createdAt: string;
     createdAtLabel?: string;
     priceRangeLabel?: string;

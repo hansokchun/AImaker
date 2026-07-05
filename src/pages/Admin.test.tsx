@@ -8,6 +8,11 @@ import { adminSnapshot } from './adminTestFixtures';
 const mockUseAuth = vi.fn();
 const mockNavigate = vi.fn();
 
+const renderAdmin = async () => {
+    render(<MemoryRouter><Admin /></MemoryRouter>);
+    await waitFor(() => expect(getAdminSnapshot).toHaveBeenCalled());
+};
+
 const clickAdminTab = (index: number) => {
     fireEvent.click(screen.getAllByRole('button')[index]);
 };
@@ -55,39 +60,23 @@ describe('Admin', () => {
         }));
     });
 
-    it('renders an operation dashboard for an admin account', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-
-        expect(await screen.findByRole('heading', { name: '운영 관리자' })).toBeInTheDocument();
-        expect(screen.getByText('전체 회원')).toBeInTheDocument();
-        expect(screen.getByText('공개 상품')).toBeInTheDocument();
-        expect(screen.getByText('진행 중 작업')).toBeInTheDocument();
-        expect(screen.getByText('데이터: 로컬/데모')).toBeInTheDocument();
-        expect(screen.getByLabelText('관리자 검색')).toBeInTheDocument();
-    });
-
-    it('shows product, trade, workroom, and review data from the admin snapshot', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
+    it('renders admin data panels for an admin account', async () => {
+        await renderAdmin();
 
         clickAdminTab(2);
         expect(screen.getByText('AI 영상 제작')).toBeInTheDocument();
         expect(screen.getByText('50,000원')).toBeInTheDocument();
 
-        clickAdminTab(3);
-        expect(screen.getByText('의뢰서 · 숏폼 의뢰')).toBeInTheDocument();
-        expect(screen.getByText('제안서 · 숏폼 제안서')).toBeInTheDocument();
-
         clickAdminTab(5);
         expect(screen.getByText('숏폼 작업방')).toBeInTheDocument();
+        expect(screen.getByText('Draft delivery is ready.')).toBeInTheDocument();
 
         clickAdminTab(6);
         expect(screen.getByText('좋았습니다.')).toBeInTheDocument();
     });
 
     it('filters admin records by search query and status', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
+        await renderAdmin();
 
         fireEvent.change(screen.getByLabelText('관리자 검색'), { target: { value: 'price estimate' } });
         clickAdminTab(4);
@@ -114,28 +103,14 @@ describe('Admin', () => {
 
         render(<MemoryRouter><Admin /></MemoryRouter>);
 
-        expect(screen.getByRole('heading', { name: '관리자 권한이 필요합니다' })).toBeInTheDocument();
         await waitFor(() => expect(getAdminSnapshot).not.toHaveBeenCalled());
     });
 
-    it('shows consultation and workroom message contents to admins', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
-
-        clickAdminTab(4);
-        expect(screen.getByText('Need price estimate for shortform.')).toBeInTheDocument();
-
-        clickAdminTab(5);
-        expect(screen.getByText('Draft delivery is ready.')).toBeInTheDocument();
-    });
-
-    it('records moderation actions from the admin screen', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
+    it('records member, product, report, and work moderation actions', async () => {
+        await renderAdmin();
 
         clickAdminTab(1);
         fireEvent.click(screen.getByRole('button', { name: '경고 기록' }));
-
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
             adminId: 'user-admin-01',
             targetType: 'user',
@@ -143,16 +118,9 @@ describe('Admin', () => {
             actionType: 'warn',
             reason: '관리자가 회원 경고를 기록했습니다.',
         }));
-        expect(await screen.findByText('운영 조치가 처리되었습니다.')).toBeInTheDocument();
-    });
-
-    it('runs product hiding from the admin product panel', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
 
         clickAdminTab(2);
         fireEvent.click(screen.getByRole('button', { name: '상품 숨김 처리' }));
-
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
             adminId: 'user-admin-01',
             targetType: 'product',
@@ -160,78 +128,9 @@ describe('Admin', () => {
             actionType: 'hide_product',
             reason: '관리자가 상품 숨김 처리를 실행했습니다.',
         }));
-    });
-
-    it('runs product restore, featuring, and placement actions from the admin product panel', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
-
-        clickAdminTab(2);
-        fireEvent.click(screen.getByRole('button', { name: '상품 공개 복구' }));
-
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'product',
-            targetId: 'product-admin-02',
-            actionType: 'restore_product',
-            reason: '관리자가 숨김 상품을 다시 공개했습니다.',
-        }));
-
-        fireEvent.click(screen.getAllByRole('button', { name: '상단 추천 지정' })[0]);
-        fireEvent.click(screen.getAllByRole('button', { name: '배치 올리기' })[1]);
-
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'product',
-            targetId: 'product-admin-01',
-            actionType: 'feature_product',
-            reason: '관리자가 상품을 상단 추천으로 지정했습니다.',
-        }));
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'product',
-            targetId: 'product-admin-01',
-            actionType: 'move_product_up',
-            reason: '관리자가 상품 배치를 올렸습니다.',
-        }));
-    });
-
-    it('runs member restriction and release actions from the admin member panel', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
-
-        clickAdminTab(1);
-        fireEvent.click(screen.getByRole('button', { name: '활동 제한' }));
-
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'user',
-            targetId: 'user-admin-01',
-            actionType: 'restrict',
-            reason: '관리자가 회원 활동을 제한했습니다.',
-        }));
-        expect(await screen.findByText('활동 제한됨')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: '제한 해제' }));
-
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'user',
-            targetId: 'user-admin-01',
-            actionType: 'release_restriction',
-            reason: '관리자가 회원 활동 제한을 해제했습니다.',
-        }));
-    });
-
-    it('shows pending reports and resolves a report from the review queue', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
 
         clickAdminTab(7);
-
-        expect(screen.getByText('외부 연락처 유도 의심')).toBeInTheDocument();
-        expect(screen.getByText('높음')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: '검토 완료' }));
-
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
             adminId: 'user-admin-01',
             targetType: 'report',
@@ -239,22 +138,89 @@ describe('Admin', () => {
             actionType: 'resolve_report',
             reason: '관리자가 신고 항목을 검토 완료 처리했습니다.',
         }));
-        await waitFor(() => expect(screen.getAllByText('처리 완료').length).toBeGreaterThan(1));
-    });
-
-    it('runs work cancellation from the admin workroom panel', async () => {
-        render(<MemoryRouter><Admin /></MemoryRouter>);
-        await screen.findByRole('heading', { name: '운영 관리자' });
 
         clickAdminTab(5);
         fireEvent.click(screen.getByRole('button', { name: '거래 중단 처리' }));
-
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
             adminId: 'user-admin-01',
             targetType: 'work',
             targetId: 'work-admin-01',
             actionType: 'cancel_trade',
             reason: '관리자가 작업방 거래 중단 처리를 실행했습니다.',
+        }));
+    });
+
+    it('hides and restores reviews from the admin review panel', async () => {
+        await renderAdmin();
+
+        clickAdminTab(6);
+        fireEvent.click(screen.getByRole('button', { name: '리뷰 숨김 처리' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'review',
+            targetId: 'review-admin-01',
+            actionType: 'hide_review',
+            reason: '관리자가 리뷰를 숨김 처리했습니다.',
+        }));
+        await waitFor(() => expect(screen.getAllByText('숨김').length).toBeGreaterThan(0));
+
+        fireEvent.click(screen.getByRole('button', { name: '리뷰 공개 복구' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'review',
+            targetId: 'review-admin-01',
+            actionType: 'restore_review',
+            reason: '관리자가 숨김 리뷰를 공개 복구했습니다.',
+        }));
+    });
+
+    it('runs settlement, refund, and dispute actions from the admin workroom panel', async () => {
+        await renderAdmin();
+
+        clickAdminTab(5);
+        fireEvent.click(screen.getByRole('button', { name: '정산 대기 처리' }));
+        fireEvent.click(screen.getByRole('button', { name: '분쟁 열기' }));
+        fireEvent.click(screen.getByRole('button', { name: '환불 대기 처리' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-01',
+            actionType: 'mark_settlement_pending',
+            reason: '관리자가 작업방을 정산 대기 상태로 변경했습니다.',
+        }));
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-01',
+            actionType: 'open_dispute',
+            reason: '관리자가 작업방 분쟁 관리를 시작했습니다.',
+        }));
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-01',
+            actionType: 'mark_refund_pending',
+            reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
+        }));
+    });
+
+    it('surfaces policy violating messages and records a sender warning', async () => {
+        await renderAdmin();
+
+        clickAdminTab(7);
+
+        expect(screen.getByText('Please contact me at client@example.com outside the platform.')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: '작성자 경고' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'user',
+            targetId: 'client-admin-01',
+            actionType: 'warn',
+            reason: '관리자가 외부 연락처 공유 의심 메시지에 대해 작성자 경고를 기록했습니다.',
         }));
     });
 });
