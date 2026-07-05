@@ -15,7 +15,13 @@ import type {
     WorkStep,
 } from '../types';
 
-export const DEMO_TEST_ACCOUNT_EMAIL = 'benet9827@gmail.com';
+export const DEMO_TEST_ACCOUNT_EMAILS = [
+    'benet9827@gmail.com',
+    'benet9818@gmail.com',
+    'benet9818+client@gmail.com',
+    'benet9818+expert@gmail.com',
+] as const;
+export const DEMO_TEST_ACCOUNT_EMAIL = DEMO_TEST_ACCOUNT_EMAILS[0];
 
 const DEMO_NOW = '2026-07-01T09:00:00.000Z';
 const PARTNER_EXPERT_ID = 'demo-expert-rumi-studio';
@@ -38,7 +44,7 @@ export interface DemoAccountData {
 }
 
 export const isDemoTestAccountEmail = (email?: string | null) =>
-    email?.trim().toLowerCase() === DEMO_TEST_ACCOUNT_EMAIL;
+    DEMO_TEST_ACCOUNT_EMAILS.includes(email?.trim().toLowerCase() as typeof DEMO_TEST_ACCOUNT_EMAILS[number]);
 
 export const isDemoAccountRecordId = (id?: string | number | null) =>
     typeof id === 'string' && id.startsWith('demo-');
