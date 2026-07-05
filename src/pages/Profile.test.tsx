@@ -239,6 +239,33 @@ describe('Profile editing', () => {
         )
     })
 
+    it('saves expert profession and one-line introduction', async () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(container.querySelector('#expert-profession')).toBeInTheDocument())
+        fireEvent.change(container.querySelector('#expert-profession') as HTMLInputElement, {
+            target: { value: 'AI 이미지 제작 전문가' },
+        })
+        fireEvent.change(container.querySelector('#expert-one-liner') as HTMLInputElement, {
+            target: { value: '빠른 이미지 시안과 실무형 보정을 제공합니다.' },
+        })
+        fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(saveProfile).toHaveBeenCalledWith(
+                'expert-video-01',
+                expect.objectContaining({
+                    profession: 'AI 이미지 제작 전문가',
+                    oneLiner: '빠른 이미지 시안과 실무형 보정을 제공합니다.',
+                }),
+            ),
+        )
+    })
+
     it('saves expert contact availability and average response time', async () => {
         const { container } = render(
             <MemoryRouter>

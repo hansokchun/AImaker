@@ -43,6 +43,12 @@ const packageNames: Record<PackageTier, ProductPackage['name']> = {
     premium: 'Premium',
 }
 
+const productStatusLabels: Record<ExpertProduct['status'], string> = {
+    published: '공개',
+    hidden: '숨김',
+    draft: '임시저장',
+}
+
 export default function ProductRegister() {
     const { session, user, loading } = useAuth()
     const { productId } = useParams<{ productId: string }>()
@@ -53,6 +59,8 @@ export default function ProductRegister() {
     const [category, setCategory] = useState<AiCategoryId>('ai-video-shortform')
     const [summary, setSummary] = useState('')
     const [description, setDescription] = useState('')
+    const [taxInvoiceAvailable, setTaxInvoiceAvailable] = useState(false)
+    const [productStatus, setProductStatus] = useState<ExpertProduct['status']>('published')
     const [usePackagePricing, setUsePackagePricing] = useState(false)
     const [basePackage, setBasePackage] = useState<PackageFormState>(createPackageState)
     const [packages, setPackages] = useState<Record<PackageTier, PackageFormState>>({
@@ -98,6 +106,8 @@ export default function ProductRegister() {
                 setCategory(targetProduct.category)
                 setSummary(targetProduct.summary)
                 setDescription(targetProduct.description)
+                setTaxInvoiceAvailable(Boolean(targetProduct.taxInvoiceAvailable))
+                setProductStatus(targetProduct.status)
                 setExistingThumbnailDataUrl(targetProduct.sampleImageUrl || '')
                 setExistingReferenceDataUrls(targetProduct.sampleLinks || [])
 
@@ -210,18 +220,18 @@ export default function ProductRegister() {
                 category,
                 summary: summary.trim(),
                 description: description.trim(),
-                aiTools: [],
                 sampleLinks: nextReferenceDataUrls,
                 sampleImageUrl: thumbnailDataUrl,
                 startingPrice: standardPackage.price,
                 deliveryDays: standardPackage.deliveryDays,
                 revisionCount: standardPackage.revisionCount,
+                taxInvoiceAvailable,
                 packages: {
                     standard: standardPackage,
                     deluxe: deluxePackage,
                     premium: premiumPackage,
                 },
-                status: 'published',
+                status: productStatus,
             }
 
             await saveExpertProduct(product)
@@ -421,6 +431,29 @@ export default function ProductRegister() {
                             시작가 {currency.format(Number(usePackagePricing ? packages.standard.price : basePackage.price))}원
                         </p>
                     )}
+                    <Section step="5" title="운영 정보">
+                        <div className="product-register-two-column">
+                            <label className="product-register-toggle">
+                                <input
+                                    type="checkbox"
+                                    checked={taxInvoiceAvailable}
+                                    onChange={(event) => setTaxInvoiceAvailable(event.target.checked)}
+                                />
+                                세금계산서 발행 가능
+                            </label>
+                            <Field label="공개 상태">
+                                <select
+                                    className="product-register-input"
+                                    value={productStatus}
+                                    onChange={(event) => setProductStatus(event.target.value as ExpertProduct['status'])}
+                                >
+                                    {Object.entries(productStatusLabels).map(([value, label]) => (
+                                        <option key={value} value={value}>{label}</option>
+                                    ))}
+                                </select>
+                            </Field>
+                        </div>
+                    </Section>
                     {errorMessage && <p className="product-register-error" role="alert">{errorMessage}</p>}
 
                     <div className="product-register-actions">

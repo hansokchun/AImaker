@@ -225,7 +225,6 @@ describe('Category', () => {
         summary: '브랜드 릴스와 랜딩 이미지를 함께 구성합니다',
         description: '스마트스토어 상세페이지와 전환용 배너를 제작합니다',
         expertName: '전환디자인랩',
-        aiTools: ['Midjourney', 'Runway'],
       },
       {
         ...mockExpertProducts[1],
@@ -234,7 +233,6 @@ describe('Category', () => {
         summary: '다른 요약',
         description: '다른 설명',
         expertName: '다른 전문가',
-        aiTools: ['ChatGPT'],
       },
     ]
     getExpertProducts.mockResolvedValue(products)

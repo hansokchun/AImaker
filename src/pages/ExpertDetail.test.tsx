@@ -338,7 +338,6 @@ describe('ExpertDetail', () => {
             id: 'product-without-packages',
             packages: undefined,
             sampleLinks: undefined,
-            aiTools: undefined,
         } as unknown as ExpertProduct
         getExpertProducts.mockResolvedValue([productWithoutPackages])
 

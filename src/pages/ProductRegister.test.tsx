@@ -14,7 +14,6 @@ const editableProduct: ExpertProduct = {
     category: 'ai-video-shortform',
     summary: '기존 요약입니다.',
     description: '기존 상세 설명입니다.',
-    aiTools: [],
     sampleLinks: ['data:image/png;base64,old-detail'],
     sampleImageUrl: 'data:image/png;base64,old-main',
     startingPrice: 50000,
@@ -158,7 +157,6 @@ describe('ProductRegister', () => {
                     category: 'ai-video-shortform',
                     summary: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.',
                     description: expect.stringContaining('브랜드 홍보용 숏폼 영상의 기획'),
-                    aiTools: [],
                     sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
                     sampleLinks: [expect.stringMatching(/^data:image\/png;base64,/)],
                     startingPrice: 30000,
@@ -185,6 +183,35 @@ describe('ProductRegister', () => {
             ),
         )
         await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(new RegExp(`^/expert/${uuidPattern.source.slice(1, -1)}$`, 'i')))
+    })
+
+    it('saves product tax invoice and visibility status without product-level AI tools', async () => {
+        renderRegister()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 이미지 시안 제작' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '상세페이지용 AI 이미지 시안을 제작합니다.' } })
+        fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상품 상세페이지에 사용할 AI 이미지 시안을 제공합니다.' } })
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
+            target: { files: [new File(['main'], 'main.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('가격'), { target: { value: '45000' } })
+        fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '3' } })
+        fireEvent.change(screen.getByLabelText('수정 횟수'), { target: { value: '1' } })
+        fireEvent.change(screen.getByLabelText('기본 제공 항목'), { target: { value: '이미지 시안 3장' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '세금계산서 발행 가능' }))
+        fireEvent.change(screen.getByLabelText('공개 상태'), { target: { value: 'hidden' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    taxInvoiceAvailable: true,
+                    status: 'hidden',
+                }),
+            ),
+        )
+        expect(saveExpertProduct.mock.calls[0]?.[0]).not.toHaveProperty('aiTools')
     })
 
     it('shows Standard, Deluxe, and Premium fields only when package pricing is enabled', async () => {

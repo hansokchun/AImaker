@@ -21,7 +21,6 @@ export const adminSnapshot: AdminSnapshot = {
             category: 'ai-video-shortform',
             summary: '숏폼 제작',
             description: 'AI 숏폼 영상 제작',
-            aiTools: ['Runway'],
             sampleLinks: [],
             sampleImageUrl: 'https://example.com/product.jpg',
             startingPrice: 50000,

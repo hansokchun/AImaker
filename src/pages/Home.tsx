@@ -6,6 +6,12 @@ import { mockExpertProducts } from '../data/mockData';
 import { getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
 
+const productCategoryLabels: Record<ExpertProduct['category'], string> = {
+    'ai-video-shortform': 'AI 영상',
+    'ai-image-character': 'AI 이미지',
+    'ai-development-automation': 'AI 개발',
+};
+
 const categoryCards = [
     {
         id: 'ai-video-shortform',
@@ -186,7 +192,7 @@ export default function Home() {
                                     <ProductThumbnail product={product} />
                                 </Link>
                                 <div className="home-minimal-product-body">
-                                    <p className="home-minimal-product-label">{product.aiTools[0] || 'AI Service'}</p>
+                                    <p className="home-minimal-product-label">{productCategoryLabels[product.category]}</p>
                                     <h3 className="home-product-title">{product.title}</h3>
                                     <div className="home-minimal-product-footer">
                                         <div>

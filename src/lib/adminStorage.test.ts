@@ -12,7 +12,6 @@ const product: ExpertProduct = {
     category: 'ai-video-shortform',
     summary: 'summary',
     description: 'description',
-    aiTools: [],
     sampleLinks: [],
     sampleImageUrl: '',
     startingPrice: 50000,

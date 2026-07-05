@@ -460,6 +460,28 @@ export default function Profile() {
                                     {validationErrors.aiTools && <p className="profile-field-error">{validationErrors.aiTools}</p>}
                                 </div>
                                 <div className="profile-form-group">
+                                    <label htmlFor="expert-profession">전문 분야 <span className="label-hint">(선택)</span></label>
+                                    <input
+                                        id="expert-profession"
+                                        type="text"
+                                        className="profile-input"
+                                        value={profile.profession}
+                                        onChange={(event) => updateProfile('profession', event.target.value)}
+                                        placeholder="예: AI 이미지 제작 전문가"
+                                    />
+                                </div>
+                                <div className="profile-form-group">
+                                    <label htmlFor="expert-one-liner">한 줄 소개 <span className="label-hint">(선택)</span></label>
+                                    <input
+                                        id="expert-one-liner"
+                                        type="text"
+                                        className="profile-input"
+                                        value={profile.oneLiner}
+                                        onChange={(event) => updateProfile('oneLiner', event.target.value)}
+                                        placeholder="예: 빠른 이미지 시안과 실무형 보정을 제공합니다."
+                                    />
+                                </div>
+                                <div className="profile-form-group">
                                     <label htmlFor="expert-intro">소개 <span className="label-hint">(선택)</span></label>
                                     <textarea
                                         id="expert-intro"

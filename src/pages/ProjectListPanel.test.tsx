@@ -20,7 +20,6 @@ const productWithImage: ExpertProduct = {
     category: 'ai-image-character',
     summary: '대표 이미지가 있는 상품',
     description: '상세 설명',
-    aiTools: ['Midjourney'],
     sampleLinks: [],
     sampleImageUrl: 'https://example.com/product-image.jpg',
     startingPrice: 50000,

@@ -32,7 +32,6 @@ const product: ExpertProduct = {
     category: 'ai-video-shortform',
     summary: 'Owned summary',
     description: 'Owned description',
-    aiTools: ['Runway'],
     sampleLinks: [],
     sampleImageUrl: '',
     startingPrice: 50000,

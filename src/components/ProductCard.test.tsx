@@ -80,7 +80,6 @@ describe('ProductCard', () => {
     expect(screen.queryByText(`${product.deliveryDays}일 납기`)).not.toBeInTheDocument()
     expect(screen.queryByText(`수정 ${product.revisionCount}회`)).not.toBeInTheDocument()
     expect(screen.queryByText('세금계산서 가능')).not.toBeInTheDocument()
-    expect(screen.queryByText(product.aiTools[0])).not.toBeInTheDocument()
   })
 
   it('uses the expert profile image instead of a text initial when provided', () => {

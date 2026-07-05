@@ -52,7 +52,6 @@ export interface ExpertProduct {
     category: AiCategoryId;
     summary: string;
     description: string;
-    aiTools: string[];
     sampleLinks: string[];
     sampleImageUrl: string;
     startingPrice: number;
