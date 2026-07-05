@@ -165,5 +165,17 @@ export const adminSnapshot: AdminSnapshot = {
             createdAt: '2026-07-01T00:00:00.000Z',
         },
     ],
+    reports: [
+        {
+            id: 'report-admin-01',
+            reporterId: 'client-admin-01',
+            targetType: 'product',
+            targetId: 'product-admin-01',
+            reason: '외부 연락처 유도 의심',
+            status: 'pending',
+            severity: 'high',
+            createdAt: '2026-07-01T00:40:00.000Z',
+        },
+    ],
     adminActions: [],
 };

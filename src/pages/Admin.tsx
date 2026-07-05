@@ -9,7 +9,7 @@ import AdminDataPanels, { type AdminActionRequest } from './AdminDataPanels';
 import AdminFilters from './AdminFilters';
 import './Admin.css';
 
-type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews' | 'actions';
+type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews' | 'reports' | 'actions';
 
 interface AdminTabItem {
     readonly id: AdminTab;
@@ -138,6 +138,12 @@ function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction
                 ? { ...consultation, status: 'closed' }
                 : consultation,
         ),
+        reports: snapshot.reports.map((report) => {
+            if (action.targetType !== 'report' || report.id !== action.targetId) return report;
+            if (action.actionType === 'resolve_report') return { ...report, status: 'resolved', resolvedAt: action.createdAt, resolvedBy: action.adminId };
+            if (action.actionType === 'dismiss_report') return { ...report, status: 'dismissed', resolvedAt: action.createdAt, resolvedBy: action.adminId };
+            return report;
+        }),
         adminActions: [action, ...snapshot.adminActions.filter((item) => item.id !== action.id)],
     };
 }
@@ -215,6 +221,7 @@ function buildTabs(snapshot: AdminSnapshot | null): AdminTabItem[] {
         { id: 'consultations', label: '상담채팅', count: snapshot?.consultations.length || 0 },
         { id: 'workrooms', label: '작업방', count: snapshot?.works.length || 0 },
         { id: 'reviews', label: '리뷰', count: snapshot?.reviews.length || 0 },
+        { id: 'reports', label: '검수 큐', count: snapshot?.reports.filter((report) => report.status === 'pending').length || 0 },
         { id: 'actions', label: '운영 조치', count: snapshot?.adminActions.length || 0 },
     ];
 }
@@ -225,11 +232,12 @@ function buildStats(snapshot: AdminSnapshot | null) {
     const activeWorks = snapshot.works.filter((work) => work.status !== 'completed' && work.status !== 'cancelled');
     const paidProposals = snapshot.proposals.filter((proposal) => proposal.paymentStatus === 'paid');
     const reportedWorks = snapshot.works.filter((work) => work.status === 'revision_requested' || work.status === 'cancelled');
+    const pendingReports = snapshot.reports.filter((report) => report.status === 'pending');
 
     return [
         { label: '전체 회원', value: snapshot.profiles.length },
         { label: '공개 상품', value: snapshot.products.filter((product) => product.status === 'published').length },
         { label: '진행 중 작업', value: activeWorks.length },
-        { label: '검토 필요', value: reportedWorks.length + paidProposals.filter((proposal) => proposal.status !== 'accepted').length },
+        { label: '검토 필요', value: reportedWorks.length + pendingReports.length + paidProposals.filter((proposal) => proposal.status !== 'accepted').length },
     ];
 }

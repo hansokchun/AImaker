@@ -15,6 +15,7 @@ import { supabase } from './supabase';
 import {
     isRecord,
     toAdminAction,
+    toAdminReport,
     toAdminProduct,
     toConsultation,
     toConsultationMessage,
@@ -46,11 +47,29 @@ export interface AdminSnapshot {
     readonly consultationMessages: readonly ConsultationMessage[];
     readonly workMessages: readonly WorkMessage[];
     readonly reviews: readonly Review[];
+    readonly reports: readonly AdminReport[];
     readonly adminActions: readonly AdminAction[];
     readonly source: 'supabase' | 'local';
 }
 
-export type AdminActionTargetType = 'user' | 'product' | 'trade' | 'consultation' | 'work' | 'review';
+export type AdminReportStatus = 'pending' | 'resolved' | 'dismissed';
+export type AdminReportSeverity = 'low' | 'medium' | 'high';
+export type AdminReportTargetType = 'user' | 'product' | 'consultation' | 'work' | 'review';
+
+export interface AdminReport {
+    readonly id: string;
+    readonly reporterId: string;
+    readonly targetType: AdminReportTargetType;
+    readonly targetId: string;
+    readonly reason: string;
+    readonly status: AdminReportStatus;
+    readonly severity: AdminReportSeverity;
+    readonly createdAt: string;
+    readonly resolvedAt?: string;
+    readonly resolvedBy?: string;
+}
+
+export type AdminActionTargetType = 'user' | 'product' | 'trade' | 'consultation' | 'work' | 'review' | 'report';
 export type AdminActionType =
     | 'note'
     | 'warn'
@@ -62,6 +81,8 @@ export type AdminActionType =
     | 'unfeature_product'
     | 'move_product_up'
     | 'move_product_down'
+    | 'resolve_report'
+    | 'dismiss_report'
     | 'close_consultation'
     | 'cancel_trade';
 
@@ -87,8 +108,6 @@ const ADMIN_EMAILS = new Set(
     [
         'benet9827@gmail.com',
         'benet9818@gmail.com',
-        'benet9818+client@gmail.com',
-        'benet9818+expert@gmail.com',
         ...(import.meta.env.VITE_ADMIN_EMAILS || '')
             .split(',')
             .map((email) => email.trim().toLowerCase())
@@ -107,6 +126,7 @@ const STORAGE_KEYS = {
     CONSULTATION_MESSAGES: 'ai_consultation_messages',
     WORK_MESSAGES: 'ai_work_messages',
     ADMIN_ACTIONS: 'ai_admin_actions',
+    ADMIN_REPORTS: 'ai_admin_reports',
 } as const;
 
 const readLocalArray = <T>(key: string): T[] => {
@@ -187,6 +207,7 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         consultationMessages,
         workMessages,
         reviews,
+        reports,
         adminActions,
     ] = await Promise.all([
         selectAll('expert_products', toAdminProduct),
@@ -198,6 +219,7 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         selectAll('consultation_messages', toConsultationMessage),
         selectAll('work_messages', toWorkMessage),
         selectAll('reviews', toReview),
+        selectAll('admin_reports', toAdminReport),
         selectAll('admin_actions', toAdminAction),
     ]);
 
@@ -211,6 +233,7 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         consultationMessages: consultationMessages.length > 0 ? consultationMessages : localSnapshot.consultationMessages,
         workMessages: workMessages.length > 0 ? workMessages : localSnapshot.workMessages,
         reviews: reviews.length > 0 ? reviews : localSnapshot.reviews,
+        reports: reports.length > 0 ? reports : localSnapshot.reports,
         adminActions: adminActions.length > 0 ? adminActions : localSnapshot.adminActions,
         source: profiles.length || serviceRequests.length || proposals.length || works.length ? 'supabase' : 'local',
     };
@@ -258,6 +281,7 @@ function getLocalAdminSnapshot(): AdminSnapshot {
         consultationMessages: readLocalArray<ConsultationMessage>(STORAGE_KEYS.CONSULTATION_MESSAGES),
         workMessages: readLocalArray<WorkMessage>(STORAGE_KEYS.WORK_MESSAGES),
         reviews: readLocalArray<Review>(STORAGE_KEYS.REVIEWS),
+        reports: readLocalArray<AdminReport>(STORAGE_KEYS.ADMIN_REPORTS),
         adminActions: readLocalArray<AdminAction>(STORAGE_KEYS.ADMIN_ACTIONS),
         source: 'local',
     };

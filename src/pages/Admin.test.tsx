@@ -222,6 +222,26 @@ describe('Admin', () => {
         }));
     });
 
+    it('shows pending reports and resolves a report from the review queue', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(7);
+
+        expect(screen.getByText('외부 연락처 유도 의심')).toBeInTheDocument();
+        expect(screen.getByText('높음')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: '검토 완료' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'report',
+            targetId: 'report-admin-01',
+            actionType: 'resolve_report',
+            reason: '관리자가 신고 항목을 검토 완료 처리했습니다.',
+        }));
+        await waitFor(() => expect(screen.getAllByText('처리 완료').length).toBeGreaterThan(1));
+    });
+
     it('runs work cancellation from the admin workroom panel', async () => {
         render(<MemoryRouter><Admin /></MemoryRouter>);
         await screen.findByRole('heading', { name: '운영 관리자' });

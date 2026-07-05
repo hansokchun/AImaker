@@ -151,4 +151,29 @@ describe('adminStorage', () => {
         expect(storedWorks[0]?.status).toBe('cancelled');
         expect(storedWorks[0]?.refundStatus).toBe('fee_excluded_refund_pending');
     });
+
+    it('resolves a pending report when an admin records a resolve report action', async () => {
+        localStorage.setItem('ai_admin_reports', JSON.stringify([{
+            id: 'report-admin-01',
+            reporterId: 'client-admin-01',
+            targetType: 'product',
+            targetId: product.id,
+            reason: '외부 연락처 유도 의심',
+            status: 'pending',
+            severity: 'high',
+            createdAt: '2026-07-01T00:40:00.000Z',
+        }]));
+        const { saveAdminAction } = await import('./adminStorage');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'report',
+            targetId: 'report-admin-01',
+            actionType: 'resolve_report',
+            reason: '관리자가 신고 항목을 검토 완료 처리했습니다.',
+        });
+
+        const storedReports = JSON.parse(localStorage.getItem('ai_admin_reports') || '[]') as { readonly status?: string }[];
+        expect(storedReports[0]?.status).toBe('resolved');
+    });
 });

@@ -681,12 +681,27 @@ create policy "Users can view own admin role"
   on public.admin_users for select
   using (auth.uid() = user_id);
 
+create table if not exists public.admin_reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid references public.profiles(id) on delete set null,
+  target_type text not null check (target_type in ('user', 'product', 'consultation', 'work', 'review')),
+  target_id text not null,
+  reason text not null,
+  status text not null default 'pending' check (status in ('pending', 'resolved', 'dismissed')),
+  severity text not null default 'medium' check (severity in ('low', 'medium', 'high')),
+  resolved_by uuid references public.profiles(id) on delete set null,
+  resolved_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_reports enable row level security;
+
 create table if not exists public.admin_actions (
   id uuid primary key default gen_random_uuid(),
   admin_id uuid references public.profiles(id) on delete set null,
-  target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review')),
+  target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review', 'report')),
   target_id text not null,
-  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'close_consultation', 'cancel_trade')),
+  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'close_consultation', 'cancel_trade')),
   reason text not null,
   created_at timestamptz not null default now()
 );
@@ -705,6 +720,17 @@ create policy "Admins can insert admin actions"
     admin_id = auth.uid()
     and exists (select 1 from public.admin_users where admin_users.user_id = auth.uid())
   );
+
+drop policy if exists "Admins can view reports" on public.admin_reports;
+create policy "Admins can view reports"
+  on public.admin_reports for select
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can update reports" on public.admin_reports;
+create policy "Admins can update reports"
+  on public.admin_reports for update
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
+  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can view profiles" on public.profiles;
 create policy "Admins can view profiles"

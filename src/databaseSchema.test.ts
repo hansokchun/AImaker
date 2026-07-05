@@ -67,9 +67,13 @@ describe('database.sql', () => {
 
     it('defines admin role and audit action tables for operations', () => {
         expect(sql).toMatch(/create table(?: if not exists)? public\.admin_users/i)
+        expect(sql).toMatch(/create table(?: if not exists)? public\.admin_reports/i)
         expect(sql).toMatch(/create table(?: if not exists)? public\.admin_actions/i)
         expect(sql).toMatch(/alter table public\.admin_users enable row level security/i)
+        expect(sql).toMatch(/alter table public\.admin_reports enable row level security/i)
         expect(sql).toMatch(/alter table public\.admin_actions enable row level security/i)
+        expect(sql).toMatch(/create policy "Admins can view reports"/i)
+        expect(sql).toMatch(/create policy "Admins can update reports"/i)
         expect(sql).toMatch(/create policy "Admins can view consultation messages"/i)
         expect(sql).toMatch(/create policy "Admins can view work messages"/i)
         expect(sql).toMatch(/create policy "Admins can update consultations"/i)
@@ -80,6 +84,8 @@ describe('database.sql', () => {
         expect(sql).toMatch(/restore_product/i)
         expect(sql).toMatch(/feature_product/i)
         expect(sql).toMatch(/move_product_up/i)
+        expect(sql).toMatch(/resolve_report/i)
+        expect(sql).toMatch(/dismiss_report/i)
     })
 
     it('drops policies and triggers before recreating them for safe reruns', () => {

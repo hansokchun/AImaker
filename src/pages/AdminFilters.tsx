@@ -16,6 +16,8 @@ const STATUS_OPTIONS: readonly { readonly value: AdminStatusFilter; readonly lab
     { value: 'completed', label: '완료' },
     { value: 'cancelled', label: '중단/취소' },
     { value: 'hidden', label: '숨김' },
+    { value: 'resolved', label: '처리 완료' },
+    { value: 'dismissed', label: '기각됨' },
 ];
 
 export default function AdminFilters({ value, onChange }: AdminFiltersProps) {

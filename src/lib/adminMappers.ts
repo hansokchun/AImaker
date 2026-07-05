@@ -1,5 +1,5 @@
 import type { AiCategoryId, Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work, WorkMessage } from '../types';
-import type { AdminAction, AdminProfile } from './adminStorage';
+import type { AdminAction, AdminProfile, AdminReport, AdminReportSeverity, AdminReportStatus, AdminReportTargetType } from './adminStorage';
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null;
@@ -25,6 +25,26 @@ const categoryValue = (value: string): AiCategoryId => {
     return 'ai-video-shortform';
 };
 
+const reportStatusValue = (value: string): AdminReportStatus => {
+    if (value === 'resolved') return 'resolved';
+    if (value === 'dismissed') return 'dismissed';
+    return 'pending';
+};
+
+const reportSeverityValue = (value: string): AdminReportSeverity => {
+    if (value === 'high') return 'high';
+    if (value === 'low') return 'low';
+    return 'medium';
+};
+
+const reportTargetTypeValue = (value: string): AdminReportTargetType => {
+    if (value === 'user') return 'user';
+    if (value === 'consultation') return 'consultation';
+    if (value === 'work') return 'work';
+    if (value === 'review') return 'review';
+    return 'product';
+};
+
 export const toProfile = (item: unknown): AdminProfile | null => {
     if (!isRecord(item)) return null;
 
@@ -39,6 +59,25 @@ export const toProfile = (item: unknown): AdminProfile | null => {
         isExpert: Boolean(item.is_expert),
         moderationStatus: stringValue(item, 'account_status') === 'restricted' ? 'restricted' : 'active',
         createdAt: stringValue(item, 'created_at'),
+    };
+};
+
+export const toAdminReport = (item: unknown): AdminReport | null => {
+    if (!isRecord(item)) return null;
+    const id = stringValue(item, 'id');
+    if (!id) return null;
+
+    return {
+        id,
+        reporterId: stringValue(item, 'reporter_id'),
+        targetType: reportTargetTypeValue(stringValue(item, 'target_type')),
+        targetId: stringValue(item, 'target_id'),
+        reason: stringValue(item, 'reason'),
+        status: reportStatusValue(stringValue(item, 'status')),
+        severity: reportSeverityValue(stringValue(item, 'severity')),
+        createdAt: stringValue(item, 'created_at'),
+        resolvedAt: stringValue(item, 'resolved_at') || undefined,
+        resolvedBy: stringValue(item, 'resolved_by') || undefined,
     };
 };
 

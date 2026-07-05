@@ -1,5 +1,5 @@
 import type { Consultation, ExpertProduct, Work } from '../types';
-import type { AdminAction } from './adminStorage';
+import type { AdminAction, AdminReport, AdminReportStatus } from './adminStorage';
 import { supabase } from './supabase';
 
 const STORAGE_KEYS = {
@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
     PRODUCTS: 'ai_products',
     WORKS: 'ai_works',
     CONSULTATIONS: 'ai_consultations',
+    ADMIN_REPORTS: 'ai_admin_reports',
 } as const;
 
 const readLocalArray = <T>(key: string): T[] => {
@@ -109,6 +110,23 @@ const closeLocalConsultation = (consultationId: string): void => {
     );
 };
 
+const updateLocalReportStatus = (reportId: string, status: AdminReportStatus, action: AdminAction): void => {
+    const reports = readLocalArray<AdminReport>(STORAGE_KEYS.ADMIN_REPORTS);
+    window.localStorage.setItem(
+        STORAGE_KEYS.ADMIN_REPORTS,
+        JSON.stringify(reports.map((report) =>
+            report.id === reportId
+                ? {
+                    ...report,
+                    status,
+                    resolvedAt: action.createdAt,
+                    resolvedBy: action.adminId,
+                }
+                : report,
+        )),
+    );
+};
+
 const applyLocalAdminAction = (action: AdminAction): void => {
     if (action.actionType === 'restrict' && action.targetType === 'user') updateLocalProfileModeration(action.targetId, 'restricted');
     if (action.actionType === 'release_restriction' && action.targetType === 'user') updateLocalProfileModeration(action.targetId, 'active');
@@ -120,6 +138,8 @@ const applyLocalAdminAction = (action: AdminAction): void => {
     if (action.actionType === 'move_product_down' && action.targetType === 'product') moveLocalProduct(action.targetId, 'down');
     if (action.actionType === 'cancel_trade' && action.targetType === 'work') cancelLocalWork(action.targetId);
     if (action.actionType === 'close_consultation' && action.targetType === 'consultation') closeLocalConsultation(action.targetId);
+    if (action.actionType === 'resolve_report' && action.targetType === 'report') updateLocalReportStatus(action.targetId, 'resolved', action);
+    if (action.actionType === 'dismiss_report' && action.targetType === 'report') updateLocalReportStatus(action.targetId, 'dismissed', action);
 };
 
 const moveSupabaseProduct = async (productId: string, direction: 'up' | 'down'): Promise<boolean> => {
@@ -222,6 +242,18 @@ const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> =
         const { error } = await supabase
             .from('consultations')
             .update({ status: 'closed', updated_at: new Date().toISOString() })
+            .eq('id', action.targetId);
+        return !error;
+    }
+
+    if ((action.actionType === 'resolve_report' || action.actionType === 'dismiss_report') && action.targetType === 'report') {
+        const { error } = await supabase
+            .from('admin_reports')
+            .update({
+                status: action.actionType === 'resolve_report' ? 'resolved' : 'dismissed',
+                resolved_at: new Date().toISOString(),
+                resolved_by: action.adminId,
+            })
             .eq('id', action.targetId);
         return !error;
     }

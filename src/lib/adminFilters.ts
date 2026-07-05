@@ -10,7 +10,9 @@ export type AdminStatusFilter =
     | 'in_progress'
     | 'completed'
     | 'cancelled'
-    | 'hidden';
+    | 'hidden'
+    | 'resolved'
+    | 'dismissed';
 
 export interface AdminFilterState {
     readonly query: string;
@@ -61,6 +63,10 @@ export function filterAdminSnapshot(snapshot: AdminSnapshot, filters: AdminFilte
         matchesQuery(query, [review.id, review.workId, review.clientId, review.expertId, review.content])
         && matchesStatus(filters.status, 'completed'),
     );
+    const reports = snapshot.reports.filter((report) =>
+        matchesQuery(query, [report.id, report.reporterId, report.targetType, report.targetId, report.reason, report.severity])
+        && matchesStatus(filters.status, report.status),
+    );
     const adminActions = snapshot.adminActions.filter((action) =>
         matchesQuery(query, [action.id, action.adminId, action.targetType, action.targetId, action.actionType, action.reason])
         && matchesStatus(filters.status, action.actionType),
@@ -77,6 +83,7 @@ export function filterAdminSnapshot(snapshot: AdminSnapshot, filters: AdminFilte
         consultationMessages: matchedConsultationMessages.filter((message) => consultationIds.has(message.consultationId)),
         workMessages,
         reviews,
+        reports,
         adminActions,
     };
 }

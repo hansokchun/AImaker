@@ -22,6 +22,7 @@ export default function AdminDataPanels({ activeTab, snapshot, onAction }: Admin
     if (activeTab === 'consultations') return <ConsultationsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'workrooms') return <WorkroomsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'reviews') return <ReviewsPanel snapshot={snapshot} />;
+    if (activeTab === 'reports') return <ReportsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'actions') return <ActionsPanel actions={snapshot.adminActions} />;
     return null;
 }
@@ -267,6 +268,56 @@ function ReviewsPanel({ snapshot }: { readonly snapshot: AdminSnapshot }) {
                             <td>{review.content}</td>
                             <td className="admin-muted">{review.clientId}</td>
                             <td className="admin-muted">{review.expertId}</td>
+                        </tr>
+                    ))}</tbody>
+                </table>
+            )}
+        </AdminTablePanel>
+    );
+}
+
+const reportSeverityLabel = (severity: string): string => {
+    if (severity === 'high') return '높음';
+    if (severity === 'low') return '낮음';
+    return '보통';
+};
+
+function ReportsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot; readonly onAction: (input: AdminActionRequest) => void }) {
+    return (
+        <AdminTablePanel title="신고/검수 큐" copy="사용자 신고와 운영 검수 항목을 확인하고 처리 완료 또는 기각으로 정리합니다.">
+            {snapshot.reports.length === 0 ? <EmptyState label="검수할 신고 항목이 없습니다." /> : (
+                <table className="admin-table">
+                    <thead><tr><th>신고 사유</th><th>대상</th><th>신고자</th><th>위험도</th><th>상태</th><th>조치</th></tr></thead>
+                    <tbody>{snapshot.reports.map((report) => (
+                        <tr key={report.id}>
+                            <td>
+                                {report.reason}
+                                <div className="admin-muted">{report.createdAt}</div>
+                            </td>
+                            <td>{report.targetType} · <span className="admin-muted">{report.targetId}</span></td>
+                            <td className="admin-muted">{report.reporterId}</td>
+                            <td>{reportSeverityLabel(report.severity)}</td>
+                            <td><AdminStatus value={report.status} /></td>
+                            <td className="admin-action-row">
+                                {report.status === 'pending' ? (
+                                    <>
+                                        <button className="admin-action-button" type="button" onClick={() => onAction({
+                                            targetType: 'report',
+                                            targetId: report.id,
+                                            actionType: 'resolve_report',
+                                            reason: '관리자가 신고 항목을 검토 완료 처리했습니다.',
+                                        })}>검토 완료</button>
+                                        <button className="admin-action-button" type="button" onClick={() => onAction({
+                                            targetType: 'report',
+                                            targetId: report.id,
+                                            actionType: 'dismiss_report',
+                                            reason: '관리자가 신고 항목을 기각 처리했습니다.',
+                                        })}>기각</button>
+                                    </>
+                                ) : (
+                                    <span className="admin-muted">처리된 신고</span>
+                                )}
+                            </td>
                         </tr>
                     ))}</tbody>
                 </table>

@@ -4,9 +4,9 @@ export const formatCurrency = (value?: number): string =>
     `${Number(value || 0).toLocaleString('ko-KR')}원`;
 
 const statusClass = (status?: string): string => {
-    if (status === 'published' || status === 'paid' || status === 'completed' || status === 'accepted' || status === 'active' || status === 'featured') return 'is-live';
+    if (status === 'published' || status === 'paid' || status === 'completed' || status === 'accepted' || status === 'active' || status === 'featured' || status === 'resolved') return 'is-live';
     if (status === 'open' || status === 'submitted' || status === 'sent' || status === 'in_progress') return 'is-open';
-    if (status === 'cancelled' || status === 'hidden' || status === 'refunded' || status === 'restricted') return 'is-danger';
+    if (status === 'cancelled' || status === 'hidden' || status === 'refunded' || status === 'restricted' || status === 'dismissed') return 'is-danger';
     return '';
 };
 
@@ -20,6 +20,8 @@ const statusLabel = (status?: string): string => {
         closed: '종료',
         completed: '완료',
         draft: '임시저장',
+        dismiss_report: '신고 기각',
+        dismissed: '기각됨',
         hidden: '숨김',
         hide_product: '상품 숨김',
         featured: '상단 추천',
@@ -34,6 +36,8 @@ const statusLabel = (status?: string): string => {
         proposal_sent: '제안서 발송',
         published: '공개',
         refunded: '환불',
+        resolve_report: '신고 처리',
+        resolved: '처리 완료',
         restrict: '활동 제한',
         release_restriction: '제한 해제',
         restore_product: '상품 공개 복구',
