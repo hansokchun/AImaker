@@ -25,6 +25,6 @@ describe('adminFilters', () => {
 
         expect(result.works).toHaveLength(1);
         expect(result.products).toHaveLength(0);
-        expect(adminSnapshot.products).toHaveLength(1);
+        expect(adminSnapshot.products).toHaveLength(2);
     });
 });

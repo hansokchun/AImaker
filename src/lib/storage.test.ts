@@ -43,6 +43,19 @@ const product: ExpertProduct = {
 }
 
 describe('expert product storage', () => {
+    it('blocks local product saving for a restricted expert profile', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem(`ai_profile_${product.expertId}`, JSON.stringify({
+            name: '제한된 전문가',
+            moderationStatus: 'restricted',
+        }))
+        const { saveExpertProduct } = await import('./storage')
+
+        await expect(saveExpertProduct(product)).rejects.toThrow('활동 제한된 회원은 상품을 등록하거나 수정할 수 없습니다.')
+        expect(localStorage.getItem('ai_products')).toBeNull()
+    })
+
     it('saves expert products to Supabase using expert_products columns', async () => {
         vi.resetModules()
         const upsert = vi.fn().mockResolvedValue({ error: null })

@@ -143,8 +143,7 @@ describe('Admin', () => {
             actionType: 'warn',
             reason: '관리자가 회원 경고를 기록했습니다.',
         }));
-        expect(await screen.findByText('최근 운영 조치')).toBeInTheDocument();
-        expect(screen.getByText('관리자가 회원 경고를 기록했습니다.')).toBeInTheDocument();
+        expect(await screen.findByText('운영 조치가 처리되었습니다.')).toBeInTheDocument();
     });
 
     it('runs product hiding from the admin product panel', async () => {
@@ -160,6 +159,66 @@ describe('Admin', () => {
             targetId: 'product-admin-01',
             actionType: 'hide_product',
             reason: '관리자가 상품 숨김 처리를 실행했습니다.',
+        }));
+    });
+
+    it('runs product restore, featuring, and placement actions from the admin product panel', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(2);
+        fireEvent.click(screen.getByRole('button', { name: '상품 공개 복구' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'product',
+            targetId: 'product-admin-02',
+            actionType: 'restore_product',
+            reason: '관리자가 숨김 상품을 다시 공개했습니다.',
+        }));
+
+        fireEvent.click(screen.getAllByRole('button', { name: '상단 추천 지정' })[0]);
+        fireEvent.click(screen.getAllByRole('button', { name: '배치 올리기' })[1]);
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'product',
+            targetId: 'product-admin-01',
+            actionType: 'feature_product',
+            reason: '관리자가 상품을 상단 추천으로 지정했습니다.',
+        }));
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'product',
+            targetId: 'product-admin-01',
+            actionType: 'move_product_up',
+            reason: '관리자가 상품 배치를 올렸습니다.',
+        }));
+    });
+
+    it('runs member restriction and release actions from the admin member panel', async () => {
+        render(<MemoryRouter><Admin /></MemoryRouter>);
+        await screen.findByRole('heading', { name: '운영 관리자' });
+
+        clickAdminTab(1);
+        fireEvent.click(screen.getByRole('button', { name: '활동 제한' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'user',
+            targetId: 'user-admin-01',
+            actionType: 'restrict',
+            reason: '관리자가 회원 활동을 제한했습니다.',
+        }));
+        expect(await screen.findByText('활동 제한됨')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: '제한 해제' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'user',
+            targetId: 'user-admin-01',
+            actionType: 'release_restriction',
+            reason: '관리자가 회원 활동 제한을 해제했습니다.',
         }));
     });
 

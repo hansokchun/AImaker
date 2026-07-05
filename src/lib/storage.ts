@@ -99,6 +99,11 @@ const getLocalProfile = (userId: string): ExpertProfile | null => {
     }
 };
 
+const isLocalProfileRestricted = (userId: string): boolean => {
+    const profile = getLocalProfile(userId) as (ExpertProfile & { moderationStatus?: string }) | null;
+    return profile?.moderationStatus === 'restricted';
+};
+
 const getLocalUserRequests = (userId: string) =>
     readLocalArray<ServiceRequestData>(STORAGE_KEYS.REQUESTS)
         .filter((request) => request.clientId === userId || request.expertId === userId);
@@ -1121,6 +1126,10 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
  */
 export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
     if (!supabase) {
+        if (isLocalProfileRestricted(product.expertId)) {
+            throw new Error('활동 제한된 회원은 상품을 등록하거나 수정할 수 없습니다.');
+        }
+
         const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         const existing = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
         const next = existing.filter((item) => item.id !== product.id);
@@ -1144,6 +1153,8 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
         revision_count: product.revisionCount,
         packages: product.packages,
         tax_invoice_available: Boolean(product.taxInvoiceAvailable),
+        is_featured: Boolean(product.isFeatured),
+        display_order: product.displayOrder || 0,
         status: product.status,
         updated_at: new Date().toISOString(),
     });
@@ -1177,7 +1188,9 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         const stored = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
-        const products = stored.length ? stored : mockExpertProducts;
+        const products = (stored.length ? stored : mockExpertProducts)
+            .filter((product) => product.status === 'published')
+            .sort(compareProductPlacement);
         return Promise.all(products.map(async (product) => {
             if (product.expertImageUrl) return product;
 
@@ -1268,13 +1281,23 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
             revisionCount: Number(item.revision_count) || 1,
             createdAt: item.created_at,
             taxInvoiceAvailable: Boolean(item.tax_invoice_available),
+            isFeatured: Boolean(item.is_featured),
+            displayOrder: Number(item.display_order) || 0,
             packages: normalizeDbProductPackages(item),
             status: item.status,
         };
     }) as ExpertProduct[];
 
-    return mergeById(demoRecordsOnly(localProducts), supabaseProducts);
+    return mergeById(demoRecordsOnly(localProducts), supabaseProducts).sort(compareProductPlacement);
 }
+
+const compareProductPlacement = (first: ExpertProduct, second: ExpertProduct): number => {
+    if (Boolean(first.isFeatured) !== Boolean(second.isFeatured)) return first.isFeatured ? -1 : 1;
+    const firstOrder = first.displayOrder ?? Number.MAX_SAFE_INTEGER;
+    const secondOrder = second.displayOrder ?? Number.MAX_SAFE_INTEGER;
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+    return Date.parse(second.createdAt || '') - Date.parse(first.createdAt || '');
+};
 
 export async function saveProposal(proposal: Proposal): Promise<string> {
     if (!supabase || shouldStoreProposalLocally(proposal)) {

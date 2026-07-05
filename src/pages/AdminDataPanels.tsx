@@ -28,15 +28,16 @@ export default function AdminDataPanels({ activeTab, snapshot, onAction }: Admin
 
 function MembersPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot; readonly onAction: (input: AdminActionRequest) => void }) {
     return (
-        <AdminTablePanel title="회원 관리" copy="가입자와 전문가 여부를 확인하고 경고 또는 활동 제한 조치를 기록합니다.">
+        <AdminTablePanel title="회원 관리" copy="가입자와 전문가 여부를 확인하고 경고, 활동 제한, 제한 해제 조치를 처리합니다.">
             {snapshot.profiles.length === 0 ? <EmptyState label="표시할 회원이 없습니다." /> : (
                 <table className="admin-table">
-                    <thead><tr><th>이름</th><th>이메일</th><th>유형</th><th>조치</th></tr></thead>
+                    <thead><tr><th>이름</th><th>이메일</th><th>유형</th><th>계정 상태</th><th>조치</th></tr></thead>
                     <tbody>{snapshot.profiles.map((profile) => (
                         <tr key={profile.id}>
                             <td>{profile.name}</td>
                             <td>{profile.email || <span className="admin-muted">이메일 없음</span>}</td>
                             <td><AdminStatus value={profile.isExpert ? 'published' : 'pending'} /></td>
+                            <td><AdminStatus value={profile.moderationStatus === 'restricted' ? 'restricted' : 'active'} /></td>
                             <td className="admin-action-row">
                                 <button className="admin-action-button" type="button" onClick={() => onAction({
                                     targetType: 'user',
@@ -44,12 +45,21 @@ function MembersPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot
                                     actionType: 'warn',
                                     reason: '관리자가 회원 경고를 기록했습니다.',
                                 })}>경고 기록</button>
-                                <button className="admin-danger-action" type="button" onClick={() => onAction({
-                                    targetType: 'user',
-                                    targetId: profile.id,
-                                    actionType: 'restrict',
-                                    reason: '관리자가 회원 활동 제한 검토를 기록했습니다.',
-                                })}>활동 제한 기록</button>
+                                {profile.moderationStatus === 'restricted' ? (
+                                    <button className="admin-action-button" type="button" onClick={() => onAction({
+                                        targetType: 'user',
+                                        targetId: profile.id,
+                                        actionType: 'release_restriction',
+                                        reason: '관리자가 회원 활동 제한을 해제했습니다.',
+                                    })}>제한 해제</button>
+                                ) : (
+                                    <button className="admin-danger-action" type="button" onClick={() => onAction({
+                                        targetType: 'user',
+                                        targetId: profile.id,
+                                        actionType: 'restrict',
+                                        reason: '관리자가 회원 활동을 제한했습니다.',
+                                    })}>활동 제한</button>
+                                )}
                             </td>
                         </tr>
                     ))}</tbody>
@@ -60,24 +70,70 @@ function MembersPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot
 }
 
 function ProductsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot; readonly onAction: (input: AdminActionRequest) => void }) {
+    const products = [...snapshot.products].sort((first, second) => {
+        if (Boolean(first.isFeatured) !== Boolean(second.isFeatured)) return first.isFeatured ? -1 : 1;
+        return (first.displayOrder ?? Number.MAX_SAFE_INTEGER) - (second.displayOrder ?? Number.MAX_SAFE_INTEGER);
+    });
+
     return (
-        <AdminTablePanel title="상품 관리" copy="등록된 상품의 공개 상태와 상품 품질 조치를 확인합니다.">
+        <AdminTablePanel title="상품 관리" copy="상품 공개 상태, 추천 노출, 목록 배치 순서를 운영자가 조정합니다.">
             <table className="admin-table">
-                <thead><tr><th>상품</th><th>전문가</th><th>가격</th><th>상태</th><th>조치</th></tr></thead>
-                <tbody>{snapshot.products.map((product) => (
+                <thead><tr><th>상품</th><th>전문가</th><th>가격</th><th>노출</th><th>상태</th><th>조치</th></tr></thead>
+                <tbody>{products.map((product) => (
                     <tr key={product.id}>
-                        <td><Link to={`/expert/${product.id}`}>{product.title}</Link><div className="admin-muted">{product.category}</div></td>
+                        <td>
+                            <Link to={`/expert/${product.id}`}>{product.title}</Link>
+                            <div className="admin-muted">{product.category}</div>
+                            <div className="admin-muted">배치 {product.displayOrder || '-'}번</div>
+                        </td>
                         <td>{product.expertName}</td>
                         <td>{formatCurrency(product.startingPrice)}</td>
+                        <td><AdminStatus value={product.isFeatured ? 'featured' : 'normal'} /></td>
                         <td><AdminStatus value={product.status} /></td>
                         <td className="admin-action-row">
                             <Link className="admin-disabled-action" to={`/expert/${product.id}`}>상세 보기</Link>
-                            <button className="admin-danger-action" type="button" onClick={() => onAction({
+                            <button className="admin-action-button" type="button" onClick={() => onAction({
                                 targetType: 'product',
                                 targetId: product.id,
-                                actionType: 'hide_product',
-                                reason: '관리자가 상품 숨김 처리를 실행했습니다.',
-                            })}>상품 숨김 처리</button>
+                                actionType: 'move_product_up',
+                                reason: '관리자가 상품 배치를 올렸습니다.',
+                            })}>배치 올리기</button>
+                            <button className="admin-action-button" type="button" onClick={() => onAction({
+                                targetType: 'product',
+                                targetId: product.id,
+                                actionType: 'move_product_down',
+                                reason: '관리자가 상품 배치를 내렸습니다.',
+                            })}>배치 내리기</button>
+                            {product.isFeatured ? (
+                                <button className="admin-action-button" type="button" onClick={() => onAction({
+                                    targetType: 'product',
+                                    targetId: product.id,
+                                    actionType: 'unfeature_product',
+                                    reason: '관리자가 상품 상단 추천을 해제했습니다.',
+                                })}>상단 추천 해제</button>
+                            ) : (
+                                <button className="admin-action-button" type="button" onClick={() => onAction({
+                                    targetType: 'product',
+                                    targetId: product.id,
+                                    actionType: 'feature_product',
+                                    reason: '관리자가 상품을 상단 추천으로 지정했습니다.',
+                                })}>상단 추천 지정</button>
+                            )}
+                            {product.status === 'hidden' ? (
+                                <button className="admin-action-button" type="button" onClick={() => onAction({
+                                    targetType: 'product',
+                                    targetId: product.id,
+                                    actionType: 'restore_product',
+                                    reason: '관리자가 숨김 상품을 다시 공개했습니다.',
+                                })}>상품 공개 복구</button>
+                            ) : (
+                                <button className="admin-danger-action" type="button" onClick={() => onAction({
+                                    targetType: 'product',
+                                    targetId: product.id,
+                                    actionType: 'hide_product',
+                                    reason: '관리자가 상품 숨김 처리를 실행했습니다.',
+                                })}>상품 숨김 처리</button>
+                            )}
                         </td>
                     </tr>
                 ))}</tbody>

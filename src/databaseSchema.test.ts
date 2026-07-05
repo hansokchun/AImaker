@@ -74,7 +74,12 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Admins can view work messages"/i)
         expect(sql).toMatch(/create policy "Admins can update consultations"/i)
         expect(sql).toMatch(/create policy "Admins can update works"/i)
+        expect(sql).toMatch(/create policy "Admins can update profiles"/i)
         expect(sql).toMatch(/create policy "Admins can insert admin actions"/i)
+        expect(sql).toMatch(/release_restriction/i)
+        expect(sql).toMatch(/restore_product/i)
+        expect(sql).toMatch(/feature_product/i)
+        expect(sql).toMatch(/move_product_up/i)
     })
 
     it('drops policies and triggers before recreating them for safe reruns', () => {
@@ -186,6 +191,19 @@ describe('database.sql', () => {
         expect(sql).toMatch(/contact_available_time text/i)
         expect(sql).toMatch(/average_response_time text/i)
         expect(sql).toMatch(/tax_invoice_available boolean not null default false/i)
+        expect(sql).toMatch(/account_status text not null default 'active'/i)
+        expect(sql).toMatch(/is_featured boolean not null default false/i)
+        expect(sql).toMatch(/display_order integer not null default 0/i)
+    })
+
+    it('blocks restricted experts from saving products', () => {
+        const insertPolicyMatch = sql.match(/create policy "Experts can insert own products"[\s\S]*?;\s*\n/i)
+        const updatePolicyMatch = sql.match(/create policy "Experts can update own products"[\s\S]*?;\s*\n/i)
+        const insertPolicySql = insertPolicyMatch?.[0] || ''
+        const updatePolicySql = updatePolicyMatch?.[0] || ''
+
+        expect(insertPolicySql).toMatch(/profiles\.account_status = 'active'/i)
+        expect(updatePolicySql).toMatch(/profiles\.account_status = 'active'/i)
     })
 
     it('allows clients to review only completed work with the matching expert', () => {

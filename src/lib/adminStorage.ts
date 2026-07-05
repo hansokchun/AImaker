@@ -15,6 +15,7 @@ import { supabase } from './supabase';
 import {
     isRecord,
     toAdminAction,
+    toAdminProduct,
     toConsultation,
     toConsultationMessage,
     toProfile,
@@ -31,6 +32,7 @@ export interface AdminProfile {
     readonly name: string;
     readonly avatarUrl: string;
     readonly isExpert: boolean;
+    readonly moderationStatus?: 'active' | 'restricted';
     readonly createdAt: string;
 }
 
@@ -49,7 +51,19 @@ export interface AdminSnapshot {
 }
 
 export type AdminActionTargetType = 'user' | 'product' | 'trade' | 'consultation' | 'work' | 'review';
-export type AdminActionType = 'note' | 'warn' | 'restrict' | 'hide_product' | 'close_consultation' | 'cancel_trade';
+export type AdminActionType =
+    | 'note'
+    | 'warn'
+    | 'restrict'
+    | 'release_restriction'
+    | 'hide_product'
+    | 'restore_product'
+    | 'feature_product'
+    | 'unfeature_product'
+    | 'move_product_up'
+    | 'move_product_down'
+    | 'close_consultation'
+    | 'cancel_trade';
 
 export interface AdminAction {
     readonly id: string;
@@ -127,8 +141,9 @@ const readLocalProfile = (key: string): AdminProfile | null => {
         const profession = typeof parsed.profession === 'string' ? parsed.profession : '';
         const aiTools = Array.isArray(parsed.aiTools) ? parsed.aiTools : [];
         const updatedAt = typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '';
+        const moderationStatus = parsed.moderationStatus === 'restricted' ? 'restricted' : 'active';
 
-        return { id, email: '', name, avatarUrl, isExpert: Boolean(profession || aiTools.length), createdAt: updatedAt };
+        return { id, email: '', name, avatarUrl, isExpert: Boolean(profession || aiTools.length), moderationStatus, createdAt: updatedAt };
     } catch {
         return null;
     }
@@ -171,7 +186,7 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         reviews,
         adminActions,
     ] = await Promise.all([
-        getExpertProducts(),
+        selectAll('expert_products', toAdminProduct),
         selectAll('profiles', toProfile),
         selectAll('service_requests', toServiceRequestData),
         selectAll('proposals', toProposal),

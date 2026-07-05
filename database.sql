@@ -26,13 +26,15 @@ create table if not exists public.profiles (
   sample_links text[] not null default '{}',
   interests text[] not null default '{}',
   request_purposes text[] not null default '{}',
+  account_status text not null default 'active' check (account_status in ('active', 'restricted')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.profiles
   add column if not exists interests text[] not null default '{}',
-  add column if not exists request_purposes text[] not null default '{}';
+  add column if not exists request_purposes text[] not null default '{}',
+  add column if not exists account_status text not null default 'active';
 
 alter table public.profiles enable row level security;
 
@@ -122,13 +124,17 @@ create table if not exists public.expert_products (
   revision_count integer not null default 0 check (revision_count >= 0),
   packages jsonb not null,
   tax_invoice_available boolean not null default false,
+  is_featured boolean not null default false,
+  display_order integer not null default 0,
   status text not null default 'published' check (status in ('draft', 'published', 'hidden')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.expert_products
-  add column if not exists tax_invoice_available boolean not null default false;
+  add column if not exists tax_invoice_available boolean not null default false,
+  add column if not exists is_featured boolean not null default false,
+  add column if not exists display_order integer not null default 0;
 
 alter table public.expert_products enable row level security;
 
@@ -140,13 +146,27 @@ create policy "Anyone can view published products"
 drop policy if exists "Experts can insert own products" on public.expert_products;
 create policy "Experts can insert own products"
   on public.expert_products for insert
-  with check (auth.uid() = expert_id);
+  with check (
+    auth.uid() = expert_id
+    and exists (
+      select 1 from public.profiles
+      where profiles.id = auth.uid()
+        and profiles.account_status = 'active'
+    )
+  );
 
 drop policy if exists "Experts can update own products" on public.expert_products;
 create policy "Experts can update own products"
   on public.expert_products for update
   using (auth.uid() = expert_id)
-  with check (auth.uid() = expert_id);
+  with check (
+    auth.uid() = expert_id
+    and exists (
+      select 1 from public.profiles
+      where profiles.id = auth.uid()
+        and profiles.account_status = 'active'
+    )
+  );
 
 drop trigger if exists set_expert_products_updated_at on public.expert_products;
 create trigger set_expert_products_updated_at
@@ -666,7 +686,7 @@ create table if not exists public.admin_actions (
   admin_id uuid references public.profiles(id) on delete set null,
   target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review')),
   target_id text not null,
-  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'hide_product', 'close_consultation', 'cancel_trade')),
+  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'close_consultation', 'cancel_trade')),
   reason text not null,
   created_at timestamptz not null default now()
 );
@@ -690,6 +710,12 @@ drop policy if exists "Admins can view profiles" on public.profiles;
 create policy "Admins can view profiles"
   on public.profiles for select
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
+
+drop policy if exists "Admins can update profiles" on public.profiles;
+create policy "Admins can update profiles"
+  on public.profiles for update
+  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
+  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can view products" on public.expert_products;
 create policy "Admins can view products"

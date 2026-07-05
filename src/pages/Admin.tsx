@@ -62,7 +62,6 @@ export default function Admin() {
             .then((action) => {
                 setSnapshot((current) => current ? applyAdminActionToSnapshot(current, action) : current);
                 setActionNotice('운영 조치가 처리되었습니다.');
-                setActiveTab('actions');
             })
             .catch(() => setActionNotice('운영 조치를 처리하지 못했습니다. 관리자 권한과 Supabase 정책을 확인해 주세요.'));
     };
@@ -113,9 +112,15 @@ export default function Admin() {
 function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction): AdminSnapshot {
     return {
         ...snapshot,
+        profiles: snapshot.profiles.map((profile) => {
+            if (action.targetType !== 'user' || profile.id !== action.targetId) return profile;
+            if (action.actionType === 'restrict') return { ...profile, moderationStatus: 'restricted' };
+            if (action.actionType === 'release_restriction') return { ...profile, moderationStatus: 'active' };
+            return profile;
+        }),
         products: snapshot.products.map((product) =>
-            action.actionType === 'hide_product' && product.id === action.targetId ? { ...product, status: 'hidden' } : product,
-        ),
+            applyProductAction(product, action),
+        ).sort(compareAdminProductPlacement),
         works: snapshot.works.map((work) =>
             action.actionType === 'cancel_trade' && work.id === action.targetId
                 ? {
@@ -135,6 +140,25 @@ function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction
         ),
         adminActions: [action, ...snapshot.adminActions.filter((item) => item.id !== action.id)],
     };
+}
+
+function applyProductAction(product: AdminSnapshot['products'][number], action: AdminAction): AdminSnapshot['products'][number] {
+    if (action.targetType !== 'product' || product.id !== action.targetId) return product;
+    if (action.actionType === 'hide_product') return { ...product, status: 'hidden' };
+    if (action.actionType === 'restore_product') return { ...product, status: 'published' };
+    if (action.actionType === 'feature_product') return { ...product, isFeatured: true };
+    if (action.actionType === 'unfeature_product') return { ...product, isFeatured: false };
+    if (action.actionType === 'move_product_up') return { ...product, displayOrder: Math.max(1, (product.displayOrder || 1) - 1) };
+    if (action.actionType === 'move_product_down') return { ...product, displayOrder: (product.displayOrder || 1) + 1 };
+    return product;
+}
+
+function compareAdminProductPlacement(first: AdminSnapshot['products'][number], second: AdminSnapshot['products'][number]): number {
+    if (Boolean(first.isFeatured) !== Boolean(second.isFeatured)) return first.isFeatured ? -1 : 1;
+    const firstOrder = first.displayOrder ?? Number.MAX_SAFE_INTEGER;
+    const secondOrder = second.displayOrder ?? Number.MAX_SAFE_INTEGER;
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+    return first.title.localeCompare(second.title, 'ko-KR');
 }
 
 function AdminShell({ children }: { readonly children: ReactNode }) {

@@ -1,4 +1,4 @@
-import type { Consultation, ConsultationMessage, Proposal, Review, ServiceRequestData, Work, WorkMessage } from '../types';
+import type { AiCategoryId, Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work, WorkMessage } from '../types';
 import type { AdminAction, AdminProfile } from './adminStorage';
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -19,6 +19,12 @@ const stringArrayValue = (record: Record<string, unknown>, key: string): string[
     return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 };
 
+const categoryValue = (value: string): AiCategoryId => {
+    if (value === 'ai-image-character') return 'ai-image-character';
+    if (value === 'ai-development-automation') return 'ai-development-automation';
+    return 'ai-video-shortform';
+};
+
 export const toProfile = (item: unknown): AdminProfile | null => {
     if (!isRecord(item)) return null;
 
@@ -31,7 +37,46 @@ export const toProfile = (item: unknown): AdminProfile | null => {
         name: stringValue(item, 'name') || stringValue(item, 'display_name') || '이름 미등록',
         avatarUrl: stringValue(item, 'avatar_url'),
         isExpert: Boolean(item.is_expert),
+        moderationStatus: stringValue(item, 'account_status') === 'restricted' ? 'restricted' : 'active',
         createdAt: stringValue(item, 'created_at'),
+    };
+};
+
+export const toAdminProduct = (item: unknown): ExpertProduct | null => {
+    if (!isRecord(item)) return null;
+    const id = stringValue(item, 'id');
+    if (!id) return null;
+
+    return {
+        id,
+        expertId: stringValue(item, 'expert_id'),
+        expertName: stringValue(item, 'expert_name') || 'AI 전문가',
+        expertImageUrl: stringValue(item, 'expert_image_url') || stringValue(item, 'expert_avatar_url'),
+        title: stringValue(item, 'title') || '제목 없음',
+        category: categoryValue(stringValue(item, 'category')),
+        summary: stringValue(item, 'summary'),
+        description: stringValue(item, 'description'),
+        sampleLinks: stringArrayValue(item, 'sample_links'),
+        sampleImageUrl: stringArrayValue(item, 'sample_file_urls')[0] || stringArrayValue(item, 'sample_links')[0] || '',
+        startingPrice: numberValue(item, 'starting_price'),
+        deliveryDays: numberValue(item, 'delivery_days') || 1,
+        revisionCount: numberValue(item, 'revision_count'),
+        createdAt: stringValue(item, 'created_at'),
+        taxInvoiceAvailable: Boolean(item.tax_invoice_available),
+        isFeatured: Boolean(item.is_featured),
+        displayOrder: numberValue(item, 'display_order'),
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: numberValue(item, 'starting_price'),
+                deliveryDays: numberValue(item, 'delivery_days') || 1,
+                revisionCount: numberValue(item, 'revision_count'),
+                included: [],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: stringValue(item, 'status') === 'hidden' ? 'hidden' : stringValue(item, 'status') === 'draft' ? 'draft' : 'published',
     };
 };
 

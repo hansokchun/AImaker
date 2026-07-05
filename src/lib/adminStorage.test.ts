@@ -18,6 +18,8 @@ const product: ExpertProduct = {
     deliveryDays: 3,
     revisionCount: 1,
     status: 'published',
+    displayOrder: 2,
+    isFeatured: false,
     packages: {
         standard: {
             name: 'Standard',
@@ -29,6 +31,13 @@ const product: ExpertProduct = {
         deluxe: null,
         premium: null,
     },
+};
+
+const secondProduct: ExpertProduct = {
+    ...product,
+    id: 'product-admin-hide-02',
+    title: 'Admin second product',
+    displayOrder: 1,
 };
 
 const work: Work = {
@@ -65,6 +74,65 @@ describe('adminStorage', () => {
 
         const storedProducts = JSON.parse(localStorage.getItem('ai_products') || '[]') as ExpertProduct[];
         expect(storedProducts[0]?.status).toBe('hidden');
+    });
+
+    it('restricts a member profile when an admin records a restrict action', async () => {
+        localStorage.setItem('ai_profile_user-admin-restrict-01', JSON.stringify({ name: 'Restricted member' }));
+        const { saveAdminAction } = await import('./adminStorage');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'user',
+            targetId: 'user-admin-restrict-01',
+            actionType: 'restrict',
+            reason: '관리자가 회원 활동을 제한했습니다.',
+        });
+
+        const storedProfile = JSON.parse(localStorage.getItem('ai_profile_user-admin-restrict-01') || '{}') as { moderationStatus?: string };
+        expect(storedProfile.moderationStatus).toBe('restricted');
+    });
+
+    it('restores and features a product from admin product actions', async () => {
+        localStorage.setItem('ai_products', JSON.stringify([{ ...product, status: 'hidden' }]));
+        const { saveAdminAction } = await import('./adminStorage');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'product',
+            targetId: product.id,
+            actionType: 'restore_product',
+            reason: '관리자가 상품을 다시 공개했습니다.',
+        });
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'product',
+            targetId: product.id,
+            actionType: 'feature_product',
+            reason: '관리자가 상품을 상단 추천으로 지정했습니다.',
+        });
+
+        const storedProducts = JSON.parse(localStorage.getItem('ai_products') || '[]') as ExpertProduct[];
+        expect(storedProducts[0]?.status).toBe('published');
+        expect(storedProducts[0]?.isFeatured).toBe(true);
+    });
+
+    it('moves a product earlier in the admin product display order', async () => {
+        localStorage.setItem('ai_products', JSON.stringify([product, secondProduct]));
+        const { saveAdminAction } = await import('./adminStorage');
+
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'product',
+            targetId: product.id,
+            actionType: 'move_product_up',
+            reason: '관리자가 상품 배치를 올렸습니다.',
+        });
+
+        const storedProducts = JSON.parse(localStorage.getItem('ai_products') || '[]') as ExpertProduct[];
+        const movedProduct = storedProducts.find((item) => item.id === product.id);
+        const swappedProduct = storedProducts.find((item) => item.id === secondProduct.id);
+        expect(movedProduct?.displayOrder).toBe(1);
+        expect(swappedProduct?.displayOrder).toBe(2);
     });
 
     it('cancels a work when an admin records a cancel trade action', async () => {

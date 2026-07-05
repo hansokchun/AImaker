@@ -59,6 +59,8 @@ export interface ExpertProduct {
     revisionCount: number;
     createdAt?: string;
     taxInvoiceAvailable?: boolean;
+    isFeatured?: boolean;
+    displayOrder?: number;
     packages: Record<PackageTier, ProductPackage | null> & {
         standard: ProductPackage;
     };
