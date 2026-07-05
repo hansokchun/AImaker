@@ -679,6 +679,29 @@ export async function getConsultationMessages(consultationId: string): Promise<C
     return mergeById(demoRecordsOnly(getLocalConsultationMessages(consultationId)), (data || []).map(toConsultationMessage));
 }
 
+export function subscribeToConsultationMessages(
+    consultationId: string,
+    onMessage: (message: ConsultationMessage) => void,
+): () => void {
+    if (!supabase || hasLocalDemoConsultation(consultationId)) return () => undefined;
+
+    const channel = supabase
+        .channel(`consultation-messages:${consultationId}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'consultation_messages',
+            filter: `consultation_id=eq.${consultationId}`,
+        }, (payload) => {
+            onMessage(toConsultationMessage(payload.new));
+        })
+        .subscribe();
+
+    return () => {
+        void supabase.removeChannel(channel);
+    };
+}
+
 export async function createConsultation(input: CreateConsultationInput): Promise<Consultation> {
     const now = new Date().toISOString();
     const initialMessage = input.initialMessage?.trim() || '';

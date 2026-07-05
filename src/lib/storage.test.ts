@@ -1557,6 +1557,59 @@ describe('transaction storage', () => {
         expect(consultationEq).toHaveBeenCalledWith('id', 'consultation-db-01')
     })
 
+    it('subscribes to new Supabase consultation messages for a selected consultation', async () => {
+        vi.resetModules()
+        let realtimeCallback: ((payload: { readonly new: Record<string, unknown> }) => void) | null = null
+        const onMessage = vi.fn()
+        const channelApi = {
+            on: vi.fn((
+                _event: string,
+                _filter: Record<string, unknown>,
+                callback: (payload: { readonly new: Record<string, unknown> }) => void,
+            ) => {
+                realtimeCallback = callback
+                return channelApi
+            }),
+            subscribe: vi.fn(() => channelApi),
+        }
+        const channel = vi.fn(() => channelApi)
+        const removeChannel = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { channel, removeChannel } }))
+
+        const { subscribeToConsultationMessages } = await import('./storage')
+
+        const unsubscribe = subscribeToConsultationMessages('consultation-db-01', onMessage)
+        realtimeCallback?.({
+            new: {
+                id: 'message-realtime-01',
+                consultation_id: 'consultation-db-01',
+                sender_id: request.expertId,
+                body: '실시간으로 도착한 메시지입니다.',
+                attachment_urls: [],
+                created_at: '2026-06-02T10:07:00.000Z',
+            },
+        })
+        unsubscribe()
+
+        expect(channel).toHaveBeenCalledWith('consultation-messages:consultation-db-01')
+        expect(channelApi.on).toHaveBeenCalledWith('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'consultation_messages',
+            filter: 'consultation_id=eq.consultation-db-01',
+        }, expect.any(Function))
+        expect(channelApi.subscribe).toHaveBeenCalled()
+        expect(onMessage).toHaveBeenCalledWith({
+            id: 'message-realtime-01',
+            consultationId: 'consultation-db-01',
+            senderId: request.expertId,
+            body: '실시간으로 도착한 메시지입니다.',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:07:00.000Z',
+        })
+        expect(removeChannel).toHaveBeenCalledWith(channelApi)
+    })
+
     it('rejects consultation messages that try to move the deal outside the marketplace', async () => {
         vi.resetModules()
         const insert = vi.fn()

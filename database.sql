@@ -230,6 +230,20 @@ create table if not exists public.consultation_messages (
 
 alter table public.consultation_messages enable row level security;
 
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+    and not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'consultation_messages'
+    ) then
+    alter publication supabase_realtime add table public.consultation_messages;
+  end if;
+end $$;
+
 drop policy if exists "Consultation participants can view messages" on public.consultation_messages;
 create policy "Consultation participants can view messages"
   on public.consultation_messages for select

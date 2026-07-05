@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from './MyPage'
@@ -459,6 +459,12 @@ const saveConsultationMessage = vi.fn(async (message: { consultationId: string; 
     attachmentUrls: [],
     createdAt: '2026-06-02T10:05:00.000Z',
 }))
+let consultationRealtimeCallback: ((message: ConsultationMessage) => void) | null = null
+const unsubscribeConsultationMessages = vi.fn()
+const subscribeToConsultationMessages = vi.fn((_consultationId: string, onMessage: (message: ConsultationMessage) => void) => {
+    consultationRealtimeCallback = onMessage
+    return unsubscribeConsultationMessages
+})
 
 const defaultProposals = () => [
     {
@@ -673,6 +679,7 @@ vi.mock('../lib/storage', () => ({
     getUserWorks: (userId: string) => getUserWorks(userId),
     getUserConsultations: (userId: string) => getUserConsultations(userId),
     getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
+    subscribeToConsultationMessages: (consultationId: string, onMessage: (message: ConsultationMessage) => void) => subscribeToConsultationMessages(consultationId, onMessage),
     saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     cancelProposal: (proposalId: string) => cancelProposal(proposalId),
@@ -942,6 +949,9 @@ describe('MyPage', () => {
             attachmentUrls: [],
             createdAt: '2026-06-02T10:05:00.000Z',
         }))
+        consultationRealtimeCallback = null
+        subscribeToConsultationMessages.mockClear()
+        unsubscribeConsultationMessages.mockClear()
     })
 
     it('shows my profile first and links to profile editing from the left menu', async () => {
@@ -1203,6 +1213,32 @@ describe('MyPage', () => {
         }))
         expect(await screen.findByText('엔터로 보냅니다.')).toBeInTheDocument()
         expect(input).toHaveValue('')
+    })
+
+    it('shows a realtime consultation message when the selected chat is open', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByLabelText('상담 메시지 입력')).toBeInTheDocument()
+        await waitFor(() => expect(subscribeToConsultationMessages).toHaveBeenCalledWith('consult-client-01', expect.any(Function)))
+
+        act(() => {
+            consultationRealtimeCallback?.({
+                id: 'message-realtime-client-01',
+                consultationId: 'consult-client-01',
+                senderId: 'expert-real-01',
+                body: '실시간 답변이 도착했습니다.',
+                attachmentUrls: [],
+                createdAt: '2026-06-02T10:08:00.000Z',
+            })
+        })
+
+        expect(await screen.findByText('실시간 답변이 도착했습니다.')).toBeInTheDocument()
     })
 
     it('blocks contact details before sending a consultation message', async () => {

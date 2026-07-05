@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview } from '../lib/storage'
+import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview, subscribeToConsultationMessages } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
@@ -366,6 +366,24 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 console.error('상담 메시지 로딩 오류:', error)
                 setConsultationMessages([])
             })
+    }, [selectedConsultationId])
+
+    useEffect(() => {
+        if (!selectedConsultationId) return
+
+        return subscribeToConsultationMessages(selectedConsultationId, (message) => {
+            setConsultationMessages((current) => {
+                if (current.some((item) => item.id === message.id)) return current
+                return [...current, message]
+            })
+            setConsultations((current) =>
+                current.map((consultation) =>
+                    consultation.id === selectedConsultationId
+                        ? { ...consultation, lastMessageAt: message.createdAt }
+                        : consultation,
+                ),
+            )
+        })
     }, [selectedConsultationId])
 
     useEffect(() => {
