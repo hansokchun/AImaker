@@ -1059,7 +1059,7 @@ describe('MyPage', () => {
         const firstWorkItem = (await screen.findAllByTestId('work-dashboard-item'))[0]
         expect(firstWorkItem).toHaveClass('work-transaction-open-button')
         expect(firstWorkItem).not.toHaveTextContent('상세 보기')
-        expect(firstWorkItem).toHaveAttribute('data-work-item-id', 'consult-client-01')
+        expect(firstWorkItem).toHaveAttribute('data-work-item-id', 'request-product-client-01')
         expect(screen.queryByTestId('work-progress-stepper')).not.toBeInTheDocument()
         expect(screen.queryByTestId('work-current-stage-card')).not.toBeInTheDocument()
         expect(screen.queryByTestId('work-activity-timeline')).not.toBeInTheDocument()
@@ -1340,88 +1340,7 @@ describe('MyPage', () => {
         await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=consultations&consultation=consult-client-01'))
     })
 
-    it('shows expert inquiry orders in work management and links their chat stage to the selected consultation', async () => {
-        render(
-            <MemoryRouter initialEntries={['/my-work']}>
-                <Routes>
-                    <Route path="/my-work" element={<MyPage mode="work" />} />
-                </Routes>
-                <LocationProbe />
-            </MemoryRouter>,
-        )
-
-        expect(await screen.findByText('전문가 문의')).toBeInTheDocument()
-        expect(screen.getByText(/상담 중/)).toBeInTheDocument()
-
-        const list = await screen.findByTestId('client-unified-work-list')
-        const consultationRow = within(list)
-            .getAllByTestId('work-transaction-row')
-            .find((row) => row.getAttribute('data-work-item-id') === 'consult-client-01')
-        expect(consultationRow).toBeDefined()
-        fireEvent.click(consultationRow!)
-        const currentStageCard = screen.getByTestId('work-current-stage-card')
-        expect(within(currentStageCard).getByRole('link', { name: '상담 채팅 보기' })).toHaveAttribute(
-            'href',
-            '/my-work?panel=consultations&consultation=consult-client-01',
-        )
-        expect(within(currentStageCard).getByRole('link', { name: '의뢰서 작성' })).toHaveAttribute(
-            'href',
-            '/request/product-client-01',
-        )
-        fireEvent.click(screen.getByRole('link', { name: '상담 채팅 보기' }))
-
-        await waitFor(() => expect(screen.getByTestId('location').textContent).toContain('panel=consultations'))
-        expect(screen.getByTestId('location').textContent).toContain('consultation=consult-client-01')
-    })
-
-    it('shows client product orders and expert inquiries in one newest-first list with one selected flow', async () => {
-        render(
-            <MemoryRouter initialEntries={['/mypage?panel=client']}>
-                <MyPage />
-            </MemoryRouter>,
-        )
-
-        const list = await screen.findByTestId('client-unified-work-list')
-        const items = within(list).getAllByRole('button')
-
-        expect(items[0]).toHaveAttribute('data-work-item-kind', 'consultation')
-        expect(items[0]).toHaveAttribute('data-work-item-id', 'consult-client-01')
-        expect(items[1]).toHaveAttribute('data-work-item-kind', 'product')
-        expect(items[1]).toHaveAttribute('data-work-item-id', 'request-product-client-01')
-
-        fireEvent.click(items[1])
-
-        expect(screen.getByTestId('client-product-order-flow')).toBeInTheDocument()
-        expect(screen.queryByTestId('client-consultation-order-flow')).not.toBeInTheDocument()
-    })
-
-    it('opens consultation chat from the selected work process without being restored to work management', async () => {
-        render(
-            <MemoryRouter initialEntries={['/my-work']}>
-                <Routes>
-                    <Route path="/my-work" element={<MyPage mode="work" />} />
-                </Routes>
-                <LocationProbe />
-            </MemoryRouter>,
-        )
-
-        const list = await screen.findByTestId('client-unified-work-list')
-        const consultationItem = getTransactionRowById(list, 'consult-client-01')
-        expect(consultationItem).toHaveAttribute('data-work-item-kind', 'consultation')
-        fireEvent.click(consultationItem)
-
-        const chatLink = screen.getAllByRole('link').find((link) =>
-            link.getAttribute('href')?.includes('panel=consultations&consultation=consult-client-01'),
-        )
-        expect(chatLink).toBeTruthy()
-
-        fireEvent.click(chatLink!)
-
-        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=consultations&consultation=consult-client-01'))
-        expect(await screen.findByRole('button', { name: '상담채팅' })).toHaveAttribute('aria-pressed', 'true')
-    })
-
-    it('shows received expert inquiry chats in expert work management', async () => {
+    it('does not create a client transaction from an expert inquiry chat before request submission', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work']}>
                 <Routes>
@@ -1430,17 +1349,31 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
+        const list = await screen.findByTestId('client-unified-work-list')
+        const rows = within(list).queryAllByTestId('work-transaction-row')
+
+        expect(rows.some((row) => row.getAttribute('data-work-item-id') === 'consult-client-01')).toBe(false)
+        expect(rows.some((row) => row.getAttribute('data-work-item-id') === 'request-product-client-01')).toBe(true)
+    })
+
+    it('does not create an expert transaction from an inquiry chat before request submission', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const roleSwitch = screen.getByTestId('work-dashboard-role-switch')
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
         fireEvent.click(await screen.findByRole('button', { name: '거래관리' }))
 
         const list = await screen.findByTestId('expert-unified-work-list')
-        fireEvent.click(getTransactionRowById(list, 'consult-expert-01'))
-        expect(await screen.findByText('전문가 문의 - Owned AI product')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '상담 채팅 보기' })).toHaveAttribute(
-            'href',
-            '/my-work?panel=consultations&consultation=consult-expert-01',
-        )
+        const rows = within(list).queryAllByTestId('work-transaction-row')
+
+        expect(rows.some((row) => row.getAttribute('data-work-item-id') === 'consult-expert-01')).toBe(false)
+        expect(rows.some((row) => row.getAttribute('data-work-item-id') === 'request-product-directed-01')).toBe(true)
     })
 
     it('lets experts create a proposal from the selected consultation chat', async () => {
@@ -1529,7 +1462,7 @@ describe('MyPage', () => {
         expect(screen.queryByText('받은 상품 의뢰와 전문가 문의를 최신순으로 확인하고, 선택한 항목의 진행 과정을 관리합니다.')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '내가 등록한 상품' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '요청 게시판에서 제안할 일 찾기' })).not.toBeInTheDocument()
-        expect(screen.queryByText('상품 지정 요구사항')).not.toBeInTheDocument()
+        expect(screen.getAllByText('상품 지정 요구사항').length).toBeGreaterThan(0)
         expect(screen.queryByRole('link', { name: '공개 상품 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: '보낸 제안서 보기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: '전문가 응답 필요' })).not.toBeInTheDocument()

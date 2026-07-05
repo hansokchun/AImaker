@@ -477,12 +477,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             createdTime: getRequestCreatedTime(request),
             request,
         })),
-        ...clientConsultationsByCreatedAt.map((consultation): UnifiedWorkItem => ({
-            kind: 'consultation',
-            id: consultation.id,
-            createdTime: getConsultationCreatedTime(consultation),
-            consultation,
-        })),
     ])
 
     const expertUnifiedWorkItems = sortUnifiedWorkItems([
@@ -491,12 +485,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             id: request.id,
             createdTime: getRequestCreatedTime(request),
             request,
-        })),
-        ...expertConsultationsByCreatedAt.map((consultation): UnifiedWorkItem => ({
-            kind: 'consultation',
-            id: consultation.id,
-            createdTime: getConsultationCreatedTime(consultation),
-            consultation,
         })),
     ])
     const shouldShowListFirst = mode === 'work'
@@ -1091,25 +1079,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const expertActiveUnifiedWorkItems = expertUnifiedWorkItems.filter((item) => !isUnifiedWorkStopped(item))
     const clientStoppedUnifiedWorkItems = sortUnifiedWorkItems([
         ...clientProductRequestsByCreatedAt.map(createStoppedProductItem).filter(isPresentUnifiedWorkItem),
-        ...clientConsultationsByCreatedAt
-            .filter((consultation) => consultation.status === 'closed')
-            .map((consultation): UnifiedWorkItem => ({
-                kind: 'consultation',
-                id: consultation.id,
-                createdTime: getConsultationCreatedTime(consultation),
-                consultation,
-            })),
     ])
     const expertStoppedUnifiedWorkItems = sortUnifiedWorkItems([
         ...receivedProductRequestsByCreatedAt.map(createStoppedProductItem).filter(isPresentUnifiedWorkItem),
-        ...expertConsultationsByCreatedAt
-            .filter((consultation) => consultation.status === 'closed')
-            .map((consultation): UnifiedWorkItem => ({
-                kind: 'consultation',
-                id: consultation.id,
-                createdTime: getConsultationCreatedTime(consultation),
-                consultation,
-            })),
     ])
     const selectedClientStoppedUnifiedWorkItem =
         (selectedClientOrderId
