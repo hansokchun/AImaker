@@ -9,7 +9,6 @@ import type {
     WorkMessage,
 } from '../types';
 import { mockExpertProducts } from '../data/mockData';
-import { getExpertProducts } from './storage';
 import { applyAdminActionEffect } from './adminModeration';
 import { supabase } from './supabase';
 import {

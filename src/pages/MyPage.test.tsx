@@ -1183,6 +1183,28 @@ describe('MyPage', () => {
         expect(input).toHaveValue('')
     })
 
+    it('sends a consultation message when pressing Enter in the composer', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const input = await screen.findByLabelText('상담 메시지 입력')
+        fireEvent.change(input, { target: { value: '엔터로 보냅니다.' } })
+        fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+
+        await waitFor(() => expect(saveConsultationMessage).toHaveBeenCalledWith({
+            consultationId: 'consult-client-01',
+            senderId: 'user-demo-01',
+            body: '엔터로 보냅니다.',
+        }))
+        expect(await screen.findByText('엔터로 보냅니다.')).toBeInTheDocument()
+        expect(input).toHaveValue('')
+    })
+
     it('blocks contact details before sending a consultation message', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>

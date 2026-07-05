@@ -681,6 +681,7 @@ export async function getConsultationMessages(consultationId: string): Promise<C
 
 export async function createConsultation(input: CreateConsultationInput): Promise<Consultation> {
     const now = new Date().toISOString();
+    const initialMessage = input.initialMessage?.trim() || '';
 
     if (!supabase) {
         const consultation: Consultation = {
@@ -693,21 +694,23 @@ export async function createConsultation(input: CreateConsultationInput): Promis
             lastMessageAt: now,
             createdAt: now,
         };
-        const message: ConsultationMessage = {
-            id: `consultation-message-${Date.now()}`,
-            consultationId: consultation.id,
-            senderId: input.clientId,
-            body: input.initialMessage,
-            attachmentUrls: [],
-            createdAt: now,
-        };
         const consultationRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
         const consultations = consultationRaw ? (JSON.parse(consultationRaw) as Consultation[]) : [];
         localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify([consultation, ...consultations]));
 
-        const messageRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
-        const messages = messageRaw ? (JSON.parse(messageRaw) as ConsultationMessage[]) : [];
-        localStorage.setItem(STORAGE_KEYS.CONSULTATION_MESSAGES, JSON.stringify([...messages, message]));
+        if (initialMessage) {
+            const message: ConsultationMessage = {
+                id: `consultation-message-${Date.now()}`,
+                consultationId: consultation.id,
+                senderId: input.clientId,
+                body: initialMessage,
+                attachmentUrls: [],
+                createdAt: now,
+            };
+            const messageRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
+            const messages = messageRaw ? (JSON.parse(messageRaw) as ConsultationMessage[]) : [];
+            localStorage.setItem(STORAGE_KEYS.CONSULTATION_MESSAGES, JSON.stringify([...messages, message]));
+        }
         return consultation;
     }
 
@@ -729,12 +732,14 @@ export async function createConsultation(input: CreateConsultationInput): Promis
     }
 
     const consultation = toConsultation(data);
+    if (!initialMessage) return consultation;
+
     const { error: messageError } = await supabase
         .from('consultation_messages')
         .insert({
             consultation_id: consultation.id,
             sender_id: input.clientId,
-            body: input.initialMessage,
+            body: initialMessage,
             attachment_urls: [],
         });
 

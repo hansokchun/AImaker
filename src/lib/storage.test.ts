@@ -1462,6 +1462,52 @@ describe('transaction storage', () => {
         })
     })
 
+    it('creates a consultation without a first message when no initial message is provided', async () => {
+        vi.resetModules()
+        const consultationSingle = vi.fn().mockResolvedValue({
+            data: {
+                id: 'consultation-created-02',
+                client_id: request.clientId,
+                expert_id: request.expertId,
+                product_id: request.productId,
+                status: 'open',
+                title: 'AI ?륂뤌 ?곷떞',
+                last_message_at: '2026-06-02T10:00:00.000Z',
+                created_at: '2026-06-02T10:00:00.000Z',
+            },
+            error: null,
+        })
+        const consultationSelect = vi.fn(() => ({ single: consultationSingle }))
+        const consultationInsert = vi.fn(() => ({ select: consultationSelect }))
+        const messageInsert = vi.fn().mockResolvedValue({ error: null })
+        const from = vi.fn((table: string) => {
+            if (table === 'consultation_messages') return { insert: messageInsert }
+            return { insert: consultationInsert }
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { createConsultation } = await import('./storage')
+
+        await expect(createConsultation({
+            clientId: request.clientId,
+            expertId: request.expertId,
+            productId: request.productId,
+            title: 'AI ?륂뤌 ?곷떞',
+        })).resolves.toEqual({
+            id: 'consultation-created-02',
+            clientId: request.clientId,
+            expertId: request.expertId,
+            productId: request.productId,
+            status: 'open',
+            title: 'AI ?륂뤌 ?곷떞',
+            lastMessageAt: '2026-06-02T10:00:00.000Z',
+            createdAt: '2026-06-02T10:00:00.000Z',
+        })
+        expect(from).toHaveBeenCalledWith('consultations')
+        expect(from).not.toHaveBeenCalledWith('consultation_messages')
+        expect(messageInsert).not.toHaveBeenCalled()
+    })
+
     it('saves a consultation message and refreshes the consultation timestamp in Supabase', async () => {
         vi.resetModules()
         const messageSingle = vi.fn().mockResolvedValue({

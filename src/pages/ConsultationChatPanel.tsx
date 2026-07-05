@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react';
 import type { Consultation, ConsultationMessage, ExpertProduct } from '../types';
 
 type ConsultationDisplayState = 'active' | 'ended';
@@ -43,7 +44,14 @@ export function ConsultationChatPanel({
     const selectedState = selectedConsultation ? getConsultationDisplayState(selectedConsultation) : 'ended';
     const selectedStateLabel = getConsultationStateLabel(selectedState);
     const selectedEnded = selectedState === 'ended';
+    const sendDisabled = selectedEnded || messageSubmitting || !messageBody.trim();
     const canCreateProposal = Boolean(selectedConsultation && selectedConsultation.expertId === currentUserId && !selectedEnded);
+
+    const handleMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || sendDisabled) return;
+        event.preventDefault();
+        onSendMessage();
+    };
 
     return (
         <section className="consultation-chat-panel">
@@ -121,25 +129,24 @@ export function ConsultationChatPanel({
                                             aria-label="상담 메시지 입력"
                                             value={messageBody}
                                             onChange={(event) => onMessageBodyChange(event.target.value)}
+                                            onKeyDown={handleMessageKeyDown}
                                             rows={4}
                                             placeholder="상담 메시지를 입력하세요."
                                             disabled={selectedEnded}
                                         />
-                                        <div className="consultation-input-tools" aria-hidden="true">
-                                            <AttachmentIcon />
-                                            <SmileIcon />
-                                        </div>
-                                    </div>
-                                    {messageError && <p role="alert" className="consultation-message-error">{messageError}</p>}
-                                    <div className="consultation-action-row">
                                         <button
                                             type="submit"
                                             className="consultation-send-button"
-                                            disabled={selectedEnded || messageSubmitting || !messageBody.trim()}
+                                            aria-label="메시지 보내기"
+                                            title={messageSubmitting ? '전송 중' : '메시지 보내기'}
+                                            disabled={sendDisabled}
                                         >
-                                            {messageSubmitting ? '전송 중' : '메시지 보내기'}
+                                            <SendIcon />
                                         </button>
-                                        {canCreateProposal && (
+                                    </div>
+                                    {messageError && <p role="alert" className="consultation-message-error">{messageError}</p>}
+                                    {canCreateProposal && (
+                                        <div className="consultation-action-row">
                                             <button
                                                 type="button"
                                                 className="consultation-proposal-button"
@@ -148,8 +155,8 @@ export function ConsultationChatPanel({
                                             >
                                                 {proposalSubmitting ? '제안서 작성 중' : '제안서 작성'}
                                             </button>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </form>
                             </>
                         ) : (
@@ -202,19 +209,11 @@ function ChatBubbleIcon() {
     );
 }
 
-function AttachmentIcon() {
+function SendIcon() {
     return (
-        <svg focusable="false" viewBox="0 0 24 24">
-            <path d="m8.5 12.5 5.8-5.8a3 3 0 0 1 4.2 4.2l-7.2 7.2a4.5 4.5 0 0 1-6.4-6.4l7.1-7.1" />
-        </svg>
-    );
-}
-
-function SmileIcon() {
-    return (
-        <svg focusable="false" viewBox="0 0 24 24">
-            <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
-            <path d="M9 10h.01M15 10h.01M8.8 14.1c1.8 1.7 4.6 1.7 6.4 0" />
+        <svg focusable="false" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12 19 5l-4 14-3-6-7-1Z" />
+            <path d="m12 13 7-8" />
         </svg>
     );
 }

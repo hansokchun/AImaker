@@ -381,7 +381,6 @@ describe('ExpertDetail', () => {
             expertId: supabaseProduct.expertId,
             productId: supabaseProduct.id,
             title: `${supabaseProduct.title} 상담`,
-            initialMessage: `${supabaseProduct.title} 작업 범위를 상담하고 싶습니다.`,
         }))
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work?panel=consultations&consultation=consultation-created-01'))
     })

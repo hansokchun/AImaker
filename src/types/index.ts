@@ -149,7 +149,7 @@ export interface CreateConsultationInput {
     expertId: string;
     productId: string;
     title: string;
-    initialMessage: string;
+    initialMessage?: string;
 }
 
 export interface Work {
