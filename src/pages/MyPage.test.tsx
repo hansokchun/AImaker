@@ -459,6 +459,19 @@ const saveConsultationMessage = vi.fn(async (message: { consultationId: string; 
     attachmentUrls: [],
     createdAt: '2026-06-02T10:05:00.000Z',
 }))
+const closeConsultation = vi.fn(async (consultationId: string): Promise<Consultation> => ({
+    id: consultationId,
+    clientId: 'user-demo-01',
+    expertId: 'expert-real-01',
+    productId: 'product-client-01',
+    status: 'closed',
+    title: 'AI ?륂뤌 ?곸긽 ?쒖옉 ?곷떞',
+    lastMessageAt: '2026-06-02T10:05:00.000Z',
+    createdAt: '2026-06-02T09:30:00.000Z',
+}))
+const saveConsultationReport = vi.fn(async (_report: { consultationId: string; reporterId: string }) => ({
+    id: 'report-consultation-01',
+}))
 let consultationRealtimeCallback: ((message: ConsultationMessage) => void) | null = null
 const unsubscribeConsultationMessages = vi.fn()
 const subscribeToConsultationMessages = vi.fn((_consultationId: string, onMessage: (message: ConsultationMessage) => void) => {
@@ -681,6 +694,8 @@ vi.mock('../lib/storage', () => ({
     getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
     subscribeToConsultationMessages: (consultationId: string, onMessage: (message: ConsultationMessage) => void) => subscribeToConsultationMessages(consultationId, onMessage),
     saveConsultationMessage: (message: { consultationId: string; senderId: string; body: string }) => saveConsultationMessage(message),
+    closeConsultation: (consultationId: string) => closeConsultation(consultationId),
+    saveConsultationReport: (report: { consultationId: string; reporterId: string }) => saveConsultationReport(report),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     cancelProposal: (proposalId: string) => cancelProposal(proposalId),
     cancelWork: (workId: string) => cancelWork(workId),
@@ -949,6 +964,19 @@ describe('MyPage', () => {
             attachmentUrls: [],
             createdAt: '2026-06-02T10:05:00.000Z',
         }))
+        closeConsultation.mockClear()
+        closeConsultation.mockImplementation(async (consultationId: string) => ({
+            id: consultationId,
+            clientId: 'user-demo-01',
+            expertId: 'expert-real-01',
+            productId: 'product-client-01',
+            status: 'closed',
+            title: 'AI ?륂뤌 ?곸긽 ?쒖옉 ?곷떞',
+            lastMessageAt: '2026-06-02T10:05:00.000Z',
+            createdAt: '2026-06-02T09:30:00.000Z',
+        }))
+        saveConsultationReport.mockClear()
+        saveConsultationReport.mockResolvedValue({ id: 'report-consultation-01' })
         consultationRealtimeCallback = null
         subscribeToConsultationMessages.mockClear()
         unsubscribeConsultationMessages.mockClear()
@@ -1172,6 +1200,9 @@ describe('MyPage', () => {
     })
 
     it('sends a consultation message from the selected chat panel', async () => {
+        const notificationListener = vi.fn()
+        window.addEventListener('aiconnect:notifications-updated', notificationListener)
+
         render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
                 <Routes>
@@ -1191,6 +1222,8 @@ describe('MyPage', () => {
         }))
         expect(await screen.findByText('추가 문의드립니다.')).toBeInTheDocument()
         expect(input).toHaveValue('')
+        expect(notificationListener).toHaveBeenCalled()
+        window.removeEventListener('aiconnect:notifications-updated', notificationListener)
     })
 
     it('sends a consultation message when pressing Enter in the composer', async () => {
@@ -1239,6 +1272,107 @@ describe('MyPage', () => {
         })
 
         expect(await screen.findByText('실시간 답변이 도착했습니다.')).toBeInTheDocument()
+    })
+
+    it('polls selected consultation messages so missed realtime inserts appear without reload', async () => {
+        const initialMessage: ConsultationMessage = {
+            id: 'consult-client-01-message-01',
+            consultationId: 'consult-client-01',
+            senderId: 'user-demo-01',
+            body: 'Initial consultation message',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:00:00.000Z',
+        }
+        const missedMessage: ConsultationMessage = {
+            id: 'consult-client-01-message-02',
+            consultationId: 'consult-client-01',
+            senderId: 'expert-real-01',
+            body: 'Missed realtime message',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:06:00.000Z',
+        }
+        getConsultationMessages.mockResolvedValueOnce([initialMessage])
+        getConsultationMessages.mockResolvedValueOnce([initialMessage, missedMessage])
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByText('Initial consultation message')).toBeInTheDocument()
+        expect(await screen.findByText('Missed realtime message')).toBeInTheDocument()
+    })
+
+    it('refreshes consultation rooms while the chat panel is open', async () => {
+        const initialConsultations: Consultation[] = [
+            {
+                id: 'consult-expert-01',
+                clientId: 'client-real-01',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                status: 'open',
+                title: 'Initial consultation',
+                lastMessageAt: '2026-06-02T10:00:00.000Z',
+                createdAt: '2026-06-02T09:30:00.000Z',
+            },
+        ]
+        const nextConsultations: Consultation[] = [
+            {
+                id: 'consult-new-01',
+                clientId: 'client-new-01',
+                expertId: 'user-demo-01',
+                productId: 'product-owned-01',
+                status: 'open',
+                title: 'New incoming consultation',
+                lastMessageAt: '2026-06-02T10:07:00.000Z',
+                createdAt: '2026-06-02T10:07:00.000Z',
+            },
+            ...initialConsultations,
+        ]
+        getUserConsultations.mockResolvedValueOnce(initialConsultations)
+        getUserConsultations.mockResolvedValue(nextConsultations)
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?role=expert&panel=consultations&consultation=consult-expert-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: /Initial consultation/ })).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: /New incoming consultation/ })).toBeInTheDocument()
+    })
+
+    it('closes and reports a consultation from the chat action menu', async () => {
+        const { container } = render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        let menuButton: HTMLButtonElement | null = null
+        await waitFor(() => {
+            menuButton = container.querySelector<HTMLButtonElement>('.consultation-more-button')
+            expect(menuButton).not.toBeNull()
+        })
+
+        fireEvent.click(menuButton as HTMLButtonElement)
+        fireEvent.click((await screen.findAllByRole('menuitem'))[0])
+        await waitFor(() => expect(closeConsultation).toHaveBeenCalledWith('consult-client-01'))
+
+        fireEvent.click(menuButton as HTMLButtonElement)
+        const menuItems = await screen.findAllByRole('menuitem')
+        fireEvent.click(menuItems[1])
+        await waitFor(() => expect(saveConsultationReport).toHaveBeenCalledWith({
+            consultationId: 'consult-client-01',
+            reporterId: 'user-demo-01',
+        }))
     })
 
     it('blocks contact details before sending a consultation message', async () => {

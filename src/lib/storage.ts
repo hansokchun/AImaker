@@ -28,6 +28,7 @@ import { buildDemoAccountData, isDemoAccountRecordId, isDemoTestAccountEmail } f
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
 import { validateMarketplaceMessage } from './tradeSafety';
 import type { User } from '@supabase/supabase-js';
+import type { AdminReport } from './adminStorage';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
 const STORAGE_KEYS = {
@@ -43,6 +44,7 @@ const STORAGE_KEYS = {
     CONSULTATION_MESSAGES: 'ai_consultation_messages',
     WORK_MESSAGES: 'ai_work_messages',
     FAVORITE_PRODUCTS: 'ai_favorite_products',
+    ADMIN_REPORTS: 'ai_admin_reports',
 } as const;
 
 const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
@@ -841,6 +843,94 @@ export async function saveConsultationMessage(input: {
     }
 
     return message;
+}
+
+const toAdminReport = (row: Record<string, any>): AdminReport => ({
+    id: String(row.id),
+    reporterId: row.reporter_id || '',
+    targetType: row.target_type,
+    targetId: row.target_id,
+    reason: row.reason,
+    status: row.status || 'pending',
+    severity: row.severity || 'medium',
+    createdAt: row.created_at || new Date().toISOString(),
+    resolvedAt: row.resolved_at || undefined,
+    resolvedBy: row.resolved_by || undefined,
+});
+
+export async function closeConsultation(consultationId: string): Promise<Consultation> {
+    const now = new Date().toISOString();
+
+    if (!supabase || hasLocalDemoConsultation(consultationId)) {
+        const consultations = readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS);
+        const nextConsultations = consultations.map((consultation) =>
+            consultation.id === consultationId
+                ? { ...consultation, status: 'closed' as const, lastMessageAt: consultation.lastMessageAt || now }
+                : consultation,
+        );
+        writeLocalArray(STORAGE_KEYS.CONSULTATIONS, nextConsultations);
+        const closed = nextConsultations.find((consultation) => consultation.id === consultationId);
+        if (!closed) throw new Error('상담을 찾을 수 없습니다.');
+        return closed;
+    }
+
+    const { data, error } = await supabase
+        .from('consultations')
+        .update({ status: 'closed', last_message_at: now })
+        .eq('id', consultationId)
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('상담 종료 저장 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 상담 종료 실패');
+    }
+
+    return toConsultation(data);
+}
+
+export async function saveConsultationReport(input: {
+    consultationId: string;
+    reporterId: string;
+    reason?: string;
+}): Promise<AdminReport> {
+    const now = new Date().toISOString();
+    const reason = input.reason?.trim() || '상담 채팅 신고';
+
+    if (!supabase || hasLocalDemoConsultation(input.consultationId)) {
+        const report: AdminReport = {
+            id: `report-consultation-${input.consultationId}-${Date.now()}`,
+            reporterId: input.reporterId,
+            targetType: 'consultation',
+            targetId: input.consultationId,
+            reason,
+            status: 'pending',
+            severity: 'medium',
+            createdAt: now,
+        };
+        writeLocalArray(STORAGE_KEYS.ADMIN_REPORTS, [report, ...readLocalArray<AdminReport>(STORAGE_KEYS.ADMIN_REPORTS)]);
+        return report;
+    }
+
+    const { data, error } = await supabase
+        .from('admin_reports')
+        .insert({
+            reporter_id: input.reporterId,
+            target_type: 'consultation',
+            target_id: input.consultationId,
+            reason,
+            status: 'pending',
+            severity: 'medium',
+        })
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('상담 신고 저장 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 상담 신고 실패');
+    }
+
+    return toAdminReport(data);
 }
 
 export async function getServiceRequests(): Promise<AiServiceRequest[]> {

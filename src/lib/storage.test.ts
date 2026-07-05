@@ -1626,6 +1626,45 @@ describe('transaction storage', () => {
         expect(from).not.toHaveBeenCalled()
     })
 
+    it('closes a local consultation and stores a consultation report', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_consultations', JSON.stringify([
+            {
+                id: 'consultation-local-01',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: product.id,
+                status: 'open',
+                title: 'Local consultation',
+                lastMessageAt: '2026-06-02T10:00:00.000Z',
+                createdAt: '2026-06-02T09:30:00.000Z',
+            },
+        ]))
+
+        const { closeConsultation, saveConsultationReport } = await import('./storage')
+
+        await expect(closeConsultation('consultation-local-01')).resolves.toMatchObject({
+            id: 'consultation-local-01',
+            status: 'closed',
+        })
+        await expect(saveConsultationReport({
+            consultationId: 'consultation-local-01',
+            reporterId: request.clientId,
+        })).resolves.toMatchObject({
+            reporterId: request.clientId,
+            targetType: 'consultation',
+            targetId: 'consultation-local-01',
+            status: 'pending',
+        })
+
+        const consultations = JSON.parse(localStorage.getItem('ai_consultations') || '[]') as Array<{ readonly status: string }>
+        const reports = JSON.parse(localStorage.getItem('ai_admin_reports') || '[]') as Array<{ readonly targetId: string }>
+
+        expect(consultations[0]?.status).toBe('closed')
+        expect(reports[0]?.targetId).toBe('consultation-local-01')
+    })
+
     it('rejects workroom messages that try to move payment outside the marketplace', async () => {
         vi.resetModules()
         const insert = vi.fn()

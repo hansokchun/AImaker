@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveProposal, saveReview, subscribeToConsultationMessages } from '../lib/storage'
+import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveConsultationReport, saveProposal, saveReview, subscribeToConsultationMessages } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
@@ -126,6 +126,31 @@ const normalizeWorkPanel = (value: string | null, mode: MyPageMode) =>
     value === 'reviews' ? 'workroom' :
     mode === 'work' && value === 'expert' ? 'client' : value
 
+const dispatchNotificationRefresh = () => {
+    window.dispatchEvent(new Event('aiconnect:notifications-updated'))
+}
+
+const mergeConsultationMessages = (
+    current: readonly ConsultationMessage[],
+    incoming: ConsultationMessage | readonly ConsultationMessage[],
+) => {
+    const messages = Array.isArray(incoming) ? incoming : [incoming]
+    const byId = new Map<string, ConsultationMessage>()
+
+    for (const message of [...current, ...messages]) {
+        byId.set(message.id, message)
+    }
+
+    return Array.from(byId.values()).sort((first, second) => {
+        const firstTime = Date.parse(first.createdAt || '')
+        const secondTime = Date.parse(second.createdAt || '')
+        return (Number.isNaN(firstTime) ? 0 : firstTime) - (Number.isNaN(secondTime) ? 0 : secondTime)
+    })
+}
+
+const consultationListRefreshIntervalMs = import.meta.env.MODE === 'test' ? 80 : 5000
+const consultationMessageRefreshIntervalMs = import.meta.env.MODE === 'test' ? 50 : 3000
+
 const getClientWorkStageTitle = (work: Work) => {
     if (work.status === 'completed') return '작업 완료'
     if (work.status === 'submitted') return '결과물 검토 대기'
@@ -222,6 +247,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageBody, setConsultationMessageBody] = useState('')
     const [consultationMessageSubmitting, setConsultationMessageSubmitting] = useState(false)
     const [consultationMessageError, setConsultationMessageError] = useState('')
+    const [consultationActionMessage, setConsultationActionMessage] = useState('')
+    const [consultationActionError, setConsultationActionError] = useState('')
     const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const [profilePreview, setProfilePreview] = useState<ProfilePreview | null>(null)
@@ -347,6 +374,29 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     }, [fetchProfile, userId])
 
     useEffect(() => {
+        if (!userId || activePanel !== 'consultations') return
+
+        let cancelled = false
+        const refreshConsultations = () => {
+            getUserConsultations(userId)
+                .then((items) => {
+                    if (cancelled) return
+                    setConsultations(items)
+                    dispatchNotificationRefresh()
+                })
+                .catch((error) => {
+                    console.error('상담 목록 자동 갱신 오류:', error)
+                })
+        }
+        const interval = window.setInterval(refreshConsultations, consultationListRefreshIntervalMs)
+
+        return () => {
+            cancelled = true
+            window.clearInterval(interval)
+        }
+    }, [activePanel, userId])
+
+    useEffect(() => {
         const currentParams = new URLSearchParams(searchParamString)
         const panel = currentParams.get('panel')
         if (panel === 'consultations' && activePanel === 'consultations' && !selectedConsultationId && consultations.length > 0) {
@@ -371,11 +421,30 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     useEffect(() => {
         if (!selectedConsultationId) return
 
+        let cancelled = false
+        const refreshMessages = () => {
+            getConsultationMessages(selectedConsultationId)
+                .then((messages) => {
+                    if (cancelled) return
+                    setConsultationMessages((current) => mergeConsultationMessages(current, messages))
+                })
+                .catch((error) => {
+                    console.error('상담 메시지 자동 갱신 오류:', error)
+                })
+        }
+        const interval = window.setInterval(refreshMessages, consultationMessageRefreshIntervalMs)
+
+        return () => {
+            cancelled = true
+            window.clearInterval(interval)
+        }
+    }, [selectedConsultationId])
+
+    useEffect(() => {
+        if (!selectedConsultationId) return
+
         return subscribeToConsultationMessages(selectedConsultationId, (message) => {
-            setConsultationMessages((current) => {
-                if (current.some((item) => item.id === message.id)) return current
-                return [...current, message]
-            })
+            setConsultationMessages((current) => mergeConsultationMessages(current, message))
             setConsultations((current) =>
                 current.map((consultation) =>
                     consultation.id === selectedConsultationId
@@ -383,12 +452,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         : consultation,
                 ),
             )
+            dispatchNotificationRefresh()
         })
     }, [selectedConsultationId])
 
     useEffect(() => {
         setConsultationMessageBody('')
         setConsultationMessageError('')
+        setConsultationActionMessage('')
+        setConsultationActionError('')
     }, [selectedConsultationId])
 
     const completedWork = works.find((work) => work.status === 'completed') || null
@@ -581,7 +653,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 senderId: user.id,
                 body,
             })
-            setConsultationMessages((current) => [...current, message])
+            setConsultationMessages((current) => mergeConsultationMessages(current, message))
             setConsultations((current) =>
                 current.map((consultation) =>
                     consultation.id === selectedConsultation.id
@@ -590,6 +662,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ),
             )
             setConsultationMessageBody('')
+            dispatchNotificationRefresh()
         } catch (error) {
             console.error('상담 메시지 전송 오류:', error)
             setConsultationMessageError('메시지를 보내지 못했습니다. 잠시 후 다시 시도해주세요.')
@@ -597,6 +670,44 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             setConsultationMessageSubmitting(false)
         }
     }
+
+    const handleEndConsultation = async () => {
+        if (!selectedPanelConsultation) return
+
+        setConsultationActionMessage('')
+        setConsultationActionError('')
+        try {
+            const closed = await closeConsultation(selectedPanelConsultation.id)
+            setConsultations((current) =>
+                current.map((consultation) =>
+                    consultation.id === closed.id ? closed : consultation,
+                ),
+            )
+            setConsultationActionMessage('상담이 종료되었습니다.')
+            dispatchNotificationRefresh()
+        } catch (error) {
+            console.error('상담 종료 오류:', error)
+            setConsultationActionError('상담을 종료하지 못했습니다. 잠시 후 다시 시도해주세요.')
+        }
+    }
+
+    const handleReportConsultation = async () => {
+        if (!user || !selectedPanelConsultation) return
+
+        setConsultationActionMessage('')
+        setConsultationActionError('')
+        try {
+            await saveConsultationReport({
+                consultationId: selectedPanelConsultation.id,
+                reporterId: user.id,
+            })
+            setConsultationActionMessage('신고가 접수되었습니다. 관리자가 내용을 확인합니다.')
+        } catch (error) {
+            console.error('상담 신고 오류:', error)
+            setConsultationActionError('신고를 접수하지 못했습니다. 잠시 후 다시 시도해주세요.')
+        }
+    }
+
     const handleCreateConsultationProposal = async () => {
         if (!selectedConsultation || !user || selectedConsultation.expertId !== user.id) return
 
@@ -2270,6 +2381,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             currentUserId={user?.id || ''}
             messageBody={consultationMessageBody}
             messageError={consultationMessageError}
+            actionMessage={consultationActionMessage}
+            actionError={consultationActionError}
             messageSubmitting={consultationMessageSubmitting}
             proposalSubmitting={consultationProposalSubmitting}
             onSelectConsultation={(consultationId) => {
@@ -2279,6 +2392,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             onMessageBodyChange={setConsultationMessageBody}
             onSendMessage={handleSendConsultationMessage}
             onCreateProposal={handleCreateConsultationProposal}
+            onEndConsultation={handleEndConsultation}
+            onReportConsultation={handleReportConsultation}
         />
     )
 

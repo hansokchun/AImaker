@@ -755,6 +755,14 @@ create policy "Admins can view reports"
   on public.admin_reports for select
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
+drop policy if exists "Authenticated users can create reports" on public.admin_reports;
+create policy "Authenticated users can create reports"
+  on public.admin_reports for insert
+  with check (
+    reporter_id = auth.uid()
+    and status = 'pending'
+  );
+
 drop policy if exists "Admins can update reports" on public.admin_reports;
 create policy "Admins can update reports"
   on public.admin_reports for update

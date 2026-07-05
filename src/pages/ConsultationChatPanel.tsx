@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import type { Consultation, ConsultationMessage, ExpertProduct } from '../types';
 
 type ConsultationDisplayState = 'active' | 'ended';
@@ -12,12 +12,16 @@ type ConsultationChatPanelProps = {
     readonly currentUserId: string;
     readonly messageBody: string;
     readonly messageError: string;
+    readonly actionMessage: string;
+    readonly actionError: string;
     readonly messageSubmitting: boolean;
     readonly proposalSubmitting: boolean;
     readonly onSelectConsultation: (consultationId: string) => void;
     readonly onMessageBodyChange: (body: string) => void;
     readonly onSendMessage: () => void;
     readonly onCreateProposal: () => void;
+    readonly onEndConsultation: () => void;
+    readonly onReportConsultation: () => void;
 };
 
 const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
@@ -34,13 +38,18 @@ export function ConsultationChatPanel({
     currentUserId,
     messageBody,
     messageError,
+    actionMessage,
+    actionError,
     messageSubmitting,
     proposalSubmitting,
     onSelectConsultation,
     onMessageBodyChange,
     onSendMessage,
     onCreateProposal,
+    onEndConsultation,
+    onReportConsultation,
 }: ConsultationChatPanelProps) {
+    const [actionMenuOpen, setActionMenuOpen] = useState(false);
     const selectedState = selectedConsultation ? getConsultationDisplayState(selectedConsultation) : 'ended';
     const selectedStateLabel = getConsultationStateLabel(selectedState);
     const selectedEnded = selectedState === 'ended';
@@ -93,10 +102,55 @@ export function ConsultationChatPanel({
                         {selectedConsultation ? (
                             <>
                                 <header className="consultation-chat-detail-header">
+                                    <div className="consultation-chat-detail-heading">
                                     <h3>{selectedConsultation.title}</h3>
                                     <p>{selectedProduct?.title || '상품 상담'} · {selectedStateLabel}</p>
-                                    <ConsultationStatus state={selectedState} />
+                                    </div>
+                                    <div className="consultation-chat-detail-tools">
+                                        <ConsultationStatus state={selectedState} />
+                                        <div className="consultation-more-menu">
+                                            <button
+                                                type="button"
+                                                className="consultation-more-button"
+                                                aria-label="상담 옵션 열기"
+                                                aria-expanded={actionMenuOpen}
+                                                onClick={() => setActionMenuOpen((open) => !open)}
+                                            >
+                                                <MoreIcon />
+                                            </button>
+                                            {actionMenuOpen && (
+                                                <div className="consultation-action-menu" role="menu">
+                                                    <button
+                                                        type="button"
+                                                        role="menuitem"
+                                                        disabled={selectedEnded}
+                                                        onClick={() => {
+                                                            setActionMenuOpen(false);
+                                                            onEndConsultation();
+                                                        }}
+                                                    >
+                                                        상담 종료
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        role="menuitem"
+                                                        onClick={() => {
+                                                            setActionMenuOpen(false);
+                                                            onReportConsultation();
+                                                        }}
+                                                    >
+                                                        신고하기
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </header>
+                                {(actionMessage || actionError) && (
+                                    <p className={`consultation-action-feedback ${actionError ? 'is-error' : 'is-success'}`}>
+                                        {actionError || actionMessage}
+                                    </p>
+                                )}
 
                                 <div className="consultation-message-list">
                                     {messages.length > 0 ? messages.map((message) => {
@@ -214,6 +268,14 @@ function SendIcon() {
         <svg focusable="false" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5 12 19 5l-4 14-3-6-7-1Z" />
             <path d="m12 13 7-8" />
+        </svg>
+    );
+}
+
+function MoreIcon() {
+    return (
+        <svg focusable="false" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 6.8h.01M12 12h.01M12 17.2h.01" />
         </svg>
     );
 }
