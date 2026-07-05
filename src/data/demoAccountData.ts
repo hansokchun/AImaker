@@ -18,8 +18,6 @@ import type {
 export const DEMO_TEST_ACCOUNT_EMAILS = [
     'benet9827@gmail.com',
     'benet9818@gmail.com',
-    'benet9818+client@gmail.com',
-    'benet9818+expert@gmail.com',
 ] as const;
 export const DEMO_TEST_ACCOUNT_EMAIL = DEMO_TEST_ACCOUNT_EMAILS[0];
 
