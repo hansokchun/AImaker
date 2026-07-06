@@ -521,7 +521,7 @@
     white-space: nowrap;
 }
 
-.consultation-list-copy > span:not(.consultation-status) {
+.consultation-list-copy > .consultation-peer-id {
     overflow: hidden;
     color: #6b7280;
     font-size: 0.91rem;

@@ -1147,8 +1147,8 @@ describe('MyPage', () => {
         expect(await screen.findByRole('button', { name: '상담채팅' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('heading', { name: '상담 채팅' })).toBeInTheDocument()
         expect(screen.getByLabelText('상담 채팅 목록')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /AI 숏폼 영상 제작 상담/ })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /AI 숏폼 영상 제작/ })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
         expect(await screen.findByText('브랜드 소개용 숏폼 상담 가능할까요?')).toBeInTheDocument()
         expect(getConsultationMessages).toHaveBeenCalledWith('consult-client-01')
         expect(screen.getByTestId('location').textContent).toContain('panel=consultations')
@@ -1164,9 +1164,23 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Owned AI product' })).toBeInTheDocument()
         expect(screen.getAllByText('상담 중').length).toBeGreaterThan(0)
         expect(screen.queryByText('제안서 발송됨')).not.toBeInTheDocument()
+    })
+
+    it('shows the selected product title and peer id in consultation chats', async () => {
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        const peerLabels = await screen.findAllByText('상대방 ID: expert-real-01')
+        expect(peerLabels.length).toBeGreaterThan(0)
+        expect(screen.getByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
     })
 
     it('disables the consultation message composer when the selected consultation is closed', async () => {
@@ -1343,8 +1357,8 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('button', { name: /Initial consultation/ })).toBeInTheDocument()
-        expect(await screen.findByRole('button', { name: /New incoming consultation/ })).toBeInTheDocument()
+        expect((await screen.findAllByText(/client-real-01/)).length).toBeGreaterThan(0)
+        expect((await screen.findAllByText(/client-new-01/)).length).toBeGreaterThan(0)
     })
 
     it('closes and reports a consultation from the chat action menu', async () => {
@@ -1521,7 +1535,7 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Owned AI product' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: '제안서 작성' }))
 
         await waitFor(() => {
@@ -2392,8 +2406,8 @@ describe('MyPage', () => {
         )
 
         fireEvent.click(await screen.findByRole('button', { name: '상담채팅' }))
-        expect(screen.getAllByText('AI 숏폼 영상 제작 상담').length).toBeGreaterThan(0)
-        expect(screen.queryByText('Owned AI product 상담')).not.toBeInTheDocument()
+        expect(screen.getAllByText('AI 숏폼 영상 제작').length).toBeGreaterThan(0)
+        expect(screen.queryByText('Owned AI product')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '프로젝트' }))
         expect(await screen.findByRole('link', { name: '진행 중인 실제 작업' })).toBeInTheDocument()
@@ -2407,8 +2421,8 @@ describe('MyPage', () => {
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
         fireEvent.click(screen.getByRole('button', { name: '상담채팅' }))
-        await waitFor(() => expect(screen.getAllByText('Owned AI product 상담').length).toBeGreaterThan(0))
-        expect(screen.queryByText('AI 숏폼 영상 제작 상담')).not.toBeInTheDocument()
+        await waitFor(() => expect(screen.getAllByText('Owned AI product').length).toBeGreaterThan(0))
+        expect(screen.queryByText('AI 숏폼 영상 제작')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: '프로젝트' }))
         expect(await screen.findByRole('link', { name: '전문가 진행 중 상품' })).toBeInTheDocument()
@@ -2473,14 +2487,14 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'AI 숏폼 영상 제작' })).toBeInTheDocument()
 
         const roleSwitch = screen.getByLabelText('내 작업 역할 전환')
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
-        expect(await screen.findByRole('heading', { name: 'Owned AI product 상담' })).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Owned AI product' })).toBeInTheDocument()
         expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.queryByRole('heading', { name: 'AI 숏폼 영상 제작 상담' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'AI 숏폼 영상 제작' })).not.toBeInTheDocument()
     })
 
     it('keeps the manually selected consultation role when a chat belongs to both sides', async () => {
@@ -2507,7 +2521,7 @@ describe('MyPage', () => {
         fireEvent.click(within(roleSwitch).getByRole('button', { name: '전문가' }))
 
         expect(within(roleSwitch).getByRole('button', { name: '전문가' })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByRole('heading', { name: '양쪽 역할 상담' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Owned AI product' })).toBeInTheDocument()
     })
 
     it('gives the consultation chat room more space than the chat list', async () => {
@@ -2519,7 +2533,7 @@ describe('MyPage', () => {
 
         const layout = await screen.findByLabelText('상담 채팅 레이아웃')
         const list = screen.getByLabelText('상담 채팅 목록')
-        const chatTitle = await screen.findByRole('button', { name: /AI 숏폼 영상 제작 상담/ })
+        const chatTitle = await screen.findByRole('button', { name: /AI 숏폼 영상 제작/ })
 
         expect(layout).toHaveClass('consultation-chat-layout')
         expect(list).toHaveClass('consultation-chat-list')

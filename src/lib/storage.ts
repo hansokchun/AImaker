@@ -49,6 +49,8 @@ const STORAGE_KEYS = {
 
 const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
 const DEMO_ACCOUNT_USER_NAME_KEY = 'ai_demo_account_user_name';
+const CLOSED_CONSULTATION_RETENTION_DAYS = 7;
+const CLOSED_CONSULTATION_RETENTION_MS = CLOSED_CONSULTATION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 const isUuid = (value?: string) =>
     Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -87,6 +89,13 @@ const mergeById = <T extends { id: string | number }>(first: T[], second: T[]): 
     return merged;
 };
 
+const isConsultationVisible = (consultation: Consultation): boolean => {
+    if (consultation.status !== 'closed') return true;
+    const referenceTime = Date.parse(consultation.lastMessageAt || consultation.createdAt || '');
+    if (Number.isNaN(referenceTime)) return true;
+    return Date.now() - referenceTime < CLOSED_CONSULTATION_RETENTION_MS;
+};
+
 const demoRecordsOnly = <T extends { id: string | number }>(items: T[]) =>
     items.filter((item) => isDemoAccountRecordId(item.id));
 
@@ -113,6 +122,7 @@ const getLocalUserRequests = (userId: string) =>
 const getLocalUserConsultations = (userId: string) =>
     readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS)
         .filter((consultation) => consultation.clientId === userId || consultation.expertId === userId)
+        .filter(isConsultationVisible)
         .sort((first, second) => Date.parse(second.lastMessageAt || second.createdAt) - Date.parse(first.lastMessageAt || first.createdAt));
 
 const getLocalConsultationMessages = (consultationId: string) =>
@@ -659,7 +669,8 @@ export async function getUserConsultations(userId: string): Promise<Consultation
         return demoRecordsOnly(getLocalUserConsultations(userId));
     }
 
-    return mergeById(demoRecordsOnly(getLocalUserConsultations(userId)), (data || []).map(toConsultation));
+    return mergeById(demoRecordsOnly(getLocalUserConsultations(userId)), (data || []).map(toConsultation))
+        .filter(isConsultationVisible);
 }
 
 export async function getConsultationMessages(consultationId: string): Promise<ConsultationMessage[]> {

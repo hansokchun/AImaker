@@ -1665,6 +1665,56 @@ describe('transaction storage', () => {
         expect(reports[0]?.targetId).toBe('consultation-local-01')
     })
 
+    it('hides closed consultations after the retention period', async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-06-20T00:00:00.000Z'))
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_consultations', JSON.stringify([
+            {
+                id: 'consultation-visible-closed',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: product.id,
+                status: 'closed',
+                title: 'Recently closed consultation',
+                lastMessageAt: '2026-06-18T00:00:00.000Z',
+                createdAt: '2026-06-01T00:00:00.000Z',
+            },
+            {
+                id: 'consultation-expired-closed',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: product.id,
+                status: 'closed',
+                title: 'Old closed consultation',
+                lastMessageAt: '2026-06-10T00:00:00.000Z',
+                createdAt: '2026-06-01T00:00:00.000Z',
+            },
+            {
+                id: 'consultation-open',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: product.id,
+                status: 'open',
+                title: 'Open consultation',
+                lastMessageAt: '2026-06-01T00:00:00.000Z',
+                createdAt: '2026-06-01T00:00:00.000Z',
+            },
+        ]))
+
+        try {
+            const { getUserConsultations } = await import('./storage')
+
+            await expect(getUserConsultations(request.clientId)).resolves.toEqual([
+                expect.objectContaining({ id: 'consultation-visible-closed' }),
+                expect.objectContaining({ id: 'consultation-open' }),
+            ])
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
     it('rejects workroom messages that try to move payment outside the marketplace', async () => {
         vi.resetModules()
         const insert = vi.fn()

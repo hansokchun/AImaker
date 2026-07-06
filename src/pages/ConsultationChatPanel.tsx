@@ -51,10 +51,14 @@ export function ConsultationChatPanel({
 }: ConsultationChatPanelProps) {
     const [actionMenuOpen, setActionMenuOpen] = useState(false);
     const selectedState = selectedConsultation ? getConsultationDisplayState(selectedConsultation) : 'ended';
-    const selectedStateLabel = getConsultationStateLabel(selectedState);
     const selectedEnded = selectedState === 'ended';
     const sendDisabled = selectedEnded || messageSubmitting || !messageBody.trim();
     const canCreateProposal = Boolean(selectedConsultation && selectedConsultation.expertId === currentUserId && !selectedEnded);
+    const selectedPeerId = selectedConsultation
+        ? selectedConsultation.clientId === currentUserId
+            ? selectedConsultation.expertId
+            : selectedConsultation.clientId
+        : '';
 
     const handleMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || sendDisabled) return;
@@ -66,7 +70,6 @@ export function ConsultationChatPanel({
         <section className="consultation-chat-panel">
             <header className="consultation-chat-page-header">
                 <h2>상담 채팅</h2>
-                <p>전문가 문의로 시작한 상담을 한 곳에서 확인합니다. 상담 후 제안서를 받아야 결제와 프로젝트 생성으로 이어집니다.</p>
             </header>
 
             {consultations.length > 0 ? (
@@ -76,6 +79,7 @@ export function ConsultationChatPanel({
                             const product = products.find((item) => item.id === consultation.productId) || null;
                             const selected = selectedConsultation?.id === consultation.id;
                             const state = getConsultationDisplayState(consultation);
+                            const peerId = consultation.clientId === currentUserId ? consultation.expertId : consultation.clientId;
 
                             return (
                                 <button
@@ -89,8 +93,8 @@ export function ConsultationChatPanel({
                                         <ChatBubbleIcon />
                                     </span>
                                     <span className="consultation-list-copy">
-                                        <strong>{consultation.title}</strong>
-                                        <span>{product?.title || '상품 상담'}</span>
+                                        <strong>{product?.title || consultation.title}</strong>
+                                        <span className="consultation-peer-id">{'\uC0C1\uB300\uBC29 ID'}: {peerId}</span>
                                         <ConsultationStatus state={state} />
                                     </span>
                                 </button>
@@ -103,8 +107,8 @@ export function ConsultationChatPanel({
                             <>
                                 <header className="consultation-chat-detail-header">
                                     <div className="consultation-chat-detail-heading">
-                                    <h3>{selectedConsultation.title}</h3>
-                                    <p>{selectedProduct?.title || '상품 상담'} · {selectedStateLabel}</p>
+                                        <h3 className="consultation-detail-product-title">{selectedProduct?.title || selectedConsultation.title}</h3>
+                                        {selectedPeerId && <p className="consultation-peer-id">{'\uC0C1\uB300\uBC29 ID'}: {selectedPeerId}</p>}
                                     </div>
                                     <div className="consultation-chat-detail-tools">
                                         <ConsultationStatus state={selectedState} />
