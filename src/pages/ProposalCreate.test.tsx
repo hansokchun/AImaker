@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ProposalCreate from './ProposalCreate'
-import type { ExpertProduct, Proposal, ServiceRequestData } from '../types'
+import type { ConsultationMessage, ExpertProduct, Proposal, ServiceRequestData } from '../types'
 
 const request: ServiceRequestData = {
     id: 'request-product-directed-01',
@@ -74,6 +74,21 @@ const getProposal = vi.fn(async (_proposalId: string) => ({
 }))
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-created-01')
 const updateProposal = vi.fn(async (_proposal: Proposal) => undefined)
+const getConsultationMessages = vi.fn(async (_consultationId: string): Promise<ConsultationMessage[]> => [])
+const saveConsultationMessage = vi.fn(async (_input: {
+    readonly consultationId: string;
+    readonly senderId: string;
+    readonly body: string;
+    readonly attachmentUrls?: readonly string[];
+}): Promise<ConsultationMessage> => ({
+    id: 'consultation-message-proposal-01',
+    consultationId: 'consult-expert-01',
+    senderId: 'user-demo-01',
+    body: '제안서를 보냈습니다.',
+    attachmentUrls: ['/proposal/proposal-created-01'],
+    createdAt: '2026-06-03T10:00:00.000Z',
+}))
+const markConsultationProposalSent = vi.fn(async (_consultationId: string) => undefined)
 
 vi.mock('../contexts/AuthContext', () => ({
     useAuth: () => ({
@@ -88,6 +103,15 @@ vi.mock('../lib/storage', () => ({
     getProposal: (proposalId: string) => getProposal(proposalId),
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     updateProposal: (proposal: Proposal) => updateProposal(proposal),
+    getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
+    saveConsultationMessage: (input: {
+        readonly consultationId: string;
+        readonly senderId: string;
+        readonly body: string;
+        readonly attachmentUrls?: readonly string[];
+    }) => saveConsultationMessage(input),
+    markConsultationProposalSent: (consultationId: string) => markConsultationProposalSent(consultationId),
+    subscribeToConsultationMessages: () => () => undefined,
 }))
 
 function LocationProbe() {
@@ -102,6 +126,9 @@ describe('ProposalCreate', () => {
         getProposal.mockClear()
         saveProposal.mockClear()
         updateProposal.mockClear()
+        getConsultationMessages.mockClear()
+        saveConsultationMessage.mockClear()
+        markConsultationProposalSent.mockClear()
         getRequestById.mockResolvedValue(request)
         getExpertProducts.mockResolvedValue([product])
         getProposal.mockResolvedValue({
@@ -125,6 +152,16 @@ describe('ProposalCreate', () => {
         })
         saveProposal.mockResolvedValue('proposal-created-01')
         updateProposal.mockResolvedValue(undefined)
+        getConsultationMessages.mockResolvedValue([])
+        saveConsultationMessage.mockResolvedValue({
+            id: 'consultation-message-proposal-01',
+            consultationId: 'consult-expert-01',
+            senderId: 'user-demo-01',
+            body: '제안서를 보냈습니다.',
+            attachmentUrls: ['/proposal/proposal-created-01'],
+            createdAt: '2026-06-03T10:00:00.000Z',
+        })
+        markConsultationProposalSent.mockResolvedValue(undefined)
     })
 
     it('prefills a product-directed request and saves the written proposal', async () => {
@@ -222,5 +259,54 @@ describe('ProposalCreate', () => {
         expect(screen.getByLabelText('제안서 핵심 정보')).toBeInTheDocument()
         expect(screen.getByRole('complementary', { name: '제출 전 확인' })).toBeInTheDocument()
         expect(screen.getByText('의뢰 내용')).toBeInTheDocument()
+    })
+
+    it('opens a collapsed consultation chat drawer while writing from a consultation', async () => {
+        getConsultationMessages.mockResolvedValue([
+            {
+                id: 'consultation-message-01',
+                consultationId: 'consult-expert-01',
+                senderId: 'client-real-01',
+                body: '상담 중 나눈 이전 메시지입니다.',
+                attachmentUrls: [],
+                createdAt: '2026-06-03T09:00:00.000Z',
+            },
+        ])
+
+        render(
+            <MemoryRouter initialEntries={['/proposals/new?requestId=consultation-consult-expert-01&consultation=consult-expert-01']}>
+                <Routes>
+                    <Route path="/proposals/new" element={<ProposalCreate />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '제안서 작성' })).toBeInTheDocument()
+        expect(screen.queryByText('상담 중 나눈 이전 메시지입니다.')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '상담 채팅 열기' }))
+
+        expect(await screen.findByText('상담 중 나눈 이전 메시지입니다.')).toBeInTheDocument()
+    })
+
+    it('posts a proposal link into the consultation chat after sending', async () => {
+        render(
+            <MemoryRouter initialEntries={['/proposals/new?requestId=consultation-consult-expert-01&consultation=consult-expert-01']}>
+                <Routes>
+                    <Route path="/proposals/new" element={<><ProposalCreate /><LocationProbe /></>} />
+                    <Route path="/proposal/:proposalId" element={<LocationProbe />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('heading', { name: '제안서 작성' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '제안서 보내기' }))
+
+        await waitFor(() => expect(markConsultationProposalSent).toHaveBeenCalledWith('consult-expert-01'))
+        await waitFor(() => expect(saveConsultationMessage).toHaveBeenCalledWith(expect.objectContaining({
+            consultationId: 'consult-expert-01',
+            senderId: 'user-demo-01',
+            attachmentUrls: ['/proposal/proposal-created-01'],
+        })))
     })
 })

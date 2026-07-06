@@ -1715,6 +1715,67 @@ describe('transaction storage', () => {
         }
     })
 
+    it('maps consultation request ids to virtual service requests', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_consultations', JSON.stringify([
+            {
+                id: 'consultation-local-virtual',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: product.id,
+                status: 'open',
+                title: '상담 기반 제안 요청',
+                lastMessageAt: '2026-06-18T00:00:00.000Z',
+                createdAt: '2026-06-18T00:00:00.000Z',
+            },
+        ]))
+
+        const { getRequestById } = await import('./storage')
+
+        await expect(getRequestById('consultation-consultation-local-virtual')).resolves.toEqual(expect.objectContaining({
+            id: 'consultation-consultation-local-virtual',
+            clientId: request.clientId,
+            expertId: request.expertId,
+            productId: product.id,
+            desiredResult: '상담 기반 제안 요청',
+        }))
+    })
+
+    it('stores proposal links in consultation messages and marks proposal sent', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_consultations', JSON.stringify([
+            {
+                id: 'consultation-local-proposal',
+                clientId: request.clientId,
+                expertId: request.expertId,
+                productId: product.id,
+                status: 'open',
+                title: '상담 기반 제안 요청',
+                lastMessageAt: '2026-06-18T00:00:00.000Z',
+                createdAt: '2026-06-18T00:00:00.000Z',
+            },
+        ]))
+
+        const { getUserConsultations, markConsultationProposalSent, saveConsultationMessage, getConsultationMessages } = await import('./storage')
+
+        await markConsultationProposalSent('consultation-local-proposal')
+        await saveConsultationMessage({
+            consultationId: 'consultation-local-proposal',
+            senderId: request.expertId,
+            body: '제안서를 보냈습니다.',
+            attachmentUrls: ['/proposal/proposal-local-01'],
+        })
+
+        await expect(getUserConsultations(request.clientId)).resolves.toEqual([
+            expect.objectContaining({ id: 'consultation-local-proposal', status: 'proposal_sent' }),
+        ])
+        await expect(getConsultationMessages('consultation-local-proposal')).resolves.toEqual([
+            expect.objectContaining({ attachmentUrls: ['/proposal/proposal-local-01'] }),
+        ])
+    })
+
     it('rejects workroom messages that try to move payment outside the marketplace', async () => {
         vi.resetModules()
         const insert = vi.fn()

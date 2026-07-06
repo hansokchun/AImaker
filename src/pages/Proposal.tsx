@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getProposal, getWorkByProposal } from '../lib/storage'
 import { startTossProposalPayment } from '../lib/tossPayments'
 import type { Proposal as ProposalData } from '../types'
+import { ConsultationChatDrawer } from './ConsultationChatDrawer'
 import './Proposal.css'
 
 const futureExpiry = new Date()
@@ -143,6 +144,9 @@ export default function Proposal() {
     const canExpertManage = isExpertOwner && !isClosed && !hasStartedWork
     const canClientRespond = isClientOwner && !isClosed
     const platformFeeRate = proposal.platformFeeRate ?? PLATFORM_FEE_RATE
+    const consultationId = proposal.requestId.startsWith('consultation-')
+        ? proposal.requestId.slice('consultation-'.length)
+        : ''
 
     const handleAccept = async () => {
         if (!user) {
@@ -272,6 +276,9 @@ export default function Proposal() {
                     </Link>
                 </aside>
             </section>
+            {consultationId && user && (
+                <ConsultationChatDrawer consultationId={consultationId} currentUserId={user.id} />
+            )}
         </main>
     )
 }

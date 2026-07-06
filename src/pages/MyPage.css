@@ -741,6 +741,28 @@
     margin: 0;
 }
 
+.consultation-message-link,
+.consultation-transaction-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    margin-top: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #2563eb;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.consultation-transaction-link {
+    margin-top: 0;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+}
+
 .consultation-message-bubble time {
     color: rgb(107 114 128 / 0.9);
     font-size: 0.82rem;

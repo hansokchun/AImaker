@@ -1524,12 +1524,12 @@ describe('MyPage', () => {
         expect(rows.some((row) => row.getAttribute('data-work-item-id') === 'request-product-directed-01')).toBe(true)
     })
 
-    it('lets experts create a proposal from the selected consultation chat', async () => {
+    it('opens the proposal writing page from the selected consultation chat', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-expert-01']}>
                 <Routes>
                     <Route path="/my-work" element={<MyPage mode="work" />} />
-                    <Route path="/proposal/:proposalId" element={<LocationStateProbe />} />
+                    <Route path="/proposals/new" element={<LocationStateProbe />} />
                 </Routes>
                 <LocationProbe />
             </MemoryRouter>,
@@ -1539,14 +1539,11 @@ describe('MyPage', () => {
         fireEvent.click(screen.getByRole('button', { name: '제안서 작성' }))
 
         await waitFor(() => {
-            expect(saveProposal).toHaveBeenCalledWith(expect.objectContaining({
-                requestId: 'consultation-consult-expert-01',
-                clientId: 'client-real-01',
-                expertId: 'user-demo-01',
-                title: 'Owned AI product 상담 제안서',
-            }))
+            expect(screen.getAllByTestId('location').some((item) =>
+                item.textContent?.includes('?requestId=consultation-consult-expert-01&consultation=consult-expert-01'),
+            )).toBe(true)
         })
-        expect(await screen.findByTestId('location-state')).toHaveTextContent('/my-work')
+        expect(saveProposal).not.toHaveBeenCalled()
     })
 
     it('shows client and expert work sections with current labels', async () => {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveConsultationReport, saveProposal, saveReview, subscribeToConsultationMessages } from '../lib/storage'
+import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveConsultationReport, saveReview, subscribeToConsultationMessages } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
@@ -249,7 +249,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageError, setConsultationMessageError] = useState('')
     const [consultationActionMessage, setConsultationActionMessage] = useState('')
     const [consultationActionError, setConsultationActionError] = useState('')
-    const [consultationProposalSubmitting, setConsultationProposalSubmitting] = useState(false)
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const [profilePreview, setProfilePreview] = useState<ProfilePreview | null>(null)
     const [profilePreviewLoaded, setProfilePreviewLoaded] = useState(false)
@@ -711,50 +710,11 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const handleCreateConsultationProposal = async () => {
         if (!selectedConsultation || !user || selectedConsultation.expertId !== user.id) return
 
-        const product = products.find((item) => item.id === selectedConsultation.productId)
-        const standardPackage = product?.packages?.standard
-        const totalPrice = Number(standardPackage?.price || product?.startingPrice || 0)
-        const deliveryDays = Number(standardPackage?.deliveryDays || product?.deliveryDays || 1)
-        const revisionCount = Number(standardPackage?.revisionCount || product?.revisionCount || 1)
-        const expiresAt = new Date()
-        expiresAt.setDate(expiresAt.getDate() + 3)
-
-        const proposal: Proposal = {
-            id: `proposal-consultation-${selectedConsultation.id}`,
+        const params = new URLSearchParams({
             requestId: `consultation-${selectedConsultation.id}`,
-            clientId: selectedConsultation.clientId,
-            expertId: user.id,
-            title: `${selectedConsultation.title} 제안서`,
-            scope: consultationMessages[0]?.body || '상담 내용을 바탕으로 작업 범위와 조건을 제안합니다.',
-            deliverables: [product?.title || selectedConsultation.title],
-            totalPrice: Number.isFinite(totalPrice) && totalPrice > 0 ? totalPrice : 0,
-            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
-            revisionCount: Number.isFinite(revisionCount) && revisionCount >= 0 ? revisionCount : 1,
-            progressType: 'single',
-            milestones: [],
-            commercialUseAllowed: true,
-            sourceFileIncluded: false,
-            status: 'sent',
-            paymentStatus: 'unpaid',
-            expiresAt: expiresAt.toISOString(),
-        }
-
-        setConsultationProposalSubmitting(true)
-        try {
-            const savedProposalId = await saveProposal(proposal)
-            const savedProposal = { ...proposal, id: savedProposalId }
-            setProposals((current) => [savedProposal, ...current])
-            setConsultations((current) =>
-                current.map((consultation) =>
-                    consultation.id === selectedConsultation.id
-                        ? { ...consultation, status: 'proposal_sent' }
-                        : consultation,
-                ),
-            )
-            navigate(`/proposal/${savedProposalId}`, { state: myPageReturnState })
-        } finally {
-            setConsultationProposalSubmitting(false)
-        }
+            consultation: selectedConsultation.id,
+        })
+        navigate(`${ROUTES.PROPOSAL_NEW}?${params.toString()}`, { state: myPageReturnState })
     }
 
     const getRoleConsultationId = () => {
@@ -2384,7 +2344,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             actionMessage={consultationActionMessage}
             actionError={consultationActionError}
             messageSubmitting={consultationMessageSubmitting}
-            proposalSubmitting={consultationProposalSubmitting}
+            proposalSubmitting={false}
+            transactionUrl={selectedPanelConsultation && proposals.some((proposal) => proposal.requestId === `consultation-${selectedPanelConsultation.id}`)
+                ? `${ROUTES.WORK_DASHBOARD}?role=${workRole}&panel=client&consultation=${selectedPanelConsultation.id}`
+                : undefined}
             onSelectConsultation={(consultationId) => {
                 setActivePanel('consultations')
                 setSelectedConsultationId(consultationId)

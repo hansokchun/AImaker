@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Proposal from './Proposal'
-import type { Proposal as ProposalData, Work } from '../types'
+import type { ConsultationMessage, Proposal as ProposalData, Work } from '../types'
 
 let currentUserId = 'client-demo-01'
 
@@ -50,6 +50,19 @@ const getWorkByProposal = vi.fn(async (_proposalId: string): Promise<Work | null
 const getProposal = vi.fn(async (id: string): Promise<ProposalData | null> =>
     id === expiredProposal.id ? expiredProposal : activeProposal,
 )
+const getConsultationMessages = vi.fn(async (_consultationId: string): Promise<ConsultationMessage[]> => [])
+const saveConsultationMessage = vi.fn(async (_input: {
+    readonly consultationId: string;
+    readonly senderId: string;
+    readonly body: string;
+}): Promise<ConsultationMessage> => ({
+    id: 'consultation-message-client-01',
+    consultationId: 'consult-demo-01',
+    senderId: currentUserId,
+    body: '확인했습니다.',
+    attachmentUrls: [],
+    createdAt: '2026-06-03T10:00:00.000Z',
+}))
 const startTossProposalPayment = vi.fn(async (_proposal: ProposalData, _customer: { readonly id: string; readonly email?: string; readonly name?: string }) => undefined)
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -62,6 +75,13 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../lib/storage', () => ({
     getProposal: (proposalId: string) => getProposal(proposalId),
     getWorkByProposal: (proposalId: string) => getWorkByProposal(proposalId),
+    getConsultationMessages: (consultationId: string) => getConsultationMessages(consultationId),
+    saveConsultationMessage: (input: {
+        readonly consultationId: string;
+        readonly senderId: string;
+        readonly body: string;
+    }) => saveConsultationMessage(input),
+    subscribeToConsultationMessages: () => () => undefined,
 }))
 
 vi.mock('../lib/tossPayments', () => ({
@@ -89,8 +109,19 @@ describe('Proposal', () => {
         getProposal.mockImplementation(async (id: string) => (id === expiredProposal.id ? expiredProposal : activeProposal))
         acceptProposal.mockClear()
         startTossProposalPayment.mockClear()
+        getConsultationMessages.mockClear()
+        saveConsultationMessage.mockClear()
         getWorkByProposal.mockReset()
         getWorkByProposal.mockResolvedValue(null)
+        getConsultationMessages.mockResolvedValue([])
+        saveConsultationMessage.mockResolvedValue({
+            id: 'consultation-message-client-01',
+            consultationId: 'consult-demo-01',
+            senderId: currentUserId,
+            body: '확인했습니다.',
+            attachmentUrls: [],
+            createdAt: '2026-06-03T10:00:00.000Z',
+        })
     })
 
     it('only lets the expert edit a sent unpaid proposal', async () => {
@@ -156,5 +187,31 @@ describe('Proposal', () => {
         await waitFor(() => expect(getProposal).toHaveBeenCalledWith('unknown-proposal-id'))
         expect(screen.queryByText(activeProposal.scope)).not.toBeInTheDocument()
         expect(screen.queryAllByRole('button')).toHaveLength(0)
+    })
+
+    it('opens a collapsed consultation chat drawer beside consultation proposals', async () => {
+        getProposal.mockResolvedValue({
+            ...activeProposal,
+            requestId: 'consultation-consult-demo-01',
+        })
+        getConsultationMessages.mockResolvedValue([
+            {
+                id: 'consultation-message-01',
+                consultationId: 'consult-demo-01',
+                senderId: 'expert-video-01',
+                body: '제안서 확인 중에도 상담을 이어갑니다.',
+                attachmentUrls: [],
+                createdAt: '2026-06-03T09:00:00.000Z',
+            },
+        ])
+
+        renderProposal()
+
+        expect(await screen.findByText(activeProposal.scope)).toBeInTheDocument()
+        expect(screen.queryByText('제안서 확인 중에도 상담을 이어갑니다.')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '상담 채팅 열기' }))
+
+        expect(await screen.findByText('제안서 확인 중에도 상담을 이어갑니다.')).toBeInTheDocument()
     })
 })

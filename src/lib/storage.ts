@@ -165,8 +165,17 @@ const hasLocalDemoProposal = (proposalId: string) =>
 const shouldStoreProposalLocally = (proposal: Proposal) =>
     hasLocalDemoProposal(proposal.id)
     || isDemoAccountRecordId(proposal.requestId)
+    || proposal.requestId.startsWith('consultation-')
     || proposal.id.includes('demo-consultation')
     || proposal.requestId.includes('demo-consultation');
+
+const getConsultationIdFromRequestId = (requestId: string | number): string | null => {
+    const value = String(requestId);
+    return value.startsWith('consultation-') ? value.slice('consultation-'.length) : null;
+};
+
+const isLocalOnlyProposal = (proposal: Proposal) =>
+    shouldStoreProposalLocally(proposal);
 
 const seedDemoArray = <T extends { id: string | number }>(key: string, items: T[]) => {
     const demoIds = new Set(items.map((item) => String(item.id)));
@@ -791,6 +800,7 @@ export async function saveConsultationMessage(input: {
     consultationId: string;
     senderId: string;
     body: string;
+    attachmentUrls?: readonly string[];
 }): Promise<ConsultationMessage> {
     const body = input.body.trim();
     const validation = validateMarketplaceMessage(body);
@@ -804,7 +814,7 @@ export async function saveConsultationMessage(input: {
             consultationId: input.consultationId,
             senderId: input.senderId,
             body,
-            attachmentUrls: [],
+            attachmentUrls: [...(input.attachmentUrls || [])],
             createdAt: now,
         };
         const messageRaw = localStorage.getItem(STORAGE_KEYS.CONSULTATION_MESSAGES);
@@ -832,7 +842,7 @@ export async function saveConsultationMessage(input: {
             consultation_id: input.consultationId,
             sender_id: input.senderId,
             body,
-            attachment_urls: [],
+            attachment_urls: [...(input.attachmentUrls || [])],
         })
         .select()
         .single();
@@ -895,6 +905,37 @@ export async function closeConsultation(consultationId: string): Promise<Consult
     if (error || !data) {
         console.error('상담 종료 저장 실패:', error);
         throw new Error('데이터베이스 통신 오류: 상담 종료 실패');
+    }
+
+    return toConsultation(data);
+}
+
+export async function markConsultationProposalSent(consultationId: string): Promise<Consultation> {
+    const now = new Date().toISOString();
+
+    if (!supabase || hasLocalDemoConsultation(consultationId)) {
+        const consultations = readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS);
+        const nextConsultations = consultations.map((consultation) =>
+            consultation.id === consultationId
+                ? { ...consultation, status: 'proposal_sent' as const, lastMessageAt: now }
+                : consultation,
+        );
+        writeLocalArray(STORAGE_KEYS.CONSULTATIONS, nextConsultations);
+        const updated = nextConsultations.find((consultation) => consultation.id === consultationId);
+        if (!updated) throw new Error('상담을 찾을 수 없습니다.');
+        return updated;
+    }
+
+    const { data, error } = await supabase
+        .from('consultations')
+        .update({ status: 'proposal_sent', last_message_at: now })
+        .eq('id', consultationId)
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('상담 제안서 발송 상태 저장 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 상담 상태 저장 실패');
     }
 
     return toConsultation(data);
@@ -1015,6 +1056,44 @@ export async function saveRequest(request: ServiceRequestData, userId?: string |
 }
 
 export async function getRequestById(requestId: string | number): Promise<ServiceRequestData | null> {
+    const consultationId = getConsultationIdFromRequestId(requestId);
+    if (consultationId) {
+        const consultation = readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS)
+            .find((item) => item.id === consultationId);
+        const supabaseConsultation = !consultation && supabase
+            ? await supabase
+                .from('consultations')
+                .select('*')
+                .eq('id', consultationId)
+                .maybeSingle()
+            : null;
+        const source = consultation || (supabaseConsultation && !supabaseConsultation.error && supabaseConsultation.data
+            ? toConsultation(supabaseConsultation.data)
+            : null);
+        if (!source) return null;
+
+        return {
+            id: requestId,
+            title: source.title,
+            description: source.title,
+            budget: '',
+            deadline: '',
+            categories: [],
+            createdAt: source.createdAt,
+            updatedAt: source.lastMessageAt,
+            clientId: source.clientId,
+            expertId: source.expertId,
+            status: source.status === 'closed' ? 'completed' : 'pending',
+            productId: source.productId,
+            selectedPackage: 'standard',
+            desiredResult: source.title,
+            purpose: source.title,
+            referenceText: '',
+            referenceLinks: [],
+            progressType: 'single',
+        };
+    }
+
     const localRequest = readLocalArray<ServiceRequestData>(STORAGE_KEYS.REQUESTS)
         .find((request) => String(request.id) === String(requestId));
 
@@ -1512,6 +1591,9 @@ export async function getProposal(proposalId: string): Promise<Proposal | null> 
     if (!supabase) {
         return localProposal ? normalizeProposalStatus(localProposal) : null;
     }
+    if (localProposal && isLocalOnlyProposal(localProposal)) {
+        return normalizeProposalStatus(localProposal);
+    }
 
     const { data, error } = await supabase
         .from('proposals')
@@ -1519,10 +1601,10 @@ export async function getProposal(proposalId: string): Promise<Proposal | null> 
         .eq('id', proposalId)
         .single();
 
-    if (error) return localProposal && isDemoAccountRecordId(localProposal.id) ? normalizeProposalStatus(localProposal) : null;
+    if (error) return localProposal && isLocalOnlyProposal(localProposal) ? normalizeProposalStatus(localProposal) : null;
     return data
         ? toProposal(data)
-        : localProposal && isDemoAccountRecordId(localProposal.id)
+        : localProposal && isLocalOnlyProposal(localProposal)
             ? normalizeProposalStatus(localProposal)
             : null;
 }
@@ -1543,7 +1625,10 @@ export async function getUserProposals(userId: string): Promise<Proposal[]> {
         return demoRecordsOnly(getLocalUserProposals(userId));
     }
 
-    return mergeById(demoRecordsOnly(getLocalUserProposals(userId)), (data || []).map(toProposal));
+    return mergeById(
+        getLocalUserProposals(userId).filter(isLocalOnlyProposal),
+        (data || []).map(toProposal),
+    );
 }
 
 export async function acceptProposal(proposal: Proposal): Promise<string> {

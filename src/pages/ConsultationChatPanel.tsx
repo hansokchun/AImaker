@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
+import { Link } from 'react-router-dom';
 import type { Consultation, ConsultationMessage, ExpertProduct } from '../types';
 
 type ConsultationDisplayState = 'active' | 'ended';
@@ -16,6 +17,7 @@ type ConsultationChatPanelProps = {
     readonly actionError: string;
     readonly messageSubmitting: boolean;
     readonly proposalSubmitting: boolean;
+    readonly transactionUrl?: string;
     readonly onSelectConsultation: (consultationId: string) => void;
     readonly onMessageBodyChange: (body: string) => void;
     readonly onSendMessage: () => void;
@@ -42,6 +44,7 @@ export function ConsultationChatPanel({
     actionError,
     messageSubmitting,
     proposalSubmitting,
+    transactionUrl,
     onSelectConsultation,
     onMessageBodyChange,
     onSendMessage,
@@ -111,6 +114,11 @@ export function ConsultationChatPanel({
                                         {selectedPeerId && <p className="consultation-peer-id">{'\uC0C1\uB300\uBC29 ID'}: {selectedPeerId}</p>}
                                     </div>
                                     <div className="consultation-chat-detail-tools">
+                                        {transactionUrl && (
+                                            <Link to={transactionUrl} className="consultation-transaction-link">
+                                                거래정보 보기
+                                            </Link>
+                                        )}
                                         <ConsultationStatus state={selectedState} />
                                         <div className="consultation-more-menu">
                                             <button
@@ -164,6 +172,11 @@ export function ConsultationChatPanel({
                                             <div key={message.id} className={`consultation-message-row ${mine ? 'is-mine' : 'is-theirs'}`}>
                                                 <div className="consultation-message-bubble">
                                                     <p>{message.body}</p>
+                                                    {message.attachmentUrls.map((url) => (
+                                                        <Link key={url} to={url} className="consultation-message-link">
+                                                            {url.startsWith('/proposal/') ? '제안서 보기' : '첨부 보기'}
+                                                        </Link>
+                                                    ))}
                                                     <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
                                                 </div>
                                             </div>

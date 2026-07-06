@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { getExpertProducts, getProposal, getRequestById, saveProposal, updateProposal } from '../lib/storage'
+import { getExpertProducts, getProposal, getRequestById, markConsultationProposalSent, saveConsultationMessage, saveProposal, updateProposal } from '../lib/storage'
 import type { ExpertProduct, Proposal, ServiceRequestData } from '../types'
+import { ConsultationChatDrawer } from './ConsultationChatDrawer'
 import './ServiceRequest.css'
 import './Proposal.css'
 
@@ -22,6 +23,7 @@ export default function ProposalCreate() {
     const { user, loading } = useAuth()
     const requestId = searchParams.get('requestId') || ''
     const proposalId = searchParams.get('proposalId') || ''
+    const consultationId = searchParams.get('consultation') || (requestId.startsWith('consultation-') ? requestId.slice('consultation-'.length) : '')
     const [request, setRequest] = useState<ServiceRequestData | null>(null)
     const [proposal, setProposal] = useState<Proposal | null>(null)
     const [product, setProduct] = useState<ExpertProduct | null>(null)
@@ -93,11 +95,12 @@ export default function ProposalCreate() {
 
         const params = new URLSearchParams()
         params.set('role', 'expert')
-        params.set('panel', 'client')
+        params.set('panel', consultationId ? 'consultations' : 'client')
         const targetRequestId = request?.id || proposal?.requestId || requestId
-        if (targetRequestId) params.set('expertRequest', String(targetRequestId))
+        if (consultationId) params.set('consultation', consultationId)
+        else if (targetRequestId) params.set('expertRequest', String(targetRequestId))
         return `${ROUTES.WORK_DASHBOARD}?${params.toString()}`
-    }, [location.state, proposal?.requestId, request?.id, requestId])
+    }, [consultationId, location.state, proposal?.requestId, request?.id, requestId])
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -138,11 +141,22 @@ export default function ProposalCreate() {
         try {
             const savedProposalId = proposal ? nextProposal.id : await saveProposal(nextProposal)
             if (proposal) await updateProposal(nextProposal)
+            if (consultationId) {
+                await markConsultationProposalSent(consultationId)
+                await saveConsultationMessage({
+                    consultationId,
+                    senderId: user.id,
+                    body: '제안서를 보냈습니다. 아래 버튼에서 내용을 확인할 수 있습니다.',
+                    attachmentUrls: [`/proposal/${savedProposalId}`],
+                })
+            }
             navigate(`/proposal/${savedProposalId}`, {
                 state: {
                     from: {
                         pathname: ROUTES.WORK_DASHBOARD,
-                        search: `?role=expert&panel=client&expertRequest=${request.id}`,
+                        search: consultationId
+                            ? `?role=expert&panel=consultations&consultation=${consultationId}`
+                            : `?role=expert&panel=client&expertRequest=${request.id}`,
                     },
                 },
             })
@@ -291,6 +305,9 @@ export default function ProposalCreate() {
                     </div>
                 </form>
             </main>
+            {consultationId && user && (
+                <ConsultationChatDrawer consultationId={consultationId} currentUserId={user.id} />
+            )}
         </div>
     )
 }
