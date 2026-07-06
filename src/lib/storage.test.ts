@@ -928,6 +928,65 @@ describe('transaction storage', () => {
         expect(requestEq).toHaveBeenCalledWith('id', proposal.requestId)
     })
 
+    it('saves consultation proposals to Supabase with consultation_id so clients can open the proposal link', async () => {
+        vi.resetModules()
+        const consultationId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+        const consultationProposal: Proposal = {
+            ...proposal,
+            id: `proposal-consultation-${consultationId}`,
+            requestId: `consultation-${consultationId}`,
+            consultationId,
+        }
+        const insertSingle = vi.fn().mockResolvedValue({ data: { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, error: null })
+        const insertSelect = vi.fn(() => ({ single: insertSingle }))
+        const insert = vi.fn(() => ({ select: insertSelect }))
+        const single = vi.fn().mockResolvedValue({
+            data: {
+                id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+                request_id: null,
+                consultation_id: consultationId,
+                client_id: consultationProposal.clientId,
+                expert_id: consultationProposal.expertId,
+                title: consultationProposal.title,
+                scope: consultationProposal.scope,
+                deliverables: consultationProposal.deliverables,
+                total_price: consultationProposal.totalPrice,
+                delivery_days: consultationProposal.deliveryDays,
+                revision_count: consultationProposal.revisionCount,
+                progress_type: consultationProposal.progressType,
+                milestones: consultationProposal.milestones,
+                commercial_use_allowed: consultationProposal.commercialUseAllowed,
+                source_file_included: consultationProposal.sourceFileIncluded,
+                status: consultationProposal.status,
+                payment_status: 'unpaid',
+                platform_fee_rate: 0,
+                expires_at: consultationProposal.expiresAt,
+            },
+            error: null,
+        })
+        const eq = vi.fn(() => ({ single }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ insert, select }))
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getProposal, saveProposal } = await import('./storage')
+
+        await expect(saveProposal(consultationProposal)).resolves.toBe('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+        await expect(getProposal('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')).resolves.toEqual(expect.objectContaining({
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            requestId: `consultation-${consultationId}`,
+            consultationId,
+        }))
+        expect(insert).toHaveBeenCalledWith([
+            expect.objectContaining({
+                request_id: null,
+                consultation_id: consultationId,
+                client_id: consultationProposal.clientId,
+                expert_id: consultationProposal.expertId,
+            }),
+        ])
+    })
+
     it('keeps local proposal and request status in sync when accepting proposals', async () => {
         vi.resetModules()
         localStorage.clear()

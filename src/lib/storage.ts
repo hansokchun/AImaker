@@ -162,10 +162,13 @@ const hasLocalDemoConsultation = (consultationId: string) =>
 const hasLocalDemoProposal = (proposalId: string) =>
     isDemoAccountRecordId(proposalId) && readLocalArray<Proposal>(STORAGE_KEYS.PROPOSALS).some((proposal) => proposal.id === proposalId);
 
+const getProposalConsultationId = (proposal: Proposal): string | null =>
+    proposal.consultationId || getConsultationIdFromRequestId(proposal.requestId);
+
 const shouldStoreProposalLocally = (proposal: Proposal) =>
     hasLocalDemoProposal(proposal.id)
     || isDemoAccountRecordId(proposal.requestId)
-    || proposal.requestId.startsWith('consultation-')
+    || Boolean(getProposalConsultationId(proposal) && !isUuid(getProposalConsultationId(proposal) || undefined))
     || proposal.id.includes('demo-consultation')
     || proposal.requestId.includes('demo-consultation');
 
@@ -441,7 +444,8 @@ const toTextList = (value: unknown): string[] => {
 
 const toProposal = (item: any): Proposal => normalizeProposalStatus({
     id: item.id,
-    requestId: item.request_id,
+    requestId: item.request_id || (item.consultation_id ? `consultation-${item.consultation_id}` : ''),
+    ...(item.consultation_id ? { consultationId: item.consultation_id } : {}),
     clientId: item.client_id,
     expertId: item.expert_id,
     title: item.title,
@@ -1517,11 +1521,13 @@ export async function saveProposal(proposal: Proposal): Promise<string> {
         return proposal.id;
     }
 
+    const consultationId = getProposalConsultationId(proposal);
     const { data, error } = await supabase
         .from('proposals')
         .insert([{
             ...(isUuid(proposal.id) ? { id: proposal.id } : {}),
-            request_id: proposal.requestId,
+            request_id: consultationId ? null : proposal.requestId,
+            consultation_id: consultationId,
             client_id: proposal.clientId,
             expert_id: proposal.expertId,
             title: proposal.title,
@@ -1561,9 +1567,12 @@ export async function updateProposal(proposal: Proposal): Promise<void> {
         return;
     }
 
+    const consultationId = getProposalConsultationId(proposal);
     const { error } = await supabase
         .from('proposals')
         .update({
+            request_id: consultationId ? null : proposal.requestId,
+            consultation_id: consultationId,
             title: proposal.title,
             scope: proposal.scope,
             deliverables: proposal.deliverables,

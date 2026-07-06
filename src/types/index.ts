@@ -97,6 +97,7 @@ export interface AiServiceRequest {
 export interface Proposal {
     id: string;
     requestId: string;
+    consultationId?: string;
     clientId: string;
     expertId: string;
     title: string;

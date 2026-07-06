@@ -68,7 +68,7 @@ export default function ProposalCreate() {
                 setRequest(loadedRequest)
                 setProposal(loadedProposal)
                 setProduct(loadedProduct)
-                setTitle(loadedProposal?.title || `${loadedRequest.desiredResult || loadedRequest.title} 제안서`)
+                setTitle(loadedProposal?.title || loadedProduct?.title || loadedRequest.desiredResult || loadedRequest.title)
                 setScope(loadedProposal?.scope || loadedRequest.description || loadedRequest.purpose || '의뢰 요구사항에 맞춰 작업 범위와 조건을 제안합니다.')
                 setDeliverables((loadedProposal?.deliverables?.length ? loadedProposal.deliverables : standardPackage?.included?.length ? standardPackage.included : [loadedRequest.desiredResult || loadedRequest.title]).join('\n'))
                 setTotalPrice(String(loadedProposal?.totalPrice || standardPackage?.price || loadedRequest.budget || loadedProduct?.startingPrice || ''))
@@ -119,6 +119,7 @@ export default function ProposalCreate() {
         const nextProposal: Proposal = {
             id: proposal?.id || `proposal-${request.id}-${Date.now()}`,
             requestId: String(request.id),
+            ...(consultationId ? { consultationId } : {}),
             clientId: request.clientId || '',
             expertId: user.id,
             title: title.trim(),
@@ -201,14 +202,13 @@ export default function ProposalCreate() {
                 <form className="proposal-create-form" onSubmit={handleSubmit}>
                     <header className="proposal-create-header">
                         <Link to={returnTo} className="proposal-back-link proposal-create-return">
-                            거래관리로 돌아가기
+                            돌아가기
                         </Link>
-                        <span className="proposal-eyebrow">{isEditMode ? '제안서 수정' : '새 제안서'}</span>
                         <h1>{isEditMode ? '제안서 수정' : '제안서 작성'}</h1>
                         <p>
                             {isEditMode
                                 ? '기존 제안서를 불러와 작성 페이지와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정된 제안서 도착 알림이 전달됩니다.'
-                                : '의뢰 내용을 확인하고 작업 범위, 제출물, 금액, 일정을 한 번에 정리합니다.'}
+                                : '상담 내용을 보면서 작업 범위, 제출물, 금액, 일정을 정리합니다.'}
                         </p>
                     </header>
 
@@ -227,12 +227,6 @@ export default function ProposalCreate() {
                                     <span>작업 기간</span>
                                     <strong>{deliveryDays ? `${deliveryDays}일` : '미정'}</strong>
                                 </div>
-                            </section>
-
-                            <section className="proposal-create-panel">
-                                <h2>의뢰 내용</h2>
-                                <p>{request?.desiredResult || request?.title}</p>
-                                {request?.description && <p>{request.description}</p>}
                             </section>
 
                             {errorMessage && <p className="proposal-create-error">{errorMessage}</p>}

@@ -175,7 +175,7 @@ describe('ProposalCreate', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '제안서 작성' })).toBeInTheDocument()
-        expect(screen.getByDisplayValue('브랜드 홍보 숏폼 제안서')).toBeInTheDocument()
+        expect(screen.getByDisplayValue('Owned AI product')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('작업 범위'), { target: { value: 'AI 영상 콘셉트와 1차 편집본을 제작합니다.' } })
         fireEvent.click(screen.getByRole('button', { name: '제안서 보내기' }))
@@ -185,7 +185,7 @@ describe('ProposalCreate', () => {
                 requestId: 'request-product-directed-01',
                 clientId: 'client-real-01',
                 expertId: 'user-demo-01',
-                title: '브랜드 홍보 숏폼 제안서',
+                title: 'Owned AI product',
                 totalPrice: 50000,
                 deliveryDays: 3,
                 revisionCount: 1,
@@ -240,7 +240,7 @@ describe('ProposalCreate', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '제안서 수정' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '거래관리로 돌아가기' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: '돌아가기' })).toHaveAttribute(
             'href',
             '/my-work?role=expert&panel=client&expertRequest=request-product-directed-01',
         )
@@ -258,7 +258,8 @@ describe('ProposalCreate', () => {
         expect(await screen.findByRole('heading', { name: '제안서 작성' })).toBeInTheDocument()
         expect(screen.getByLabelText('제안서 핵심 정보')).toBeInTheDocument()
         expect(screen.getByRole('complementary', { name: '제출 전 확인' })).toBeInTheDocument()
-        expect(screen.getByText('의뢰 내용')).toBeInTheDocument()
+        expect(screen.queryByText('새 제안서')).not.toBeInTheDocument()
+        expect(screen.queryByText('의뢰 내용')).not.toBeInTheDocument()
     })
 
     it('opens a collapsed consultation chat drawer while writing from a consultation', async () => {

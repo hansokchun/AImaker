@@ -80,10 +80,12 @@ export function ConsultationChatDrawer({ consultationId, currentUserId }: Consul
             <button
                 type="button"
                 className="proposal-chat-drawer-toggle"
+                aria-label={open ? '상담 채팅 닫기' : '상담 채팅 열기'}
                 aria-expanded={open}
+                title={open ? '상담 채팅 닫기' : '상담 채팅 열기'}
                 onClick={() => setOpen((current) => !current)}
             >
-                {open ? '상담 채팅 닫기' : '상담 채팅 열기'}
+                {open ? <CloseIcon /> : <ChatIcon />}
             </button>
             {open && (
                 <div className="proposal-chat-drawer-panel" aria-label="상담 채팅 패널">
@@ -133,4 +135,21 @@ function formatMessageTime(createdAt: string): string {
     const parsed = new Date(createdAt)
     if (Number.isNaN(parsed.getTime())) return ''
     return timeFormatter.format(parsed)
+}
+
+function ChatIcon() {
+    return (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="proposal-chat-drawer-icon">
+            <path d="M5.75 5.5h12.5a2.25 2.25 0 0 1 2.25 2.25v7a2.25 2.25 0 0 1-2.25 2.25h-6.9l-4.1 3v-3h-1.5a2.25 2.25 0 0 1-2.25-2.25v-7A2.25 2.25 0 0 1 5.75 5.5Z" />
+            <path d="M8 10h8M8 13h5.5" />
+        </svg>
+    )
+}
+
+function CloseIcon() {
+    return (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="proposal-chat-drawer-icon">
+            <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />
+        </svg>
+    )
 }
