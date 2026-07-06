@@ -218,6 +218,14 @@ export default function Navbar() {
                                     >
                                         마이페이지
                                     </Link>
+                                    <Link
+                                        to={ROUTES.REPORT}
+                                        className="nav-profile-dropdown-item"
+                                        role="menuitem"
+                                        onClick={() => setProfileMenuOpen(false)}
+                                    >
+                                        신고하기
+                                    </Link>
                                     <button
                                         type="button"
                                         onClick={handleSignOut}

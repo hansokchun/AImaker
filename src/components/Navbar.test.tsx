@@ -115,6 +115,7 @@ describe('Navbar', () => {
 
         expect(screen.getByRole('menuitem', { name: '내 작업' })).toHaveAttribute('href', '/my-work')
         expect(screen.getByRole('menuitem', { name: '마이페이지' })).toHaveAttribute('href', '/mypage?panel=profile')
+        expect(screen.getByRole('menuitem', { name: '신고하기' })).toHaveAttribute('href', '/report')
         fireEvent.click(screen.getByRole('menuitem', { name: '로그아웃' }))
 
         await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1))

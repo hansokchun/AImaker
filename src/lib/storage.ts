@@ -28,7 +28,7 @@ import { buildDemoAccountData, isDemoAccountRecordId, isDemoTestAccountEmail } f
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
 import { validateMarketplaceMessage } from './tradeSafety';
 import type { User } from '@supabase/supabase-js';
-import type { AdminReport } from './adminStorage';
+import type { AdminReport, AdminReportSeverity, AdminReportTargetType } from './adminStorage';
 
 /** localStorage 키 — 오타 방지를 위해 상수로 관리 */
 const STORAGE_KEYS = {
@@ -984,6 +984,56 @@ export async function saveConsultationReport(input: {
     if (error || !data) {
         console.error('상담 신고 저장 실패:', error);
         throw new Error('데이터베이스 통신 오류: 상담 신고 실패');
+    }
+
+    return toAdminReport(data);
+}
+
+export async function saveReport(input: {
+    reporterId: string;
+    targetType: AdminReportTargetType;
+    targetId?: string;
+    reason: string;
+    severity?: AdminReportSeverity;
+}): Promise<AdminReport> {
+    const now = new Date().toISOString();
+    const reason = input.reason.trim();
+    const targetId = input.targetId?.trim() || input.reporterId;
+    const severity = input.severity || 'medium';
+
+    if (!reason) throw new Error('신고 내용을 입력해주세요.');
+
+    if (!supabase) {
+        const report: AdminReport = {
+            id: `report-${input.targetType}-${targetId}-${Date.now()}`,
+            reporterId: input.reporterId,
+            targetType: input.targetType,
+            targetId,
+            reason,
+            status: 'pending',
+            severity,
+            createdAt: now,
+        };
+        writeLocalArray(STORAGE_KEYS.ADMIN_REPORTS, [report, ...readLocalArray<AdminReport>(STORAGE_KEYS.ADMIN_REPORTS)]);
+        return report;
+    }
+
+    const { data, error } = await supabase
+        .from('admin_reports')
+        .insert({
+            reporter_id: input.reporterId,
+            target_type: input.targetType,
+            target_id: targetId,
+            reason,
+            status: 'pending',
+            severity,
+        })
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('신고 저장 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 신고 저장 실패');
     }
 
     return toAdminReport(data);

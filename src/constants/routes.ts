@@ -20,6 +20,7 @@ export const ROUTES = {
     ONBOARDING: '/onboarding',
     MY_PAGE: '/mypage',
     PROFILE: '/profile',
+    REPORT: '/report',
     ADMIN: '/admin',
 } as const;
 

@@ -1835,6 +1835,29 @@ describe('transaction storage', () => {
         ])
     })
 
+    it('stores a simple user report in the admin report queue', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+
+        const { saveReport } = await import('./storage')
+
+        await expect(saveReport({
+            reporterId: request.clientId,
+            targetType: 'product',
+            targetId: product.id,
+            reason: '상품 설명과 실제 결과물이 다릅니다.',
+        })).resolves.toEqual(expect.objectContaining({
+            reporterId: request.clientId,
+            targetType: 'product',
+            targetId: product.id,
+            reason: '상품 설명과 실제 결과물이 다릅니다.',
+            status: 'pending',
+            severity: 'medium',
+        }))
+        const reports = JSON.parse(localStorage.getItem('ai_admin_reports') || '[]') as Array<{ readonly targetId: string }>
+        expect(reports[0]?.targetId).toBe(product.id)
+    })
+
     it('rejects workroom messages that try to move payment outside the marketplace', async () => {
         vi.resetModules()
         const insert = vi.fn()

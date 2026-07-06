@@ -23,6 +23,7 @@ import MyPage from './pages/MyPage';
 import WorkDashboard from './pages/WorkDashboard';
 import Profile from './pages/Profile';
 import ProductRegister from './pages/ProductRegister';
+import Report from './pages/Report';
 import NotFound from './pages/NotFound';
 import Admin from './pages/Admin';
 
@@ -48,6 +49,7 @@ function App() {
                     <Route path={ROUTES.MY_PAGE} element={<MyPage mode="profile" />} />
                     <Route path={ROUTES.WORK_DASHBOARD} element={<WorkDashboard />} />
                     <Route path={ROUTES.PROFILE} element={<Profile />} />
+                    <Route path={ROUTES.REPORT} element={<Report />} />
                     <Route path={ROUTES.ADMIN} element={<Admin />} />
                     {/* 정의되지 않은 경로 → 404 페이지 */}
                     <Route path="*" element={<NotFound />} />
