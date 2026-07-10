@@ -716,8 +716,9 @@ export function subscribeToConsultationMessages(
     onMessage: (message: ConsultationMessage) => void,
 ): () => void {
     if (!supabase || hasLocalDemoConsultation(consultationId)) return () => undefined;
+    const supabaseClient = supabase;
 
-    const channel = supabase
+    const channel = supabaseClient
         .channel(`consultation-messages:${consultationId}`)
         .on('postgres_changes', {
             event: 'INSERT',
@@ -730,7 +731,7 @@ export function subscribeToConsultationMessages(
         .subscribe();
 
     return () => {
-        void supabase.removeChannel(channel);
+        void supabaseClient.removeChannel(channel);
     };
 }
 

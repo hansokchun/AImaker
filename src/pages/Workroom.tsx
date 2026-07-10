@@ -96,6 +96,7 @@ const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string
 
 const refundStatusText: Record<NonNullable<Work['refundStatus']>, string> = {
     fee_excluded_refund_pending: '수수료 제외 환불 예정',
+    refunded: '환불 처리',
 }
 
 const isMyPageReturnPath = (pathname?: string) =>

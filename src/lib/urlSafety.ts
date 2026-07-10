@@ -7,7 +7,8 @@ export const normalizeSafeExternalUrl = (value?: string | null): string | null =
     try {
         const url = new URL(trimmed)
         return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null
-    } catch {
+    } catch (error: unknown) {
+        if (!(error instanceof TypeError)) throw error
         return null
     }
 }
