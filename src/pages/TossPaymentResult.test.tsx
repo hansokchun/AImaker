@@ -38,12 +38,15 @@ const work: Work = {
 }
 
 const confirmTossProposalPayment = vi.fn(async () => ({ proposalId: paidProposal.id, workId: work.id }))
+const reportTossProposalPaymentFailure = vi.fn(async () => ({ status: 'failed' as const }))
 const getProposal = vi.fn(async () => paidProposal)
 const acceptProposal = vi.fn(async () => work.id)
 
 vi.mock('../lib/tossPayments', () => ({
     confirmTossProposalPayment: (input: { readonly paymentKey: string; readonly orderId: string; readonly amount: number }) =>
         confirmTossProposalPayment(input),
+    reportTossProposalPaymentFailure: (input: { readonly orderId: string; readonly code?: string; readonly message?: string }) =>
+        reportTossProposalPaymentFailure(input),
 }))
 
 vi.mock('../lib/storage', () => ({
@@ -54,6 +57,7 @@ vi.mock('../lib/storage', () => ({
 describe('Toss payment result pages', () => {
     beforeEach(() => {
         confirmTossProposalPayment.mockClear()
+        reportTossProposalPaymentFailure.mockClear()
         getProposal.mockClear()
         acceptProposal.mockClear()
     })
@@ -109,5 +113,24 @@ describe('Toss payment result pages', () => {
         expect(screen.getByText('결제가 완료되지 않았습니다.')).toBeInTheDocument()
         expect(screen.getByText('USER_CANCEL')).toBeInTheDocument()
         expect(screen.getByText('사용자가 결제를 취소했습니다')).toBeInTheDocument()
+    })
+
+    it('reports a failed Toss redirect to the server when the order id is available', async () => {
+        render(
+            <MemoryRouter initialEntries={['/payments/toss/fail?code=USER_CANCEL&message=cancelled&orderId=order_cancel_01']}>
+                <Routes>
+                    <Route path="/payments/toss/fail" element={<TossPaymentFail />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await waitFor(() =>
+            expect(reportTossProposalPaymentFailure).toHaveBeenCalledWith({
+                orderId: 'order_cancel_01',
+                code: 'USER_CANCEL',
+                message: 'cancelled',
+            }),
+        )
+        expect(await screen.findByText('결제 실패 상태를 저장했습니다.')).toBeInTheDocument()
     })
 })

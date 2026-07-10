@@ -60,6 +60,10 @@ export type TossConfirmResponse = {
     readonly workId?: string
 }
 
+type TossFailResponse = {
+    readonly status: 'failed' | 'approved'
+}
+
 export class PaymentConfigurationError extends Error {
     constructor(message: string) {
         super(message)
@@ -109,6 +113,12 @@ const isTossConfirmResponse = (value: unknown): value is TossConfirmResponse => 
     const candidate = value as Partial<TossConfirmResponse>
     return typeof candidate.proposalId === 'string'
         && (candidate.workId === undefined || typeof candidate.workId === 'string')
+}
+
+const isTossFailResponse = (value: unknown): value is TossFailResponse => {
+    if (!value || typeof value !== 'object') return false
+    const candidate = value as Partial<TossFailResponse>
+    return candidate.status === 'failed' || candidate.status === 'approved'
 }
 
 const loadTossPayments = async (): Promise<TossPaymentsFactory> => {
@@ -214,6 +224,27 @@ export async function confirmTossProposalPayment(input: {
 
     if (!isTossConfirmResponse(data)) {
         throw new PaymentRequestError('결제 승인 응답 형식이 올바르지 않습니다.')
+    }
+
+    return data
+}
+
+export async function reportTossProposalPaymentFailure(input: {
+    readonly orderId: string
+    readonly code?: string
+    readonly message?: string
+}): Promise<TossFailResponse> {
+    const client = assertConfiguredSupabase()
+    const { data, error } = await client.functions.invoke('toss-payment-fail', {
+        body: input,
+    })
+
+    if (error) {
+        throw new PaymentRequestError(error.message || '결제 실패 상태 저장에 실패했습니다.')
+    }
+
+    if (!isTossFailResponse(data)) {
+        throw new PaymentRequestError('결제 실패 응답 형식이 올바르지 않습니다.')
     }
 
     return data
