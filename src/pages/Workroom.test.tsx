@@ -188,6 +188,48 @@ describe('Workroom', () => {
         expect(screen.getByText('제출물 링크가 등록되었습니다.')).toBeInTheDocument()
     })
 
+    it('blocks unsafe deliverable URL schemes before saving', async () => {
+        currentUserId = 'expert-video-01'
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await screen.findByRole('heading', { name: '작업 진행방' })
+        fireEvent.change(screen.getByLabelText('제출물 링크'), {
+            target: { value: 'javascript:alert(1)' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
+
+        expect(screen.getByText('http:// 또는 https://로 시작하는 제출물 링크만 등록할 수 있습니다.')).toBeInTheDocument()
+        expect(saveDeliverable).not.toHaveBeenCalled()
+    })
+
+    it('does not render unsafe stored deliverable URLs as links', async () => {
+        getWorkroomData.mockResolvedValue({
+            work,
+            steps: [step],
+            deliverables: [{ ...deliverable, externalUrl: 'javascript:alert(1)' }],
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await screen.findByRole('heading', { name: '작업 진행방' })
+
+        expect(screen.queryByRole('link', { name: 'javascript:alert(1)' })).not.toBeInTheDocument()
+        expect(screen.getByLabelText('제출됨')).toBeInTheDocument()
+    })
+
     it('shows the proposal link, workroom chat, and stop action inside the workroom', async () => {
         render(
             <MemoryRouter initialEntries={['/workroom/work-demo-01']}>

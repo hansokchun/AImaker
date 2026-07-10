@@ -28,6 +28,7 @@ import { buildDemoAccountData, isDemoAccountRecordId, isDemoTestAccountEmail } f
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
 import { readCachedExpertProducts, writeCachedExpertProducts } from './expertProductCache';
 import { validateMarketplaceMessage } from './tradeSafety';
+import { SAFE_EXTERNAL_URL_MESSAGE, normalizeSafeExternalUrl } from './urlSafety';
 import type { User } from '@supabase/supabase-js';
 import type { AdminReport, AdminReportSeverity, AdminReportTargetType } from './adminStorage';
 
@@ -498,17 +499,21 @@ const toWorkStep = (item: any): WorkStep => ({
     status: item.status || 'waiting',
 });
 
-const toDeliverable = (item: any): Deliverable => ({
-    id: item.id,
-    workId: item.work_id,
-    stepId: item.step_id,
-    expertId: item.expert_id,
-    description: item.description,
-    ...(item.external_url ? { externalUrl: item.external_url } : {}),
-    ...(item.file_url ? { fileUrl: item.file_url } : {}),
-    status: item.status || 'submitted',
-    submittedAt: item.submitted_at,
-});
+const toDeliverable = (item: any): Deliverable => {
+    const safeExternalUrl = normalizeSafeExternalUrl(item.external_url);
+
+    return {
+        id: item.id,
+        workId: item.work_id,
+        stepId: item.step_id,
+        expertId: item.expert_id,
+        description: item.description,
+        ...(safeExternalUrl ? { externalUrl: safeExternalUrl } : {}),
+        ...(item.file_url ? { fileUrl: item.file_url } : {}),
+        status: item.status || 'submitted',
+        submittedAt: item.submitted_at,
+    };
+};
 
 const buildInitialWorkSteps = (proposal: Proposal, workId: string): WorkStep[] => {
     const titles = proposal.progressType === 'milestone' && proposal.milestones.length > 0
@@ -2078,11 +2083,16 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     if (hasExternalContact(deliverable.description)) {
         throw new Error(EXTERNAL_CONTACT_WARNING);
     }
+    const safeExternalUrl = normalizeSafeExternalUrl(deliverable.externalUrl);
+    if (deliverable.externalUrl && !safeExternalUrl) {
+        throw new Error(SAFE_EXTERNAL_URL_MESSAGE);
+    }
+    const deliverableToSave = safeExternalUrl ? { ...deliverable, externalUrl: safeExternalUrl } : deliverable;
 
     if (!supabase || hasLocalDemoWork(deliverable.workId)) {
         const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const deliverables = raw ? (JSON.parse(raw) as Deliverable[]) : [];
-        localStorage.setItem(STORAGE_KEYS.DELIVERABLES, JSON.stringify([...deliverables, deliverable]));
+        localStorage.setItem(STORAGE_KEYS.DELIVERABLES, JSON.stringify([...deliverables, deliverableToSave]));
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         localStorage.setItem(
@@ -2105,14 +2115,14 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     }
 
     const { error } = await supabase.from('deliverables').insert([{
-        ...(isUuid(deliverable.id) ? { id: deliverable.id } : {}),
-        work_id: deliverable.workId,
-        step_id: deliverable.stepId || null,
-        expert_id: deliverable.expertId,
-        description: deliverable.description,
-        external_url: deliverable.externalUrl || null,
-        file_url: deliverable.fileUrl || null,
-        status: deliverable.status,
+        ...(isUuid(deliverableToSave.id) ? { id: deliverableToSave.id } : {}),
+        work_id: deliverableToSave.workId,
+        step_id: deliverableToSave.stepId || null,
+        expert_id: deliverableToSave.expertId,
+        description: deliverableToSave.description,
+        external_url: deliverableToSave.externalUrl || null,
+        file_url: deliverableToSave.fileUrl || null,
+        status: deliverableToSave.status,
     }]);
 
     if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');

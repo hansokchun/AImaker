@@ -16,6 +16,7 @@ import {
     saveWorkMessage,
 } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
+import { SAFE_EXTERNAL_URL_MESSAGE, normalizeSafeExternalUrl } from '../lib/urlSafety'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -209,6 +210,7 @@ export default function Workroom() {
     const workDashboardRole = isExpertParticipant ? 'expert' : 'client'
     const workDashboardSelectedKey = isExpertParticipant ? 'expertRequest' : 'clientOrder'
     const workDashboardTo = `${ROUTES.WORK_DASHBOARD}?role=${workDashboardRole}&panel=client&${workDashboardSelectedKey}=${work.requestId}`
+    const activeDeliverableUrl = normalizeSafeExternalUrl(activeDeliverable?.externalUrl)
 
     useEffect(() => {
         let active = true
@@ -261,13 +263,18 @@ export default function Workroom() {
 
     const handleSubmitDeliverable = async () => {
         if (!canSubmitDeliverable || !deliverableLink.trim()) return
+        const safeDeliverableLink = normalizeSafeExternalUrl(deliverableLink)
+        if (!safeDeliverableLink) {
+            setStatusMessage(SAFE_EXTERNAL_URL_MESSAGE)
+            return
+        }
         const newDeliverable: Deliverable = {
             id: `deliverable-${Date.now()}`,
             workId: work.id,
             stepId: steps[0]?.id || '',
             expertId: work.expertId,
             description: deliverableFieldLabel,
-            externalUrl: deliverableLink.trim(),
+            externalUrl: safeDeliverableLink,
             status: 'submitted',
             submittedAt: new Date().toISOString(),
         }
@@ -445,9 +452,9 @@ export default function Workroom() {
                         {activeDeliverable ? (
                             <div className="submitted-deliverable">
                                 <div>
-                                    {activeDeliverable.externalUrl && (
-                                        <a href={activeDeliverable.externalUrl} target="_blank" rel="noreferrer">
-                                            {activeDeliverable.externalUrl}
+                                    {activeDeliverableUrl && (
+                                        <a href={activeDeliverableUrl} target="_blank" rel="noreferrer">
+                                            {activeDeliverableUrl}
                                         </a>
                                     )}
                                 </div>

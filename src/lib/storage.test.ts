@@ -2109,6 +2109,22 @@ describe('transaction storage', () => {
         expect(from).not.toHaveBeenCalled()
     })
 
+    it('blocks unsafe deliverable URLs before saving', async () => {
+        vi.resetModules()
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveDeliverable } = await import('./storage')
+
+        await expect(
+            saveDeliverable({
+                ...deliverable,
+                externalUrl: 'javascript:alert(1)',
+            }),
+        ).rejects.toThrow('http:// 또는 https://로 시작하는 제출물 링크만 등록할 수 있습니다.')
+        expect(from).not.toHaveBeenCalled()
+    })
+
     it('loads works where the user is a client or expert', async () => {
         vi.resetModules()
         const order = vi.fn().mockResolvedValue({
