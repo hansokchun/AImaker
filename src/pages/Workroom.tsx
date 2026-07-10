@@ -78,6 +78,12 @@ const statusLabels: Record<WorkStep['status'], string> = {
     approved: '승인됨',
 }
 
+const deliverableStatusIcons: Record<Deliverable['status'], string> = {
+    submitted: 'task_alt',
+    approved: 'check_circle',
+    revision_requested: 'rate_review',
+}
+
 const currency = new Intl.NumberFormat('ko-KR')
 
 const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string> = {
@@ -439,14 +445,21 @@ export default function Workroom() {
                         {activeDeliverable ? (
                             <div className="submitted-deliverable">
                                 <div>
-                                    <strong>{activeDeliverable.description}</strong>
                                     {activeDeliverable.externalUrl && (
                                         <a href={activeDeliverable.externalUrl} target="_blank" rel="noreferrer">
-                                            제출물 보기
+                                            {activeDeliverable.externalUrl}
                                         </a>
                                     )}
                                 </div>
-                                <span>{statusLabels[activeDeliverable.status]}</span>
+                                <span
+                                    className="deliverable-status-icon"
+                                    aria-label={statusLabels[activeDeliverable.status]}
+                                    title={statusLabels[activeDeliverable.status]}
+                                >
+                                    <span className="material-symbols-outlined" aria-hidden="true">
+                                        {deliverableStatusIcons[activeDeliverable.status]}
+                                    </span>
+                                </span>
                             </div>
                         ) : (
                             <p className="submitted-deliverable">등록된 제출물이 없습니다.</p>
@@ -469,9 +482,7 @@ export default function Workroom() {
                                     </button>
                                 </div>
                             </form>
-                        ) : (
-                            <p className="workroom-role-note">제출물 링크 등록은 작업자만 할 수 있습니다.</p>
-                        )}
+                        ) : null}
                         {statusMessage && <p>{statusMessage}</p>}
                     </section>
 
@@ -494,7 +505,11 @@ export default function Workroom() {
                                     </div>
                                 ))
                             ) : (
-                                <p className="submitted-deliverable">아직 프로젝트 메시지가 없습니다.</p>
+                                <div className="workroom-empty-messages" aria-label="프로젝트 메시지 없음">
+                                    <span className="material-symbols-outlined" aria-hidden="true">
+                                        forum
+                                    </span>
+                                </div>
                             )}
                         </div>
                         <div className="workroom-message-form">

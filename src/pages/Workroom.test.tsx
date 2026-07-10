@@ -157,7 +157,12 @@ describe('Workroom', () => {
         expect(screen.getByLabelText('흐름설계 단계 상태: 완료')).toBeInTheDocument()
         expect(screen.getByLabelText('결과물 제출 단계 상태: 완료')).toBeInTheDocument()
         expect(screen.getByLabelText('결과물 승인 및 정산 단계 상태: 진행 중')).toBeInTheDocument()
-        expect(screen.getByText('1차 시안 링크')).toBeInTheDocument()
+        expect(screen.queryByText('1차 시안 링크')).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'https://example.com/deliverables/ai-shortform-draft' })).toHaveAttribute(
+            'href',
+            'https://example.com/deliverables/ai-shortform-draft',
+        )
+        expect(screen.getByLabelText('제출됨')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '결제/정산' })).toBeInTheDocument()
         expect(screen.getByText('결제 완료')).toBeInTheDocument()
         expect(screen.getByText('70,000원')).toBeInTheDocument()
@@ -259,6 +264,7 @@ describe('Workroom', () => {
         expect(screen.getByRole('button', { name: '결과물 승인' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '수정 요청' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '제출물 링크 등록' })).not.toBeInTheDocument()
+        expect(screen.queryByText('제출물 링크 등록은 작업자만 할 수 있습니다.')).not.toBeInTheDocument()
     })
 
     it('disables revision requests when the agreed revision count is exhausted', async () => {
@@ -373,6 +379,21 @@ describe('Workroom', () => {
         expect(screen.getByText('등록된 제출물이 없습니다.')).toBeInTheDocument()
     })
 
+    it('uses an icon-only empty state when there are no workroom messages', async () => {
+        getWorkMessages.mockResolvedValue([])
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByLabelText('프로젝트 메시지 없음')).toBeInTheDocument()
+        expect(screen.queryByText('아직 프로젝트 메시지가 없습니다.')).not.toBeInTheDocument()
+    })
+
     it('does not show demo steps when a real work has no steps yet', async () => {
         getWorkroomData.mockResolvedValue({ work, steps: [], deliverables: [] })
 
@@ -417,7 +438,9 @@ describe('Workroom', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('1차 시안 링크')).toBeInTheDocument()
+        expect(
+            await screen.findByRole('link', { name: 'https://example.com/deliverables/ai-shortform-draft' }),
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: '결과물 승인' }))
 
         await waitFor(() =>
@@ -426,7 +449,7 @@ describe('Workroom', () => {
         expect(screen.getByText('결과물을 승인했습니다. 작업이 완료되었습니다.')).toBeInTheDocument()
         expect(screen.getAllByText('완료').length).toBeGreaterThan(0)
         expect(screen.getByText('정산 대기')).toBeInTheDocument()
-        expect(screen.getAllByText('승인됨').length).toBeGreaterThan(0)
+        expect(screen.getByLabelText('승인됨')).toBeInTheDocument()
     })
 
     it('requests a revision for the active deliverable and keeps the work open', async () => {
@@ -438,7 +461,9 @@ describe('Workroom', () => {
             </MemoryRouter>,
         )
 
-        expect(await screen.findByText('1차 시안 링크')).toBeInTheDocument()
+        expect(
+            await screen.findByRole('link', { name: 'https://example.com/deliverables/ai-shortform-draft' }),
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: '수정 요청' }))
 
         await waitFor(() => expect(requestWorkRevision).toHaveBeenCalledWith(work.id, deliverable.id, step.id))
