@@ -1,0 +1,123 @@
+.page-loading {
+    min-height: calc(100vh - 80px);
+    display: grid;
+    place-items: center;
+    padding: var(--space-16) var(--space-4);
+    background: var(--background);
+}
+
+.page-loading-card {
+    width: min(100%, 520px);
+    padding: var(--space-8);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+.page-loading-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 64px;
+    height: 40px;
+    margin-bottom: var(--space-5);
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border-color));
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--primary) 7%, var(--surface));
+}
+
+.page-loading-mark span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--primary);
+    animation: page-loading-pulse 900ms ease-in-out infinite;
+}
+
+.page-loading-mark span:nth-child(2) {
+    animation-delay: 120ms;
+}
+
+.page-loading-mark span:nth-child(3) {
+    animation-delay: 240ms;
+}
+
+.page-loading h1 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1.35;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
+.page-loading p {
+    max-width: 360px;
+    margin: var(--space-3) auto 0;
+    color: var(--text-secondary);
+    font-size: 0.96rem;
+    font-weight: 700;
+    line-height: 1.6;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
+.page-loading-text-line {
+    display: block;
+}
+
+.page-loading-lines {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-6);
+}
+
+.page-loading-lines span {
+    display: block;
+    height: 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--border-color) 70%, var(--surface));
+}
+
+.page-loading-lines span:first-child {
+    width: 78%;
+    margin: 0 auto;
+}
+
+.page-loading-lines span:last-child {
+    width: 54%;
+    margin: 0 auto;
+}
+
+@keyframes page-loading-pulse {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: translateY(0);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-loading-mark span {
+        animation: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .page-loading {
+        padding: var(--space-10) var(--space-4);
+    }
+
+    .page-loading-card {
+        padding: var(--space-6);
+    }
+}

@@ -4,6 +4,7 @@ import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { getExpertProducts, getProposal, getRequestById, markConsultationProposalSent, saveConsultationMessage, saveProposal, updateProposal } from '../lib/storage'
 import type { ExpertProduct, Proposal, ServiceRequestData } from '../types'
+import { PageLoading } from '../components/PageLoading'
 import { ConsultationChatDrawer } from './ConsultationChatDrawer'
 import './ServiceRequest.css'
 import './Proposal.css'
@@ -132,7 +133,7 @@ export default function ProposalCreate() {
             milestones: [],
             commercialUseAllowed: true,
             sourceFileIncluded: false,
-            status: proposal ? 'revision_requested' : 'sent',
+            status: 'sent',
             paymentStatus: proposal?.paymentStatus || 'unpaid',
             expiresAt: expiresAt.toISOString(),
         }
@@ -147,7 +148,9 @@ export default function ProposalCreate() {
                 await saveConsultationMessage({
                     consultationId,
                     senderId: user.id,
-                    body: '제안서를 보냈습니다. 아래 버튼에서 내용을 확인할 수 있습니다.',
+                    body: proposal
+                        ? '제안서를 수정했습니다. 아래 버튼에서 새 내용을 확인할 수 있습니다.'
+                        : '제안서를 보냈습니다. 아래 버튼에서 내용을 확인할 수 있습니다.',
                     attachmentUrls: [`/proposal/${savedProposalId}`],
                 })
             }
@@ -170,13 +173,10 @@ export default function ProposalCreate() {
 
     if (!isLoaded) {
         return (
-            <div className="request-page">
-                <main className="container request-main">
-                    <section className="content-card request-form-card">
-                        <h1>제안서 작성 정보를 불러오는 중입니다</h1>
-                    </section>
-                </main>
-            </div>
+            <PageLoading
+                title={['제안서 작성 정보를', '불러오는 중입니다']}
+                description={['의뢰 내용과 기존 제안서 정보를', '맞춰보고 있습니다.']}
+            />
         )
     }
 
@@ -207,7 +207,7 @@ export default function ProposalCreate() {
                         <h1>{isEditMode ? '제안서 수정' : '제안서 작성'}</h1>
                         <p>
                             {isEditMode
-                                ? '기존 제안서를 불러와 작성 페이지와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정된 제안서 도착 알림이 전달됩니다.'
+                                ? '저장 전까지 의뢰자는 기존 제안서를 볼 수 있습니다. 수정해서 보내기를 누르면 같은 링크의 내용이 새 내용으로 교체됩니다.'
                                 : '상담 내용을 보면서 작업 범위, 제출물, 금액, 일정을 정리합니다.'}
                         </p>
                     </header>
@@ -272,7 +272,7 @@ export default function ProposalCreate() {
                             <strong>{isEditMode ? '수정 제안서' : '보낼 제안서'}</strong>
                             <p>
                                 {isEditMode
-                                    ? '수정 저장 시 의뢰자에게 수정된 제안서 알림이 갑니다.'
+                                    ? '저장 전에는 기존 내용이 보이고, 저장 후에는 새 내용으로 교체됩니다.'
                                     : '제안서를 보내면 의뢰자가 승인 및 테스트 결제를 진행할 수 있습니다.'}
                             </p>
                             <dl>

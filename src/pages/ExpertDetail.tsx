@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import FavoriteProductButton from '../components/FavoriteProductButton'
 import PackageCard from '../components/PackageCard'
+import { PageLoading } from '../components/PageLoading'
 import SellerReviewCard from '../components/SellerReviewCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
@@ -176,9 +177,10 @@ export default function ExpertDetail() {
 
     if (loading) {
         return (
-            <main className="container detail-empty-state">
-                <h2>상품 정보를 불러오는 중입니다</h2>
-            </main>
+            <PageLoading
+                title="상품 정보를 불러오는 중입니다"
+                description="전문가 정보와 패키지 구성을 확인하고 있습니다."
+            />
         )
     }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
+import { PageLoading } from '../components/PageLoading'
 import type { Deliverable, Work, WorkMessage, WorkStep } from '../types'
 import {
     approveWorkDeliverable,
@@ -366,11 +367,10 @@ export default function Workroom() {
 
     if (!isLoaded) {
         return (
-            <main className="workroom-page">
-                <section className="container workroom-layout">
-                    <div className="workroom-main-card">프로젝트를 불러오는 중입니다.</div>
-                </section>
-            </main>
+            <PageLoading
+                title="프로젝트를 불러오는 중입니다"
+                description="진행 단계와 제출 내역을 준비하고 있습니다."
+            />
         )
     }
 

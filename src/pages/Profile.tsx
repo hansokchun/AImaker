@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies';
 import { useAuth } from '../contexts/AuthContext';
+import { PageLoading } from '../components/PageLoading';
 import { createDefaultProfile, getStoredProfile, saveProfile } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import type { ExpertProfile } from '../types';
@@ -84,10 +85,10 @@ export default function Profile() {
 
     if (authLoading) {
         return (
-            <div className="login-required">
-                <span className="material-symbols-outlined">hourglass_top</span>
-                <h2>로딩 중...</h2>
-            </div>
+            <PageLoading
+                title="프로필 정보를 불러오는 중입니다"
+                description="로그인 상태와 계정 정보를 확인하고 있습니다."
+            />
         );
     }
 

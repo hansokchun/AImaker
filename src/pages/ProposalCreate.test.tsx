@@ -209,18 +209,22 @@ describe('ProposalCreate', () => {
         )
 
         expect(await screen.findByRole('heading', { name: '제안서 수정' })).toBeInTheDocument()
-        expect(screen.getByText('기존 제안서를 불러와 작성 페이지와 같은 양식으로 수정합니다. 저장하면 의뢰자에게 수정된 제안서 도착 알림이 전달됩니다.')).toBeInTheDocument()
+        expect(screen.getByText('저장 전까지 의뢰자는 기존 제안서를 볼 수 있습니다. 수정해서 보내기를 누르면 같은 링크의 내용이 새 내용으로 교체됩니다.')).toBeInTheDocument()
         expect(screen.getByDisplayValue('기존 제안서')).toBeInTheDocument()
 
+        fireEvent.change(screen.getByLabelText('제안서 제목'), { target: { value: '수정된 제안서' } })
         fireEvent.change(screen.getByLabelText('작업 범위'), { target: { value: '수정된 작업 범위입니다.' } })
+        fireEvent.change(screen.getByLabelText('금액'), { target: { value: '65000' } })
         fireEvent.click(screen.getByRole('button', { name: '수정해서 보내기' }))
 
         await waitFor(() =>
             expect(updateProposal).toHaveBeenCalledWith(expect.objectContaining({
                 id: 'proposal-created-01',
                 requestId: 'request-product-directed-01',
+                title: '수정된 제안서',
                 scope: '수정된 작업 범위입니다.',
-                status: 'revision_requested',
+                totalPrice: 65000,
+                status: 'sent',
                 paymentStatus: 'unpaid',
             })),
         )

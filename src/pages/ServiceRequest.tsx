@@ -4,6 +4,7 @@ import { AI_CATEGORIES } from '../constants/categories'
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
+import { PageLoading } from '../components/PageLoading'
 import { getCachedExpertProducts, getExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
 import type { ExpertProduct, ServiceRequestData } from '../types'
 import './ServiceRequest.css'
@@ -153,13 +154,10 @@ export default function ServiceRequest() {
 
     if (productId && !productsLoaded && !selectedProduct) {
         return (
-            <div className="request-page">
-                <main className="container request-main">
-                    <section className="content-card request-form-card">
-                        <h1>상품 정보를 불러오는 중입니다</h1>
-                    </section>
-                </main>
-            </div>
+            <PageLoading
+                title="상품 정보를 불러오는 중입니다"
+                description="의뢰서에 필요한 상품 조건을 확인하고 있습니다."
+            />
         )
     }
 

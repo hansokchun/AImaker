@@ -682,7 +682,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     consultation.id === closed.id ? closed : consultation,
                 ),
             )
-            setConsultationActionMessage('상담이 종료되었습니다.')
             dispatchNotificationRefresh()
         } catch (error) {
             console.error('상담 종료 오류:', error)

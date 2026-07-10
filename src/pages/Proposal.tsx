@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getProposal, getWorkByProposal } from '../lib/storage'
 import { startTossProposalPayment } from '../lib/tossPayments'
 import type { Proposal as ProposalData } from '../types'
+import { PageLoading } from '../components/PageLoading'
 import { ConsultationChatDrawer } from './ConsultationChatDrawer'
 import './Proposal.css'
 
@@ -112,11 +113,10 @@ export default function Proposal() {
 
     if (!isLoaded) {
         return (
-            <main className="proposal-page">
-                <section className="container proposal-layout">
-                    <div className="proposal-main-card">제안서를 불러오는 중입니다.</div>
-                </section>
-            </main>
+            <PageLoading
+                title="제안서를 불러오는 중입니다"
+                description="작업 조건과 결제 정보를 확인하고 있습니다."
+            />
         )
     }
 
