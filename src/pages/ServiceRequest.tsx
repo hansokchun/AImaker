@@ -3,9 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AI_CATEGORIES } from '../constants/categories'
 import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constants/policies'
 import { ROUTES } from '../constants/routes'
-import { mockExpertProducts } from '../data/mockData'
 import { useAuth } from '../contexts/AuthContext'
-import { getExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
+import { getCachedExpertProducts, getExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
 import type { ExpertProduct, ServiceRequestData } from '../types'
 import './ServiceRequest.css'
 
@@ -17,7 +16,7 @@ export default function ServiceRequest() {
     const [searchParams] = useSearchParams()
     const { user } = useAuth()
     const editRequestId = searchParams.get('requestId')
-    const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
+    const [products, setProducts] = useState<ExpertProduct[]>(() => getCachedExpertProducts())
     const [productsLoaded, setProductsLoaded] = useState(false)
     const selectedProduct = products.find((product) => product.id === productId)
     const selectedPackage = selectedProduct?.packages.standard
@@ -42,11 +41,10 @@ export default function ServiceRequest() {
         setProductsLoaded(false)
         getExpertProducts()
             .then((items) => {
-                if (active) setProducts(items.length ? items : mockExpertProducts)
+                if (active) setProducts(items)
                 if (active) setProductsLoaded(true)
             })
             .catch(() => {
-                if (active) setProducts(mockExpertProducts)
                 if (active) setProductsLoaded(true)
             })
         return () => {

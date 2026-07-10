@@ -131,7 +131,7 @@ const createProposal = (
     status,
     paymentStatus,
     platformFeeRate: 0,
-    expiresAt: '2026-07-08T23:59:59.000Z',
+    expiresAt: '2099-07-08T23:59:59.000Z',
 });
 
 const createWork = (

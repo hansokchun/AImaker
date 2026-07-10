@@ -978,6 +978,16 @@ section { padding: 8rem 0; }
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.5rem;
 }
+.home-minimal-product-loading {
+    grid-column: 1 / -1;
+    padding: 2rem;
+    color: #475569;
+    font-weight: 700;
+    text-align: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
 .home-minimal-product {
     overflow: hidden;
     background: #ffffff;

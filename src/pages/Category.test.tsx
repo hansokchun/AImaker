@@ -4,13 +4,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Category from './Category'
 import { AI_CATEGORIES } from '../constants/categories'
 import { mockExpertProducts } from '../data/mockData'
+import type { ExpertProduct } from '../types'
 
 const getExpertProducts = vi.fn(async () => mockExpertProducts)
+const getCachedExpertProducts = vi.fn(() => [] as ExpertProduct[])
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
 const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
 const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
 
 vi.mock('../lib/storage', () => ({
+  getCachedExpertProducts: () => getCachedExpertProducts(),
   getExpertProducts: () => getExpertProducts(),
   getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
   getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
@@ -20,6 +23,7 @@ vi.mock('../lib/storage', () => ({
 describe('Category', () => {
   beforeEach(() => {
     getExpertProducts.mockResolvedValue(mockExpertProducts)
+    getCachedExpertProducts.mockReturnValue([])
     getUserFavoriteProductIds.mockClear()
     getFavoriteProductCount.mockClear()
     toggleFavoriteProduct.mockClear()
@@ -74,7 +78,7 @@ describe('Category', () => {
     expect(await screen.findByRole('heading', { name: unknownCategoryProduct.title })).toBeInTheDocument()
   })
 
-  it('shows default products immediately while stored products are loading', () => {
+  it('does not show default mock products while real products are loading', () => {
     getExpertProducts.mockReturnValue(new Promise(() => undefined))
 
     render(
@@ -83,7 +87,8 @@ describe('Category', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
+    expect(screen.getByText('실제 상품을 불러오는 중입니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
     expect(screen.queryByText(`총 ${mockExpertProducts.length}개의 AI 작업`)).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: '상품 정렬' })).toHaveValue('추천순')
   })

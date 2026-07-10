@@ -31,6 +31,7 @@ vi.mock('../lib/storage', () => ({
     saveRequest: vi.fn().mockResolvedValue(undefined),
     updateRequest: vi.fn().mockResolvedValue(undefined),
     getRequestById: vi.fn().mockResolvedValue(null),
+    getCachedExpertProducts: vi.fn(() => mockExpertProducts),
     getExpertProducts: vi.fn(async () => mockExpertProducts),
 }))
 

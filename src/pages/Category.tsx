@@ -3,8 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import CategoryBrowsePanel from './CategoryBrowsePanel'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
-import { mockExpertProducts } from '../data/mockData'
-import { getExpertProducts } from '../lib/storage'
+import { getCachedExpertProducts, getExpertProducts } from '../lib/storage'
 import type { AiCategoryId, ExpertProduct } from '../types'
 import './CategoryHero.css'
 import './Category.css'
@@ -21,7 +20,8 @@ export default function Category() {
     const initialSelectedCategories = initialCategory && initialCategoryIds.includes(initialCategory)
         ? [initialCategory]
         : initialCategoryIds
-    const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts)
+    const [products, setProducts] = useState<ExpertProduct[]>(() => getCachedExpertProducts())
+    const [productsLoaded, setProductsLoaded] = useState(false)
     const [selectedCategories, setSelectedCategories] = useState<AiCategoryId[]>(initialSelectedCategories)
     const [searchKeyword, setSearchKeyword] = useState(queryKeyword)
     const [sortBy, setSortBy] = useState<SortOption>('추천순')
@@ -31,10 +31,11 @@ export default function Category() {
         let active = true
         getExpertProducts()
             .then((items) => {
-                if (active) setProducts(items.length ? items : mockExpertProducts)
+                if (active) setProducts(items)
             })
-            .catch(() => {
-                if (active) setProducts(mockExpertProducts)
+            .catch(() => undefined)
+            .finally(() => {
+                if (active) setProductsLoaded(true)
             })
         return () => {
             active = false
@@ -109,6 +110,7 @@ export default function Category() {
         : AI_CATEGORIES.filter((category) => selectedCategories.includes(category.id)).map((category) => category.name)
     const trimmedQueryKeyword = queryKeyword.trim()
     const heroTitle = trimmedQueryKeyword ? `'${trimmedQueryKeyword}'에 대한 검색결과` : 'AI 작업 찾기'
+    const isLoadingProducts = !productsLoaded && sortedProducts.length === 0
 
     return (
         <>
@@ -194,7 +196,12 @@ export default function Category() {
                             </select>
                         </div>
 
-                        {sortedProducts.length > 0 ? (
+                        {isLoadingProducts ? (
+                            <section className="empty-products" role="status">
+                                <h2>실제 상품을 불러오는 중입니다.</h2>
+                                <p>등록된 AI 작업 정보를 확인하고 있습니다.</p>
+                            </section>
+                        ) : sortedProducts.length > 0 ? (
                             <div className="product-grid">
                                 {sortedProducts.map((product) => (
                                     <ProductCard key={product.id} product={product} />

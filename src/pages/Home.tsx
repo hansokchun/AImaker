@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { mockExpertProducts } from '../data/mockData';
-import { getExpertProducts } from '../lib/storage';
+import { getCachedExpertProducts, getExpertProducts } from '../lib/storage';
 import type { ExpertProduct } from '../types';
 
 const productCategoryLabels: Record<ExpertProduct['category'], string> = {
@@ -79,9 +78,11 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
 
 export default function Home() {
     const navigate = useNavigate();
-    const [products, setProducts] = useState<ExpertProduct[]>(mockExpertProducts);
+    const [products, setProducts] = useState<ExpertProduct[]>(() => getCachedExpertProducts());
+    const [productsLoaded, setProductsLoaded] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
     const featuredProducts = products.slice(0, 4);
+    const isLoadingProducts = !productsLoaded && featuredProducts.length === 0;
 
     const openProductDetail = (productId: string) => {
         navigate(`/expert/${productId}`);
@@ -104,10 +105,11 @@ export default function Home() {
         let active = true;
         getExpertProducts()
             .then((items) => {
-                if (active) setProducts(items.length ? items : mockExpertProducts);
+                if (active) setProducts(items);
             })
-            .catch(() => {
-                if (active) setProducts(mockExpertProducts);
+            .catch(() => undefined)
+            .finally(() => {
+                if (active) setProductsLoaded(true);
             });
         return () => {
             active = false;
@@ -174,7 +176,17 @@ export default function Home() {
                         <Link to={ROUTES.CATEGORY}>전체 상품 보기</Link>
                     </div>
                     <div className="home-minimal-product-grid">
-                        {featuredProducts.map((product) => (
+                        {isLoadingProducts && (
+                            <div className="home-minimal-product-loading" role="status">
+                                실제 상품을 불러오는 중입니다.
+                            </div>
+                        )}
+                        {!isLoadingProducts && featuredProducts.length === 0 && (
+                            <div className="home-minimal-product-loading" role="status">
+                                등록된 상품이 없습니다.
+                            </div>
+                        )}
+                        {!isLoadingProducts && featuredProducts.map((product) => (
                             <article
                                 className="home-minimal-product"
                                 key={product.id}

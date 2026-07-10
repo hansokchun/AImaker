@@ -26,6 +26,7 @@ import { PLATFORM_FEE_RATE, calculateSettlementAmounts } from '../constants/sett
 import { mockExpertProducts } from '../data/mockData';
 import { buildDemoAccountData, isDemoAccountRecordId, isDemoTestAccountEmail } from '../data/demoAccountData';
 import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/policies';
+import { readCachedExpertProducts, writeCachedExpertProducts } from './expertProductCache';
 import { validateMarketplaceMessage } from './tradeSafety';
 import type { User } from '@supabase/supabase-js';
 import type { AdminReport, AdminReportSeverity, AdminReportTargetType } from './adminStorage';
@@ -1478,7 +1479,8 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
 
     if (error) {
         console.error('Supabase 상품 목록 로딩 실패:', error);
-        return demoRecordsOnly(localProducts);
+        const cachedProducts = readCachedExpertProducts();
+        return cachedProducts.length ? cachedProducts : demoRecordsOnly(localProducts);
     }
 
     const productRows = data || [];
@@ -1490,10 +1492,18 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
     const profileById = new Map<string, { name: string; imageUrl: string }>();
 
     if (expertIds.length > 0) {
-        const { data: profiles, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, name, display_name, avatar_url')
-            .in('id', expertIds);
+        const [basicProfileResult, expertProfileResult] = await Promise.all([
+            supabase
+                .from('profiles')
+                .select('id, name, display_name, avatar_url')
+                .in('id', expertIds),
+            supabase
+                .from('expert_profiles')
+                .select('user_id, name, image_url')
+                .in('user_id', expertIds),
+        ]);
+        const { data: profiles, error: profileError } = basicProfileResult;
+        const { data: expertProfiles, error: expertProfileError } = expertProfileResult;
 
         if (profileError) {
             console.error('Supabase 판매자 프로필 로딩 실패:', profileError);
@@ -1505,11 +1515,6 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
                 });
             }
         }
-
-        const { data: expertProfiles, error: expertProfileError } = await supabase
-            .from('expert_profiles')
-            .select('user_id, name, image_url')
-            .in('user_id', expertIds);
 
         if (expertProfileError) {
             console.error('Supabase 전문가 프로필 로딩 실패:', expertProfileError);
@@ -1552,8 +1557,12 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
         };
     }) as ExpertProduct[];
 
-    return mergeById(demoRecordsOnly(localProducts), supabaseProducts).sort(compareProductPlacement);
+    const mergedProducts = mergeById(demoRecordsOnly(localProducts), supabaseProducts).sort(compareProductPlacement);
+    writeCachedExpertProducts(mergedProducts);
+    return mergedProducts;
 }
+
+export const getCachedExpertProducts = readCachedExpertProducts;
 
 const compareProductPlacement = (first: ExpertProduct, second: ExpertProduct): number => {
     if (Boolean(first.isFeatured) !== Boolean(second.isFeatured)) return first.isFeatured ? -1 : 1;

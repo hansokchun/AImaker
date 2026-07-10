@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockExpertProducts } from '../data/mockData'
-import { getExpertProducts } from '../lib/storage'
+import { getCachedExpertProducts, getExpertProducts } from '../lib/storage'
 import Home from './Home'
 
 const mockUseAuth = vi.fn()
@@ -12,6 +12,7 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 
 vi.mock('../lib/storage', () => ({
+  getCachedExpertProducts: vi.fn(() => []),
   getExpertProducts: vi.fn(async () => mockExpertProducts),
 }))
 
@@ -22,6 +23,7 @@ function CurrentPath() {
 
 describe('Home', () => {
   beforeEach(() => {
+    vi.mocked(getCachedExpertProducts).mockReturnValue([])
     vi.mocked(getExpertProducts).mockResolvedValue(mockExpertProducts)
     mockUseAuth.mockReturnValue({ user: null })
   })
@@ -111,6 +113,19 @@ describe('Home', () => {
       'href',
       '/request/home-product-real-01',
     )
+  })
+
+  it('does not show default mock products while real products are loading', () => {
+    vi.mocked(getExpertProducts).mockReturnValue(new Promise(() => undefined))
+
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('status')).toHaveTextContent('실제 상품을 불러오는 중입니다.')
+    expect(screen.queryByRole('heading', { name: mockExpertProducts[0].title })).not.toBeInTheDocument()
   })
 
   it('opens the product detail when a home AI product card is clicked', async () => {
