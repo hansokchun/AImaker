@@ -1,4 +1,5 @@
 import type { ExpertProduct, ProductPackage } from '../types'
+import { isDemoAccountRecordId } from '../data/demoAccountData'
 
 const CACHE_KEY = 'ai_supabase_expert_products_cache'
 
@@ -22,6 +23,9 @@ const isPackageName = (value: unknown): value is ProductPackage['name'] =>
 
 const isStatus = (value: unknown): value is ExpertProduct['status'] =>
     value === 'draft' || value === 'published' || value === 'hidden'
+
+const isCacheableProduct = (product: ExpertProduct): boolean =>
+    product.status === 'published' && !isDemoAccountRecordId(product.id)
 
 const parsePackage = (value: unknown): ProductPackage | null => {
     if (value === null) return null
@@ -111,7 +115,7 @@ export const readCachedExpertProducts = (): ExpertProduct[] => {
         return parsed
             .map(parseProduct)
             .filter((product): product is ExpertProduct => Boolean(product))
-            .filter((product) => product.status === 'published')
+            .filter(isCacheableProduct)
     } catch (error) {
         if (error instanceof Error) console.warn('상품 캐시를 읽을 수 없습니다:', error.message)
         return []
@@ -120,7 +124,7 @@ export const readCachedExpertProducts = (): ExpertProduct[] => {
 
 export const writeCachedExpertProducts = (products: readonly ExpertProduct[]): void => {
     try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(products.filter((product) => product.status === 'published')))
+        localStorage.setItem(CACHE_KEY, JSON.stringify(products.filter(isCacheableProduct)))
     } catch (error) {
         if (error instanceof Error) console.warn('상품 캐시를 저장할 수 없습니다:', error.message)
     }

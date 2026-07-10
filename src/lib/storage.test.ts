@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AiServiceRequest, Deliverable, ExpertProduct, ExpertProfile, Proposal, Review, Work, WorkStep } from '../types'
 
 const futureIsoDate = (daysFromNow = 7) => {
@@ -42,7 +42,31 @@ const product: ExpertProduct = {
     status: 'published',
 }
 
+afterEach(() => {
+    localStorage.removeItem('ai_products')
+    localStorage.removeItem('ai_supabase_expert_products_cache')
+})
+
 describe('expert product storage', () => {
+    it('does not read or write demo products through the expert product cache', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        const demoProduct: ExpertProduct = {
+            ...product,
+            id: 'demo-product-cache-test',
+            title: '캐시되면 안 되는 데모 상품',
+        }
+        const { readCachedExpertProducts, writeCachedExpertProducts } = await import('./expertProductCache')
+
+        writeCachedExpertProducts([demoProduct, product])
+
+        expect(readCachedExpertProducts().map((item) => item.id)).toEqual([product.id])
+
+        localStorage.setItem('ai_supabase_expert_products_cache', JSON.stringify([demoProduct]))
+
+        expect(readCachedExpertProducts()).toEqual([])
+    })
+
     it('blocks local product saving for a restricted expert profile', async () => {
         vi.resetModules()
         vi.doMock('./supabase', () => ({ supabase: null }))
@@ -89,6 +113,12 @@ describe('expert product storage', () => {
 
     it('loads published expert products from Supabase', async () => {
         vi.resetModules()
+        const demoProduct: ExpertProduct = {
+            ...product,
+            id: 'demo-product-supabase-cache-test',
+            title: '캐시에 저장되면 안 되는 데모 상품',
+        }
+        localStorage.setItem('ai_products', JSON.stringify([demoProduct]))
         const order = vi.fn().mockResolvedValue({
             data: [
                 {
@@ -127,16 +157,22 @@ describe('expert product storage', () => {
 
         const { getExpertProducts } = await import('./storage')
 
-        await expect(getExpertProducts()).resolves.toEqual([
+        const loadedProducts = await getExpertProducts()
+
+        expect(loadedProducts).toEqual(expect.arrayContaining([
             expect.objectContaining({
                 ...product,
                 expertName: 'AI 전문가',
                 expertImageUrl: '',
             }),
-        ])
+            expect.objectContaining({ id: demoProduct.id }),
+        ]))
         expect(from).toHaveBeenCalledWith('expert_products')
         expect(select).toHaveBeenCalledWith('*')
         expect(eq).toHaveBeenCalledWith('status', 'published')
+        expect(JSON.parse(localStorage.getItem('ai_supabase_expert_products_cache') || '[]')).toEqual([
+            expect.objectContaining({ id: product.id }),
+        ])
     })
 
     it('adds seller profile names and avatars to Supabase product listings', async () => {

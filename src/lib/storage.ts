@@ -1558,7 +1558,7 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
     }) as ExpertProduct[];
 
     const mergedProducts = mergeById(demoRecordsOnly(localProducts), supabaseProducts).sort(compareProductPlacement);
-    writeCachedExpertProducts(mergedProducts);
+    writeCachedExpertProducts(supabaseProducts);
     return mergedProducts;
 }
 
