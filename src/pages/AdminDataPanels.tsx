@@ -232,6 +232,10 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
         <AdminTablePanel title="작업방 관리" copy="결제 이후 생성된 작업방, 정산 상태, 환불/분쟁 상태, 작업방 메시지를 확인합니다.">
             {snapshot.works.length === 0 ? <EmptyState label="작업방이 없습니다." /> : snapshot.works.map((work) => {
                 const canExecuteTossRefund = work.refundStatus === 'fee_excluded_refund_pending' && work.settlementStatus !== 'settled';
+                const canMarkSettlementSettled = work.settlementStatus === 'pending'
+                    && work.refundStatus !== 'fee_excluded_refund_pending'
+                    && work.refundStatus !== 'refunded'
+                    && work.disputeStatus !== 'open';
 
                 return (
                     <MessageCard
@@ -253,12 +257,18 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                             },
                             {
                                 label: '정산 완료 처리',
-                                onClick: () => onAction({
-                                    targetType: 'work',
-                                    targetId: work.id,
-                                    actionType: 'mark_settlement_settled',
-                                    reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
-                                }),
+                                disabled: !canMarkSettlementSettled,
+                                title: canMarkSettlementSettled ? undefined : '정산 대기 상태이며 환불/분쟁이 없는 작업만 정산 완료 처리할 수 있습니다.',
+                                onClick: () => {
+                                    const confirmed = window.confirm('실제 전문가 지급이 완료된 거래인가요? 정산 완료로 표시하면 환불 실행 대상에서 제외됩니다.');
+                                    if (!confirmed) return;
+                                    onAction({
+                                        targetType: 'work',
+                                        targetId: work.id,
+                                        actionType: 'mark_settlement_settled',
+                                        reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
+                                    });
+                                },
                             },
                             {
                                 label: '정산 보류',

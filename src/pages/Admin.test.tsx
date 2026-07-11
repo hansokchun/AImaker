@@ -232,6 +232,46 @@ describe('Admin', () => {
         }));
     });
 
+    it('executes settlement completion only after admin confirmation', async () => {
+        vi.mocked(getAdminSnapshot).mockResolvedValueOnce({
+            ...adminSnapshot,
+            works: adminSnapshot.works.map((work) => ({
+                ...work,
+                settlementStatus: 'pending',
+                refundStatus: undefined,
+                cancellationReason: undefined,
+                cancelledAt: undefined,
+            })),
+        });
+        await renderAdmin();
+
+        clickAdminTab(5);
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+        fireEvent.click(screen.getByRole('button', { name: '정산 완료 처리' }));
+        expect(saveAdminAction).not.toHaveBeenCalledWith(expect.objectContaining({
+            actionType: 'mark_settlement_settled',
+        }));
+
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+        fireEvent.click(screen.getByRole('button', { name: '정산 완료 처리' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-01',
+            actionType: 'mark_settlement_settled',
+            reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
+        }));
+    });
+
+    it('disables settlement completion for refund pending workrooms', async () => {
+        await renderAdmin();
+
+        clickAdminTab(5);
+
+        expect(screen.getByRole('button', { name: '정산 완료 처리' })).toBeDisabled();
+    });
+
     it('disables Toss refund execution until a work is marked refund pending', async () => {
         vi.mocked(getAdminSnapshot).mockResolvedValueOnce({
             ...adminSnapshot,
