@@ -22,6 +22,7 @@ const statusLabel = (status?: string): string => {
         draft: '임시저장',
         dismiss_report: '신고 기각',
         dismissed: '기각됨',
+        execute_toss_refund: '토스 환불 실행',
         featured: '상단 추천',
         feature_product: '상단 추천 지정',
         held: '보관 중',

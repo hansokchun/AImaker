@@ -274,6 +274,16 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                             }),
                         },
                         {
+                            label: '토스 환불 실행',
+                            className: 'admin-danger-action',
+                            onClick: () => onAction({
+                                targetType: 'work',
+                                targetId: work.id,
+                                actionType: 'execute_toss_refund',
+                                reason: '관리자가 토스페이먼츠 결제 취소를 실행했습니다.',
+                            }),
+                        },
+                        {
                             label: work.disputeStatus === 'open' ? '분쟁 해결' : '분쟁 열기',
                             onClick: () => onAction({
                                 targetType: 'work',

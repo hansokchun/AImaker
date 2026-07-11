@@ -4,6 +4,9 @@ verify_jwt = true
 [functions.toss-payment-confirm]
 verify_jwt = true
 
+[functions.toss-payment-cancel]
+verify_jwt = true
+
 [functions.toss-payment-fail]
 verify_jwt = true
 

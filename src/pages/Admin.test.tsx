@@ -186,6 +186,7 @@ describe('Admin', () => {
         fireEvent.click(screen.getByRole('button', { name: '정산 대기 처리' }));
         fireEvent.click(screen.getByRole('button', { name: '분쟁 열기' }));
         fireEvent.click(screen.getByRole('button', { name: '환불 대기 처리' }));
+        fireEvent.click(screen.getByRole('button', { name: '토스 환불 실행' }));
 
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
             adminId: 'user-admin-01',
@@ -207,6 +208,13 @@ describe('Admin', () => {
             targetId: 'work-admin-01',
             actionType: 'mark_refund_pending',
             reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
+        }));
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-01',
+            actionType: 'execute_toss_refund',
+            reason: '관리자가 토스페이먼츠 결제 취소를 실행했습니다.',
         }));
     });
 

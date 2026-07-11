@@ -179,6 +179,9 @@ function applyWorkAction(work: AdminSnapshot['works'][number], action: AdminActi
     }
     if (action.actionType === 'hold_settlement') return { ...work, settlementStatus: 'pending', settlementHoldReason: action.reason };
     if (action.actionType === 'mark_refund_pending') return { ...work, settlementStatus: 'refunded', refundStatus: 'fee_excluded_refund_pending' };
+    if (action.actionType === 'execute_toss_refund') {
+        return { ...work, settlementStatus: 'refunded', refundStatus: 'refunded', cancelledAt: action.createdAt };
+    }
     if (action.actionType === 'open_dispute') return { ...work, disputeStatus: 'open' };
     if (action.actionType === 'resolve_dispute') return { ...work, disputeStatus: 'resolved' };
     return work;

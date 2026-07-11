@@ -179,6 +179,14 @@ const applyLocalAdminAction = (action: AdminAction): void => {
             refundStatus: 'fee_excluded_refund_pending',
         }));
     }
+    if (action.actionType === 'execute_toss_refund' && action.targetType === 'work') {
+        updateLocalWork(action.targetId, (work) => ({
+            ...work,
+            settlementStatus: 'refunded',
+            refundStatus: 'refunded',
+            cancelledAt: action.createdAt,
+        }));
+    }
     if (action.actionType === 'open_dispute' && action.targetType === 'work') {
         updateLocalWork(action.targetId, (work) => ({ ...work, disputeStatus: 'open' }));
     }
@@ -334,6 +342,16 @@ const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> =
         return !error;
     }
 
+    if (action.targetType === 'work' && action.actionType === 'execute_toss_refund') {
+        const { error } = await supabase.functions.invoke('toss-payment-cancel', {
+            body: {
+                workId: action.targetId,
+                reason: action.reason,
+            },
+        });
+        return !error;
+    }
+
     if (action.targetType === 'work' && (action.actionType === 'open_dispute' || action.actionType === 'resolve_dispute')) {
         const { error } = await supabase
             .from('works')
@@ -383,5 +401,9 @@ export const applyAdminActionEffect = async (action: AdminAction): Promise<void>
     }
 
     const applied = await applySupabaseAdminAction(action);
-    if (!applied) applyLocalAdminAction(action);
+    if (applied) return;
+    if (action.actionType === 'execute_toss_refund') {
+        throw new Error('토스 환불 실행에 실패했습니다.');
+    }
+    applyLocalAdminAction(action);
 };

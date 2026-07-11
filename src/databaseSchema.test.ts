@@ -97,6 +97,7 @@ describe('database.sql', () => {
         expect(sql).toMatch(/mark_settlement_pending/i)
         expect(sql).toMatch(/mark_settlement_settled/i)
         expect(sql).toMatch(/mark_refund_pending/i)
+        expect(sql).toMatch(/execute_toss_refund/i)
         expect(sql).toMatch(/open_dispute/i)
         expect(sql).toMatch(/resolve_dispute/i)
         expect(sql).toMatch(/create policy "Admins can update reviews"/i)
@@ -196,9 +197,11 @@ describe('database.sql', () => {
         expect(sql).toMatch(/platform_fee_rate numeric\(5,4\) not null default 0/i)
         expect(sql).toMatch(/platform_fee integer not null default 0/i)
         expect(sql).toMatch(/expert_payout integer not null default 0/i)
-        expect(sql).toMatch(/status text not null default 'ready' check \(status in \('ready', 'approved', 'failed'\)\)/i)
+        expect(sql).toMatch(/status text not null default 'ready' check \(status in \('ready', 'approved', 'failed', 'refunded'\)\)/i)
         expect(sql).toMatch(/payment_key text/i)
         expect(sql).toMatch(/approved_at timestamptz/i)
+        expect(sql).toMatch(/cancel_reason text/i)
+        expect(sql).toMatch(/cancelled_at timestamptz/i)
 
         const policyMatch = sql.match(/create policy "Clients can view own payment orders"[\s\S]*?;/i)
         const policySql = policyMatch?.[0] || ''

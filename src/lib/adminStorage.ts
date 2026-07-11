@@ -88,6 +88,7 @@ export type AdminActionType =
     | 'mark_settlement_settled'
     | 'hold_settlement'
     | 'mark_refund_pending'
+    | 'execute_toss_refund'
     | 'open_dispute'
     | 'resolve_dispute'
     | 'close_consultation'

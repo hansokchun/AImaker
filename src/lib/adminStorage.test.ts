@@ -215,10 +215,17 @@ describe('adminStorage', () => {
             actionType: 'mark_refund_pending',
             reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
         });
+        await saveAdminAction({
+            adminId: 'admin-user-01',
+            targetType: 'work',
+            targetId: work.id,
+            actionType: 'execute_toss_refund',
+            reason: '관리자가 토스페이먼츠 결제 취소를 실행했습니다.',
+        });
 
         const storedWorks = JSON.parse(localStorage.getItem('ai_works') || '[]') as Work[];
         expect(storedWorks[0]?.settlementStatus).toBe('refunded');
-        expect(storedWorks[0]?.refundStatus).toBe('fee_excluded_refund_pending');
+        expect(storedWorks[0]?.refundStatus).toBe('refunded');
         expect(storedWorks[0]?.disputeStatus).toBe('open');
     });
 

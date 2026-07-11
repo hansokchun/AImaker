@@ -408,14 +408,19 @@ create table if not exists public.payment_orders (
   platform_fee integer not null default 0 check (platform_fee >= 0),
   expert_payout integer not null default 0 check (expert_payout >= 0),
   payment_key text,
-  status text not null default 'ready' check (status in ('ready', 'approved', 'failed')),
+  status text not null default 'ready' check (status in ('ready', 'approved', 'failed', 'refunded')),
   failure_code text,
   failure_message text,
   approved_at timestamptz,
+  cancel_reason text,
+  cancelled_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table public.payment_orders drop constraint if exists payment_orders_status_check;
+alter table public.payment_orders
+  add constraint payment_orders_status_check check (status in ('ready', 'approved', 'failed', 'refunded'));
 alter table public.payment_orders add column if not exists payment_key text;
 alter table public.payment_orders add column if not exists platform_fee_rate numeric(5,4) not null default 0;
 alter table public.payment_orders add column if not exists platform_fee integer not null default 0;
@@ -423,6 +428,8 @@ alter table public.payment_orders add column if not exists expert_payout integer
 alter table public.payment_orders add column if not exists failure_code text;
 alter table public.payment_orders add column if not exists failure_message text;
 alter table public.payment_orders add column if not exists approved_at timestamptz;
+alter table public.payment_orders add column if not exists cancel_reason text;
+alter table public.payment_orders add column if not exists cancelled_at timestamptz;
 
 alter table public.payment_orders enable row level security;
 
@@ -741,7 +748,7 @@ create table if not exists public.admin_actions (
   admin_id uuid references public.profiles(id) on delete set null,
   target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review', 'report')),
   target_id text not null,
-  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'hide_review', 'restore_review', 'mark_settlement_pending', 'mark_settlement_settled', 'hold_settlement', 'mark_refund_pending', 'open_dispute', 'resolve_dispute', 'close_consultation', 'cancel_trade')),
+  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'hide_review', 'restore_review', 'mark_settlement_pending', 'mark_settlement_settled', 'hold_settlement', 'mark_refund_pending', 'execute_toss_refund', 'open_dispute', 'resolve_dispute', 'close_consultation', 'cancel_trade')),
   reason text not null,
   created_at timestamptz not null default now()
 );
