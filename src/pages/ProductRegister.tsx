@@ -43,10 +43,12 @@ const packageNames: Record<PackageTier, ProductPackage['name']> = {
     premium: 'Premium',
 }
 
-const productStatusLabels: Record<ExpertProduct['status'], string> = {
+type PublishableProductStatus = Exclude<ExpertProduct['status'], 'draft'>
+type ProductSaveStatus = ExpertProduct['status']
+
+const productStatusLabels: Record<PublishableProductStatus, string> = {
     published: '공개',
     hidden: '숨김',
-    draft: '임시저장',
 }
 
 export default function ProductRegister() {
@@ -60,7 +62,7 @@ export default function ProductRegister() {
     const [summary, setSummary] = useState('')
     const [description, setDescription] = useState('')
     const [taxInvoiceAvailable, setTaxInvoiceAvailable] = useState(false)
-    const [productStatus, setProductStatus] = useState<ExpertProduct['status']>('published')
+    const [productStatus, setProductStatus] = useState<PublishableProductStatus>('published')
     const [usePackagePricing, setUsePackagePricing] = useState(false)
     const [basePackage, setBasePackage] = useState<PackageFormState>(createPackageState)
     const [packages, setPackages] = useState<Record<PackageTier, PackageFormState>>({
@@ -88,7 +90,7 @@ export default function ProductRegister() {
         if (!productId || !user) return
 
         let active = true
-        getExpertProducts()
+        getExpertProducts({ includeOwned: true })
             .then((products) => {
                 if (!active) return
                 const targetProduct = products.find((item) => item.id === productId) || null
@@ -107,7 +109,7 @@ export default function ProductRegister() {
                 setSummary(targetProduct.summary)
                 setDescription(targetProduct.description)
                 setTaxInvoiceAvailable(Boolean(targetProduct.taxInvoiceAvailable))
-                setProductStatus(targetProduct.status)
+                setProductStatus(targetProduct.status === 'hidden' ? 'hidden' : 'published')
                 setExistingThumbnailDataUrl(targetProduct.sampleImageUrl || '')
                 setExistingReferenceDataUrls(targetProduct.sampleLinks || [])
 
@@ -183,21 +185,57 @@ export default function ProductRegister() {
         })
     }
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault()
+    const createDraftPackage = (tier: PackageTier, form: PackageFormState): ProductPackage => {
+        const price = Number(form.price)
+        const deliveryDays = Number(form.deliveryDays)
+        const revisionCount = Number(form.revisionCount)
+        const included = parseLineList(form.included)
+
+        return attachOptionValuesToPackage({
+            name: packageNames[tier],
+            price: Number.isFinite(price) && price >= 0 ? price : 0,
+            deliveryDays: Number.isFinite(deliveryDays) && deliveryDays > 0 ? deliveryDays : 1,
+            revisionCount: Number.isFinite(revisionCount) && revisionCount >= 0 ? revisionCount : 0,
+            included: included.length > 0 ? included : ['임시저장'],
+        })
+    }
+
+    const getProductPackages = (status: ProductSaveStatus) => {
+        if (status === 'draft') {
+            const draftStandardPackage = createDraftPackage('standard', usePackagePricing ? packages.standard : basePackage)
+            return {
+                standardPackage: draftStandardPackage,
+                deluxePackage: usePackagePricing ? createDraftPackage('deluxe', packages.deluxe) : null,
+                premiumPackage: usePackagePricing ? createDraftPackage('premium', packages.premium) : null,
+            }
+        }
+
+        if (usePackagePricing) {
+            return {
+                standardPackage: parsePackage('standard', packages.standard),
+                deluxePackage: parsePackage('deluxe', packages.deluxe),
+                premiumPackage: parsePackage('premium', packages.premium),
+            }
+        }
+
+        return {
+            standardPackage: parsePackage('standard', basePackage),
+            deluxePackage: null,
+            premiumPackage: null,
+        }
+    }
+
+    const saveProductWithStatus = async (status: ProductSaveStatus) => {
         if (!user) return
 
         let standardPackage: ProductPackage
         let deluxePackage: ProductPackage | null = null
         let premiumPackage: ProductPackage | null = null
         try {
-            if (usePackagePricing) {
-                standardPackage = parsePackage('standard', packages.standard)
-                deluxePackage = parsePackage('deluxe', packages.deluxe)
-                premiumPackage = parsePackage('premium', packages.premium)
-            } else {
-                standardPackage = parsePackage('standard', basePackage)
-            }
+            const nextPackages = getProductPackages(status)
+            standardPackage = nextPackages.standardPackage
+            deluxePackage = nextPackages.deluxePackage
+            premiumPackage = nextPackages.premiumPackage
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : '가격 정보를 확인해 주세요.')
             return
@@ -216,10 +254,10 @@ export default function ProductRegister() {
                 id: nextProductId,
                 expertId: user.id,
                 expertName: user.email || '전문가',
-                title: title.trim(),
+                title: title.trim() || '임시저장 상품',
                 category,
-                summary: summary.trim(),
-                description: description.trim(),
+                summary: summary.trim() || '임시저장 중입니다.',
+                description: description.trim() || '임시저장 중입니다.',
                 sampleLinks: nextReferenceDataUrls,
                 sampleImageUrl: thumbnailDataUrl,
                 startingPrice: standardPackage.price,
@@ -231,17 +269,26 @@ export default function ProductRegister() {
                     deluxe: deluxePackage,
                     premium: premiumPackage,
                 },
-                status: productStatus,
+                status,
             }
 
             await saveExpertProduct(product)
-            navigate(`/expert/${nextProductId}`)
+            navigate(status === 'draft' ? `${ROUTES.WORK_DASHBOARD}?role=expert&panel=products` : `/expert/${nextProductId}`)
         } catch (error) {
             console.error('상품 등록 실패:', error)
             setErrorMessage(error instanceof Error ? error.message : '상품을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.')
         } finally {
             setSubmitting(false)
         }
+    }
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        await saveProductWithStatus(productStatus)
+    }
+
+    const handleSaveDraft = async () => {
+        await saveProductWithStatus('draft')
     }
 
     const handleDeleteProduct = async () => {
@@ -445,7 +492,12 @@ export default function ProductRegister() {
                                 <select
                                     className="product-register-input"
                                     value={productStatus}
-                                    onChange={(event) => setProductStatus(event.target.value as ExpertProduct['status'])}
+                                    onChange={(event) => {
+                                        const nextStatus = event.target.value
+                                        if (nextStatus === 'published' || nextStatus === 'hidden') {
+                                            setProductStatus(nextStatus)
+                                        }
+                                    }}
                                 >
                                     {Object.entries(productStatusLabels).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -457,6 +509,9 @@ export default function ProductRegister() {
                     {errorMessage && <p className="product-register-error" role="alert">{errorMessage}</p>}
 
                     <div className="product-register-actions">
+                        <button type="button" className="btn-secondary product-register-draft" onClick={handleSaveDraft} disabled={submitting}>
+                            {submitting ? '저장 중' : '임시저장'}
+                        </button>
                         <button type="submit" className="btn-primary product-register-submit" disabled={submitting}>
                             {submitting ? (productId ? '수정 중' : '등록 중') : (productId ? '수정 저장하기' : '등록하기')}
                         </button>

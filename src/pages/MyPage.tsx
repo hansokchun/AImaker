@@ -368,7 +368,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             console.error('상담 목록 로딩 오류:', error)
             setConsultations([])
         })
-        getExpertProducts().then(setProducts).catch((error) => {
+        getExpertProducts({ includeOwned: true }).then(setProducts).catch((error) => {
             console.error('상품 목록 로딩 오류:', error)
             setProducts([])
         })
@@ -476,6 +476,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const clientConsultations = consultations.filter((consultation) => consultation.clientId === user?.id)
     const expertConsultations = consultations.filter((consultation) => consultation.expertId === user?.id)
     const myProducts = products.filter((product) => product.expertId === user?.id)
+    const activeProducts = myProducts.filter((product) => product.status !== 'draft')
+    const draftProducts = myProducts.filter((product) => product.status === 'draft')
     const favoriteProducts = favoriteProductIds
         .map((productId) => products.find((product) => product.id === productId))
         .filter((product): product is ExpertProduct => Boolean(product))
@@ -2352,9 +2354,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             </div>
 
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem' }}>내가 올린 상품</h3>
-            {myProducts.length > 0 ? (
+            {activeProducts.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                    {myProducts.map((product) => (
+                    {activeProducts.map((product) => (
                         <Link
                             key={product.id}
                             to={`/expert/${product.id}`}
@@ -2395,6 +2397,53 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             ) : (
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>아직 등록한 상품이 없습니다.</p>
             )}
+
+            <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem' }}>임시저장 상품</h3>
+                {draftProducts.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                        {draftProducts.map((product) => (
+                            <Link
+                                key={product.id}
+                                to={`/products/${product.id}/edit`}
+                                state={myPageReturnState}
+                                style={{
+                                    display: 'grid',
+                                    gap: '0.75rem',
+                                    padding: '0.85rem',
+                                    borderRadius: '0.85rem',
+                                    border: '1px dashed var(--border-color)',
+                                    background: '#fff',
+                                    color: '#0f172a',
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                <div style={{ overflow: 'hidden', borderRadius: '0.7rem', background: '#e2e8f0', aspectRatio: '4 / 3' }}>
+                                    {product.sampleImageUrl ? (
+                                        <img
+                                            src={product.sampleImageUrl}
+                                            alt={`${product.title} 썸네일`}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                        />
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#64748b', fontWeight: 800 }}>
+                                            이미지 없음
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <strong style={{ display: 'block', marginBottom: '0.35rem', lineHeight: 1.35 }}>{product.title}</strong>
+                                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                        작성 이어가기
+                                    </span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>임시저장한 상품이 없습니다.</p>
+                )}
+            </div>
         </section>
     )
 

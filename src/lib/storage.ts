@@ -1512,12 +1512,12 @@ export async function deleteExpertProduct(productId: string): Promise<void> {
     }
 }
 
-export async function getExpertProducts(): Promise<ExpertProduct[]> {
+export async function getExpertProducts(options: { includeOwned?: boolean } = {}): Promise<ExpertProduct[]> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         const stored = raw ? (JSON.parse(raw) as ExpertProduct[]) : [];
         const products = (stored.length ? stored : mockExpertProducts)
-            .filter((product) => product.status === 'published')
+            .filter((product) => options.includeOwned || product.status === 'published')
             .sort(compareProductPlacement);
         return Promise.all(products.map(async (product) => {
             if (product.expertImageUrl) return product;
@@ -1534,11 +1534,14 @@ export async function getExpertProducts(): Promise<ExpertProduct[]> {
     }
 
     const localProducts = readLocalArray<ExpertProduct>(STORAGE_KEYS.PRODUCTS);
-    const { data, error } = await supabase
+    let productQuery = supabase
         .from('expert_products')
         .select('*')
-        .eq('status', 'published')
         .order('created_at', { ascending: false });
+    if (!options.includeOwned) {
+        productQuery = productQuery.eq('status', 'published');
+    }
+    const { data, error } = await productQuery;
 
     if (error) {
         console.error('Supabase 상품 목록 로딩 실패:', error);

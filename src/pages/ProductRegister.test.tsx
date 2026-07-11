@@ -51,7 +51,7 @@ vi.mock('../lib/storage', () => ({
 
 function LocationProbe() {
     const location = useLocation()
-    return <span data-testid="location">{location.pathname}</span>
+    return <span data-testid="location">{location.pathname}{location.search}</span>
 }
 
 function renderRegister() {
@@ -60,6 +60,7 @@ function renderRegister() {
             <Routes>
                 <Route path="/products/new" element={<><ProductRegister /><LocationProbe /></>} />
                 <Route path="/expert/:id" element={<LocationProbe />} />
+                <Route path="/my-work" element={<LocationProbe />} />
             </Routes>
         </MemoryRouter>,
     )
@@ -183,6 +184,38 @@ describe('ProductRegister', () => {
             ),
         )
         await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(new RegExp(`^/expert/${uuidPattern.source.slice(1, -1)}$`, 'i')))
+    })
+
+    it('saves an incomplete product as a draft without exposing draft in visibility options', async () => {
+        renderRegister()
+
+        const statusSelects = screen.getAllByRole('combobox')
+        const statusSelect = statusSelects[statusSelects.length - 1]
+        if (!statusSelect) throw new Error('공개 상태 선택 상자를 찾을 수 없습니다.')
+        expect(within(statusSelect).getByRole('option', { name: '공개' })).toBeInTheDocument()
+        expect(within(statusSelect).getByRole('option', { name: '숨김' })).toBeInTheDocument()
+        expect(within(statusSelect).queryByRole('option', { name: '임시저장' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '임시저장' }))
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    title: '임시저장 상품',
+                    summary: '임시저장 중입니다.',
+                    description: '임시저장 중입니다.',
+                    status: 'draft',
+                    startingPrice: 0,
+                    deliveryDays: 1,
+                    packages: expect.objectContaining({
+                        standard: expect.objectContaining({
+                            included: ['임시저장'],
+                        }),
+                    }),
+                }),
+            ),
+        )
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work?role=expert&panel=products'))
     })
 
     it('saves product tax invoice and visibility status without product-level AI tools', async () => {

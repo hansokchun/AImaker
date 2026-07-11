@@ -133,6 +133,33 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
     {
+        id: 'product-owned-draft-01',
+        expertId: 'user-demo-01',
+        expertName: 'Demo expert',
+        title: 'Draft AI product',
+        category: 'ai-video-shortform',
+        summary: 'Draft summary',
+        description: 'Draft description',
+        aiTools: ['Runway'],
+        sampleLinks: [],
+        sampleImageUrl: '',
+        startingPrice: 0,
+        deliveryDays: 1,
+        revisionCount: 0,
+        packages: {
+            standard: {
+                name: 'Standard',
+                price: 0,
+                deliveryDays: 1,
+                revisionCount: 0,
+                included: ['임시저장'],
+            },
+            deluxe: null,
+            premium: null,
+        },
+        status: 'draft',
+    },
+    {
         id: 'product-client-01',
         expertId: 'expert-real-01',
         expertName: 'Client order expert',
@@ -2485,6 +2512,8 @@ describe('MyPage', () => {
         expect(screen.getByRole('heading', { name: '내 상품관리' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: '상품 등록하기' })).toHaveAttribute('href', '/products/new')
         expect(screen.getByRole('link', { name: /Owned AI product/ })).toHaveAttribute('href', '/expert/product-owned-01')
+        expect(screen.getByRole('heading', { name: '임시저장 상품' })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: /Draft AI product/ })).toHaveAttribute('href', '/products/product-owned-draft-01/edit')
         expect(screen.queryByText('Other AI product')).not.toBeInTheDocument()
         expect(screen.queryByLabelText('상품명')).not.toBeInTheDocument()
         expect(saveExpertProduct).not.toHaveBeenCalled()

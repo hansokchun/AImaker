@@ -433,9 +433,12 @@
 
 .product-register-actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
     justify-content: flex-start;
 }
 
+.product-register-draft,
 .product-register-submit {
     min-height: 48px;
     padding: 0 1.25rem;
@@ -443,6 +446,7 @@
     font-weight: 850;
 }
 
+.product-register-draft:disabled,
 .product-register-submit:disabled {
     cursor: progress;
     opacity: 0.72;
