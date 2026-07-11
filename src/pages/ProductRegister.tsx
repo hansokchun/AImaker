@@ -185,6 +185,13 @@ export default function ProductRegister() {
         })
     }
 
+    const isPackageFormEmpty = (form: PackageFormState) =>
+        !form.price.trim() && !form.deliveryDays.trim() && !form.revisionCount.trim() && parseLineList(form.included).length === 0
+
+    const parseOptionalPremiumPackage = (form: PackageFormState): ProductPackage | null => (
+        isPackageFormEmpty(form) ? null : parsePackage('premium', form)
+    )
+
     const createDraftPackage = (tier: PackageTier, form: PackageFormState): ProductPackage => {
         const price = Number(form.price)
         const deliveryDays = Number(form.deliveryDays)
@@ -206,7 +213,7 @@ export default function ProductRegister() {
             return {
                 standardPackage: draftStandardPackage,
                 deluxePackage: usePackagePricing ? createDraftPackage('deluxe', packages.deluxe) : null,
-                premiumPackage: usePackagePricing ? createDraftPackage('premium', packages.premium) : null,
+                premiumPackage: usePackagePricing && !isPackageFormEmpty(packages.premium) ? createDraftPackage('premium', packages.premium) : null,
             }
         }
 
@@ -214,7 +221,7 @@ export default function ProductRegister() {
             return {
                 standardPackage: parsePackage('standard', packages.standard),
                 deluxePackage: parsePackage('deluxe', packages.deluxe),
-                premiumPackage: parsePackage('premium', packages.premium),
+                premiumPackage: parseOptionalPremiumPackage(packages.premium),
             }
         }
 
@@ -465,7 +472,7 @@ export default function ProductRegister() {
                             <div className="product-register-stack">
                                 <PackageFields tier="standard" state={packages.standard} onChange={updatePackage} />
                                 <PackageFields tier="deluxe" state={packages.deluxe} onChange={updatePackage} />
-                                <PackageFields tier="premium" state={packages.premium} onChange={updatePackage} />
+                                <PackageFields tier="premium" state={packages.premium} onChange={updatePackage} optional />
                                 <PackageOptionPreview packages={packages} />
                             </div>
                         ) : (
@@ -570,10 +577,12 @@ function PackageFields({
     tier,
     state,
     onChange,
+    optional = false,
 }: {
     tier: PackageTier
     state: PackageFormState
     onChange: (tier: PackageTier, updates: Partial<PackageFormState>) => void
+    optional?: boolean
 }) {
     const name = packageNames[tier]
 
@@ -582,17 +591,17 @@ function PackageFields({
             <legend>{name}</legend>
             <div className="product-register-three-column">
                 <Field label="가격">
-                    <input className="product-register-input" type="number" min="1" value={state.price} onChange={(event) => onChange(tier, { price: event.target.value })} required />
+                    <input className="product-register-input" type="number" min="1" value={state.price} onChange={(event) => onChange(tier, { price: event.target.value })} required={!optional} />
                 </Field>
                 <Field label="작업일">
-                    <input className="product-register-input" type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange(tier, { deliveryDays: event.target.value })} required />
+                    <input className="product-register-input" type="number" min="1" value={state.deliveryDays} onChange={(event) => onChange(tier, { deliveryDays: event.target.value })} required={!optional} />
                 </Field>
                 <Field label="수정 횟수">
-                    <input className="product-register-input" type="number" min="0" value={state.revisionCount} onChange={(event) => onChange(tier, { revisionCount: event.target.value })} required />
+                    <input className="product-register-input" type="number" min="0" value={state.revisionCount} onChange={(event) => onChange(tier, { revisionCount: event.target.value })} required={!optional} />
                 </Field>
             </div>
             <Field label="포함 항목">
-                <textarea className="product-register-input product-register-textarea" value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required rows={3} placeholder="한 줄에 하나씩 입력" />
+                <textarea className="product-register-input product-register-textarea" value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required={!optional} rows={3} placeholder="한 줄에 하나씩 입력" />
             </Field>
         </fieldset>
     )

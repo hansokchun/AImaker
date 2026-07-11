@@ -284,6 +284,41 @@ describe('ProductRegister', () => {
         expect(within(preview).getAllByText('포함').length).toBeGreaterThan(0)
     })
 
+    it('allows Premium package fields to stay empty when package pricing is enabled', async () => {
+        renderRegister()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: 'AI 숏폼 영상 패키지' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '패키지형 숏폼 영상 제작 서비스입니다.' } })
+        fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: 'Standard와 Deluxe만 운영하고 Premium은 나중에 추가합니다.' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '패키지 가격 사용' }))
+
+        const standard = screen.getByTestId('package-standard')
+        const deluxe = screen.getByTestId('package-deluxe')
+
+        fireEvent.change(within(standard).getByLabelText('가격'), { target: { value: '30000' } })
+        fireEvent.change(within(standard).getByLabelText('작업일'), { target: { value: '2' } })
+        fireEvent.change(within(standard).getByLabelText('수정 횟수'), { target: { value: '1' } })
+        fireEvent.change(within(standard).getByLabelText('포함 항목'), { target: { value: '15초 영상 1개' } })
+        fireEvent.change(within(deluxe).getByLabelText('가격'), { target: { value: '50000' } })
+        fireEvent.change(within(deluxe).getByLabelText('작업일'), { target: { value: '3' } })
+        fireEvent.change(within(deluxe).getByLabelText('수정 횟수'), { target: { value: '2' } })
+        fireEvent.change(within(deluxe).getByLabelText('포함 항목'), { target: { value: '15초 영상 2개\n썸네일 제작' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    packages: expect.objectContaining({
+                        standard: expect.objectContaining({ price: 30000 }),
+                        deluxe: expect.objectContaining({ price: 50000 }),
+                        premium: null,
+                    }),
+                }),
+            ),
+        )
+    })
+
     it('blocks main images below the Kmong pixel size before publishing', async () => {
         renderRegister()
 
