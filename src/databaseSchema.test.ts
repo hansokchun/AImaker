@@ -3,6 +3,10 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const sql = readFileSync(join(process.cwd(), 'database.sql'), 'utf8')
+const launchVerificationMigrationSql = readFileSync(
+    join(process.cwd(), 'supabase', 'migrations', '20260617084516_add_launch_verification_fields.sql'),
+    'utf8',
+)
 
 describe('database.sql', () => {
     it('defines the transaction tables from SupabasePlan', () => {
@@ -212,6 +216,12 @@ describe('database.sql', () => {
         expect(sql).toMatch(/account_status text not null default 'active'/i)
         expect(sql).toMatch(/is_featured boolean not null default false/i)
         expect(sql).toMatch(/display_order integer not null default 0/i)
+    })
+
+    it('migrates product placement fields used when saving products', () => {
+        expect(launchVerificationMigrationSql).toMatch(/add column if not exists tax_invoice_available boolean not null default false/i)
+        expect(launchVerificationMigrationSql).toMatch(/add column if not exists is_featured boolean not null default false/i)
+        expect(launchVerificationMigrationSql).toMatch(/add column if not exists display_order integer not null default 0/i)
     })
 
     it('blocks restricted experts from saving products', () => {
