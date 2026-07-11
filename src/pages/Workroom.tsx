@@ -5,12 +5,16 @@ import { useAuth } from '../contexts/AuthContext'
 import { PageLoading } from '../components/PageLoading'
 import type { Deliverable, Work, WorkMessage, WorkStep } from '../types'
 import {
+    acceptWorkCancellation,
     approveWorkDeliverable,
-    cancelWork,
+    getAutoPurchaseConfirmAt,
+    getCancellationAutoCancelAt,
     getStoredProfile,
     getUserDisplayProfile,
     getWorkMessages,
     getWorkroomData,
+    requestSettlementWithdrawal,
+    requestWorkCancellation,
     requestWorkRevision,
     saveDeliverable,
     saveWorkMessage,
@@ -86,6 +90,11 @@ const deliverableStatusIcons: Record<Deliverable['status'], string> = {
 }
 
 const currency = new Intl.NumberFormat('ko-KR')
+const autoConfirmDateFormat = new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+})
 
 const settlementStatusText: Record<NonNullable<Work['settlementStatus']>, string> = {
     held: '작업 진행 중 보관',
@@ -196,8 +205,19 @@ export default function Workroom() {
     const isClientParticipant = user?.id === work.clientId
     const isExpertParticipant = user?.id === work.expertId
     const isClosedWork = work.status === 'completed' || work.status === 'cancelled'
-    const canSubmitDeliverable = isExpertParticipant && !isClosedWork
-    const canReviewDeliverable = isClientParticipant && !isClosedWork
+    const isCancellationPending = Boolean(work.cancellationRequestedAt && work.cancellationRequestedBy)
+    const isFrozenWork = work.disputeStatus === 'open' || isCancellationPending
+    const canSubmitDeliverable = isExpertParticipant && !isClosedWork && !isFrozenWork
+    const canReviewDeliverable = isClientParticipant && !isClosedWork && !isFrozenWork
+    const cancellationRequestedByMe = Boolean(user?.id && work.cancellationRequestedBy === user.id)
+    const cancellationAutoCancelDateText = work.cancellationRequestedAt
+        ? autoConfirmDateFormat.format(new Date(getCancellationAutoCancelAt(work.cancellationRequestedAt)))
+        : ''
+    const canRequestSettlement = isExpertParticipant
+        && work.status === 'completed'
+        && work.settlementStatus === 'pending'
+        && !work.settlementRequestedAt
+        && !work.settlementHoldReason
     const revisionLimit = work.revisionLimit ?? 0
     const revisionUsed = work.revisionUsed ?? 0
     const hasRevisionLimit = revisionLimit > 0
@@ -212,6 +232,12 @@ export default function Workroom() {
     const workDashboardSelectedKey = isExpertParticipant ? 'expertRequest' : 'clientOrder'
     const workDashboardTo = `${ROUTES.WORK_DASHBOARD}?role=${workDashboardRole}&panel=client&${workDashboardSelectedKey}=${work.requestId}`
     const activeDeliverableUrl = normalizeSafeExternalUrl(activeDeliverable?.externalUrl)
+    const autoPurchaseConfirmAt = activeDeliverable?.status === 'submitted'
+        ? activeDeliverable.autoPurchaseConfirmAt || getAutoPurchaseConfirmAt(activeDeliverable.submittedAt)
+        : ''
+    const autoPurchaseConfirmText = autoPurchaseConfirmAt
+        ? `응답이 없으면 ${autoConfirmDateFormat.format(new Date(autoPurchaseConfirmAt))} 자동 구매확정됩니다.`
+        : ''
 
     useEffect(() => {
         let active = true
@@ -364,19 +390,51 @@ export default function Workroom() {
     }
 
     const handleCancelWork = async () => {
-        if (isClosedWork) return
+        if (isClosedWork || work.disputeStatus === 'open') return
+        if (!user?.id) {
+            setStatusMessage('로그인 후 거래 취소를 요청할 수 있습니다.')
+            return
+        }
         const cancellationReason: NonNullable<Work['cancellationReason']> = activeDeliverable
             ? 'mutual_after_start'
             : 'before_start'
-        await cancelWork(work.id, cancellationReason)
+        if (isCancellationPending) {
+            if (cancellationRequestedByMe) return
+            await acceptWorkCancellation(work.id, user.id)
+            setWork((current) => ({
+                ...current,
+                status: 'cancelled',
+                refundStatus: 'fee_excluded_refund_pending',
+                cancellationReason: current.cancellationReason || cancellationReason,
+                cancellationRequestedBy: undefined,
+                cancellationRequestedAt: undefined,
+            }))
+            setStatusMessage('거래 취소를 수락했습니다. 수수료 제외 환불 예정 상태로 처리됩니다.')
+            notifyActivityChanged()
+            return
+        }
+
+        await requestWorkCancellation(work.id, user.id, cancellationReason)
         setWork((current) => ({
             ...current,
-            status: 'cancelled',
-            refundStatus: 'fee_excluded_refund_pending',
             cancellationReason,
+            cancellationRequestedBy: user.id,
+            cancellationRequestedAt: new Date().toISOString(),
         }))
-        setStatusMessage('수수료 제외 환불 예정 상태로 처리되었습니다.')
+        setStatusMessage('거래 취소 요청을 보냈습니다. 상대방이 수락하거나 24시간 응답이 없으면 취소됩니다.')
         notifyActivityChanged()
+    }
+
+    const handleRequestSettlement = async () => {
+        if (!user?.id || !canRequestSettlement) return
+        try {
+            await requestSettlementWithdrawal(work.id, user.id)
+            setWork((current) => ({ ...current, settlementRequestedAt: new Date().toISOString() }))
+            setStatusMessage('정산 신청이 접수되었습니다. 관리자가 확인 후 정산 완료 처리합니다.')
+            notifyActivityChanged()
+        } catch (error) {
+            setStatusMessage(error instanceof Error ? error.message : '정산 신청을 처리하지 못했습니다.')
+        }
     }
 
     if (!isLoaded) {
@@ -561,6 +619,18 @@ export default function Workroom() {
                                 ? refundStatusText[work.refundStatus]
                                 : settlementStatusText[work.settlementStatus || 'held']}
                         </span>
+                        {work.settlementRequestedAt && <span>정산 신청 완료</span>}
+                        {work.settlementHoldReason && <span>정산 보류: {work.settlementHoldReason}</span>}
+                        {isExpertParticipant && work.status === 'completed' && work.settlementStatus === 'pending' && (
+                            <button
+                                type="button"
+                                className="workroom-settlement-button"
+                                disabled={!canRequestSettlement}
+                                onClick={handleRequestSettlement}
+                            >
+                                {work.settlementRequestedAt ? '정산 신청 완료' : '정산 신청'}
+                            </button>
+                        )}
                     </section>
 
                     <section className="workroom-participants">
@@ -601,6 +671,11 @@ export default function Workroom() {
                         <>
                             <h2>의뢰자 확인</h2>
                             <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
+                            {autoPurchaseConfirmText && (
+                                <p className="auto-confirm-notice">
+                                    {autoPurchaseConfirmText} 수정이 필요하면 자동확정 전에 수정 요청을 보내주세요.
+                                </p>
+                            )}
                             <p>{revisionUsageText}</p>
                             {isRevisionExhausted && (
                                 <p>제안서에 포함된 수정 요청 횟수를 모두 사용했습니다.</p>
@@ -625,9 +700,38 @@ export default function Workroom() {
                             </div>
                         </>
                     )}
+                    {work.disputeStatus === 'open' && (
+                        <p className="workroom-state-notice danger">
+                            분쟁 처리 중입니다. 결과물 승인, 수정 요청, 거래 취소, 자동 구매확정이 잠시 중단됩니다.
+                        </p>
+                    )}
+                    {isCancellationPending && (
+                        <p className="workroom-state-notice">
+                            <span>
+                                {cancellationRequestedByMe
+                                    ? '거래 취소 요청을 보냈습니다.'
+                                    : '상대방이 거래 취소를 요청했습니다.'}
+                            </span>
+                            {!cancellationRequestedByMe && <span>동의하면 취소 수락을 눌러주세요.</span>}
+                            {cancellationAutoCancelDateText && (
+                                <span>
+                                    무응답 시 <span className="workroom-nowrap">{cancellationAutoCancelDateText}</span> 자동 취소
+                                </span>
+                            )}
+                        </p>
+                    )}
                     {work.status !== 'completed' && work.status !== 'cancelled' && (
-                        <button type="button" className="workroom-danger-button" onClick={handleCancelWork}>
-                            거래 중단 요청
+                        <button
+                            type="button"
+                            className="workroom-danger-button"
+                            disabled={work.disputeStatus === 'open' || (isCancellationPending && cancellationRequestedByMe)}
+                            onClick={handleCancelWork}
+                        >
+                            {isCancellationPending
+                                ? cancellationRequestedByMe
+                                    ? '거래 취소 응답 대기'
+                                    : '거래 취소 수락'
+                                : '거래 취소 요청'}
                         </button>
                     )}
                 </aside>

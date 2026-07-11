@@ -155,10 +155,22 @@ const applyLocalAdminAction = (action: AdminAction): void => {
     if (action.actionType === 'move_product_down' && action.targetType === 'product') moveLocalProduct(action.targetId, 'down');
     if (action.actionType === 'cancel_trade' && action.targetType === 'work') cancelLocalWork(action.targetId);
     if (action.actionType === 'mark_settlement_pending' && action.targetType === 'work') {
-        updateLocalWork(action.targetId, (work) => ({ ...work, settlementStatus: 'pending' }));
+        updateLocalWork(action.targetId, (work) => ({ ...work, settlementStatus: 'pending', settlementHoldReason: undefined }));
     }
     if (action.actionType === 'mark_settlement_settled' && action.targetType === 'work') {
-        updateLocalWork(action.targetId, (work) => ({ ...work, settlementStatus: 'settled' }));
+        updateLocalWork(action.targetId, (work) => ({
+            ...work,
+            settlementStatus: 'settled',
+            settlementHoldReason: undefined,
+            settlementSettledAt: action.createdAt,
+        }));
+    }
+    if (action.actionType === 'hold_settlement' && action.targetType === 'work') {
+        updateLocalWork(action.targetId, (work) => ({
+            ...work,
+            settlementStatus: 'pending',
+            settlementHoldReason: action.reason,
+        }));
     }
     if (action.actionType === 'mark_refund_pending' && action.targetType === 'work') {
         updateLocalWork(action.targetId, (work) => ({
@@ -279,7 +291,7 @@ const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> =
     if (action.targetType === 'work' && action.actionType === 'mark_settlement_pending') {
         const { error } = await supabase
             .from('works')
-            .update({ settlement_status: 'pending', updated_at: new Date().toISOString() })
+            .update({ settlement_status: 'pending', settlement_hold_reason: null, updated_at: new Date().toISOString() })
             .eq('id', action.targetId);
         return !error;
     }
@@ -287,7 +299,25 @@ const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> =
     if (action.targetType === 'work' && action.actionType === 'mark_settlement_settled') {
         const { error } = await supabase
             .from('works')
-            .update({ settlement_status: 'settled', refund_status: null, updated_at: new Date().toISOString() })
+            .update({
+                settlement_status: 'settled',
+                refund_status: null,
+                settlement_hold_reason: null,
+                settlement_settled_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', action.targetId);
+        return !error;
+    }
+
+    if (action.targetType === 'work' && action.actionType === 'hold_settlement') {
+        const { error } = await supabase
+            .from('works')
+            .update({
+                settlement_status: 'pending',
+                settlement_hold_reason: action.reason,
+                updated_at: new Date().toISOString(),
+            })
             .eq('id', action.targetId);
         return !error;
     }

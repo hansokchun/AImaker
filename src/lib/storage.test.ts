@@ -599,7 +599,7 @@ const deliverable: Deliverable = {
     description: '1차 시안 링크',
     externalUrl: 'https://example.com/deliverable',
     status: 'submitted',
-    submittedAt: '2026-06-01T00:00:00.000Z',
+    submittedAt: '2026-08-01T00:00:00.000Z',
 }
 
 const review: Review = {
@@ -1181,7 +1181,7 @@ describe('transaction storage', () => {
             description: '1차 제출물 링크',
             externalUrl: 'https://example.com/first-flow',
             status: 'submitted',
-            submittedAt: '2026-06-01T00:00:00.000Z',
+            submittedAt: '2026-08-01T00:00:00.000Z',
         }
         await saveDeliverable(firstDeliverable)
         await requestWorkRevision(workId, firstDeliverable.id, firstStep.id)
@@ -1195,7 +1195,7 @@ describe('transaction storage', () => {
             id: 'deliverable-revision-flow',
             description: '수정본 링크',
             externalUrl: 'https://example.com/revision-flow',
-            submittedAt: '2026-06-02T00:00:00.000Z',
+            submittedAt: '2026-08-02T00:00:00.000Z',
             status: 'submitted',
         }
         await saveDeliverable(revisedDeliverable)
@@ -1215,6 +1215,92 @@ describe('transaction storage', () => {
         expect(JSON.parse(localStorage.getItem('ai_requests') || '[]')).toEqual([
             expect.objectContaining({ id: proposal.requestId, status: 'completed' }),
         ])
+    })
+
+    it('auto-confirms submitted local work after seven days without client response', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([{ ...work, status: 'submitted', settlementStatus: 'held' }]))
+        localStorage.setItem('ai_work_steps', JSON.stringify([{ ...step, status: 'submitted' }]))
+        localStorage.setItem('ai_deliverables', JSON.stringify([
+            {
+                ...deliverable,
+                status: 'submitted',
+                submittedAt: '2026-06-01T00:00:00.000Z',
+            },
+        ]))
+        localStorage.setItem('ai_requests', JSON.stringify([
+            {
+                id: work.requestId,
+                title: work.title,
+                description: work.title,
+                budget: '70000',
+                deadline: '2026-06-30',
+                categories: [],
+                createdAt: '2026-06-01T00:00:00.000Z',
+                clientId: work.clientId,
+                expertId: work.expertId,
+                status: 'in_progress',
+            },
+        ]))
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-06-08T00:00:00.000Z'))
+
+        try {
+            const { getWorkroomData } = await import('./storage')
+
+            const workroom = await getWorkroomData(work.id)
+
+            expect(workroom.work).toEqual(expect.objectContaining({ status: 'completed', settlementStatus: 'pending' }))
+            expect(workroom.steps).toEqual([expect.objectContaining({ id: step.id, status: 'approved' })])
+            expect(workroom.deliverables).toEqual([
+                expect.objectContaining({
+                    id: deliverable.id,
+                    status: 'approved',
+                    autoPurchaseConfirmAt: '2026-06-08T00:00:00.000Z',
+                }),
+            ])
+            expect(JSON.parse(localStorage.getItem('ai_requests') || '[]')).toEqual([
+                expect.objectContaining({ id: work.requestId, status: 'completed' }),
+            ])
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
+    it('does not auto-confirm local work while a revision or dispute is open', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([{ ...work, status: 'revision_requested', disputeStatus: 'open' }]))
+        localStorage.setItem('ai_work_steps', JSON.stringify([{ ...step, status: 'revision_requested' }]))
+        localStorage.setItem('ai_deliverables', JSON.stringify([
+            {
+                ...deliverable,
+                status: 'revision_requested',
+                submittedAt: '2026-06-01T00:00:00.000Z',
+            },
+        ]))
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-06-20T00:00:00.000Z'))
+
+        try {
+            const { getWorkroomData } = await import('./storage')
+
+            const workroom = await getWorkroomData(work.id)
+
+            expect(workroom.work).toEqual(expect.objectContaining({ status: 'revision_requested', disputeStatus: 'open' }))
+            expect(workroom.deliverables).toEqual([
+                expect.objectContaining({
+                    id: deliverable.id,
+                    status: 'revision_requested',
+                    autoPurchaseConfirmAt: '2026-06-08T00:00:00.000Z',
+                }),
+            ])
+        } finally {
+            vi.useRealTimers()
+        }
     })
 
     it('blocks local revision requests after the proposal revision count is used', async () => {
@@ -1255,6 +1341,100 @@ describe('transaction storage', () => {
                 cancellationReason: 'before_start',
             }),
         ])
+    })
+
+    it('requests local work cancellation and auto-cancels after 24 hours without response', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([{ ...work, status: 'submitted', settlementStatus: 'held' }]))
+        localStorage.setItem('ai_work_steps', JSON.stringify([step]))
+        localStorage.setItem('ai_deliverables', JSON.stringify([deliverable]))
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-06-01T00:00:00.000Z'))
+
+        try {
+            const { getWorkroomData, requestWorkCancellation } = await import('./storage')
+
+            await requestWorkCancellation(work.id, work.clientId, 'mutual_after_start')
+
+            expect(JSON.parse(localStorage.getItem('ai_works') || '[]')).toEqual([
+                expect.objectContaining({
+                    id: work.id,
+                    status: 'submitted',
+                    cancellationRequestedBy: work.clientId,
+                    cancellationRequestedAt: '2026-06-01T00:00:00.000Z',
+                }),
+            ])
+
+            vi.setSystemTime(new Date('2026-06-02T00:00:00.000Z'))
+            const workroom = await getWorkroomData(work.id)
+
+            expect(workroom.work).toEqual(expect.objectContaining({
+                id: work.id,
+                status: 'cancelled',
+                refundStatus: 'fee_excluded_refund_pending',
+                cancellationReason: 'mutual_after_start',
+            }))
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
+    it('lets the counterpart accept a local work cancellation request', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([
+            {
+                ...work,
+                status: 'submitted',
+                cancellationReason: 'mutual_after_start',
+                cancellationRequestedBy: work.clientId,
+                cancellationRequestedAt: '2026-06-01T00:00:00.000Z',
+            },
+        ]))
+
+        const { acceptWorkCancellation } = await import('./storage')
+
+        await acceptWorkCancellation(work.id, work.expertId)
+
+        const storedWorks = JSON.parse(localStorage.getItem('ai_works') || '[]') as Work[]
+        expect(storedWorks).toEqual([
+            expect.objectContaining({
+                id: work.id,
+                status: 'cancelled',
+                refundStatus: 'fee_excluded_refund_pending',
+            }),
+        ])
+        expect(storedWorks[0]).not.toHaveProperty('cancellationRequestedBy')
+        expect(storedWorks[0]).not.toHaveProperty('cancellationRequestedAt')
+    })
+
+    it('records local settlement withdrawal requests after purchase confirmation', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.setItem('ai_works', JSON.stringify([
+            { ...work, status: 'completed', settlementStatus: 'pending' },
+        ]))
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-06-03T00:00:00.000Z'))
+
+        try {
+            const { requestSettlementWithdrawal } = await import('./storage')
+
+            await requestSettlementWithdrawal(work.id, work.expertId)
+
+            expect(JSON.parse(localStorage.getItem('ai_works') || '[]')).toEqual([
+                expect.objectContaining({
+                    id: work.id,
+                    settlementRequestedAt: '2026-06-03T00:00:00.000Z',
+                }),
+            ])
+        } finally {
+            vi.useRealTimers()
+        }
     })
 
     it('marks revised local work as submitted again after resubmission', async () => {
@@ -2038,7 +2218,7 @@ describe('transaction storage', () => {
                 settlementStatus: 'held',
             },
             steps: [step],
-            deliverables: [deliverable],
+            deliverables: [{ ...deliverable, autoPurchaseConfirmAt: '2026-08-08T00:00:00.000Z' }],
         })
         await saveDeliverable(deliverable)
         expect(deliverableInsert).toHaveBeenCalledWith([

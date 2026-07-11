@@ -37,8 +37,10 @@ const deliverable: Deliverable = {
 }
 
 vi.mock('../lib/storage', () => ({
+    acceptWorkCancellation: vi.fn(async () => undefined),
     approveWorkDeliverable: vi.fn(async () => undefined),
-    cancelWork: vi.fn(async () => undefined),
+    getAutoPurchaseConfirmAt: vi.fn((submittedAt: string) => submittedAt),
+    getCancellationAutoCancelAt: vi.fn((requestedAt: string) => requestedAt),
     getUserDisplayProfile: vi.fn(async (userId: string) => ({
         name: userId === work.clientId ? '의뢰자' : '작업자',
         imageUrl: '',
@@ -47,6 +49,8 @@ vi.mock('../lib/storage', () => ({
     getStoredProfile: vi.fn(async () => null),
     getWorkMessages: vi.fn(async () => []),
     getWorkroomData: vi.fn(async () => ({ work, steps: [step], deliverables: [deliverable] })),
+    requestSettlementWithdrawal: vi.fn(async () => undefined),
+    requestWorkCancellation: vi.fn(async () => undefined),
     requestWorkRevision: vi.fn(async () => undefined),
     saveDeliverable: vi.fn(async () => undefined),
     saveWorkMessage: vi.fn(async () => ({

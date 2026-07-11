@@ -235,6 +235,16 @@ export const toWork = (item: unknown): Work | null => {
             : stringValue(item, 'dispute_status') === 'resolved'
                 ? 'resolved'
                 : undefined,
+        cancellationReason: stringValue(item, 'cancellation_reason') === 'before_start'
+            ? 'before_start'
+            : stringValue(item, 'cancellation_reason') === 'mutual_after_start'
+                ? 'mutual_after_start'
+                : undefined,
+        cancellationRequestedBy: stringValue(item, 'cancellation_requested_by') || undefined,
+        cancellationRequestedAt: stringValue(item, 'cancellation_requested_at') || undefined,
+        settlementRequestedAt: stringValue(item, 'settlement_requested_at') || undefined,
+        settlementSettledAt: stringValue(item, 'settlement_settled_at') || undefined,
+        settlementHoldReason: stringValue(item, 'settlement_hold_reason') || undefined,
         stepIds: [],
     };
 };

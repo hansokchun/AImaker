@@ -169,7 +169,13 @@ export interface Work {
     refundStatus?: 'fee_excluded_refund_pending' | 'refunded';
     disputeStatus?: 'open' | 'resolved';
     cancellationReason?: 'before_start' | 'mutual_after_start';
+    cancellationRequestedBy?: string;
+    cancellationRequestedAt?: string;
+    settlementRequestedAt?: string;
+    settlementSettledAt?: string;
+    settlementHoldReason?: string;
     cancelledAt?: string;
+    completedAt?: string;
     revisionLimit?: number;
     revisionUsed?: number;
     stepIds: string[];
@@ -194,6 +200,7 @@ export interface Deliverable {
     fileUrl?: string;
     status: 'submitted' | 'approved' | 'revision_requested';
     submittedAt: string;
+    autoPurchaseConfirmAt?: string;
 }
 
 export interface Review {

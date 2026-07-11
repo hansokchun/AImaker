@@ -69,7 +69,11 @@ const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
 const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
-const cancelWork = vi.fn(async (_workId: string, _reason?: 'before_start' | 'mutual_after_start') => undefined)
+const requestWorkCancellation = vi.fn(
+    async (_workId: string, _requesterId: string, _reason?: 'before_start' | 'mutual_after_start') => undefined,
+)
+const acceptWorkCancellation = vi.fn(async (_workId: string, _actorId: string) => undefined)
+const requestSettlementWithdrawal = vi.fn(async (_workId: string, _expertId: string) => undefined)
 const getWorkMessages = vi.fn(async (_workId: string) => [
     {
         id: 'work-message-01',
@@ -110,11 +114,22 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 
 vi.mock('../lib/storage', () => ({
+    acceptWorkCancellation: (workId: string, actorId: string) => acceptWorkCancellation(workId, actorId),
     approveWorkDeliverable: (workId: string, deliverableId: string, requestId?: string, stepId?: string) =>
         approveWorkDeliverable(workId, deliverableId, requestId, stepId),
-    cancelWork: (workId: string, reason?: 'before_start' | 'mutual_after_start') => cancelWork(workId, reason),
+    getAutoPurchaseConfirmAt: (submittedAt: string) => {
+        const submittedTime = Date.parse(submittedAt)
+        return new Date(submittedTime + 7 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    getCancellationAutoCancelAt: (requestedAt: string) => {
+        const requestedTime = Date.parse(requestedAt)
+        return new Date(requestedTime + 24 * 60 * 60 * 1000).toISOString()
+    },
     getWorkMessages: (workId: string) => getWorkMessages(workId),
     getWorkroomData: (workId: string) => getWorkroomData(workId),
+    requestSettlementWithdrawal: (workId: string, expertId: string) => requestSettlementWithdrawal(workId, expertId),
+    requestWorkCancellation: (workId: string, requesterId: string, reason?: 'before_start' | 'mutual_after_start') =>
+        requestWorkCancellation(workId, requesterId, reason),
     requestWorkRevision: (workId: string, deliverableId: string, stepId?: string) =>
         requestWorkRevision(workId, deliverableId, stepId),
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
@@ -131,7 +146,9 @@ describe('Workroom', () => {
         approveWorkDeliverable.mockClear()
         requestWorkRevision.mockClear()
         saveDeliverable.mockClear()
-        cancelWork.mockClear()
+        requestWorkCancellation.mockClear()
+        acceptWorkCancellation.mockClear()
+        requestSettlementWithdrawal.mockClear()
         getWorkMessages.mockClear()
         saveWorkMessage.mockClear()
         getUserDisplayProfile.mockClear()
@@ -245,7 +262,7 @@ describe('Workroom', () => {
             'href',
             '/my-work?role=client&panel=client&clientOrder=request-demo-01',
         )
-        expect(screen.getByRole('button', { name: '거래 중단 요청' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '거래 취소 요청' })).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('프로젝트 메시지'), {
             target: { value: 'Please check the updated draft.' },
@@ -261,9 +278,9 @@ describe('Workroom', () => {
         )
         expect(screen.getByText('Please check the updated draft.')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: '거래 중단 요청' }))
-        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith(work.id, 'mutual_after_start'))
-        expect(await screen.findByText('수수료 제외 환불 예정 상태로 처리되었습니다.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '거래 취소 요청' }))
+        await waitFor(() => expect(requestWorkCancellation).toHaveBeenCalledWith(work.id, currentUserId, 'mutual_after_start'))
+        expect(await screen.findByText('거래 취소 요청을 보냈습니다. 상대방이 수락하거나 24시간 응답이 없으면 취소됩니다.')).toBeInTheDocument()
     })
 
     it('blocks off-platform payment attempts before sending a workroom message', async () => {
@@ -305,6 +322,7 @@ describe('Workroom', () => {
         expect(screen.getByText('수정 요청 1/2회 사용')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '결과물 승인' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: '수정 요청' })).toBeInTheDocument()
+        expect(screen.getByText('응답이 없으면 2026년 6월 8일 자동 구매확정됩니다. 수정이 필요하면 자동확정 전에 수정 요청을 보내주세요.')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '제출물 링크 등록' })).not.toBeInTheDocument()
         expect(screen.queryByText('제출물 링크 등록은 작업자만 할 수 있습니다.')).not.toBeInTheDocument()
     })

@@ -455,9 +455,14 @@ create table if not exists public.works (
   refund_status text check (refund_status in ('fee_excluded_refund_pending', 'refunded')),
   dispute_status text check (dispute_status in ('open', 'resolved')),
   cancellation_reason text check (cancellation_reason in ('before_start', 'mutual_after_start')),
+  cancellation_requested_by uuid references public.profiles(id) on delete set null,
+  cancellation_requested_at timestamptz,
   cancelled_at timestamptz,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
+  settlement_requested_at timestamptz,
+  settlement_settled_at timestamptz,
+  settlement_hold_reason text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -471,7 +476,13 @@ alter table public.works add column if not exists revision_used integer not null
 alter table public.works add column if not exists refund_status text;
 alter table public.works add column if not exists dispute_status text;
 alter table public.works add column if not exists cancellation_reason text;
+alter table public.works add column if not exists cancellation_requested_by uuid references public.profiles(id) on delete set null;
+alter table public.works add column if not exists cancellation_requested_at timestamptz;
 alter table public.works add column if not exists cancelled_at timestamptz;
+alter table public.works add column if not exists completed_at timestamptz;
+alter table public.works add column if not exists settlement_requested_at timestamptz;
+alter table public.works add column if not exists settlement_settled_at timestamptz;
+alter table public.works add column if not exists settlement_hold_reason text;
 
 alter table public.works enable row level security;
 
@@ -730,7 +741,7 @@ create table if not exists public.admin_actions (
   admin_id uuid references public.profiles(id) on delete set null,
   target_type text not null check (target_type in ('user', 'product', 'trade', 'consultation', 'work', 'review', 'report')),
   target_id text not null,
-  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'hide_review', 'restore_review', 'mark_settlement_pending', 'mark_settlement_settled', 'mark_refund_pending', 'open_dispute', 'resolve_dispute', 'close_consultation', 'cancel_trade')),
+  action_type text not null check (action_type in ('note', 'warn', 'restrict', 'release_restriction', 'hide_product', 'restore_product', 'feature_product', 'unfeature_product', 'move_product_up', 'move_product_down', 'resolve_report', 'dismiss_report', 'hide_review', 'restore_review', 'mark_settlement_pending', 'mark_settlement_settled', 'hold_settlement', 'mark_refund_pending', 'open_dispute', 'resolve_dispute', 'close_consultation', 'cancel_trade')),
   reason text not null,
   created_at timestamptz not null default now()
 );

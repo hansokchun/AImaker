@@ -167,8 +167,17 @@ function applyWorkAction(work: AdminSnapshot['works'][number], action: AdminActi
             cancelledAt: action.createdAt,
         };
     }
-    if (action.actionType === 'mark_settlement_pending') return { ...work, settlementStatus: 'pending' };
-    if (action.actionType === 'mark_settlement_settled') return { ...work, settlementStatus: 'settled', refundStatus: undefined };
+    if (action.actionType === 'mark_settlement_pending') return { ...work, settlementStatus: 'pending', settlementHoldReason: undefined };
+    if (action.actionType === 'mark_settlement_settled') {
+        return {
+            ...work,
+            settlementStatus: 'settled',
+            refundStatus: undefined,
+            settlementHoldReason: undefined,
+            settlementSettledAt: action.createdAt,
+        };
+    }
+    if (action.actionType === 'hold_settlement') return { ...work, settlementStatus: 'pending', settlementHoldReason: action.reason };
     if (action.actionType === 'mark_refund_pending') return { ...work, settlementStatus: 'refunded', refundStatus: 'fee_excluded_refund_pending' };
     if (action.actionType === 'open_dispute') return { ...work, disputeStatus: 'open' };
     if (action.actionType === 'resolve_dispute') return { ...work, disputeStatus: 'resolved' };

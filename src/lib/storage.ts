@@ -53,6 +53,10 @@ const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
 const DEMO_ACCOUNT_USER_NAME_KEY = 'ai_demo_account_user_name';
 const CLOSED_CONSULTATION_RETENTION_DAYS = 7;
 const CLOSED_CONSULTATION_RETENTION_MS = CLOSED_CONSULTATION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+export const AUTO_PURCHASE_CONFIRM_DAYS = 7;
+const AUTO_PURCHASE_CONFIRM_MS = AUTO_PURCHASE_CONFIRM_DAYS * 24 * 60 * 60 * 1000;
+export const CANCELLATION_RESPONSE_HOURS = 24;
+const CANCELLATION_RESPONSE_MS = CANCELLATION_RESPONSE_HOURS * 60 * 60 * 1000;
 
 const isUuid = (value?: string) =>
     Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
@@ -480,8 +484,15 @@ const toWork = (item: any): Work => ({
     expertPayout: item.expert_payout || 0,
     settlementStatus: item.settlement_status || 'held',
     ...(item.refund_status ? { refundStatus: item.refund_status } : {}),
+    ...(item.dispute_status ? { disputeStatus: item.dispute_status } : {}),
     ...(item.cancellation_reason ? { cancellationReason: item.cancellation_reason } : {}),
+    ...(item.cancellation_requested_by ? { cancellationRequestedBy: item.cancellation_requested_by } : {}),
+    ...(item.cancellation_requested_at ? { cancellationRequestedAt: item.cancellation_requested_at } : {}),
+    ...(item.settlement_requested_at ? { settlementRequestedAt: item.settlement_requested_at } : {}),
+    ...(item.settlement_settled_at ? { settlementSettledAt: item.settlement_settled_at } : {}),
+    ...(item.settlement_hold_reason ? { settlementHoldReason: item.settlement_hold_reason } : {}),
     ...(item.cancelled_at ? { cancelledAt: item.cancelled_at } : {}),
+    ...(item.completed_at ? { completedAt: item.completed_at } : {}),
     ...(item.revision_limit !== undefined && item.revision_limit !== null ? { revisionLimit: item.revision_limit } : {}),
     ...(item.revision_used !== undefined && item.revision_used !== null ? { revisionUsed: item.revision_used } : {}),
     stepIds: [],
@@ -501,6 +512,7 @@ const toWorkStep = (item: any): WorkStep => ({
 
 const toDeliverable = (item: any): Deliverable => {
     const safeExternalUrl = normalizeSafeExternalUrl(item.external_url);
+    const submittedAt = item.submitted_at;
 
     return {
         id: item.id,
@@ -511,8 +523,53 @@ const toDeliverable = (item: any): Deliverable => {
         ...(safeExternalUrl ? { externalUrl: safeExternalUrl } : {}),
         ...(item.file_url ? { fileUrl: item.file_url } : {}),
         status: item.status || 'submitted',
-        submittedAt: item.submitted_at,
+        submittedAt,
+        ...(typeof submittedAt === 'string' ? { autoPurchaseConfirmAt: getAutoPurchaseConfirmAt(submittedAt) } : {}),
     };
+};
+
+export const getAutoPurchaseConfirmAt = (submittedAt: string): string => {
+    const submittedTime = Date.parse(submittedAt);
+    if (Number.isNaN(submittedTime)) return submittedAt;
+    return new Date(submittedTime + AUTO_PURCHASE_CONFIRM_MS).toISOString();
+};
+
+export const getCancellationAutoCancelAt = (requestedAt: string): string => {
+    const requestedTime = Date.parse(requestedAt);
+    if (Number.isNaN(requestedTime)) return requestedAt;
+    return new Date(requestedTime + CANCELLATION_RESPONSE_MS).toISOString();
+};
+
+const hasOpenCancellationRequest = (work: Work): boolean => Boolean(work.cancellationRequestedAt && work.cancellationRequestedBy);
+
+const findAutoPurchaseConfirmTarget = (
+    work: Work,
+    deliverables: readonly Deliverable[],
+    now = new Date(),
+): Deliverable | null => {
+    if (work.status !== 'submitted') return null;
+    if (work.settlementStatus && work.settlementStatus !== 'held') return null;
+    if (work.disputeStatus === 'open') return null;
+    if (hasOpenCancellationRequest(work)) return null;
+
+    const target = deliverables.find((deliverable) => deliverable.status === 'submitted');
+    if (!target) return null;
+
+    const confirmTime = Date.parse(target.autoPurchaseConfirmAt || getAutoPurchaseConfirmAt(target.submittedAt));
+    if (Number.isNaN(confirmTime)) return null;
+
+    return confirmTime <= now.getTime() ? target : null;
+};
+
+const shouldAutoCancelWork = (work: Work, now = new Date()): boolean => {
+    if (!hasOpenCancellationRequest(work)) return false;
+    if (work.status === 'completed' || work.status === 'cancelled') return false;
+    if (work.disputeStatus === 'open') return false;
+
+    const cancelTime = Date.parse(getCancellationAutoCancelAt(work.cancellationRequestedAt || ''));
+    if (Number.isNaN(cancelTime)) return false;
+
+    return cancelTime <= now.getTime();
 };
 
 const buildInitialWorkSteps = (proposal: Proposal, workId: string): WorkStep[] => {
@@ -1887,6 +1944,10 @@ export async function getWorkroomData(workId: string): Promise<{
         const deliverables = readLocalArray<Deliverable>(STORAGE_KEYS.DELIVERABLES);
         const workDeliverables = deliverables
             .filter((deliverable) => deliverable.workId === workId)
+            .map((deliverable) => ({
+                ...deliverable,
+                autoPurchaseConfirmAt: deliverable.autoPurchaseConfirmAt || getAutoPurchaseConfirmAt(deliverable.submittedAt),
+            }))
             .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
         return {
@@ -1897,7 +1958,29 @@ export async function getWorkroomData(workId: string): Promise<{
     };
 
     if (!supabase) {
-        return getLocalWorkroomData();
+        const localWorkroom = getLocalWorkroomData();
+        if (localWorkroom.work && isDemoAccountRecordId(localWorkroom.work.id)) return localWorkroom;
+
+        if (localWorkroom.work && shouldAutoCancelWork(localWorkroom.work)) {
+            await cancelWork(localWorkroom.work.id, localWorkroom.work.cancellationReason || 'mutual_after_start');
+            return getLocalWorkroomData();
+        }
+
+        const autoConfirmTarget = localWorkroom.work
+            ? findAutoPurchaseConfirmTarget(localWorkroom.work, localWorkroom.deliverables)
+            : null;
+
+        if (localWorkroom.work && autoConfirmTarget) {
+            await approveWorkDeliverable(
+                localWorkroom.work.id,
+                autoConfirmTarget.id,
+                localWorkroom.work.requestId,
+                autoConfirmTarget.stepId,
+            );
+            return getLocalWorkroomData();
+        }
+
+        return localWorkroom;
     }
 
     const localWorkroom = getLocalWorkroomData();
@@ -1929,11 +2012,25 @@ export async function getWorkroomData(workId: string): Promise<{
 
     const steps = (stepData || []).map(toWorkStep);
     const work = toWork(workData);
+    const deliverables = (deliverableData || []).map(toDeliverable);
+    const workWithSteps = { ...work, stepIds: steps.map((step) => step.id) };
+
+    if (shouldAutoCancelWork(workWithSteps)) {
+        await cancelWork(workWithSteps.id, workWithSteps.cancellationReason || 'mutual_after_start');
+        return getWorkroomData(workId);
+    }
+
+    const autoConfirmTarget = findAutoPurchaseConfirmTarget(workWithSteps, deliverables);
+
+    if (autoConfirmTarget) {
+        await approveWorkDeliverable(workWithSteps.id, autoConfirmTarget.id, workWithSteps.requestId, autoConfirmTarget.stepId);
+        return getWorkroomData(workId);
+    }
 
     return {
-        work: { ...work, stepIds: steps.map((step) => step.id) },
+        work: workWithSteps,
         steps,
-        deliverables: (deliverableData || []).map(toDeliverable),
+        deliverables,
     };
 }
 
@@ -1975,12 +2072,41 @@ export async function getUserWorks(userId: string): Promise<Work[]> {
     return mergeById(demoRecordsOnly(getLocalUserWorks(userId)), (data || []).map(toWork));
 }
 
+const getLocalWork = (workId: string): Work | null =>
+    readLocalArray<Work>(STORAGE_KEYS.WORKS).find((work) => work.id === workId) || null;
+
+const getSupabaseWork = async (workId: string): Promise<Work | null> => {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+        .from('works')
+        .select('*')
+        .eq('id', workId)
+        .single();
+
+    if (error || !data) return null;
+    return toWork(data);
+};
+
+const assertWorkCanBeCancelled = (work: Work | null): void => {
+    if (!work) return;
+    if (work.status === 'completed') throw new Error('완료된 작업은 거래 취소를 요청할 수 없습니다.');
+    if (work.status === 'cancelled') throw new Error('이미 취소된 작업입니다.');
+    if (work.disputeStatus === 'open') throw new Error('분쟁 처리 중에는 거래 취소를 진행할 수 없습니다.');
+};
+
+const assertWorkIsNotFrozen = (work: Work | null, actionName: string): void => {
+    if (!work) return;
+    if (work.disputeStatus === 'open') throw new Error(`분쟁 처리 중에는 ${actionName}할 수 없습니다.`);
+    if (hasOpenCancellationRequest(work)) throw new Error(`거래 취소 요청 응답 대기 중에는 ${actionName}할 수 없습니다.`);
+};
+
 export async function cancelWork(
     workId: string,
     reason: NonNullable<Work['cancellationReason']> = 'mutual_after_start',
 ): Promise<void> {
     const cancelledAt = new Date().toISOString();
     if (!supabase || hasLocalDemoWork(workId)) {
+        assertWorkCanBeCancelled(getLocalWork(workId));
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         localStorage.setItem(
@@ -1994,6 +2120,8 @@ export async function cancelWork(
                             settlementStatus: work.settlementStatus || 'held',
                             refundStatus: 'fee_excluded_refund_pending',
                             cancellationReason: reason,
+                            cancellationRequestedBy: undefined,
+                            cancellationRequestedAt: undefined,
                             cancelledAt,
                         }
                         : work,
@@ -2009,11 +2137,144 @@ export async function cancelWork(
             status: 'cancelled',
             refund_status: 'fee_excluded_refund_pending',
             cancellation_reason: reason,
+            cancellation_requested_by: null,
+            cancellation_requested_at: null,
             cancelled_at: cancelledAt,
         })
         .eq('id', workId);
 
     if (error) throw new Error('데이터베이스 통신 오류: 거래 중단 실패');
+}
+
+export async function requestWorkCancellation(
+    workId: string,
+    requesterId: string,
+    reason: NonNullable<Work['cancellationReason']> = 'mutual_after_start',
+): Promise<void> {
+    const requestedAt = new Date().toISOString();
+
+    if (!supabase || hasLocalDemoWork(workId)) {
+        const currentWork = getLocalWork(workId);
+        assertWorkCanBeCancelled(currentWork);
+        if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
+        if (currentWork.clientId !== requesterId && currentWork.expertId !== requesterId) {
+            throw new Error('거래 참여자만 취소를 요청할 수 있습니다.');
+        }
+        if (hasOpenCancellationRequest(currentWork)) {
+            if (currentWork.cancellationRequestedBy === requesterId) return;
+            throw new Error('상대방의 취소 요청이 있습니다. 취소 수락으로 진행해 주세요.');
+        }
+
+        const works = readLocalArray<Work>(STORAGE_KEYS.WORKS);
+        writeLocalArray(
+            STORAGE_KEYS.WORKS,
+            works.map((work) =>
+                work.id === workId
+                    ? {
+                        ...work,
+                        cancellationReason: reason,
+                        cancellationRequestedBy: requesterId,
+                        cancellationRequestedAt: requestedAt,
+                    }
+                    : work,
+            ),
+        );
+        return;
+    }
+
+    const currentWork = await getSupabaseWork(workId);
+    assertWorkCanBeCancelled(currentWork);
+    if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
+    if (currentWork.clientId !== requesterId && currentWork.expertId !== requesterId) {
+        throw new Error('거래 참여자만 취소를 요청할 수 있습니다.');
+    }
+    if (hasOpenCancellationRequest(currentWork)) {
+        if (currentWork.cancellationRequestedBy === requesterId) return;
+        throw new Error('상대방의 취소 요청이 있습니다. 취소 수락으로 진행해 주세요.');
+    }
+
+    const { error } = await supabase
+        .from('works')
+        .update({
+            cancellation_reason: reason,
+            cancellation_requested_by: requesterId,
+            cancellation_requested_at: requestedAt,
+        })
+        .eq('id', workId);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 거래 취소 요청 실패');
+}
+
+export async function acceptWorkCancellation(workId: string, actorId: string): Promise<void> {
+    if (!supabase || hasLocalDemoWork(workId)) {
+        const currentWork = getLocalWork(workId);
+        assertWorkCanBeCancelled(currentWork);
+        if (!currentWork?.cancellationRequestedAt || !currentWork.cancellationRequestedBy) {
+            throw new Error('수락할 취소 요청이 없습니다.');
+        }
+        if (currentWork.cancellationRequestedBy === actorId) {
+            throw new Error('취소 요청자는 직접 수락할 수 없습니다.');
+        }
+        if (currentWork.clientId !== actorId && currentWork.expertId !== actorId) {
+            throw new Error('거래 참여자만 취소를 수락할 수 있습니다.');
+        }
+        await cancelWork(workId, currentWork.cancellationReason || 'mutual_after_start');
+        return;
+    }
+
+    const currentWork = await getSupabaseWork(workId);
+    assertWorkCanBeCancelled(currentWork);
+    if (!currentWork?.cancellationRequestedAt || !currentWork.cancellationRequestedBy) {
+        throw new Error('수락할 취소 요청이 없습니다.');
+    }
+    if (currentWork.cancellationRequestedBy === actorId) {
+        throw new Error('취소 요청자는 직접 수락할 수 없습니다.');
+    }
+    if (currentWork.clientId !== actorId && currentWork.expertId !== actorId) {
+        throw new Error('거래 참여자만 취소를 수락할 수 있습니다.');
+    }
+
+    await cancelWork(workId, currentWork.cancellationReason || 'mutual_after_start');
+}
+
+export async function requestSettlementWithdrawal(workId: string, expertId: string): Promise<void> {
+    const requestedAt = new Date().toISOString();
+
+    if (!supabase || hasLocalDemoWork(workId)) {
+        const currentWork = getLocalWork(workId);
+        if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
+        if (currentWork.expertId !== expertId) throw new Error('작업자만 정산을 신청할 수 있습니다.');
+        if (currentWork.status !== 'completed' || currentWork.settlementStatus !== 'pending') {
+            throw new Error('구매확정 후 정산 대기 상태에서만 정산을 신청할 수 있습니다.');
+        }
+        if (currentWork.disputeStatus === 'open') throw new Error('분쟁 처리 중에는 정산을 신청할 수 없습니다.');
+        if (currentWork.settlementHoldReason) throw new Error('정산 보류 상태에서는 관리자 확인이 필요합니다.');
+
+        const works = readLocalArray<Work>(STORAGE_KEYS.WORKS);
+        writeLocalArray(
+            STORAGE_KEYS.WORKS,
+            works.map((work) =>
+                work.id === workId ? { ...work, settlementRequestedAt: work.settlementRequestedAt || requestedAt } : work,
+            ),
+        );
+        return;
+    }
+
+    const currentWork = await getSupabaseWork(workId);
+    if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
+    if (currentWork.expertId !== expertId) throw new Error('작업자만 정산을 신청할 수 있습니다.');
+    if (currentWork.status !== 'completed' || currentWork.settlementStatus !== 'pending') {
+        throw new Error('구매확정 후 정산 대기 상태에서만 정산을 신청할 수 있습니다.');
+    }
+    if (currentWork.disputeStatus === 'open') throw new Error('분쟁 처리 중에는 정산을 신청할 수 없습니다.');
+    if (currentWork.settlementHoldReason) throw new Error('정산 보류 상태에서는 관리자 확인이 필요합니다.');
+
+    const { error } = await supabase
+        .from('works')
+        .update({ settlement_requested_at: currentWork.settlementRequestedAt || requestedAt })
+        .eq('id', workId);
+
+    if (error) throw new Error('데이터베이스 통신 오류: 정산 신청 실패');
 }
 
 export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
@@ -2091,6 +2352,11 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
     const deliverableToSave = safeExternalUrl ? { ...deliverable, externalUrl: safeExternalUrl } : deliverable;
 
     if (!supabase || hasLocalDemoWork(deliverable.workId)) {
+        const currentWork = getLocalWork(deliverable.workId);
+        assertWorkIsNotFrozen(currentWork, '제출물을 등록');
+        if (currentWork?.status === 'completed' || currentWork?.status === 'cancelled') {
+            throw new Error('종료된 작업에는 제출물을 등록할 수 없습니다.');
+        }
         const raw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const deliverables = raw ? (JSON.parse(raw) as Deliverable[]) : [];
         localStorage.setItem(STORAGE_KEYS.DELIVERABLES, JSON.stringify([...deliverables, deliverableToSave]));
@@ -2151,6 +2417,7 @@ export async function approveWorkDeliverable(
     requestId?: string,
     stepId?: string,
 ): Promise<void> {
+    const completedAt = new Date().toISOString();
     if (!supabase || hasLocalDemoWork(workId)) {
         const deliverablesRaw = localStorage.getItem(STORAGE_KEYS.DELIVERABLES);
         const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
@@ -2158,6 +2425,7 @@ export async function approveWorkDeliverable(
         const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
+        assertWorkIsNotFrozen(works.find((work) => work.id === workId) || null, '결과물을 승인');
 
         localStorage.setItem(
             STORAGE_KEYS.DELIVERABLES,
@@ -2171,7 +2439,16 @@ export async function approveWorkDeliverable(
             STORAGE_KEYS.WORKS,
             JSON.stringify(
                 works.map((work) =>
-                    work.id === workId ? { ...work, status: 'completed', settlementStatus: 'pending' } : work,
+                    work.id === workId
+                        ? {
+                            ...work,
+                            status: 'completed',
+                            settlementStatus: 'pending',
+                            cancellationRequestedBy: undefined,
+                            cancellationRequestedAt: undefined,
+                            completedAt,
+                        }
+                        : work,
                 ),
             ),
         );
@@ -2217,7 +2494,9 @@ export async function approveWorkDeliverable(
         .update({
             status: 'completed',
             settlement_status: 'pending',
-            completed_at: new Date().toISOString(),
+            cancellation_requested_by: null,
+            cancellation_requested_at: null,
+            completed_at: completedAt,
         })
         .eq('id', workId);
 
@@ -2241,6 +2520,7 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
         const currentWork = works.find((work) => work.id === workId);
+        assertWorkIsNotFrozen(currentWork || null, '수정 요청');
         const revisionLimit = currentWork?.revisionLimit ?? 0;
         const revisionUsed = currentWork?.revisionUsed ?? 0;
         const nextRevisionUsed = revisionUsed + 1;

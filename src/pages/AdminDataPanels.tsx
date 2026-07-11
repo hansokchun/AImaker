@@ -214,7 +214,7 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                 <MessageCard
                     key={work.id}
                     title={work.title}
-                    meta={`의뢰자 ${work.clientId} / 전문가 ${work.expertId} / ${formatCurrency(work.totalPrice)} / 정산 ${work.settlementStatus || 'held'}${work.disputeStatus ? ` / 분쟁 ${work.disputeStatus}` : ''}`}
+                    meta={`의뢰자 ${work.clientId} / 전문가 ${work.expertId} / ${formatCurrency(work.totalPrice)} / 정산 ${work.settlementStatus || 'held'}${work.settlementRequestedAt ? ' / 출금 신청됨' : ''}${work.settlementHoldReason ? ' / 정산 보류' : ''}${work.disputeStatus ? ` / 분쟁 ${work.disputeStatus}` : ''}`}
                     status={work.status}
                     messages={snapshot.workMessages.filter((message) => message.workId === work.id)}
                     linkTo={`/workroom/${work.id}`}
@@ -235,6 +235,15 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                                 targetId: work.id,
                                 actionType: 'mark_settlement_settled',
                                 reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
+                            }),
+                        },
+                        {
+                            label: '정산 보류',
+                            onClick: () => onAction({
+                                targetType: 'work',
+                                targetId: work.id,
+                                actionType: 'hold_settlement',
+                                reason: '관리자가 이상 거래 확인을 위해 정산을 보류했습니다.',
                             }),
                         },
                         {

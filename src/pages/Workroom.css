@@ -130,6 +130,26 @@
     font-weight: 800;
 }
 
+.workroom-settlement-button {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-md);
+    background: var(--primary);
+    color: white;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.workroom-settlement-button:disabled {
+    border-color: var(--border-color);
+    background: #f1f5f9;
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
 .workroom-participants {
     display: grid;
     gap: 0.85rem;
@@ -436,6 +456,38 @@
     margin-top: 1.5rem;
 }
 
+.auto-confirm-notice {
+    padding: 0.85rem 0.95rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.workroom-state-notice {
+    display: grid;
+    gap: 0.35rem;
+    margin: 1.5rem 0 0;
+    padding: 0.85rem 0.95rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    line-height: 1.55;
+    font-weight: 750;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
+.workroom-nowrap {
+    white-space: nowrap;
+}
+
+.workroom-state-notice.danger {
+    background: #fff1f2;
+    border-color: #fecdd3;
+    color: #9f1239;
+}
+
 .review-actions button {
     width: 100%;
     padding: 1rem;
@@ -459,6 +511,13 @@
 .workroom-danger-button:hover {
     background: #ffe4e6;
     border-color: #fda4af;
+}
+
+.workroom-danger-button:disabled {
+    background: #f8fafc;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
 }
 
 @media (max-width: 940px) {
