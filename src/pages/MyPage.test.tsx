@@ -56,6 +56,18 @@ const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-dire
 const cancelProposal = vi.fn(async (_proposalId: string) => undefined)
 const cancelWork = vi.fn(async (_workId: string) => undefined)
 const requestSettlementWithdrawal = vi.fn(async (_workId: string, _expertId: string) => undefined)
+const getExpertPayoutAccount = vi.fn(async (_expertId: string) => ({
+    id: 'payout-account-user-demo-01',
+    expertId: 'user-demo-01',
+    bankName: '토스뱅크',
+    accountNumber: '1000-0000-0000',
+    accountHolder: 'Demo Maker',
+}))
+const saveExpertPayoutAccount = vi.fn(async (account) => ({
+    id: 'payout-account-user-demo-01',
+    ...account,
+}))
+const getExpertSettlementPayouts = vi.fn(async (_expertId: string) => [])
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-client-before'])
@@ -727,7 +739,10 @@ vi.mock('../lib/storage', () => ({
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     cancelProposal: (proposalId: string) => cancelProposal(proposalId),
     cancelWork: (workId: string) => cancelWork(workId),
+    getExpertPayoutAccount: (expertId: string) => getExpertPayoutAccount(expertId),
+    getExpertSettlementPayouts: (expertId: string) => getExpertSettlementPayouts(expertId),
     requestSettlementWithdrawal: (workId: string, expertId: string) => requestSettlementWithdrawal(workId, expertId),
+    saveExpertPayoutAccount: (account: { expertId: string; bankName: string; accountNumber: string; accountHolder: string }) => saveExpertPayoutAccount(account),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
     getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
@@ -743,6 +758,9 @@ describe('MyPage', () => {
         cancelProposal.mockClear()
         cancelWork.mockClear()
         requestSettlementWithdrawal.mockClear()
+        getExpertPayoutAccount.mockClear()
+        saveExpertPayoutAccount.mockClear()
+        getExpertSettlementPayouts.mockClear()
         saveExpertProduct.mockClear()
         mockSignOut.mockClear()
         deleteUserPublicAccountData.mockClear()
@@ -1095,8 +1113,8 @@ describe('MyPage', () => {
         fireEvent.click(await screen.findByRole('button', { name: '정산 신청하기' }))
 
         await waitFor(() => expect(requestSettlementWithdrawal).toHaveBeenCalledWith('work-settlement-ready', 'user-demo-01'))
-        expect(await screen.findByText('정산 신청이 접수되었습니다. 관리자가 확인 후 정산 완료 처리합니다.')).toBeInTheDocument()
-        expect(screen.getByText('관리자 처리 대기')).toBeInTheDocument()
+        expect(await screen.findByText('정산 신청이 접수되었습니다. 등록 계좌로 자동 지급 대기 상태가 됩니다.')).toBeInTheDocument()
+        expect(screen.getByText('자동 지급 대기')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '정산 신청하기' })).not.toBeInTheDocument()
     })
 

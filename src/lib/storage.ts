@@ -10,6 +10,7 @@ import type {
     ConsultationMessage,
     Deliverable,
     Expert,
+    ExpertPayoutAccount,
     ExpertProduct,
     ExpertProfile,
     PackageTier,
@@ -17,6 +18,7 @@ import type {
     ProductPackage,
     Review,
     ServiceRequestData,
+    SettlementPayout,
     Work,
     WorkMessage,
     WorkStep,
@@ -47,6 +49,8 @@ const STORAGE_KEYS = {
     WORK_MESSAGES: 'ai_work_messages',
     FAVORITE_PRODUCTS: 'ai_favorite_products',
     ADMIN_REPORTS: 'ai_admin_reports',
+    EXPERT_PAYOUT_ACCOUNTS: 'ai_expert_payout_accounts',
+    SETTLEMENT_PAYOUTS: 'ai_settlement_payouts',
 } as const;
 
 const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
@@ -374,6 +378,28 @@ const toWorkMessage = (item: any): WorkMessage => ({
     body: item.body || '',
     attachmentUrls: item.attachment_urls || [],
     createdAt: item.created_at,
+});
+
+const toExpertPayoutAccount = (item: any): ExpertPayoutAccount => ({
+    id: item.id,
+    expertId: item.expert_id,
+    bankName: item.bank_name || '',
+    accountNumber: item.account_number || '',
+    accountHolder: item.account_holder || '',
+    ...(item.verified_at ? { verifiedAt: item.verified_at } : {}),
+    ...(item.updated_at ? { updatedAt: item.updated_at } : {}),
+});
+
+const toSettlementPayout = (item: any): SettlementPayout => ({
+    id: item.id,
+    workId: item.work_id,
+    expertId: item.expert_id,
+    ...(item.payout_account_id ? { payoutAccountId: item.payout_account_id } : {}),
+    amount: item.amount || 0,
+    status: item.status || 'queued',
+    ...(item.failure_reason ? { failureReason: item.failure_reason } : {}),
+    requestedAt: item.requested_at || new Date().toISOString(),
+    ...(item.processed_at ? { processedAt: item.processed_at } : {}),
 });
 
 const toBoardRequestStatus = (status?: string): ServiceRequestData['status'] => {
@@ -1493,6 +1519,92 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
     }
 }
 
+export async function getExpertPayoutAccount(expertId: string): Promise<ExpertPayoutAccount | null> {
+    const localAccount = readLocalArray<ExpertPayoutAccount>(STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS)
+        .find((account) => account.expertId === expertId) || null;
+
+    if (!supabase) return localAccount;
+
+    const { data, error } = await supabase
+        .from('expert_payout_accounts')
+        .select('*')
+        .eq('expert_id', expertId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('정산 계좌 로딩 실패:', error);
+        return localAccount;
+    }
+
+    return data ? toExpertPayoutAccount(data) : localAccount;
+}
+
+export async function saveExpertPayoutAccount(account: ExpertPayoutAccount): Promise<ExpertPayoutAccount> {
+    const normalizedAccount: ExpertPayoutAccount = {
+        ...account,
+        bankName: account.bankName.trim(),
+        accountNumber: account.accountNumber.replace(/[^\d-]/g, '').trim(),
+        accountHolder: account.accountHolder.trim(),
+        updatedAt: new Date().toISOString(),
+    };
+
+    if (!normalizedAccount.bankName || !normalizedAccount.accountNumber || !normalizedAccount.accountHolder) {
+        throw new Error('은행명, 계좌번호, 예금주를 모두 입력해주세요.');
+    }
+
+    if (!supabase) {
+        const accounts = readLocalArray<ExpertPayoutAccount>(STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS);
+        const nextAccount = {
+            ...normalizedAccount,
+            id: normalizedAccount.id || `payout-account-${normalizedAccount.expertId}`,
+        };
+        writeLocalArray(
+            STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS,
+            [nextAccount, ...accounts.filter((item) => item.expertId !== normalizedAccount.expertId)],
+        );
+        return nextAccount;
+    }
+
+    const { data, error } = await supabase
+        .from('expert_payout_accounts')
+        .upsert({
+            expert_id: normalizedAccount.expertId,
+            bank_name: normalizedAccount.bankName,
+            account_number: normalizedAccount.accountNumber,
+            account_holder: normalizedAccount.accountHolder,
+            updated_at: normalizedAccount.updatedAt,
+        }, { onConflict: 'expert_id' })
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('정산 계좌 저장 실패:', error);
+        throw new Error('데이터베이스 통신 오류: 정산 계좌 저장 실패');
+    }
+
+    return toExpertPayoutAccount(data);
+}
+
+export async function getExpertSettlementPayouts(expertId: string): Promise<SettlementPayout[]> {
+    const localPayouts = readLocalArray<SettlementPayout>(STORAGE_KEYS.SETTLEMENT_PAYOUTS)
+        .filter((payout) => payout.expertId === expertId);
+
+    if (!supabase) return localPayouts;
+
+    const { data, error } = await supabase
+        .from('settlement_payouts')
+        .select('*')
+        .eq('expert_id', expertId)
+        .order('requested_at', { ascending: false });
+
+    if (error) {
+        console.error('정산 지급 내역 로딩 실패:', error);
+        return localPayouts;
+    }
+
+    return mergeById((data || []).map(toSettlementPayout), localPayouts);
+}
+
 export async function deleteExpertProduct(productId: string): Promise<void> {
     if (!supabase) {
         const raw = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
@@ -2242,6 +2354,10 @@ export async function acceptWorkCancellation(workId: string, actorId: string): P
 
 export async function requestSettlementWithdrawal(workId: string, expertId: string): Promise<void> {
     const requestedAt = new Date().toISOString();
+    const payoutAccount = await getExpertPayoutAccount(expertId);
+    if (!payoutAccount?.id) {
+        throw new Error('정산 받을 계좌를 먼저 등록해주세요.');
+    }
 
     if (!supabase || hasLocalDemoWork(workId)) {
         const currentWork = getLocalWork(workId);
@@ -2260,6 +2376,18 @@ export async function requestSettlementWithdrawal(workId: string, expertId: stri
                 work.id === workId ? { ...work, settlementRequestedAt: work.settlementRequestedAt || requestedAt } : work,
             ),
         );
+        const payouts = readLocalArray<SettlementPayout>(STORAGE_KEYS.SETTLEMENT_PAYOUTS);
+        if (!payouts.some((payout) => payout.workId === workId && payout.status !== 'failed')) {
+            writeLocalArray(STORAGE_KEYS.SETTLEMENT_PAYOUTS, [{
+                id: `settlement-payout-${workId}`,
+                workId,
+                expertId,
+                payoutAccountId: payoutAccount.id,
+                amount: currentWork.expertPayout || 0,
+                status: 'queued',
+                requestedAt,
+            }, ...payouts]);
+        }
         return;
     }
 
@@ -2278,6 +2406,19 @@ export async function requestSettlementWithdrawal(workId: string, expertId: stri
         .eq('id', workId);
 
     if (error) throw new Error('데이터베이스 통신 오류: 정산 신청 실패');
+
+    const { error: payoutError } = await supabase
+        .from('settlement_payouts')
+        .upsert({
+            work_id: workId,
+            expert_id: expertId,
+            payout_account_id: payoutAccount.id,
+            amount: currentWork.expertPayout || 0,
+            status: 'queued',
+            requested_at: requestedAt,
+        }, { onConflict: 'work_id' });
+
+    if (payoutError) throw new Error('데이터베이스 통신 오류: 정산 지급 대기 등록 실패');
 }
 
 export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {

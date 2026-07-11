@@ -181,6 +181,28 @@ export interface Work {
     stepIds: string[];
 }
 
+export interface ExpertPayoutAccount {
+    id?: string;
+    expertId: string;
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+    verifiedAt?: string;
+    updatedAt?: string;
+}
+
+export interface SettlementPayout {
+    id: string;
+    workId: string;
+    expertId: string;
+    payoutAccountId?: string;
+    amount: number;
+    status: 'queued' | 'processing' | 'paid' | 'failed';
+    failureReason?: string;
+    requestedAt: string;
+    processedAt?: string;
+}
+
 export interface WorkStep {
     id: string;
     workId: string;

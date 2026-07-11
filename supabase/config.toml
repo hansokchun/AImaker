@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.toss-payment-webhook]
 verify_jwt = false
+
+[functions.trade-automation-runner]
+verify_jwt = false

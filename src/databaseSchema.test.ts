@@ -19,6 +19,8 @@ describe('database.sql', () => {
             'proposals',
             'payment_orders',
             'works',
+            'expert_payout_accounts',
+            'settlement_payouts',
             'work_steps',
             'deliverables',
             'reviews',
@@ -210,6 +212,21 @@ describe('database.sql', () => {
         expect(policySql).toMatch(/using \(auth\.uid\(\) = client_id\)/i)
         expect(sql).not.toMatch(/on public\.payment_orders for insert/i)
         expect(sql).not.toMatch(/on public\.payment_orders for update/i)
+    })
+
+    it('stores expert payout accounts and settlement payout queues', () => {
+        expect(sql).toMatch(/create table(?: if not exists)? public\.expert_payout_accounts/i)
+        expect(sql).toMatch(/expert_id uuid not null unique references public\.profiles\(id\)/i)
+        expect(sql).toMatch(/bank_name text not null/i)
+        expect(sql).toMatch(/account_number text not null/i)
+        expect(sql).toMatch(/create table(?: if not exists)? public\.settlement_payouts/i)
+        expect(sql).toMatch(/work_id uuid not null unique references public\.works\(id\)/i)
+        expect(sql).toMatch(/payout_account_id uuid references public\.expert_payout_accounts\(id\)/i)
+        expect(sql).toMatch(/status text not null default 'queued' check \(status in \('queued', 'processing', 'paid', 'failed'\)\)/i)
+        expect(sql).toMatch(/create policy "Experts can view own payout account"/i)
+        expect(sql).toMatch(/create policy "Experts can view own settlement payouts"/i)
+        expect(sql).toMatch(/create policy "Admins can view payout accounts"/i)
+        expect(sql).toMatch(/create policy "Admins can view settlement payouts"/i)
     })
 
     it('stores profile and product trust fields used by launch UI', () => {

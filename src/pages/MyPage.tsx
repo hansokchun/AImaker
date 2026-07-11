@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, requestSettlementWithdrawal, saveConsultationMessage, saveConsultationReport, saveReview, subscribeToConsultationMessages } from '../lib/storage'
+import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertPayoutAccount, getExpertProducts, getExpertSettlementPayouts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, requestSettlementWithdrawal, saveConsultationMessage, saveConsultationReport, saveExpertPayoutAccount, saveReview, subscribeToConsultationMessages } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
-import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
+import type { Consultation, ConsultationMessage, ExpertPayoutAccount, ExpertProduct, Proposal, Review, ServiceRequestData, SettlementPayout, Work } from '../types'
 import ProductCard from '../components/ProductCard'
 import { ConsultationChatPanel } from './ConsultationChatPanel'
 import { ProjectListPanel } from './ProjectListPanel'
@@ -257,6 +257,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [settlementActionMessage, setSettlementActionMessage] = useState('')
     const [settlementActionError, setSettlementActionError] = useState('')
     const [settlementSubmittingWorkId, setSettlementSubmittingWorkId] = useState<string | null>(null)
+    const [payoutAccount, setPayoutAccount] = useState<ExpertPayoutAccount | null>(null)
+    const [payoutAccountForm, setPayoutAccountForm] = useState({ bankName: '', accountNumber: '', accountHolder: '' })
+    const [payoutAccountSaving, setPayoutAccountSaving] = useState(false)
+    const [settlementPayouts, setSettlementPayouts] = useState<SettlementPayout[]>([])
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const [profilePreview, setProfilePreview] = useState<ProfilePreview | null>(null)
     const [profilePreviewLoaded, setProfilePreviewLoaded] = useState(false)
@@ -379,6 +383,30 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             setFavoriteProductIds([])
         })
     }, [fetchProfile, userId])
+
+    useEffect(() => {
+        if (!userId) return
+
+        getExpertPayoutAccount(userId)
+            .then((account) => {
+                setPayoutAccount(account)
+                setPayoutAccountForm({
+                    bankName: account?.bankName || '',
+                    accountNumber: account?.accountNumber || '',
+                    accountHolder: account?.accountHolder || '',
+                })
+            })
+            .catch((error) => {
+                console.error('정산 계좌 로딩 오류:', error)
+                setPayoutAccount(null)
+            })
+        getExpertSettlementPayouts(userId)
+            .then(setSettlementPayouts)
+            .catch((error) => {
+                console.error('정산 지급 내역 로딩 오류:', error)
+                setSettlementPayouts([])
+            })
+    }, [userId])
 
     useEffect(() => {
         if (!userId || activePanel !== 'consultations') return
@@ -716,6 +744,34 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
     }
 
+    const handleSavePayoutAccount = async () => {
+        if (!user?.id) return
+
+        setSettlementActionMessage('')
+        setSettlementActionError('')
+        setPayoutAccountSaving(true)
+        try {
+            const savedAccount = await saveExpertPayoutAccount({
+                ...(payoutAccount?.id ? { id: payoutAccount.id } : {}),
+                expertId: user.id,
+                bankName: payoutAccountForm.bankName,
+                accountNumber: payoutAccountForm.accountNumber,
+                accountHolder: payoutAccountForm.accountHolder,
+            })
+            setPayoutAccount(savedAccount)
+            setPayoutAccountForm({
+                bankName: savedAccount.bankName,
+                accountNumber: savedAccount.accountNumber,
+                accountHolder: savedAccount.accountHolder,
+            })
+            setSettlementActionMessage('정산 계좌가 저장되었습니다.')
+        } catch (error) {
+            setSettlementActionError(error instanceof Error ? error.message : '정산 계좌를 저장하지 못했습니다.')
+        } finally {
+            setPayoutAccountSaving(false)
+        }
+    }
+
     const handleRequestSettlement = async (workId: string) => {
         if (!user?.id) return
 
@@ -730,7 +786,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     work.id === workId ? { ...work, settlementRequestedAt: work.settlementRequestedAt || requestedAt } : work,
                 ),
             )
-            setSettlementActionMessage('정산 신청이 접수되었습니다. 관리자가 확인 후 정산 완료 처리합니다.')
+            setSettlementPayouts(await getExpertSettlementPayouts(user.id))
+            setSettlementActionMessage('정산 신청이 접수되었습니다. 등록 계좌로 자동 지급 대기 상태가 됩니다.')
         } catch (error) {
             setSettlementActionError(error instanceof Error ? error.message : '정산 신청을 처리하지 못했습니다.')
         } finally {
@@ -906,6 +963,12 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         const unsettledAmount = settlementWorks
             .filter((work) => work.settlementStatus !== 'settled')
             .reduce((total, work) => total + (work.expertPayout || 0), 0)
+        const payoutStatusText: Record<SettlementPayout['status'], string> = {
+            queued: '자동 지급 대기',
+            processing: '자동 지급 처리 중',
+            paid: '지급 완료',
+            failed: '지급 실패',
+        }
 
         return (
             <section className="settlement-panel" style={cardStyle}>
@@ -913,11 +976,41 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     <div>
                         <span className="settlement-panel-eyebrow">전문가 정산</span>
                         <h2>정산 관리</h2>
-                        <p>의뢰자 승인 또는 자동 구매확정 후 정산을 신청할 수 있습니다.</p>
+                        <p>의뢰자 승인 또는 자동 구매확정 후 등록 계좌로 정산을 신청할 수 있습니다.</p>
                     </div>
                     <div className="settlement-panel-total">
                         <span>정산 예정 금액</span>
                         <strong>{currency.format(unsettledAmount)}원</strong>
+                    </div>
+                </div>
+
+                <div className="settlement-account-panel" aria-label="정산 계좌">
+                    <div>
+                        <strong>정산 계좌</strong>
+                        <p>{payoutAccount ? `${payoutAccount.bankName} ${payoutAccount.accountNumber} / ${payoutAccount.accountHolder}` : '정산 받을 계좌를 먼저 등록해주세요.'}</p>
+                    </div>
+                    <div className="settlement-account-form">
+                        <input
+                            aria-label="은행명"
+                            value={payoutAccountForm.bankName}
+                            onChange={(event) => setPayoutAccountForm((current) => ({ ...current, bankName: event.target.value }))}
+                            placeholder="은행명"
+                        />
+                        <input
+                            aria-label="계좌번호"
+                            value={payoutAccountForm.accountNumber}
+                            onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountNumber: event.target.value }))}
+                            placeholder="계좌번호"
+                        />
+                        <input
+                            aria-label="예금주"
+                            value={payoutAccountForm.accountHolder}
+                            onChange={(event) => setPayoutAccountForm((current) => ({ ...current, accountHolder: event.target.value }))}
+                            placeholder="예금주"
+                        />
+                        <button type="button" onClick={handleSavePayoutAccount} disabled={payoutAccountSaving}>
+                            {payoutAccountSaving ? '저장 중' : '계좌 저장'}
+                        </button>
                     </div>
                 </div>
 
@@ -940,7 +1033,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             const isSettled = work.settlementStatus === 'settled'
                             const isRequested = Boolean(work.settlementRequestedAt)
                             const isSubmitting = settlementSubmittingWorkId === work.id
-                            const statusLabel = isSettled ? '정산 완료' : isRequested ? '관리자 처리 대기' : '정산 신청 가능'
+                            const payout = settlementPayouts.find((item) => item.workId === work.id)
+                            const statusLabel = isSettled ? '정산 완료' : payout ? payoutStatusText[payout.status] : isRequested ? '자동 지급 대기' : '정산 신청 가능'
                             return (
                                 <article className="settlement-item" key={work.id}>
                                     <div className="settlement-item-main">
@@ -952,13 +1046,13 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         <Link className="settlement-project-link" to={`/workroom/${work.id}`} state={myPageReturnState}>프로젝트 보기</Link>
                                     </div>
                                     <div className="settlement-item-footer">
-                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '관리자가 확인 후 정산을 처리합니다.' : '정산 관리에서 바로 신청할 수 있습니다.'}</span>
+                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '등록 계좌로 자동 지급 대기 중입니다.' : payoutAccount ? '정산 관리에서 바로 신청할 수 있습니다.' : '계좌 등록 후 정산을 신청할 수 있습니다.'}</span>
                                         {!isSettled && !isRequested && (
                                             <button
                                                 className="settlement-request-button"
                                                 type="button"
                                                 onClick={() => handleRequestSettlement(work.id)}
-                                                disabled={isSubmitting}
+                                                disabled={isSubmitting || !payoutAccount}
                                             >
                                                 {isSubmitting ? '신청 중' : '정산 신청하기'}
                                             </button>

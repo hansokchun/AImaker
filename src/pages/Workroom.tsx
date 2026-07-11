@@ -430,7 +430,7 @@ export default function Workroom() {
         try {
             await requestSettlementWithdrawal(work.id, user.id)
             setWork((current) => ({ ...current, settlementRequestedAt: new Date().toISOString() }))
-            setStatusMessage('정산 신청이 접수되었습니다. 관리자가 확인 후 정산 완료 처리합니다.')
+            setStatusMessage('정산 신청이 접수되었습니다. 등록 계좌로 자동 지급 대기 상태가 됩니다.')
             notifyActivityChanged()
         } catch (error) {
             setStatusMessage(error instanceof Error ? error.message : '정산 신청을 처리하지 못했습니다.')

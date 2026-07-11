@@ -47,6 +47,60 @@ afterEach(() => {
     localStorage.removeItem('ai_supabase_expert_products_cache')
 })
 
+describe('settlement payout storage', () => {
+    const completedWork: Work = {
+        id: 'work-payout-ready-01',
+        proposalId: 'proposal-payout-ready-01',
+        requestId: 'request-payout-ready-01',
+        clientId: 'client-payout-01',
+        expertId: 'expert-payout-01',
+        title: 'Payout ready work',
+        progressType: 'single',
+        status: 'completed',
+        totalPrice: 100000,
+        platformFee: 0,
+        expertPayout: 100000,
+        settlementStatus: 'pending',
+        stepIds: [],
+    }
+
+    it('requires an expert payout account before requesting settlement', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.clear()
+        localStorage.setItem('ai_works', JSON.stringify([completedWork]))
+        const { requestSettlementWithdrawal } = await import('./storage')
+
+        await expect(requestSettlementWithdrawal(completedWork.id, completedWork.expertId))
+            .rejects.toThrow('정산 받을 계좌를 먼저 등록해주세요.')
+    })
+
+    it('queues a payout when an expert requests settlement with a saved account', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.clear()
+        localStorage.setItem('ai_works', JSON.stringify([completedWork]))
+        const { getExpertSettlementPayouts, requestSettlementWithdrawal, saveExpertPayoutAccount } = await import('./storage')
+
+        await saveExpertPayoutAccount({
+            expertId: completedWork.expertId,
+            bankName: '토스뱅크',
+            accountNumber: '1000-0000-0000',
+            accountHolder: 'Payout Expert',
+        })
+        await requestSettlementWithdrawal(completedWork.id, completedWork.expertId)
+
+        await expect(getExpertSettlementPayouts(completedWork.expertId)).resolves.toEqual([
+            expect.objectContaining({
+                workId: completedWork.id,
+                expertId: completedWork.expertId,
+                amount: completedWork.expertPayout,
+                status: 'queued',
+            }),
+        ])
+    })
+})
+
 describe('expert product storage', () => {
     it('does not read or write demo products through the expert product cache', async () => {
         vi.resetModules()
@@ -141,8 +195,9 @@ describe('expert product storage', () => {
             ],
             error: null,
         })
-        const eq = vi.fn(() => ({ order }))
-        const select = vi.fn(() => ({ eq }))
+        const eq = vi.fn(() => order())
+        const orderProducts = vi.fn(() => ({ eq }))
+        const select = vi.fn(() => ({ order: orderProducts }))
         const profileIn = vi.fn().mockResolvedValue({ data: [], error: null })
         const profileSelect = vi.fn(() => ({ in: profileIn }))
         const from = vi.fn((table: string) => (
@@ -199,8 +254,9 @@ describe('expert product storage', () => {
             ],
             error: null,
         })
-        const productEq = vi.fn(() => ({ order }))
-        const productSelect = vi.fn(() => ({ eq: productEq }))
+        const productEq = vi.fn(() => order())
+        const orderProducts = vi.fn(() => ({ eq: productEq }))
+        const productSelect = vi.fn(() => ({ order: orderProducts }))
         const profileIn = vi.fn().mockResolvedValue({
             data: [
                 {
@@ -260,8 +316,9 @@ describe('expert product storage', () => {
             ],
             error: null,
         })
-        const productEq = vi.fn(() => ({ order }))
-        const productSelect = vi.fn(() => ({ eq: productEq }))
+        const productEq = vi.fn(() => order())
+        const orderProducts = vi.fn(() => ({ eq: productEq }))
+        const productSelect = vi.fn(() => ({ order: orderProducts }))
         const basicProfileIn = vi.fn().mockResolvedValue({ data: [], error: null })
         const basicProfileSelect = vi.fn(() => ({ in: basicProfileIn }))
         const expertProfileIn = vi.fn().mockResolvedValue({
@@ -328,8 +385,9 @@ describe('expert product storage', () => {
             ],
             error: null,
         })
-        const eq = vi.fn(() => ({ order }))
-        const select = vi.fn(() => ({ eq }))
+        const eq = vi.fn(() => order())
+        const orderProducts = vi.fn(() => ({ eq }))
+        const select = vi.fn(() => ({ order: orderProducts }))
         const profileIn = vi.fn().mockResolvedValue({ data: [], error: null })
         const profileSelect = vi.fn(() => ({ in: profileIn }))
         const from = vi.fn((table: string) => (
@@ -1422,8 +1480,14 @@ describe('transaction storage', () => {
         vi.setSystemTime(new Date('2026-06-03T00:00:00.000Z'))
 
         try {
-            const { requestSettlementWithdrawal } = await import('./storage')
+            const { requestSettlementWithdrawal, saveExpertPayoutAccount } = await import('./storage')
 
+            await saveExpertPayoutAccount({
+                expertId: work.expertId,
+                bankName: '토스뱅크',
+                accountNumber: '1000-0000-0000',
+                accountHolder: 'Admin Expert',
+            })
             await requestSettlementWithdrawal(work.id, work.expertId)
 
             expect(JSON.parse(localStorage.getItem('ai_works') || '[]')).toEqual([
