@@ -41,6 +41,7 @@ vi.mock('../lib/adminStorage', async () => {
 describe('Admin', () => {
     beforeEach(() => {
         mockNavigate.mockReset();
+        vi.restoreAllMocks();
         mockUseAuth.mockReturnValue({
             loading: false,
             session: { user: { id: 'user-admin-01' } },
@@ -186,6 +187,7 @@ describe('Admin', () => {
         fireEvent.click(screen.getByRole('button', { name: '정산 대기 처리' }));
         fireEvent.click(screen.getByRole('button', { name: '분쟁 열기' }));
         fireEvent.click(screen.getByRole('button', { name: '환불 대기 처리' }));
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
         fireEvent.click(screen.getByRole('button', { name: '토스 환불 실행' }));
 
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
@@ -209,6 +211,18 @@ describe('Admin', () => {
             actionType: 'mark_refund_pending',
             reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
         }));
+        expect(saveAdminAction).not.toHaveBeenCalledWith(expect.objectContaining({
+            actionType: 'execute_toss_refund',
+        }));
+    });
+
+    it('executes a Toss refund only after admin confirmation', async () => {
+        await renderAdmin();
+
+        clickAdminTab(5);
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+        fireEvent.click(screen.getByRole('button', { name: '토스 환불 실행' }));
+
         await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
             adminId: 'user-admin-01',
             targetType: 'work',
