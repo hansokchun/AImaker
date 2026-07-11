@@ -2355,7 +2355,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem' }}>내가 올린 상품</h3>
             {activeProducts.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 220px))', gap: '1rem' }}>
                     {activeProducts.map((product) => (
                         <Link
                             key={product.id}
@@ -2401,7 +2401,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem' }}>임시저장 상품</h3>
                 {draftProducts.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 220px))', gap: '1rem' }}>
                         {draftProducts.map((product) => (
                             <Link
                                 key={product.id}
