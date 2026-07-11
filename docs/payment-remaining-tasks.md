@@ -13,7 +13,8 @@ Last updated: 2026-07-11
 - Expert settlement withdrawal request is implemented.
 - Admin can mark settlement pending, settled, refunded, disputed, resolved, or held.
 - Supabase production database migration was applied.
-- Supabase payment Edge Functions were deployed: order, confirm, fail, and webhook.
+- Supabase payment Edge Functions were deployed: order, confirm, cancel, fail, and webhook.
+- Toss refund execution is restricted to refund-pending, non-settled workrooms.
 - Vercel production environment variables were added.
 - Vercel production deployment was completed.
 
@@ -41,4 +42,6 @@ Last updated: 2026-07-11
 
 - Production URL: `https://aiconnect-one.vercel.app`
 - Supabase project ref: `vtosyfoymmpjklbeufkm`
-- Applied migration: `20260711102000_add_work_cancellation_settlement_fields.sql`
+- Applied migrations:
+  - `20260711102000_add_work_cancellation_settlement_fields.sql`
+  - `20260712093000_add_toss_payment_cancel_fields.sql`

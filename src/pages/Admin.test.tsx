@@ -232,6 +232,21 @@ describe('Admin', () => {
         }));
     });
 
+    it('disables Toss refund execution until a work is marked refund pending', async () => {
+        vi.mocked(getAdminSnapshot).mockResolvedValueOnce({
+            ...adminSnapshot,
+            works: adminSnapshot.works.map((work) => ({
+                ...work,
+                refundStatus: undefined,
+            })),
+        });
+        await renderAdmin();
+
+        clickAdminTab(5);
+
+        expect(screen.getByRole('button', { name: '토스 환불 실행' })).toBeDisabled();
+    });
+
     it('surfaces policy violating messages and records a sender warning', async () => {
         await renderAdmin();
 

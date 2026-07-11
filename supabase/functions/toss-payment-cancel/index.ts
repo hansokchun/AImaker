@@ -14,6 +14,7 @@ type AdminUserRow = {
 type WorkRow = {
     readonly id: string
     readonly proposal_id: string
+    readonly settlement_status: string
     readonly refund_status: string | null
 }
 
@@ -44,6 +45,7 @@ const isWorkRow = (value: unknown): value is WorkRow => {
     const candidate = value as Partial<WorkRow>
     return typeof candidate.id === 'string'
         && typeof candidate.proposal_id === 'string'
+        && typeof candidate.settlement_status === 'string'
         && (typeof candidate.refund_status === 'string' || candidate.refund_status === null)
 }
 
@@ -83,7 +85,7 @@ Deno.serve(async (request) => {
 
         const { data: work, error: workError } = await client
             .from('works')
-            .select('id, proposal_id, refund_status')
+            .select('id, proposal_id, settlement_status, refund_status')
             .eq('id', body.workId)
             .single()
 
@@ -93,6 +95,14 @@ Deno.serve(async (request) => {
 
         if (work.refund_status === 'refunded') {
             return jsonResponse({ workId: work.id, proposalId: work.proposal_id, status: 'refunded' })
+        }
+
+        if (work.settlement_status === 'settled') {
+            return jsonResponse({ message: '이미 정산 완료된 작업은 결제 취소할 수 없습니다.' }, { status: 409 })
+        }
+
+        if (work.refund_status !== 'fee_excluded_refund_pending') {
+            return jsonResponse({ message: '환불 대기 처리된 작업만 결제 취소할 수 있습니다.' }, { status: 409 })
         }
 
         const { data: order, error: orderError } = await client

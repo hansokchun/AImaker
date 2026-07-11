@@ -19,6 +19,8 @@ export interface AdminActionRequest {
 interface AdminButtonAction {
     readonly label: string;
     readonly className?: string;
+    readonly disabled?: boolean;
+    readonly title?: string;
     readonly onClick: () => void;
 }
 
@@ -228,89 +230,95 @@ const buildWorkroomMeta = (work: AdminSnapshot['works'][number]) => {
 function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot; readonly onAction: (input: AdminActionRequest) => void }) {
     return (
         <AdminTablePanel title="작업방 관리" copy="결제 이후 생성된 작업방, 정산 상태, 환불/분쟁 상태, 작업방 메시지를 확인합니다.">
-            {snapshot.works.length === 0 ? <EmptyState label="작업방이 없습니다." /> : snapshot.works.map((work) => (
-                <MessageCard
-                    key={work.id}
-                    title={work.title}
-                    meta={buildWorkroomMeta(work)}
-                    status={work.status}
-                    messages={snapshot.workMessages.filter((message) => message.workId === work.id)}
-                    linkTo={`/workroom/${work.id}`}
-                    actions={[
-                        {
-                            label: '정산 대기 처리',
-                            onClick: () => onAction({
-                                targetType: 'work',
-                                targetId: work.id,
-                                actionType: 'mark_settlement_pending',
-                                reason: '관리자가 작업방을 정산 대기 상태로 변경했습니다.',
-                            }),
-                        },
-                        {
-                            label: '정산 완료 처리',
-                            onClick: () => onAction({
-                                targetType: 'work',
-                                targetId: work.id,
-                                actionType: 'mark_settlement_settled',
-                                reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
-                            }),
-                        },
-                        {
-                            label: '정산 보류',
-                            onClick: () => onAction({
-                                targetType: 'work',
-                                targetId: work.id,
-                                actionType: 'hold_settlement',
-                                reason: '관리자가 이상 거래 확인을 위해 정산을 보류했습니다.',
-                            }),
-                        },
-                        {
-                            label: '환불 대기 처리',
-                            onClick: () => onAction({
-                                targetType: 'work',
-                                targetId: work.id,
-                                actionType: 'mark_refund_pending',
-                                reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
-                            }),
-                        },
-                        {
-                            label: '토스 환불 실행',
-                            className: 'admin-danger-action',
-                            onClick: () => {
-                                const confirmed = window.confirm('실제 토스 결제 취소를 실행합니다. 테스트 결제 건인지 확인했나요?');
-                                if (!confirmed) return;
-                                onAction({
+            {snapshot.works.length === 0 ? <EmptyState label="작업방이 없습니다." /> : snapshot.works.map((work) => {
+                const canExecuteTossRefund = work.refundStatus === 'fee_excluded_refund_pending' && work.settlementStatus !== 'settled';
+
+                return (
+                    <MessageCard
+                        key={work.id}
+                        title={work.title}
+                        meta={buildWorkroomMeta(work)}
+                        status={work.status}
+                        messages={snapshot.workMessages.filter((message) => message.workId === work.id)}
+                        linkTo={`/workroom/${work.id}`}
+                        actions={[
+                            {
+                                label: '정산 대기 처리',
+                                onClick: () => onAction({
                                     targetType: 'work',
                                     targetId: work.id,
-                                    actionType: 'execute_toss_refund',
-                                    reason: '관리자가 토스페이먼츠 결제 취소를 실행했습니다.',
-                                });
+                                    actionType: 'mark_settlement_pending',
+                                    reason: '관리자가 작업방을 정산 대기 상태로 변경했습니다.',
+                                }),
                             },
-                        },
-                        {
-                            label: work.disputeStatus === 'open' ? '분쟁 해결' : '분쟁 열기',
-                            onClick: () => onAction({
-                                targetType: 'work',
-                                targetId: work.id,
-                                actionType: work.disputeStatus === 'open' ? 'resolve_dispute' : 'open_dispute',
-                                reason: work.disputeStatus === 'open'
-                                    ? '관리자가 작업방 분쟁을 해결 처리했습니다.'
-                                    : '관리자가 작업방 분쟁 관리를 시작했습니다.',
-                            }),
-                        },
-                        {
-                            label: '거래 중단 처리',
-                            className: 'admin-danger-action',
-                            onClick: () => onAction({
-                                targetType: 'work',
-                                targetId: work.id,
-                                actionType: 'cancel_trade',
-                                reason: '관리자가 작업방 거래 중단 처리를 실행했습니다.',
-                            }),
-                        },
-                    ]}
-                />
-            ))}
+                            {
+                                label: '정산 완료 처리',
+                                onClick: () => onAction({
+                                    targetType: 'work',
+                                    targetId: work.id,
+                                    actionType: 'mark_settlement_settled',
+                                    reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
+                                }),
+                            },
+                            {
+                                label: '정산 보류',
+                                onClick: () => onAction({
+                                    targetType: 'work',
+                                    targetId: work.id,
+                                    actionType: 'hold_settlement',
+                                    reason: '관리자가 이상 거래 확인을 위해 정산을 보류했습니다.',
+                                }),
+                            },
+                            {
+                                label: '환불 대기 처리',
+                                onClick: () => onAction({
+                                    targetType: 'work',
+                                    targetId: work.id,
+                                    actionType: 'mark_refund_pending',
+                                    reason: '관리자가 수수료 제외 환불 대기 상태로 변경했습니다.',
+                                }),
+                            },
+                            {
+                                label: '토스 환불 실행',
+                                className: 'admin-danger-action',
+                                disabled: !canExecuteTossRefund,
+                                title: canExecuteTossRefund ? undefined : '환불 대기 처리된 작업만 토스 환불을 실행할 수 있습니다.',
+                                onClick: () => {
+                                    const confirmed = window.confirm('실제 토스 결제 취소를 실행합니다. 테스트 결제 건인지 확인했나요?');
+                                    if (!confirmed) return;
+                                    onAction({
+                                        targetType: 'work',
+                                        targetId: work.id,
+                                        actionType: 'execute_toss_refund',
+                                        reason: '관리자가 토스페이먼츠 결제 취소를 실행했습니다.',
+                                    });
+                                },
+                            },
+                            {
+                                label: work.disputeStatus === 'open' ? '분쟁 해결' : '분쟁 열기',
+                                onClick: () => onAction({
+                                    targetType: 'work',
+                                    targetId: work.id,
+                                    actionType: work.disputeStatus === 'open' ? 'resolve_dispute' : 'open_dispute',
+                                    reason: work.disputeStatus === 'open'
+                                        ? '관리자가 작업방 분쟁을 해결 처리했습니다.'
+                                        : '관리자가 작업방 분쟁 관리를 시작했습니다.',
+                                }),
+                            },
+                            {
+                                label: '거래 중단 처리',
+                                className: 'admin-danger-action',
+                                onClick: () => onAction({
+                                    targetType: 'work',
+                                    targetId: work.id,
+                                    actionType: 'cancel_trade',
+                                    reason: '관리자가 작업방 거래 중단 처리를 실행했습니다.',
+                                }),
+                            },
+                        ]}
+                    />
+                );
+            })}
         </AdminTablePanel>
     );
 }
@@ -342,7 +350,16 @@ function MessageCard(props: {
             </div>
             <div className="admin-action-row">
                 {props.actions.map((action) => (
-                    <button className={action.className || 'admin-action-button'} type="button" key={action.label} onClick={action.onClick}>{action.label}</button>
+                    <button
+                        className={action.className || 'admin-action-button'}
+                        disabled={action.disabled}
+                        title={action.title}
+                        type="button"
+                        key={action.label}
+                        onClick={action.onClick}
+                    >
+                        {action.label}
+                    </button>
                 ))}
             </div>
         </article>
