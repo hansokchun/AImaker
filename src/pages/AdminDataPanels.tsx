@@ -207,6 +207,24 @@ function ConsultationsPanel({ snapshot, onAction }: { readonly snapshot: AdminSn
     );
 }
 
+const buildWorkroomMeta = (work: AdminSnapshot['works'][number]) => {
+    const details = [
+        `의뢰자 ${work.clientId}`,
+        `전문가 ${work.expertId}`,
+        formatCurrency(work.totalPrice),
+        `정산 ${work.settlementStatus || 'held'}`,
+    ];
+
+    if (work.settlementRequestedAt) details.push('출금 신청됨');
+    if (work.settlementHoldReason) details.push(`정산 보류: ${work.settlementHoldReason}`);
+    if (work.refundStatus) details.push(`환불 ${work.refundStatus}`);
+    if (work.disputeStatus) details.push(`분쟁 ${work.disputeStatus}`);
+    if (work.cancellationReason) details.push(`취소 사유 ${work.cancellationReason}`);
+    if (work.cancelledAt) details.push(`취소일 ${work.cancelledAt}`);
+
+    return details.join(' / ');
+};
+
 function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapshot; readonly onAction: (input: AdminActionRequest) => void }) {
     return (
         <AdminTablePanel title="작업방 관리" copy="결제 이후 생성된 작업방, 정산 상태, 환불/분쟁 상태, 작업방 메시지를 확인합니다.">
@@ -214,7 +232,7 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                 <MessageCard
                     key={work.id}
                     title={work.title}
-                    meta={`의뢰자 ${work.clientId} / 전문가 ${work.expertId} / ${formatCurrency(work.totalPrice)} / 정산 ${work.settlementStatus || 'held'}${work.settlementRequestedAt ? ' / 출금 신청됨' : ''}${work.settlementHoldReason ? ' / 정산 보류' : ''}${work.disputeStatus ? ` / 분쟁 ${work.disputeStatus}` : ''}`}
+                    meta={buildWorkroomMeta(work)}
                     status={work.status}
                     messages={snapshot.workMessages.filter((message) => message.workId === work.id)}
                     linkTo={`/workroom/${work.id}`}

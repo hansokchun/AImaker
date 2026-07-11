@@ -180,6 +180,9 @@ describe('Admin', () => {
         await renderAdmin();
 
         clickAdminTab(5);
+        expect(screen.getByText(/fee_excluded_refund_pending/)).toBeInTheDocument();
+        expect(screen.getByText(/mutual_after_start/)).toBeInTheDocument();
+
         fireEvent.click(screen.getByRole('button', { name: '정산 대기 처리' }));
         fireEvent.click(screen.getByRole('button', { name: '분쟁 열기' }));
         fireEvent.click(screen.getByRole('button', { name: '환불 대기 처리' }));
