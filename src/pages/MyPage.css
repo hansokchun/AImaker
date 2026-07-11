@@ -122,12 +122,32 @@
 .settlement-status-requested { color: #92400e; background: #fef3c7; }
 .settlement-status-done { color: #166534; background: #dcfce7; }
 
+.settlement-action-message,
+.settlement-action-error {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.settlement-action-message { color: #166534; }
+.settlement-action-error { color: var(--danger); }
+
 .settlement-project-link,
-.settlement-item-footer a {
+.settlement-item-footer a,
+.settlement-request-button {
+    border: 0;
+    background: transparent;
     color: #2563eb;
     font-size: 0.86rem;
     font-weight: 900;
+    font-family: inherit;
     text-decoration: none;
+    cursor: pointer;
+}
+
+.settlement-request-button:disabled {
+    cursor: progress;
+    opacity: 0.65;
 }
 
 .settlement-item-footer {

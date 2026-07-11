@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, saveConsultationMessage, saveConsultationReport, saveReview, subscribeToConsultationMessages } from '../lib/storage'
+import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertProducts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, requestSettlementWithdrawal, saveConsultationMessage, saveConsultationReport, saveReview, subscribeToConsultationMessages } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work } from '../types'
 import ProductCard from '../components/ProductCard'
@@ -254,6 +254,9 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [consultationMessageError, setConsultationMessageError] = useState('')
     const [consultationActionMessage, setConsultationActionMessage] = useState('')
     const [consultationActionError, setConsultationActionError] = useState('')
+    const [settlementActionMessage, setSettlementActionMessage] = useState('')
+    const [settlementActionError, setSettlementActionError] = useState('')
+    const [settlementSubmittingWorkId, setSettlementSubmittingWorkId] = useState<string | null>(null)
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const [profilePreview, setProfilePreview] = useState<ProfilePreview | null>(null)
     const [profilePreviewLoaded, setProfilePreviewLoaded] = useState(false)
@@ -713,6 +716,28 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         }
     }
 
+    const handleRequestSettlement = async (workId: string) => {
+        if (!user?.id) return
+
+        const requestedAt = new Date().toISOString()
+        setSettlementActionMessage('')
+        setSettlementActionError('')
+        setSettlementSubmittingWorkId(workId)
+        try {
+            await requestSettlementWithdrawal(workId, user.id)
+            setWorks((current) =>
+                current.map((work) =>
+                    work.id === workId ? { ...work, settlementRequestedAt: work.settlementRequestedAt || requestedAt } : work,
+                ),
+            )
+            setSettlementActionMessage('정산 신청이 접수되었습니다. 관리자가 확인 후 정산 완료 처리합니다.')
+        } catch (error) {
+            setSettlementActionError(error instanceof Error ? error.message : '정산 신청을 처리하지 못했습니다.')
+        } finally {
+            setSettlementSubmittingWorkId(null)
+        }
+    }
+
     const handleCreateConsultationProposal = async () => {
         if (!selectedConsultation || !user || selectedConsultation.expertId !== user.id) return
 
@@ -901,6 +926,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                     <div><span>신청 완료</span><strong>{requestedCount}건</strong></div>
                     <div><span>정산 완료</span><strong>{settledCount}건</strong></div>
                 </div>
+                {settlementActionMessage && <p className="settlement-action-message">{settlementActionMessage}</p>}
+                {settlementActionError && <p className="settlement-action-error" role="alert">{settlementActionError}</p>}
 
                 {settlementWorks.length === 0 ? (
                     <div className="settlement-empty">
@@ -912,6 +939,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                         {settlementWorks.map((work) => {
                             const isSettled = work.settlementStatus === 'settled'
                             const isRequested = Boolean(work.settlementRequestedAt)
+                            const isSubmitting = settlementSubmittingWorkId === work.id
                             const statusLabel = isSettled ? '정산 완료' : isRequested ? '관리자 처리 대기' : '정산 신청 가능'
                             return (
                                 <article className="settlement-item" key={work.id}>
@@ -924,8 +952,17 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         <Link className="settlement-project-link" to={`/workroom/${work.id}`} state={myPageReturnState}>프로젝트 보기</Link>
                                     </div>
                                     <div className="settlement-item-footer">
-                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '관리자가 확인 후 정산을 처리합니다.' : '프로젝트에서 정산 신청을 진행하세요.'}</span>
-                                        {!isSettled && !isRequested && <Link to={`/workroom/${work.id}`} state={myPageReturnState}>정산 신청하기</Link>}
+                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '관리자가 확인 후 정산을 처리합니다.' : '정산 관리에서 바로 신청할 수 있습니다.'}</span>
+                                        {!isSettled && !isRequested && (
+                                            <button
+                                                className="settlement-request-button"
+                                                type="button"
+                                                onClick={() => handleRequestSettlement(work.id)}
+                                                disabled={isSubmitting}
+                                            >
+                                                {isSubmitting ? '신청 중' : '정산 신청하기'}
+                                            </button>
+                                        )}
                                     </div>
                                 </article>
                             )

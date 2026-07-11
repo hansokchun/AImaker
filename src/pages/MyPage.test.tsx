@@ -55,6 +55,7 @@ const saveReview = vi.fn(async (_review: Review) => undefined)
 const saveProposal = vi.fn(async (_proposal: Proposal) => 'proposal-product-directed-created')
 const cancelProposal = vi.fn(async (_proposalId: string) => undefined)
 const cancelWork = vi.fn(async (_workId: string) => undefined)
+const requestSettlementWithdrawal = vi.fn(async (_workId: string, _expertId: string) => undefined)
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-client-before'])
@@ -726,6 +727,7 @@ vi.mock('../lib/storage', () => ({
     saveProposal: (proposal: Proposal) => saveProposal(proposal),
     cancelProposal: (proposalId: string) => cancelProposal(proposalId),
     cancelWork: (workId: string) => cancelWork(workId),
+    requestSettlementWithdrawal: (workId: string, expertId: string) => requestSettlementWithdrawal(workId, expertId),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),
     getFavoriteProductCount: (productId: string) => getFavoriteProductCount(productId),
@@ -740,6 +742,7 @@ describe('MyPage', () => {
         saveProposal.mockClear()
         cancelProposal.mockClear()
         cancelWork.mockClear()
+        requestSettlementWithdrawal.mockClear()
         saveExpertProduct.mockClear()
         mockSignOut.mockClear()
         deleteUserPublicAccountData.mockClear()
@@ -1061,6 +1064,40 @@ describe('MyPage', () => {
 
         expect(await screen.findByRole('heading', { name: '정산 관리' })).toBeInTheDocument()
         expect(screen.getByLabelText('정산 요약')).toBeInTheDocument()
+    })
+
+    it('requests settlement directly from settlement management', async () => {
+        getUserWorks.mockResolvedValueOnce([
+            {
+                id: 'work-settlement-ready',
+                proposalId: 'proposal-settlement-ready',
+                requestId: 'request-settlement-ready',
+                clientId: 'client-real-completed',
+                expertId: 'user-demo-01',
+                title: '정산 신청 테스트 거래',
+                progressType: 'single' as const,
+                status: 'completed' as const,
+                totalPrice: 100000,
+                platformFee: 0,
+                expertPayout: 100000,
+                settlementStatus: 'pending' as const,
+                stepIds: [],
+            },
+        ])
+
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '정산 관리' }))
+        fireEvent.click(await screen.findByRole('button', { name: '정산 신청하기' }))
+
+        await waitFor(() => expect(requestSettlementWithdrawal).toHaveBeenCalledWith('work-settlement-ready', 'user-demo-01'))
+        expect(await screen.findByText('정산 신청이 접수되었습니다. 관리자가 확인 후 정산 완료 처리합니다.')).toBeInTheDocument()
+        expect(screen.getByText('관리자 처리 대기')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '정산 신청하기' })).not.toBeInTheDocument()
     })
 
     it('shows work management panels in the separated work page mode', async () => {
