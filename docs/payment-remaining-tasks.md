@@ -13,6 +13,7 @@ Last updated: 2026-07-11
 - Expert settlement withdrawal request is implemented.
 - Admin can mark settlement pending, settled, refunded, disputed, resolved, or held.
 - Supabase production database migration was applied.
+- Supabase payment Edge Functions were deployed: order, confirm, fail, and webhook.
 - Vercel production environment variables were added.
 - Vercel production deployment was completed.
 
@@ -32,7 +33,7 @@ Last updated: 2026-07-11
    - When settlement hold is used.
    - Whether automatic 7-day confirmation should run by scheduled backend job instead of only when the workroom is loaded.
 
-3. Consider a scheduled backend job for automatic rules.
+3. Optional hardening: add a scheduled backend job for automatic rules.
    - Current automatic purchase confirmation and 24-hour cancellation are checked when workroom data loads.
    - A scheduled function would make those rules run even if no one opens the workroom.
 
