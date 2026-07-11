@@ -31,7 +31,7 @@ const currency = new Intl.NumberFormat('ko-KR')
 const normalizeStageActions = (action?: StageAction | StageAction[]) =>
     Array.isArray(action) ? action : action ? [action] : []
 
-type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'favorites' | 'consultations' | 'workroom' | 'reviews'
+type MyPagePanel = 'overview' | 'profile' | 'products' | 'client' | 'expert' | 'favorites' | 'consultations' | 'workroom' | 'settlement' | 'reviews'
 type MyPageMode = 'profile' | 'work' | 'all'
 type StageVisualState = 'done' | 'current' | 'pending'
 type StageAction = { label: string; to?: string; onClick?: () => void; variant?: 'primary' | 'secondary' }
@@ -109,6 +109,7 @@ const expertWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'products', label: '내 상품관리' },
     { id: 'consultations', label: '상담채팅' },
     { id: 'workroom', label: '프로젝트' },
+    { id: 'settlement', label: '정산 관리' },
 ]
 
 const legacyWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
@@ -117,7 +118,11 @@ const legacyWorkMenuItems: Array<{ id: MyPagePanel; label: string }> = [
     { id: 'workroom', label: '프로젝트' },
 ]
 
-const allMenuItems = [...profileMenuItems, ...legacyWorkMenuItems]
+const allMenuItems: Array<{ id: MyPagePanel; label: string }> = [
+    ...profileMenuItems,
+    ...legacyWorkMenuItems,
+    { id: 'settlement', label: '정산 관리' },
+]
 
 const isMyPagePanel = (value: string | null, items: Array<{ id: MyPagePanel; label: string }> = allMenuItems): value is MyPagePanel =>
     Boolean(value && items.some((item) => item.id === value))
@@ -831,6 +836,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             favorites: 'M12 20.5 10.7 19C6 14.7 3 12 3 8.7A4.7 4.7 0 0 1 7.7 4c1.7 0 3.3.8 4.3 2.1A5.1 5.1 0 0 1 16.3 4 4.7 4.7 0 0 1 21 8.7c0 3.3-3 6-7.7 10.3L12 20.5Z',
             consultations: 'M5 6.5h14a2 2 0 0 1 2 2v5.5a2 2 0 0 1-2 2h-5l-4 3v-3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z',
             workroom: 'M4 7h6l1.5 2H20v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z',
+            settlement: 'M4 6.5h16M6 10.5h12M8 14.5h8M10 18.5h4',
             reviews: 'M12 4.5 14.2 9l5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 9.7l5-.7L12 4.5Z',
             products: 'M5 5h14v4H5V5Zm0 7h14v7H5v-7Z',
             expert: 'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 8c.8-3.5 3-5.5 6-5.5s5.2 2 6 5.5',
@@ -865,6 +871,68 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             </button>
         </div>
     )
+
+    const renderSettlementPanel = () => {
+        const settlementWorks = expertCompletedWorks
+        const requestedCount = settlementWorks.filter((work) => Boolean(work.settlementRequestedAt)).length
+        const settledCount = settlementWorks.filter((work) => work.settlementStatus === 'settled').length
+        const unsettledAmount = settlementWorks
+            .filter((work) => work.settlementStatus !== 'settled')
+            .reduce((total, work) => total + (work.expertPayout || 0), 0)
+
+        return (
+            <section className="settlement-panel" style={cardStyle}>
+                <div className="settlement-panel-header">
+                    <div>
+                        <span className="settlement-panel-eyebrow">전문가 정산</span>
+                        <h2>정산 관리</h2>
+                        <p>의뢰자 승인 또는 자동 구매확정 후 정산을 신청할 수 있습니다.</p>
+                    </div>
+                    <div className="settlement-panel-total">
+                        <span>정산 예정 금액</span>
+                        <strong>{currency.format(unsettledAmount)}원</strong>
+                    </div>
+                </div>
+
+                <div className="settlement-summary-grid" aria-label="정산 요약">
+                    <div><span>정산 대기</span><strong>{settlementWorks.length - settledCount}건</strong></div>
+                    <div><span>신청 완료</span><strong>{requestedCount}건</strong></div>
+                    <div><span>정산 완료</span><strong>{settledCount}건</strong></div>
+                </div>
+
+                {settlementWorks.length === 0 ? (
+                    <div className="settlement-empty">
+                        <strong>정산 가능한 완료 거래가 없습니다.</strong>
+                        <p>결과물을 제출하고 의뢰자가 승인하면 이곳에서 정산을 신청할 수 있습니다.</p>
+                    </div>
+                ) : (
+                    <div className="settlement-list" aria-label="정산 거래 목록">
+                        {settlementWorks.map((work) => {
+                            const isSettled = work.settlementStatus === 'settled'
+                            const isRequested = Boolean(work.settlementRequestedAt)
+                            const statusLabel = isSettled ? '정산 완료' : isRequested ? '관리자 처리 대기' : '정산 신청 가능'
+                            return (
+                                <article className="settlement-item" key={work.id}>
+                                    <div className="settlement-item-main">
+                                        <div>
+                                            <span className={`settlement-status settlement-status-${isSettled ? 'done' : isRequested ? 'requested' : 'ready'}`}>{statusLabel}</span>
+                                            <h3>{work.title}</h3>
+                                            <p>전문가 정산액 <strong>{currency.format(work.expertPayout || 0)}원</strong></p>
+                                        </div>
+                                        <Link className="settlement-project-link" to={`/workroom/${work.id}`} state={myPageReturnState}>프로젝트 보기</Link>
+                                    </div>
+                                    <div className="settlement-item-footer">
+                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '관리자가 확인 후 정산을 처리합니다.' : '프로젝트에서 정산 신청을 진행하세요.'}</span>
+                                        {!isSettled && !isRequested && <Link to={`/workroom/${work.id}`} state={myPageReturnState}>정산 신청하기</Link>}
+                                    </div>
+                                </article>
+                            )
+                        })}
+                    </div>
+                )}
+            </section>
+        )
+    }
 
     const createWorkStage = (
         phase: string,
@@ -2515,6 +2583,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
         if (activePanel === 'consultations') {
             return renderConsultationPanel()
+        }
+
+        if (activePanel === 'settlement') {
+            return renderSettlementPanel()
         }
 
         if (activePanel === 'workroom') {

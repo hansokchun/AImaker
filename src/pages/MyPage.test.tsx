@@ -1023,6 +1023,19 @@ describe('MyPage', () => {
         expect(mockSignOut).toHaveBeenCalledTimes(1)
     })
 
+    it('shows settlement management in the default expert menu', async () => {
+        render(
+            <MemoryRouter>
+                <MyPage />
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: '정산 관리' }))
+
+        expect(await screen.findByRole('heading', { name: '정산 관리' })).toBeInTheDocument()
+        expect(screen.getByLabelText('정산 요약')).toBeInTheDocument()
+    })
+
     it('shows work management panels in the separated work page mode', async () => {
         render(
             <MemoryRouter>
