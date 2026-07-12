@@ -21,6 +21,8 @@ describe('database.sql', () => {
             'works',
             'expert_payout_accounts',
             'settlement_payouts',
+            'notification_preferences',
+            'notification_events',
             'work_steps',
             'deliverables',
             'reviews',
@@ -228,6 +230,25 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Admins can view payout accounts"/i)
         expect(sql).toMatch(/create policy "Admins can view settlement payouts"/i)
         expect(sql).toMatch(/create policy "Admins can update settlement payouts"/i)
+    })
+
+    it('stores user notification preferences and queued notification events', () => {
+        expect(sql).toMatch(/create table(?: if not exists)? public\.notification_preferences/i)
+        expect(sql).toMatch(/user_id uuid primary key references public\.profiles\(id\)/i)
+        expect(sql).toMatch(/phone_number text not null default ''/i)
+        expect(sql).toMatch(/kakao_alimtalk_enabled boolean not null default false/i)
+        expect(sql).toMatch(/sms_fallback_enabled boolean not null default false/i)
+        expect(sql).toMatch(/create table(?: if not exists)? public\.notification_events/i)
+        expect(sql).toMatch(/event_type text not null check/i)
+        expect(sql).toMatch(/channels text\[\] not null default array\['in_app'\]::text\[\]/i)
+        expect(sql).toMatch(/status text not null default 'queued' check \(status in \('queued', 'sent', 'failed', 'skipped'\)\)/i)
+        expect(sql).toMatch(/create policy "Users can view own notification preference"/i)
+        expect(sql).toMatch(/create policy "Users can update own notification preference"/i)
+        expect(sql).toMatch(/create policy "Users can view own notification events"/i)
+        expect(sql).toMatch(/create policy "Users can insert own notification events"/i)
+        expect(sql).toMatch(/create policy "Work participants can insert notification events"/i)
+        expect(sql).toMatch(/auth\.uid\(\) in \(works\.client_id, works\.expert_id\)/i)
+        expect(sql).toMatch(/user_id in \(works\.client_id, works\.expert_id\)/i)
     })
 
     it('stores profile and product trust fields used by launch UI', () => {

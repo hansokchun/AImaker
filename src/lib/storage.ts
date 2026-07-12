@@ -13,12 +13,16 @@ import type {
     ExpertPayoutAccount,
     ExpertProduct,
     ExpertProfile,
+    NotificationChannel,
+    NotificationEvent,
+    NotificationEventType,
     PackageTier,
     Proposal,
     ProductPackage,
     Review,
     ServiceRequestData,
     SettlementPayout,
+    UserNotificationPreference,
     Work,
     WorkMessage,
     WorkStep,
@@ -51,6 +55,8 @@ const STORAGE_KEYS = {
     ADMIN_REPORTS: 'ai_admin_reports',
     EXPERT_PAYOUT_ACCOUNTS: 'ai_expert_payout_accounts',
     SETTLEMENT_PAYOUTS: 'ai_settlement_payouts',
+    USER_NOTIFICATION_PREFERENCES: 'ai_user_notification_preferences',
+    NOTIFICATION_EVENTS: 'ai_notification_events',
 } as const;
 
 const DEMO_ACCOUNT_USER_ID_KEY = 'ai_demo_account_user_id';
@@ -401,6 +407,47 @@ const toSettlementPayout = (item: any): SettlementPayout => ({
     requestedAt: item.requested_at || new Date().toISOString(),
     ...(item.processed_at ? { processedAt: item.processed_at } : {}),
 });
+
+const toNotificationPreference = (item: any): UserNotificationPreference => ({
+    userId: item.user_id ?? item.userId,
+    phoneNumber: item.phone_number ?? item.phoneNumber ?? '',
+    kakaoAlimtalkEnabled: Boolean(item.kakao_alimtalk_enabled ?? item.kakaoAlimtalkEnabled),
+    smsFallbackEnabled: Boolean(item.sms_fallback_enabled ?? item.smsFallbackEnabled),
+    updatedAt: item.updated_at ?? item.updatedAt,
+});
+
+const toNotificationEvent = (item: any): NotificationEvent => ({
+    id: item.id,
+    userId: item.user_id ?? item.userId,
+    type: item.event_type ?? item.type,
+    title: item.title,
+    body: item.body,
+    channels: item.channels ?? ['in_app'],
+    status: item.status ?? 'queued',
+    relatedType: item.related_type ?? item.relatedType,
+    relatedId: item.related_id ?? item.relatedId,
+    provider: item.provider,
+    failureReason: item.failure_reason ?? item.failureReason,
+    createdAt: item.created_at ?? item.createdAt ?? new Date().toISOString(),
+    sentAt: item.sent_at ?? item.sentAt,
+});
+
+type QueueNotificationInput = {
+    userId: string;
+    type: NotificationEventType;
+    title: string;
+    body: string;
+    relatedType?: NotificationEvent['relatedType'];
+    relatedId?: string;
+};
+
+const resolveNotificationChannels = (preference: UserNotificationPreference | null): NotificationChannel[] => {
+    const channels: NotificationChannel[] = ['in_app'];
+    const hasPhone = Boolean(preference?.phoneNumber.trim());
+    if (hasPhone && preference?.kakaoAlimtalkEnabled) channels.push('kakao_alimtalk');
+    if (hasPhone && preference?.smsFallbackEnabled) channels.push('sms');
+    return channels;
+};
 
 const toBoardRequestStatus = (status?: string): ServiceRequestData['status'] => {
     if (status === 'in_progress') return 'in_progress';
@@ -1519,6 +1566,158 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
     }
 }
 
+export async function getNotificationPreference(userId: string): Promise<UserNotificationPreference | null> {
+    const localPreference = readLocalArray<UserNotificationPreference>(STORAGE_KEYS.USER_NOTIFICATION_PREFERENCES)
+        .find((preference) => preference.userId === userId) || null;
+
+    if (!supabase) return localPreference;
+
+    try {
+        const { data, error } = await supabase
+            .from('notification_preferences')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.error('알림 설정 로딩 실패:', error);
+            return localPreference;
+        }
+
+        return data ? toNotificationPreference(data) : localPreference;
+    } catch (error) {
+        console.error('알림 설정 로딩 실패:', error);
+        return localPreference;
+    }
+}
+
+export async function saveNotificationPreference(
+    preference: UserNotificationPreference,
+): Promise<UserNotificationPreference> {
+    const nextPreference: UserNotificationPreference = {
+        ...preference,
+        phoneNumber: preference.phoneNumber.replace(/[^\d-]/g, '').trim(),
+        updatedAt: new Date().toISOString(),
+    };
+
+    if (!nextPreference.phoneNumber) {
+        nextPreference.kakaoAlimtalkEnabled = false;
+        nextPreference.smsFallbackEnabled = false;
+    }
+
+    const preferences = readLocalArray<UserNotificationPreference>(STORAGE_KEYS.USER_NOTIFICATION_PREFERENCES);
+    writeLocalArray(
+        STORAGE_KEYS.USER_NOTIFICATION_PREFERENCES,
+        [nextPreference, ...preferences.filter((item) => item.userId !== nextPreference.userId)],
+    );
+
+    if (!supabase) return nextPreference;
+
+    try {
+        const { data, error } = await supabase
+            .from('notification_preferences')
+            .upsert({
+                user_id: nextPreference.userId,
+                phone_number: nextPreference.phoneNumber,
+                kakao_alimtalk_enabled: nextPreference.kakaoAlimtalkEnabled,
+                sms_fallback_enabled: nextPreference.smsFallbackEnabled,
+                updated_at: nextPreference.updatedAt,
+            }, { onConflict: 'user_id' })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('알림 설정 저장 실패:', error);
+            return nextPreference;
+        }
+
+        return toNotificationPreference(data);
+    } catch (error) {
+        console.error('알림 설정 저장 실패:', error);
+        return nextPreference;
+    }
+}
+
+export async function getUserNotifications(userId: string): Promise<NotificationEvent[]> {
+    const localEvents = readLocalArray<NotificationEvent>(STORAGE_KEYS.NOTIFICATION_EVENTS)
+        .filter((event) => event.userId === userId);
+
+    if (!supabase) return localEvents;
+
+    try {
+        const { data, error } = await supabase
+            .from('notification_events')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('알림 목록 로딩 실패:', error);
+            return localEvents;
+        }
+
+        return mergeById((data || []).map(toNotificationEvent), localEvents);
+    } catch (error) {
+        console.error('알림 목록 로딩 실패:', error);
+        return localEvents;
+    }
+}
+
+export async function queueNotificationEvent(input: QueueNotificationInput): Promise<NotificationEvent> {
+    const createdAt = new Date().toISOString();
+    const preference = await getNotificationPreference(input.userId);
+    const event: NotificationEvent = {
+        id: `notification-${input.type}-${input.relatedId || input.userId}-${Date.now()}`,
+        userId: input.userId,
+        type: input.type,
+        title: input.title,
+        body: input.body,
+        channels: resolveNotificationChannels(preference),
+        status: 'queued',
+        relatedType: input.relatedType,
+        relatedId: input.relatedId,
+        createdAt,
+    };
+
+    const localEvents = readLocalArray<NotificationEvent>(STORAGE_KEYS.NOTIFICATION_EVENTS);
+    writeLocalArray(STORAGE_KEYS.NOTIFICATION_EVENTS, [event, ...localEvents]);
+
+    if (!supabase) return event;
+
+    try {
+        const { data, error } = await supabase
+            .from('notification_events')
+            .insert({
+                user_id: event.userId,
+                event_type: event.type,
+                title: event.title,
+                body: event.body,
+                channels: event.channels,
+                status: event.status,
+                related_type: event.relatedType || null,
+                related_id: event.relatedId || null,
+                created_at: event.createdAt,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('알림 큐 등록 실패:', error);
+            return event;
+        }
+
+        const savedEvent = toNotificationEvent(data);
+        writeLocalArray(
+            STORAGE_KEYS.NOTIFICATION_EVENTS,
+            [savedEvent, ...readLocalArray<NotificationEvent>(STORAGE_KEYS.NOTIFICATION_EVENTS).filter((item) => item.id !== event.id)],
+        );
+        return savedEvent;
+    } catch (error) {
+        console.error('알림 큐 등록 실패:', error);
+        return event;
+    }
+}
+
 export async function getExpertPayoutAccount(expertId: string): Promise<ExpertPayoutAccount | null> {
     const localAccount = readLocalArray<ExpertPayoutAccount>(STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS)
         .find((account) => account.expertId === expertId) || null;
@@ -1942,6 +2141,24 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
                 ),
             ),
         );
+        await Promise.all([
+            queueNotificationEvent({
+                userId: proposal.clientId,
+                type: 'payment_completed',
+                title: '결제가 완료되었습니다',
+                body: `${proposal.title} 작업 결제가 완료되어 작업방이 열렸습니다.`,
+                relatedType: 'work',
+                relatedId: work.id,
+            }),
+            queueNotificationEvent({
+                userId: proposal.expertId,
+                type: 'workroom_created',
+                title: '새 작업방이 생성되었습니다',
+                body: `${proposal.title} 결제가 완료되어 작업을 시작할 수 있습니다.`,
+                relatedType: 'work',
+                relatedId: work.id,
+            }),
+        ]);
         return work.id;
     }
 
@@ -2004,6 +2221,24 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
         .eq('id', proposal.requestId);
 
     if (requestError) throw new Error('데이터베이스 통신 오류: 요청 상태 변경 실패');
+    await Promise.all([
+        queueNotificationEvent({
+            userId: proposal.clientId,
+            type: 'payment_completed',
+            title: '결제가 완료되었습니다',
+            body: `${proposal.title} 작업 결제가 완료되어 작업방이 열렸습니다.`,
+            relatedType: 'work',
+            relatedId: workData.id,
+        }),
+        queueNotificationEvent({
+            userId: proposal.expertId,
+            type: 'workroom_created',
+            title: '새 작업방이 생성되었습니다',
+            body: `${proposal.title} 결제가 완료되어 작업을 시작할 수 있습니다.`,
+            relatedType: 'work',
+            relatedId: workData.id,
+        }),
+    ]);
     return workData.id;
 }
 
@@ -2388,6 +2623,14 @@ export async function requestSettlementWithdrawal(workId: string, expertId: stri
                 requestedAt,
             }, ...payouts]);
         }
+        await queueNotificationEvent({
+            userId: expertId,
+            type: 'settlement_requested',
+            title: '정산 요청이 접수되었습니다',
+            body: `${currentWork.title} 정산 요청이 접수되었습니다. 관리자 확인 후 송금 처리됩니다.`,
+            relatedType: 'settlement',
+            relatedId: workId,
+        });
         return;
     }
 
@@ -2419,6 +2662,14 @@ export async function requestSettlementWithdrawal(workId: string, expertId: stri
         }, { onConflict: 'work_id' });
 
     if (payoutError) throw new Error('데이터베이스 통신 오류: 정산 지급 대기 등록 실패');
+    await queueNotificationEvent({
+        userId: expertId,
+        type: 'settlement_requested',
+        title: '정산 요청이 접수되었습니다',
+        body: `${currentWork.title} 정산 요청이 접수되었습니다. 관리자 확인 후 송금 처리됩니다.`,
+        relatedType: 'settlement',
+        relatedId: workId,
+    });
 }
 
 export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
@@ -2522,8 +2773,20 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
                 ),
             );
         }
+        if (currentWork) {
+            await queueNotificationEvent({
+                userId: currentWork.clientId,
+                type: 'deliverable_submitted',
+                title: '결과물이 제출되었습니다',
+                body: `${currentWork.title} 결과물이 도착했습니다. 확인 후 승인하거나 수정 요청을 남겨주세요.`,
+                relatedType: 'deliverable',
+                relatedId: deliverable.id,
+            });
+        }
         return;
     }
+
+    const currentWork = await getSupabaseWork(deliverable.workId).catch(() => null);
 
     const { error } = await supabase.from('deliverables').insert([{
         ...(isUuid(deliverableToSave.id) ? { id: deliverableToSave.id } : {}),
@@ -2553,6 +2816,16 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
         .eq('id', deliverable.workId);
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 제출 처리 실패');
+    if (currentWork) {
+        await queueNotificationEvent({
+            userId: currentWork.clientId,
+            type: 'deliverable_submitted',
+            title: '결과물이 제출되었습니다',
+            body: `${currentWork.title} 결과물이 도착했습니다. 확인 후 승인하거나 수정 요청을 남겨주세요.`,
+            relatedType: 'deliverable',
+            relatedId: deliverable.id,
+        });
+    }
 }
 
 export async function approveWorkDeliverable(
@@ -2569,7 +2842,8 @@ export async function approveWorkDeliverable(
         const deliverables = deliverablesRaw ? (JSON.parse(deliverablesRaw) as Deliverable[]) : [];
         const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
         const steps = stepsRaw ? (JSON.parse(stepsRaw) as WorkStep[]) : [];
-        assertWorkIsNotFrozen(works.find((work) => work.id === workId) || null, '결과물을 승인');
+        const currentWork = works.find((work) => work.id === workId) || null;
+        assertWorkIsNotFrozen(currentWork, '결과물을 승인');
 
         localStorage.setItem(
             STORAGE_KEYS.DELIVERABLES,
@@ -2614,8 +2888,20 @@ export async function approveWorkDeliverable(
                 ),
             );
         }
+        if (currentWork) {
+            await queueNotificationEvent({
+                userId: currentWork.expertId,
+                type: 'settlement_available',
+                title: '정산 가능한 거래가 생겼습니다',
+                body: `${currentWork.title} 작업이 승인되어 정산을 요청할 수 있습니다.`,
+                relatedType: 'work',
+                relatedId: workId,
+            });
+        }
         return;
     }
+
+    const currentWork = await getSupabaseWork(workId).catch(() => null);
 
     const { error: deliverableError } = await supabase
         .from('deliverables')
@@ -2652,6 +2938,16 @@ export async function approveWorkDeliverable(
             .eq('id', requestId);
 
         if (requestError) throw new Error('데이터베이스 통신 오류: 요청 완료 처리 실패');
+    }
+    if (currentWork) {
+        await queueNotificationEvent({
+            userId: currentWork.expertId,
+            type: 'settlement_available',
+            title: '정산 가능한 거래가 생겼습니다',
+            body: `${currentWork.title} 작업이 승인되어 정산을 요청할 수 있습니다.`,
+            relatedType: 'work',
+            relatedId: workId,
+        });
     }
 }
 
@@ -2701,9 +2997,20 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
                 ),
             );
         }
+        if (currentWork) {
+            await queueNotificationEvent({
+                userId: currentWork.expertId,
+                type: 'revision_requested',
+                title: '수정 요청이 도착했습니다',
+                body: `${currentWork.title} 결과물에 수정 요청이 등록되었습니다.`,
+                relatedType: 'deliverable',
+                relatedId: deliverableId,
+            });
+        }
         return;
     }
 
+    const currentWork = await getSupabaseWork(workId).catch(() => null);
     const { data: workData, error: workReadError } = await supabase
         .from('works')
         .select('revision_limit, revision_used')
@@ -2742,6 +3049,16 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
         .eq('id', workId);
 
     if (workError) throw new Error('데이터베이스 통신 오류: 작업 수정 요청 실패');
+    if (currentWork) {
+        await queueNotificationEvent({
+            userId: currentWork.expertId,
+            type: 'revision_requested',
+            title: '수정 요청이 도착했습니다',
+            body: `${currentWork.title} 결과물에 수정 요청이 등록되었습니다.`,
+            relatedType: 'deliverable',
+            relatedId: deliverableId,
+        });
+    }
 }
 
 export async function saveReview(review: Review): Promise<void> {

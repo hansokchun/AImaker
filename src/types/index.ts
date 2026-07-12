@@ -203,6 +203,41 @@ export interface SettlementPayout {
     processedAt?: string;
 }
 
+export type NotificationChannel = 'in_app' | 'kakao_alimtalk' | 'sms';
+
+export type NotificationEventType =
+    | 'payment_completed'
+    | 'workroom_created'
+    | 'deliverable_submitted'
+    | 'revision_requested'
+    | 'settlement_available'
+    | 'settlement_requested'
+    | 'settlement_paid';
+
+export interface UserNotificationPreference {
+    userId: string;
+    phoneNumber: string;
+    kakaoAlimtalkEnabled: boolean;
+    smsFallbackEnabled: boolean;
+    updatedAt?: string;
+}
+
+export interface NotificationEvent {
+    id: string;
+    userId: string;
+    type: NotificationEventType;
+    title: string;
+    body: string;
+    channels: NotificationChannel[];
+    status: 'queued' | 'sent' | 'failed' | 'skipped';
+    relatedType?: 'proposal' | 'work' | 'deliverable' | 'settlement';
+    relatedId?: string;
+    provider?: string;
+    failureReason?: string;
+    createdAt: string;
+    sentAt?: string;
+}
+
 export interface WorkStep {
     id: string;
     workId: string;

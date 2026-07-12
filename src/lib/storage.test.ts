@@ -101,6 +101,82 @@ describe('settlement payout storage', () => {
     })
 })
 
+describe('notification storage', () => {
+    it('saves notification preferences and queues Kakao/SMS channels when enabled', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.clear()
+        const {
+            getUserNotifications,
+            queueNotificationEvent,
+            saveNotificationPreference,
+        } = await import('./storage')
+
+        await saveNotificationPreference({
+            userId: 'notification-user-01',
+            phoneNumber: '010 1234 5678',
+            kakaoAlimtalkEnabled: true,
+            smsFallbackEnabled: true,
+        })
+        await queueNotificationEvent({
+            userId: 'notification-user-01',
+            type: 'payment_completed',
+            title: '결제가 완료되었습니다',
+            body: '작업방이 열렸습니다.',
+            relatedType: 'work',
+            relatedId: 'work-notification-01',
+        })
+
+        await expect(getUserNotifications('notification-user-01')).resolves.toEqual([
+            expect.objectContaining({
+                type: 'payment_completed',
+                channels: ['in_app', 'kakao_alimtalk', 'sms'],
+                status: 'queued',
+                relatedId: 'work-notification-01',
+            }),
+        ])
+    })
+
+    it('keeps phone notifications disabled when no phone number is saved', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.clear()
+        const {
+            getNotificationPreference,
+            getUserNotifications,
+            queueNotificationEvent,
+            saveNotificationPreference,
+        } = await import('./storage')
+
+        await saveNotificationPreference({
+            userId: 'notification-user-02',
+            phoneNumber: '',
+            kakaoAlimtalkEnabled: true,
+            smsFallbackEnabled: true,
+        })
+        await queueNotificationEvent({
+            userId: 'notification-user-02',
+            type: 'settlement_requested',
+            title: '정산 요청이 접수되었습니다',
+            body: '관리자 확인 후 송금 처리됩니다.',
+            relatedType: 'settlement',
+            relatedId: 'work-notification-02',
+        })
+
+        await expect(getNotificationPreference('notification-user-02')).resolves.toEqual(expect.objectContaining({
+            phoneNumber: '',
+            kakaoAlimtalkEnabled: false,
+            smsFallbackEnabled: false,
+        }))
+        await expect(getUserNotifications('notification-user-02')).resolves.toEqual([
+            expect.objectContaining({
+                type: 'settlement_requested',
+                channels: ['in_app'],
+            }),
+        ])
+    })
+})
+
 describe('expert product storage', () => {
     it('does not read or write demo products through the expert product cache', async () => {
         vi.resetModules()

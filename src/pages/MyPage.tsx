@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
-import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertPayoutAccount, getExpertProducts, getExpertSettlementPayouts, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, requestSettlementWithdrawal, saveConsultationMessage, saveConsultationReport, saveExpertPayoutAccount, saveReview, subscribeToConsultationMessages } from '../lib/storage'
+import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages, getExpertPayoutAccount, getExpertProducts, getExpertSettlementPayouts, getNotificationPreference, getStoredProfile, getUserConsultations, getUserDisplayProfile, getUserFavoriteProductIds, getUserProposals, getUserReviews, getUserServiceRequests, getUserWorks, requestSettlementWithdrawal, saveConsultationMessage, saveConsultationReport, saveExpertPayoutAccount, saveNotificationPreference, saveReview, subscribeToConsultationMessages } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
-import type { Consultation, ConsultationMessage, ExpertPayoutAccount, ExpertProduct, Proposal, Review, ServiceRequestData, SettlementPayout, Work } from '../types'
+import type { Consultation, ConsultationMessage, ExpertPayoutAccount, ExpertProduct, Proposal, Review, ServiceRequestData, SettlementPayout, UserNotificationPreference, Work } from '../types'
 import ProductCard from '../components/ProductCard'
 import { ConsultationChatPanel } from './ConsultationChatPanel'
 import { ProjectListPanel } from './ProjectListPanel'
@@ -261,6 +261,15 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const [payoutAccountForm, setPayoutAccountForm] = useState({ bankName: '', accountNumber: '', accountHolder: '' })
     const [payoutAccountSaving, setPayoutAccountSaving] = useState(false)
     const [settlementPayouts, setSettlementPayouts] = useState<SettlementPayout[]>([])
+    const [notificationForm, setNotificationForm] = useState<UserNotificationPreference>({
+        userId: '',
+        phoneNumber: '',
+        kakaoAlimtalkEnabled: false,
+        smsFallbackEnabled: false,
+    })
+    const [notificationSaving, setNotificationSaving] = useState(false)
+    const [notificationMessage, setNotificationMessage] = useState('')
+    const [notificationError, setNotificationError] = useState('')
     const [selectedReviewWork, setSelectedReviewWork] = useState<Work | null>(null)
     const [profilePreview, setProfilePreview] = useState<ProfilePreview | null>(null)
     const [profilePreviewLoaded, setProfilePreviewLoaded] = useState(false)
@@ -299,6 +308,36 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             navigate(ROUTES.LOGIN)
         }
     }, [session, loading, navigate])
+
+    useEffect(() => {
+        if (!userId) return
+
+        let cancelled = false
+        getNotificationPreference(userId)
+            .then((preference) => {
+                if (cancelled) return
+                setNotificationForm(preference || {
+                    userId,
+                    phoneNumber: '',
+                    kakaoAlimtalkEnabled: false,
+                    smsFallbackEnabled: false,
+                })
+            })
+            .catch(() => {
+                if (cancelled) return
+                setNotificationError('알림 설정을 불러오지 못했습니다.')
+                setNotificationForm({
+                    userId,
+                    phoneNumber: '',
+                    kakaoAlimtalkEnabled: false,
+                    smsFallbackEnabled: false,
+                })
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [userId])
 
     useEffect(() => {
         if (!menuItems.some((item) => item.id === activePanel)) {
@@ -769,6 +808,26 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             setSettlementActionError(error instanceof Error ? error.message : '정산 계좌를 저장하지 못했습니다.')
         } finally {
             setPayoutAccountSaving(false)
+        }
+    }
+
+    const handleSaveNotificationPreference = async () => {
+        if (!userId) return
+
+        setNotificationMessage('')
+        setNotificationError('')
+        setNotificationSaving(true)
+        try {
+            const savedPreference = await saveNotificationPreference({
+                ...notificationForm,
+                userId,
+            })
+            setNotificationForm(savedPreference)
+            setNotificationMessage('알림 설정을 저장했습니다.')
+        } catch (error) {
+            setNotificationError(error instanceof Error ? error.message : '알림 설정 저장에 실패했습니다.')
+        } finally {
+            setNotificationSaving(false)
         }
     }
 
@@ -2673,6 +2732,77 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                     {sampleCount > 0 ? `${sampleCount}개 등록됨` : '아직 등록된 샘플이 없습니다.'}
                                 </p>
                             </div>
+                        </div>
+
+                        <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.75rem', background: '#f8fafc' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 900 }}>
+                                        카카오 알림톡/SMS 알림
+                                    </h3>
+                                    <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                        결제, 작업방, 결과물, 정산 상태 변경을 휴대폰 알림으로 받을 수 있습니다.
+                                    </p>
+                                </div>
+                            </div>
+                            <label style={{ display: 'grid', gap: '0.45rem', color: '#334155', fontWeight: 800, marginBottom: '0.85rem' }}>
+                                휴대폰 번호
+                                <input
+                                    type="tel"
+                                    value={notificationForm.phoneNumber}
+                                    onChange={(event) => {
+                                        const phoneNumber = event.target.value
+                                        setNotificationForm((current) => ({
+                                            ...current,
+                                            phoneNumber,
+                                            kakaoAlimtalkEnabled: phoneNumber.trim() ? current.kakaoAlimtalkEnabled : false,
+                                            smsFallbackEnabled: phoneNumber.trim() ? current.smsFallbackEnabled : false,
+                                        }))
+                                    }}
+                                    placeholder="010-0000-0000"
+                                    style={{ minHeight: 44, border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '0 0.85rem', fontWeight: 700 }}
+                                />
+                            </label>
+                            <div style={{ display: 'grid', gap: '0.65rem', marginBottom: '1rem' }}>
+                                <label style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', color: '#334155', fontWeight: 800 }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notificationForm.kakaoAlimtalkEnabled}
+                                        disabled={!notificationForm.phoneNumber.trim()}
+                                        onChange={(event) => setNotificationForm((current) => ({
+                                            ...current,
+                                            kakaoAlimtalkEnabled: event.target.checked,
+                                        }))}
+                                    />
+                                    카카오 알림톡 받기
+                                </label>
+                                <label style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', color: '#334155', fontWeight: 800 }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notificationForm.smsFallbackEnabled}
+                                        disabled={!notificationForm.phoneNumber.trim()}
+                                        onChange={(event) => setNotificationForm((current) => ({
+                                            ...current,
+                                            smsFallbackEnabled: event.target.checked,
+                                        }))}
+                                    />
+                                    알림톡 실패 시 SMS로 받기
+                                </label>
+                            </div>
+                            {notificationMessage ? (
+                                <p style={{ margin: '0 0 0.75rem', color: '#166534', fontWeight: 800 }}>{notificationMessage}</p>
+                            ) : null}
+                            {notificationError ? (
+                                <p style={{ margin: '0 0 0.75rem', color: '#b91c1c', fontWeight: 800 }}>{notificationError}</p>
+                            ) : null}
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={handleSaveNotificationPreference}
+                                disabled={notificationSaving}
+                            >
+                                {notificationSaving ? '저장 중...' : '알림 설정 저장'}
+                            </button>
                         </div>
                     </div>
                 )}
