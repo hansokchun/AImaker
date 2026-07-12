@@ -227,6 +227,7 @@ describe('database.sql', () => {
         expect(sql).toMatch(/create policy "Experts can view own settlement payouts"/i)
         expect(sql).toMatch(/create policy "Admins can view payout accounts"/i)
         expect(sql).toMatch(/create policy "Admins can view settlement payouts"/i)
+        expect(sql).toMatch(/create policy "Admins can update settlement payouts"/i)
     })
 
     it('stores profile and product trust fields used by launch UI', () => {

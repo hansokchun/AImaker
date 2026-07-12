@@ -7,6 +7,8 @@ import type {
     ServiceRequestData,
     Work,
     WorkMessage,
+    ExpertPayoutAccount,
+    SettlementPayout,
 } from '../types';
 import { mockExpertProducts } from '../data/mockData';
 import { applyAdminActionEffect } from './adminModeration';
@@ -24,6 +26,8 @@ import {
     toServiceRequestData,
     toWork,
     toWorkMessage,
+    toExpertPayoutAccount,
+    toSettlementPayout,
 } from './adminMappers';
 
 export interface AdminProfile {
@@ -48,6 +52,8 @@ export interface AdminSnapshot {
     readonly reviews: readonly Review[];
     readonly reports: readonly AdminReport[];
     readonly adminActions: readonly AdminAction[];
+    readonly payoutAccounts: readonly ExpertPayoutAccount[];
+    readonly settlementPayouts: readonly SettlementPayout[];
     readonly source: 'supabase' | 'local';
 }
 
@@ -135,6 +141,8 @@ const STORAGE_KEYS = {
     WORK_MESSAGES: 'ai_work_messages',
     ADMIN_ACTIONS: 'ai_admin_actions',
     ADMIN_REPORTS: 'ai_admin_reports',
+    EXPERT_PAYOUT_ACCOUNTS: 'ai_expert_payout_accounts',
+    SETTLEMENT_PAYOUTS: 'ai_settlement_payouts',
 } as const;
 
 const readLocalArray = <T>(key: string): T[] => {
@@ -217,6 +225,8 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         reviews,
         reports,
         adminActions,
+        payoutAccounts,
+        settlementPayouts,
     ] = await Promise.all([
         selectAll('expert_products', toAdminProduct),
         selectAll('profiles', toProfile),
@@ -229,6 +239,8 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         selectAll('reviews', toReview),
         selectAll('admin_reports', toAdminReport),
         selectAll('admin_actions', toAdminAction),
+        selectAll('expert_payout_accounts', toExpertPayoutAccount),
+        selectAll('settlement_payouts', toSettlementPayout),
     ]);
 
     return {
@@ -243,6 +255,8 @@ export async function getAdminSnapshot(): Promise<AdminSnapshot> {
         reviews: reviews.length > 0 ? reviews : localSnapshot.reviews,
         reports: reports.length > 0 ? reports : localSnapshot.reports,
         adminActions: adminActions.length > 0 ? adminActions : localSnapshot.adminActions,
+        payoutAccounts: payoutAccounts.length > 0 ? payoutAccounts : localSnapshot.payoutAccounts,
+        settlementPayouts: settlementPayouts.length > 0 ? settlementPayouts : localSnapshot.settlementPayouts,
         source: profiles.length || serviceRequests.length || proposals.length || works.length ? 'supabase' : 'local',
     };
 }
@@ -291,6 +305,8 @@ function getLocalAdminSnapshot(): AdminSnapshot {
         reviews: readLocalArray<Review>(STORAGE_KEYS.REVIEWS),
         reports: readLocalArray<AdminReport>(STORAGE_KEYS.ADMIN_REPORTS),
         adminActions: readLocalArray<AdminAction>(STORAGE_KEYS.ADMIN_ACTIONS),
+        payoutAccounts: readLocalArray<ExpertPayoutAccount>(STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS),
+        settlementPayouts: readLocalArray<SettlementPayout>(STORAGE_KEYS.SETTLEMENT_PAYOUTS),
         source: 'local',
     };
 }

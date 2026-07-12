@@ -264,6 +264,89 @@ describe('Admin', () => {
         }));
     });
 
+    it('shows a manual payout queue with account and amount filled in', async () => {
+        vi.mocked(getAdminSnapshot).mockResolvedValueOnce({
+            ...adminSnapshot,
+            profiles: [
+                ...adminSnapshot.profiles,
+                {
+                    id: 'client-admin-01',
+                    email: 'client@example.com',
+                    name: '테스트 의뢰자',
+                    avatarUrl: '',
+                    isExpert: false,
+                    createdAt: '2026-06-01T00:00:00.000Z',
+                },
+                {
+                    id: 'expert-admin-01',
+                    email: 'expert@example.com',
+                    name: '하루스튜디오',
+                    avatarUrl: '',
+                    isExpert: true,
+                    createdAt: '2026-06-01T00:00:00.000Z',
+                },
+            ],
+            works: [
+                ...adminSnapshot.works,
+                {
+                    id: 'work-admin-settlement-01',
+                    proposalId: 'proposal-admin-01',
+                    requestId: 'request-admin-01',
+                    clientId: 'client-admin-01',
+                    expertId: 'expert-admin-01',
+                    title: '정산 신청 테스트 작업방',
+                    progressType: 'single',
+                    status: 'completed',
+                    totalPrice: 100000,
+                    platformFee: 0,
+                    expertPayout: 100000,
+                    settlementStatus: 'pending',
+                    settlementRequestedAt: '2026-07-11T10:00:00.000Z',
+                    completedAt: '2026-07-11T09:00:00.000Z',
+                    stepIds: [],
+                },
+            ],
+            payoutAccounts: [{
+                id: 'payout-account-admin-01',
+                expertId: 'expert-admin-01',
+                bankName: '토스뱅크',
+                accountNumber: '1000-0000-0000',
+                accountHolder: '하루스튜디오',
+                updatedAt: '2026-07-11T09:10:00.000Z',
+            }],
+            settlementPayouts: [{
+                id: 'settlement-payout-admin-01',
+                workId: 'work-admin-settlement-01',
+                expertId: 'expert-admin-01',
+                payoutAccountId: 'payout-account-admin-01',
+                amount: 100000,
+                status: 'queued',
+                requestedAt: '2026-07-11T10:00:00.000Z',
+            }],
+        });
+        await renderAdmin();
+
+        fireEvent.click(screen.getByRole('button', { name: /정산/ }));
+
+        expect(screen.getByText('정산 신청 테스트 작업방')).toBeInTheDocument();
+        expect(screen.getByText('토스뱅크')).toBeInTheDocument();
+        expect(screen.getByText('1000-0000-0000')).toBeInTheDocument();
+        expect(screen.getByText('100,000원')).toBeInTheDocument();
+        expect(screen.getByText('작업 완료 확인')).toBeInTheDocument();
+        expect(screen.getByText('환불 대기 없음')).toBeInTheDocument();
+
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+        fireEvent.click(screen.getByRole('button', { name: '지급 완료 처리' }));
+
+        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
+            adminId: 'user-admin-01',
+            targetType: 'work',
+            targetId: 'work-admin-settlement-01',
+            actionType: 'mark_settlement_settled',
+            reason: '운영자가 하루스튜디오에게 100,000원 수동 계좌이체 완료를 확인했습니다.',
+        }));
+    });
+
     it('disables settlement completion for refund pending workrooms', async () => {
         await renderAdmin();
 

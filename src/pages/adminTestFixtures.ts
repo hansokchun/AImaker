@@ -190,4 +190,6 @@ export const adminSnapshot: AdminSnapshot = {
         },
     ],
     adminActions: [],
+    payoutAccounts: [],
+    settlementPayouts: [],
 };

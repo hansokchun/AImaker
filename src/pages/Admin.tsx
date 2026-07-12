@@ -10,7 +10,7 @@ import AdminDataPanels, { type AdminActionRequest } from './AdminDataPanels';
 import AdminFilters from './AdminFilters';
 import './Admin.css';
 
-type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews' | 'reports' | 'actions';
+type AdminTab = 'dashboard' | 'members' | 'products' | 'trades' | 'consultations' | 'workrooms' | 'reviews' | 'reports' | 'actions' | 'settlements';
 
 interface AdminTabItem {
     readonly id: AdminTab;
@@ -141,6 +141,11 @@ function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction
             return report;
         }),
         adminActions: [action, ...snapshot.adminActions.filter((item) => item.id !== action.id)],
+        settlementPayouts: snapshot.settlementPayouts.map((payout) =>
+            action.targetType === 'work' && action.actionType === 'mark_settlement_settled' && payout.workId === action.targetId
+                ? { ...payout, status: 'paid', processedAt: action.createdAt }
+                : payout,
+        ),
     };
 }
 
@@ -251,6 +256,7 @@ function buildTabs(snapshot: AdminSnapshot | null): AdminTabItem[] {
         { id: 'reviews', label: '리뷰', count: snapshot?.reviews.length || 0 },
         { id: 'reports', label: '검수 큐', count: countPendingModerationItems(snapshot) },
         { id: 'actions', label: '운영 조치', count: snapshot?.adminActions.length || 0 },
+        { id: 'settlements', label: '정산', count: countPendingSettlements(snapshot) },
     ];
 }
 
@@ -279,4 +285,14 @@ function countPendingModerationItems(snapshot: AdminSnapshot | null): number {
 function countPolicyViolations(snapshot: AdminSnapshot): number {
     return snapshot.consultationMessages.filter((message) => hasExternalContact(message.body)).length
         + snapshot.workMessages.filter((message) => hasExternalContact(message.body)).length;
+}
+
+function countPendingSettlements(snapshot: AdminSnapshot | null): number {
+    if (!snapshot) return 0;
+    return snapshot.works.filter((work) =>
+        work.settlementStatus === 'pending'
+        && work.refundStatus !== 'fee_excluded_refund_pending'
+        && work.refundStatus !== 'refunded'
+        && work.disputeStatus !== 'open',
+    ).length;
 }

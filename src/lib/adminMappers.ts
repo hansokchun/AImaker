@@ -1,4 +1,16 @@
-import type { AiCategoryId, Consultation, ConsultationMessage, ExpertProduct, Proposal, Review, ServiceRequestData, Work, WorkMessage } from '../types';
+import type {
+    AiCategoryId,
+    Consultation,
+    ConsultationMessage,
+    ExpertPayoutAccount,
+    ExpertProduct,
+    Proposal,
+    Review,
+    ServiceRequestData,
+    SettlementPayout,
+    Work,
+    WorkMessage,
+} from '../types';
 import type { AdminAction, AdminProfile, AdminReport, AdminReportSeverity, AdminReportStatus, AdminReportTargetType } from './adminStorage';
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -313,6 +325,47 @@ export const toAdminAction = (item: unknown): AdminAction | null => {
         actionType: stringValue(item, 'action_type') as AdminAction['actionType'],
         reason: stringValue(item, 'reason'),
         createdAt: stringValue(item, 'created_at'),
+    };
+};
+
+export const toExpertPayoutAccount = (item: unknown): ExpertPayoutAccount | null => {
+    if (!isRecord(item)) return null;
+    const expertId = stringValue(item, 'expert_id');
+    if (!expertId) return null;
+
+    return {
+        id: stringValue(item, 'id') || undefined,
+        expertId,
+        bankName: stringValue(item, 'bank_name'),
+        accountNumber: stringValue(item, 'account_number'),
+        accountHolder: stringValue(item, 'account_holder'),
+        verifiedAt: stringValue(item, 'verified_at') || undefined,
+        updatedAt: stringValue(item, 'updated_at') || undefined,
+    };
+};
+
+const settlementPayoutStatusValue = (value: string): SettlementPayout['status'] => {
+    if (value === 'processing') return 'processing';
+    if (value === 'paid') return 'paid';
+    if (value === 'failed') return 'failed';
+    return 'queued';
+};
+
+export const toSettlementPayout = (item: unknown): SettlementPayout | null => {
+    if (!isRecord(item)) return null;
+    const id = stringValue(item, 'id');
+    if (!id) return null;
+
+    return {
+        id,
+        workId: stringValue(item, 'work_id'),
+        expertId: stringValue(item, 'expert_id'),
+        payoutAccountId: stringValue(item, 'payout_account_id') || undefined,
+        amount: numberValue(item, 'amount'),
+        status: settlementPayoutStatusValue(stringValue(item, 'status')),
+        failureReason: stringValue(item, 'failure_reason') || undefined,
+        requestedAt: stringValue(item, 'requested_at'),
+        processedAt: stringValue(item, 'processed_at') || undefined,
     };
 };
 

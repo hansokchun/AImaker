@@ -1,4 +1,4 @@
-import type { Consultation, ExpertProduct, Review, Work } from '../types';
+import type { Consultation, ExpertProduct, Review, SettlementPayout, Work } from '../types';
 import type { AdminAction, AdminReport, AdminReportStatus } from './adminStorage';
 import { supabase } from './supabase';
 
@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
     REVIEWS: 'ai_reviews',
     CONSULTATIONS: 'ai_consultations',
     ADMIN_REPORTS: 'ai_admin_reports',
+    SETTLEMENT_PAYOUTS: 'ai_settlement_payouts',
 } as const;
 
 const readLocalArray = <T>(key: string): T[] => {
@@ -144,6 +145,16 @@ const updateLocalReportStatus = (reportId: string, status: AdminReportStatus, ac
     );
 };
 
+const markLocalSettlementPayoutPaid = (workId: string, processedAt: string): void => {
+    const payouts = readLocalArray<SettlementPayout>(STORAGE_KEYS.SETTLEMENT_PAYOUTS);
+    window.localStorage.setItem(
+        STORAGE_KEYS.SETTLEMENT_PAYOUTS,
+        JSON.stringify(payouts.map((payout) => payout.workId === workId
+            ? { ...payout, status: 'paid', processedAt }
+            : payout)),
+    );
+};
+
 const applyLocalAdminAction = (action: AdminAction): void => {
     if (action.actionType === 'restrict' && action.targetType === 'user') updateLocalProfileModeration(action.targetId, 'restricted');
     if (action.actionType === 'release_restriction' && action.targetType === 'user') updateLocalProfileModeration(action.targetId, 'active');
@@ -164,6 +175,7 @@ const applyLocalAdminAction = (action: AdminAction): void => {
             settlementHoldReason: undefined,
             settlementSettledAt: action.createdAt,
         }));
+        markLocalSettlementPayoutPaid(action.targetId, action.createdAt);
     }
     if (action.actionType === 'hold_settlement' && action.targetType === 'work') {
         updateLocalWork(action.targetId, (work) => ({
@@ -305,17 +317,26 @@ const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> =
     }
 
     if (action.targetType === 'work' && action.actionType === 'mark_settlement_settled') {
-        const { error } = await supabase
+        const settledAt = new Date().toISOString();
+        const workResult = await supabase
             .from('works')
             .update({
                 settlement_status: 'settled',
                 refund_status: null,
                 settlement_hold_reason: null,
-                settlement_settled_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
+                settlement_settled_at: settledAt,
+                updated_at: settledAt,
             })
             .eq('id', action.targetId);
-        return !error;
+        const payoutResult = await supabase
+            .from('settlement_payouts')
+            .update({
+                status: 'paid',
+                processed_at: settledAt,
+                updated_at: settledAt,
+            })
+            .eq('work_id', action.targetId);
+        return !workResult.error && !payoutResult.error;
     }
 
     if (action.targetType === 'work' && action.actionType === 'hold_settlement') {

@@ -15,7 +15,10 @@ export type AdminStatusFilter =
     | 'settled'
     | 'refunded'
     | 'resolved'
-    | 'dismissed';
+    | 'dismissed'
+    | 'queued'
+    | 'processing'
+    | 'failed';
 
 export interface AdminFilterState {
     readonly query: string;
@@ -74,6 +77,16 @@ export function filterAdminSnapshot(snapshot: AdminSnapshot, filters: AdminFilte
         matchesQuery(query, [action.id, action.adminId, action.targetType, action.targetId, action.actionType, action.reason])
         && matchesStatus(filters.status, action.actionType),
     );
+    const workIds = new Set(works.map((work) => work.id));
+    const expertIds = new Set(works.map((work) => work.expertId));
+    const settlementPayouts = snapshot.settlementPayouts.filter((payout) =>
+        workIds.has(payout.workId)
+        && matchesQuery(query, [payout.id, payout.workId, payout.expertId, payout.status]),
+    );
+    const payoutAccounts = snapshot.payoutAccounts.filter((account) =>
+        expertIds.has(account.expertId)
+        && matchesQuery(query, [account.expertId, account.bankName, account.accountNumber, account.accountHolder]),
+    );
 
     return {
         ...snapshot,
@@ -88,6 +101,8 @@ export function filterAdminSnapshot(snapshot: AdminSnapshot, filters: AdminFilte
         reviews,
         reports,
         adminActions,
+        payoutAccounts,
+        settlementPayouts,
     };
 }
 

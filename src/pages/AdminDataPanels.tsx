@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { hasExternalContact } from '../constants/policies';
 import type { AdminAction, AdminActionType, AdminActionTargetType, AdminSnapshot } from '../lib/adminStorage';
 import { AdminStatus, AdminTablePanel, EmptyState, formatCurrency } from './AdminShared';
+import AdminSettlementsPanel from './AdminSettlementsPanel';
 
 interface AdminDataPanelsProps {
     readonly activeTab: string;
@@ -33,6 +34,7 @@ export default function AdminDataPanels({ activeTab, snapshot, onAction }: Admin
     if (activeTab === 'reviews') return <ReviewsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'reports') return <ReportsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'actions') return <ActionsPanel actions={snapshot.adminActions} />;
+    if (activeTab === 'settlements') return <AdminSettlementsPanel snapshot={snapshot} onAction={onAction} />;
     return null;
 }
 
