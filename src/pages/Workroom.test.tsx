@@ -64,7 +64,7 @@ const revisionDeliverable: Deliverable = {
     status: 'revision_requested',
 }
 
-const saveDeliverable = vi.fn(async (_deliverable: Deliverable) => undefined)
+const saveDeliverable = vi.fn(async (savedDeliverable: Deliverable) => savedDeliverable)
 const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
@@ -203,6 +203,37 @@ describe('Workroom', () => {
             ),
         )
         expect(screen.getByText('제출물 링크가 등록되었습니다.')).toBeInTheDocument()
+    })
+
+    it('uses the persisted deliverable id returned by the save call', async () => {
+        currentUserId = 'expert-video-01'
+        saveDeliverable.mockResolvedValueOnce({
+            ...deliverable,
+            id: 'deliverable-db-01',
+            externalUrl: 'https://example.com/new-deliverable',
+            submittedAt: '2026-07-13T00:00:00.000Z',
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await screen.findByRole('heading', { name: '작업 진행방' })
+        fireEvent.change(screen.getByLabelText('제출물 링크'), {
+            target: { value: 'https://example.com/new-deliverable' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
+
+        await waitFor(() => expect(screen.getByText('https://example.com/new-deliverable')).toBeInTheDocument())
+        expect(saveDeliverable).toHaveBeenCalledWith(expect.objectContaining({ id: expect.stringMatching(/^deliverable-/) }))
+        expect(screen.getByText('https://example.com/new-deliverable').closest('a')).toHaveAttribute(
+            'href',
+            'https://example.com/new-deliverable',
+        )
     })
 
     it('blocks unsafe deliverable URL schemes before saving', async () => {

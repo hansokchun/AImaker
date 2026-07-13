@@ -6,6 +6,10 @@ import type { ExpertProduct } from '../types'
 
 const saveExpertProduct = vi.fn(async (_product: ExpertProduct) => undefined)
 const deleteExpertProduct = vi.fn(async (_productId: string) => undefined)
+const uploadProductSample = vi.fn(async () => ({ error: null }))
+const getProductSamplePublicUrl = vi.fn((path: string) => ({
+    data: { publicUrl: `https://storage.example/product-samples/${path}` },
+}))
 const editableProduct: ExpertProduct = {
     id: 'editable-product-01',
     expertId: 'expert-user-01',
@@ -49,6 +53,23 @@ vi.mock('../lib/storage', () => ({
     getExpertProducts: () => getExpertProducts(),
 }))
 
+vi.mock('../lib/supabase', () => ({
+    supabase: {
+        storage: {
+            from: (bucket: string) => {
+                if (bucket !== 'product-samples') {
+                    throw new Error(`unexpected bucket: ${bucket}`)
+                }
+
+                return {
+                    getPublicUrl: (path: string) => getProductSamplePublicUrl(path),
+                    upload: (path: string, file: File, options: unknown) => uploadProductSample(path, file, options),
+                }
+            },
+        },
+    },
+}))
+
 function LocationProbe() {
     const location = useLocation()
     return <span data-testid="location">{location.pathname}{location.search}</span>
@@ -82,6 +103,8 @@ describe('ProductRegister', () => {
     beforeEach(() => {
         saveExpertProduct.mockClear()
         deleteExpertProduct.mockClear()
+        uploadProductSample.mockClear()
+        getProductSamplePublicUrl.mockClear()
         getExpertProducts.mockClear()
         getExpertProducts.mockResolvedValue([editableProduct])
         vi.stubGlobal('Image', class {
@@ -158,8 +181,8 @@ describe('ProductRegister', () => {
                     category: 'ai-video-shortform',
                     summary: '15초 숏폼 영상 콘셉트와 초안을 제작합니다.',
                     description: expect.stringContaining('브랜드 홍보용 숏폼 영상의 기획'),
-                    sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
-                    sampleLinks: [expect.stringMatching(/^data:image\/png;base64,/)],
+                    sampleImageUrl: expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/[0-9a-f-]+\/main-/),
+                    sampleLinks: [expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/[0-9a-f-]+\/detail-/)],
                     startingPrice: 30000,
                     deliveryDays: 2,
                     revisionCount: 1,
@@ -357,7 +380,7 @@ describe('ProductRegister', () => {
 
         await waitFor(() => expect(saveExpertProduct).toHaveBeenCalledWith(
             expect.objectContaining({
-                sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
+                sampleImageUrl: expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/[0-9a-f-]+\/main-/),
             }),
         ))
     })
@@ -381,7 +404,7 @@ describe('ProductRegister', () => {
 
         await waitFor(() => expect(saveExpertProduct).toHaveBeenCalledWith(
             expect.objectContaining({
-                sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
+                sampleImageUrl: expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/[0-9a-f-]+\/main-/),
             }),
         ))
     })
@@ -441,10 +464,10 @@ describe('ProductRegister', () => {
         await waitFor(() =>
             expect(saveExpertProduct).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    sampleImageUrl: expect.stringMatching(/^data:image\/png;base64,/),
+                    sampleImageUrl: expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/editable-product-01\/main-/),
                     sampleLinks: [
                         editableProduct.sampleLinks[0],
-                        expect.stringMatching(/^data:image\/png;base64,/),
+                        expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/editable-product-01\/detail-/),
                     ],
                 }),
             ),
@@ -513,7 +536,7 @@ describe('ProductRegister', () => {
         await waitFor(() =>
             expect(saveExpertProduct).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    sampleLinks: [expect.stringMatching(/^data:video\/mp4;base64,/)],
+                    sampleLinks: [expect.stringMatching(/^https:\/\/storage\.example\/product-samples\/expert-user-01\/[0-9a-f-]+\/detail-/)],
                 }),
             ),
         )

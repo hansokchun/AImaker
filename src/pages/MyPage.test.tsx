@@ -68,6 +68,14 @@ const saveExpertPayoutAccount = vi.fn(async (account) => ({
     ...account,
 }))
 const getExpertSettlementPayouts = vi.fn(async (_expertId: string) => [])
+const getNotificationPreference = vi.fn(async (userId: string) => ({
+    userId,
+    phoneNumber: '',
+    kakaoAlimtalkEnabled: false,
+    smsFallbackEnabled: false,
+}))
+const saveNotificationPreference = vi.fn(async (preference) => preference)
+const getUserNotifications = vi.fn(async (_userId: string) => [])
 const saveExpertProduct = vi.fn(async (_product) => undefined)
 const deleteUserPublicAccountData = vi.fn(async (_userId: string) => undefined)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => ['product-client-before'])
@@ -741,7 +749,15 @@ vi.mock('../lib/storage', () => ({
     cancelWork: (workId: string) => cancelWork(workId),
     getExpertPayoutAccount: (expertId: string) => getExpertPayoutAccount(expertId),
     getExpertSettlementPayouts: (expertId: string) => getExpertSettlementPayouts(expertId),
+    getNotificationPreference: (userId: string) => getNotificationPreference(userId),
+    getUserNotifications: (userId: string) => getUserNotifications(userId),
     requestSettlementWithdrawal: (workId: string, expertId: string) => requestSettlementWithdrawal(workId, expertId),
+    saveNotificationPreference: (preference: {
+        userId: string
+        phoneNumber: string
+        kakaoAlimtalkEnabled: boolean
+        smsFallbackEnabled: boolean
+    }) => saveNotificationPreference(preference),
     saveExpertPayoutAccount: (account: { expertId: string; bankName: string; accountNumber: string; accountHolder: string }) => saveExpertPayoutAccount(account),
     saveExpertProduct: (product: any) => saveExpertProduct(product),
     getUserFavoriteProductIds: (userId: string) => getUserFavoriteProductIds(userId),

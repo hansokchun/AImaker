@@ -12,6 +12,28 @@ const STORAGE_KEYS = {
     SETTLEMENT_PAYOUTS: 'ai_settlement_payouts',
 } as const;
 
+const WORK_TRADE_ADMIN_ACTIONS = new Set<AdminAction['actionType']>([
+    'cancel_trade',
+    'mark_settlement_pending',
+    'mark_settlement_settled',
+    'hold_settlement',
+    'mark_refund_pending',
+    'open_dispute',
+    'resolve_dispute',
+]);
+
+type AdminTradeWorkflowRequest = {
+    readonly type: 'admin_moderation_action';
+    readonly action: AdminAction;
+};
+
+const invokeAdminTradeWorkflow = async (action: AdminAction): Promise<void> => {
+    if (!supabase) return;
+    const body: AdminTradeWorkflowRequest = { type: 'admin_moderation_action', action };
+    const { error } = await supabase.functions.invoke('trade-workflow', { body });
+    if (error) throw new Error(error.message || '관리자 거래 상태 변경에 실패했습니다.');
+};
+
 const readLocalArray = <T>(key: string): T[] => {
     try {
         const raw = window.localStorage.getItem(key);
@@ -251,6 +273,11 @@ const moveSupabaseProduct = async (productId: string, direction: 'up' | 'down'):
 
 const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> => {
     if (!supabase) return false;
+    if (action.targetType === 'work' && WORK_TRADE_ADMIN_ACTIONS.has(action.actionType)) {
+        await invokeAdminTradeWorkflow(action);
+        return true;
+    }
+
     if (action.actionType === 'restrict' && action.targetType === 'user') {
         const { error } = await supabase
             .from('profiles')

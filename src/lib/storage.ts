@@ -660,6 +660,96 @@ const buildInitialWorkSteps = (proposal: Proposal, workId: string): WorkStep[] =
     }));
 };
 
+type TradeProposalPayload = {
+    readonly id: string;
+    readonly requestId: string;
+    readonly consultationId?: string;
+    readonly title: string;
+    readonly scope: string;
+    readonly deliverables: readonly string[];
+    readonly totalPrice: number;
+    readonly deliveryDays: number;
+    readonly revisionCount: number;
+    readonly progressType: Proposal['progressType'];
+    readonly milestones: readonly string[];
+    readonly commercialUseAllowed: boolean;
+    readonly sourceFileIncluded: boolean;
+    readonly paymentStatus: NonNullable<Proposal['paymentStatus']>;
+    readonly expiresAt: string;
+};
+
+type TradeDeliverablePayload = {
+    readonly id: string;
+    readonly workId: string;
+    readonly stepId?: string;
+    readonly expertId: string;
+    readonly description: string;
+    readonly externalUrl?: string;
+    readonly fileUrl?: string;
+};
+
+type TradeWorkflowRequest =
+    | { readonly type: 'create_proposal'; readonly proposal: TradeProposalPayload }
+    | { readonly type: 'update_proposal'; readonly proposal: TradeProposalPayload }
+    | { readonly type: 'accept_proposal'; readonly proposalId: string }
+    | { readonly type: 'request_proposal_revision'; readonly proposalId: string }
+    | { readonly type: 'cancel_proposal'; readonly proposalId: string }
+    | { readonly type: 'request_work_cancellation'; readonly workId: string; readonly reason: NonNullable<Work['cancellationReason']> }
+    | { readonly type: 'accept_work_cancellation'; readonly workId: string }
+    | { readonly type: 'request_settlement_withdrawal'; readonly workId: string }
+    | { readonly type: 'submit_deliverable'; readonly deliverable: TradeDeliverablePayload }
+    | { readonly type: 'approve_deliverable'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
+    | { readonly type: 'request_work_revision'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string };
+
+type TradeWorkflowResponse = {
+    readonly proposalId?: string;
+    readonly workId?: string;
+    readonly deliverableId?: string;
+};
+
+const toTradeProposalPayload = (proposal: Proposal): TradeProposalPayload => ({
+    id: proposal.id,
+    requestId: proposal.requestId,
+    ...(proposal.consultationId ? { consultationId: proposal.consultationId } : {}),
+    title: proposal.title,
+    scope: proposal.scope,
+    deliverables: proposal.deliverables,
+    totalPrice: proposal.totalPrice,
+    deliveryDays: proposal.deliveryDays,
+    revisionCount: proposal.revisionCount,
+    progressType: proposal.progressType,
+    milestones: proposal.milestones,
+    commercialUseAllowed: proposal.commercialUseAllowed,
+    sourceFileIncluded: proposal.sourceFileIncluded,
+    paymentStatus: proposal.paymentStatus || 'unpaid',
+    expiresAt: proposal.expiresAt,
+});
+
+const toTradeDeliverablePayload = (deliverable: Deliverable): TradeDeliverablePayload => ({
+    id: deliverable.id,
+    workId: deliverable.workId,
+    ...(deliverable.stepId ? { stepId: deliverable.stepId } : {}),
+    expertId: deliverable.expertId,
+    description: deliverable.description,
+    ...(deliverable.externalUrl ? { externalUrl: deliverable.externalUrl } : {}),
+    ...(deliverable.fileUrl ? { fileUrl: deliverable.fileUrl } : {}),
+});
+
+const isTradeWorkflowResponse = (value: unknown): value is TradeWorkflowResponse => {
+    if (!value || typeof value !== 'object') return false;
+    const response = value as Partial<TradeWorkflowResponse>;
+    return (response.proposalId === undefined || typeof response.proposalId === 'string')
+        && (response.workId === undefined || typeof response.workId === 'string')
+        && (response.deliverableId === undefined || typeof response.deliverableId === 'string');
+};
+
+const invokeTradeWorkflow = async (body: TradeWorkflowRequest): Promise<TradeWorkflowResponse> => {
+    if (!supabase) return {};
+    const { data, error } = await supabase.functions.invoke('trade-workflow', { body });
+    if (error) throw new Error(error.message || '거래 상태 변경에 실패했습니다.');
+    return isTradeWorkflowResponse(data) ? data : {};
+};
+
 export async function ensureUserProfile(user: Pick<User, 'id' | 'email' | 'user_metadata'>): Promise<void> {
     rememberDemoAccountIfNeeded(user);
 
@@ -719,11 +809,7 @@ export async function deleteUserPublicAccountData(userId: string): Promise<void>
         return;
     }
 
-    const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
+    const { error } = await supabase.functions.invoke('account-withdrawal', { body: { userId } });
     if (error) {
         console.error('회원 public 데이터 삭제 실패:', error);
         throw new Error('회원 탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -1685,21 +1771,14 @@ export async function queueNotificationEvent(input: QueueNotificationInput): Pro
     if (!supabase) return event;
 
     try {
-        const { data, error } = await supabase
-            .from('notification_events')
-            .insert({
-                user_id: event.userId,
-                event_type: event.type,
-                title: event.title,
-                body: event.body,
-                channels: event.channels,
-                status: event.status,
-                related_type: event.relatedType || null,
-                related_id: event.relatedId || null,
-                created_at: event.createdAt,
-            })
-            .select()
-            .single();
+        const { data, error } = await supabase.functions.invoke('notification-queue', {
+            body: {
+                userId: event.userId,
+                type: event.type,
+                relatedType: event.relatedType,
+                relatedId: event.relatedId,
+            },
+        });
 
         if (error) {
             console.error('알림 큐 등록 실패:', error);
@@ -1957,39 +2036,11 @@ export async function saveProposal(proposal: Proposal): Promise<string> {
         return proposal.id;
     }
 
-    const consultationId = getProposalConsultationId(proposal);
-    const { data, error } = await supabase
-        .from('proposals')
-        .insert([{
-            ...(isUuid(proposal.id) ? { id: proposal.id } : {}),
-            request_id: consultationId ? null : proposal.requestId,
-            consultation_id: consultationId,
-            client_id: proposal.clientId,
-            expert_id: proposal.expertId,
-            title: proposal.title,
-            scope: proposal.scope,
-            deliverables: proposal.deliverables,
-            total_price: proposal.totalPrice,
-            delivery_days: proposal.deliveryDays,
-            revision_count: proposal.revisionCount,
-            progress_type: proposal.progressType,
-            milestones: proposal.milestones,
-            commercial_use_allowed: proposal.commercialUseAllowed,
-            source_file_included: proposal.sourceFileIncluded,
-            status: proposal.status,
-            payment_status: proposal.paymentStatus || 'unpaid',
-            platform_fee_rate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
-            expires_at: proposal.expiresAt,
-        }])
-        .select('id')
-        .single();
-
-    if (error) {
-        console.error('DB 제안서 저장 오류:', error);
-        throw new Error('데이터베이스 통신 오류: 제안서 저장 실패');
-    }
-
-    return data?.id || proposal.id;
+    const result = await invokeTradeWorkflow({
+        type: 'create_proposal',
+        proposal: toTradeProposalPayload(proposal),
+    });
+    return result.proposalId || proposal.id;
 }
 
 export async function updateProposal(proposal: Proposal): Promise<void> {
@@ -2003,30 +2054,10 @@ export async function updateProposal(proposal: Proposal): Promise<void> {
         return;
     }
 
-    const consultationId = getProposalConsultationId(proposal);
-    const { error } = await supabase
-        .from('proposals')
-        .update({
-            request_id: consultationId ? null : proposal.requestId,
-            consultation_id: consultationId,
-            title: proposal.title,
-            scope: proposal.scope,
-            deliverables: proposal.deliverables,
-            total_price: proposal.totalPrice,
-            delivery_days: proposal.deliveryDays,
-            revision_count: proposal.revisionCount,
-            progress_type: proposal.progressType,
-            milestones: proposal.milestones,
-            commercial_use_allowed: proposal.commercialUseAllowed,
-            source_file_included: proposal.sourceFileIncluded,
-            status: proposal.status,
-            payment_status: proposal.paymentStatus || 'unpaid',
-            platform_fee_rate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
-            expires_at: proposal.expiresAt,
-        })
-        .eq('id', proposal.id);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 제안서 수정 실패');
+    await invokeTradeWorkflow({
+        type: 'update_proposal',
+        proposal: toTradeProposalPayload(proposal),
+    });
 }
 
 export async function getProposal(proposalId: string): Promise<Proposal | null> {
@@ -2162,84 +2193,8 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
         return work.id;
     }
 
-    if (proposal.paymentStatus === 'paid') {
-        const { data: existingWorkData } = await supabase
-            .from('works')
-            .select('id')
-            .eq('proposal_id', proposal.id)
-            .single();
-
-        if (existingWorkData?.id) return existingWorkData.id;
-    }
-
-    const { error: proposalError } = await supabase
-        .from('proposals')
-        .update({
-            status: 'accepted',
-            payment_status: 'paid',
-            paid_at: new Date().toISOString(),
-            platform_fee_rate: proposal.platformFeeRate ?? PLATFORM_FEE_RATE,
-        })
-        .eq('id', proposal.id);
-
-    if (proposalError) throw new Error('데이터베이스 통신 오류: 제안서 승인 실패');
-
-    const { data: workData, error: workError } = await supabase.from('works').insert([{
-        proposal_id: proposal.id,
-        request_id: proposal.requestId,
-        client_id: proposal.clientId,
-        expert_id: proposal.expertId,
-        title: proposal.title,
-        progress_type: proposal.progressType,
-        status: 'in_progress',
-        total_price: proposal.totalPrice,
-        platform_fee: money.platformFee,
-        expert_payout: money.expertPayout,
-        settlement_status: 'held',
-        revision_limit: proposal.revisionCount,
-        revision_used: 0,
-    }]).select('id').single();
-
-    if (workError) throw new Error('데이터베이스 통신 오류: 작업 생성 실패');
-
-    const steps = buildInitialWorkSteps(proposal, workData.id);
-    const { error: stepError } = await supabase.from('work_steps').insert(
-        steps.map((step) => ({
-            work_id: step.workId,
-            step_order: step.stepOrder,
-            title: step.title,
-            description: step.description,
-            status: step.status,
-        })),
-    );
-
-    if (stepError) throw new Error('데이터베이스 통신 오류: 작업 단계 생성 실패');
-
-    const { error: requestError } = await supabase
-        .from('service_requests')
-        .update({ status: 'in_progress' })
-        .eq('id', proposal.requestId);
-
-    if (requestError) throw new Error('데이터베이스 통신 오류: 요청 상태 변경 실패');
-    await Promise.all([
-        queueNotificationEvent({
-            userId: proposal.clientId,
-            type: 'payment_completed',
-            title: '결제가 완료되었습니다',
-            body: `${proposal.title} 작업 결제가 완료되어 작업방이 열렸습니다.`,
-            relatedType: 'work',
-            relatedId: workData.id,
-        }),
-        queueNotificationEvent({
-            userId: proposal.expertId,
-            type: 'workroom_created',
-            title: '새 작업방이 생성되었습니다',
-            body: `${proposal.title} 결제가 완료되어 작업을 시작할 수 있습니다.`,
-            relatedType: 'work',
-            relatedId: workData.id,
-        }),
-    ]);
-    return workData.id;
+    const result = await invokeTradeWorkflow({ type: 'accept_proposal', proposalId: proposal.id });
+    return result.workId || `work-${proposal.id}`;
 }
 
 export async function requestProposalRevision(proposalId: string): Promise<void> {
@@ -2257,12 +2212,7 @@ export async function requestProposalRevision(proposalId: string): Promise<void>
         return;
     }
 
-    const { error } = await supabase
-        .from('proposals')
-        .update({ status: 'revision_requested' })
-        .eq('id', proposalId);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 제안서 수정 요청 실패');
+    await invokeTradeWorkflow({ type: 'request_proposal_revision', proposalId });
 }
 
 export async function cancelProposal(proposalId: string): Promise<void> {
@@ -2278,9 +2228,7 @@ export async function cancelProposal(proposalId: string): Promise<void> {
         return;
     }
 
-    const { error } = await supabase.from('proposals').update({ status: 'cancelled' }).eq('id', proposalId);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 제안서 취소 실패');
+    await invokeTradeWorkflow({ type: 'cancel_proposal', proposalId });
 }
 
 export async function getWorkroomData(workId: string): Promise<{
@@ -2365,18 +2313,6 @@ export async function getWorkroomData(workId: string): Promise<{
     const deliverables = (deliverableData || []).map(toDeliverable);
     const workWithSteps = { ...work, stepIds: steps.map((step) => step.id) };
 
-    if (shouldAutoCancelWork(workWithSteps)) {
-        await cancelWork(workWithSteps.id, workWithSteps.cancellationReason || 'mutual_after_start');
-        return getWorkroomData(workId);
-    }
-
-    const autoConfirmTarget = findAutoPurchaseConfirmTarget(workWithSteps, deliverables);
-
-    if (autoConfirmTarget) {
-        await approveWorkDeliverable(workWithSteps.id, autoConfirmTarget.id, workWithSteps.requestId, autoConfirmTarget.stepId);
-        return getWorkroomData(workId);
-    }
-
     return {
         work: workWithSteps,
         steps,
@@ -2425,18 +2361,6 @@ export async function getUserWorks(userId: string): Promise<Work[]> {
 const getLocalWork = (workId: string): Work | null =>
     readLocalArray<Work>(STORAGE_KEYS.WORKS).find((work) => work.id === workId) || null;
 
-const getSupabaseWork = async (workId: string): Promise<Work | null> => {
-    if (!supabase) return null;
-    const { data, error } = await supabase
-        .from('works')
-        .select('*')
-        .eq('id', workId)
-        .single();
-
-    if (error || !data) return null;
-    return toWork(data);
-};
-
 const assertWorkCanBeCancelled = (work: Work | null): void => {
     if (!work) return;
     if (work.status === 'completed') throw new Error('완료된 작업은 거래 취소를 요청할 수 없습니다.');
@@ -2481,19 +2405,7 @@ export async function cancelWork(
         return;
     }
 
-    const { error } = await supabase
-        .from('works')
-        .update({
-            status: 'cancelled',
-            refund_status: 'fee_excluded_refund_pending',
-            cancellation_reason: reason,
-            cancellation_requested_by: null,
-            cancellation_requested_at: null,
-            cancelled_at: cancelledAt,
-        })
-        .eq('id', workId);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 거래 중단 실패');
+    await invokeTradeWorkflow({ type: 'request_work_cancellation', workId, reason });
 }
 
 export async function requestWorkCancellation(
@@ -2532,27 +2444,7 @@ export async function requestWorkCancellation(
         return;
     }
 
-    const currentWork = await getSupabaseWork(workId);
-    assertWorkCanBeCancelled(currentWork);
-    if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
-    if (currentWork.clientId !== requesterId && currentWork.expertId !== requesterId) {
-        throw new Error('거래 참여자만 취소를 요청할 수 있습니다.');
-    }
-    if (hasOpenCancellationRequest(currentWork)) {
-        if (currentWork.cancellationRequestedBy === requesterId) return;
-        throw new Error('상대방의 취소 요청이 있습니다. 취소 수락으로 진행해 주세요.');
-    }
-
-    const { error } = await supabase
-        .from('works')
-        .update({
-            cancellation_reason: reason,
-            cancellation_requested_by: requesterId,
-            cancellation_requested_at: requestedAt,
-        })
-        .eq('id', workId);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 거래 취소 요청 실패');
+    await invokeTradeWorkflow({ type: 'request_work_cancellation', workId, reason });
 }
 
 export async function acceptWorkCancellation(workId: string, actorId: string): Promise<void> {
@@ -2572,29 +2464,17 @@ export async function acceptWorkCancellation(workId: string, actorId: string): P
         return;
     }
 
-    const currentWork = await getSupabaseWork(workId);
-    assertWorkCanBeCancelled(currentWork);
-    if (!currentWork?.cancellationRequestedAt || !currentWork.cancellationRequestedBy) {
-        throw new Error('수락할 취소 요청이 없습니다.');
-    }
-    if (currentWork.cancellationRequestedBy === actorId) {
-        throw new Error('취소 요청자는 직접 수락할 수 없습니다.');
-    }
-    if (currentWork.clientId !== actorId && currentWork.expertId !== actorId) {
-        throw new Error('거래 참여자만 취소를 수락할 수 있습니다.');
-    }
-
-    await cancelWork(workId, currentWork.cancellationReason || 'mutual_after_start');
+    await invokeTradeWorkflow({ type: 'accept_work_cancellation', workId });
 }
 
 export async function requestSettlementWithdrawal(workId: string, expertId: string): Promise<void> {
     const requestedAt = new Date().toISOString();
-    const payoutAccount = await getExpertPayoutAccount(expertId);
-    if (!payoutAccount?.id) {
-        throw new Error('정산 받을 계좌를 먼저 등록해주세요.');
-    }
 
     if (!supabase || hasLocalDemoWork(workId)) {
+        const payoutAccount = await getExpertPayoutAccount(expertId);
+        if (!payoutAccount?.id) {
+            throw new Error('정산 받을 계좌를 먼저 등록해주세요.');
+        }
         const currentWork = getLocalWork(workId);
         if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
         if (currentWork.expertId !== expertId) throw new Error('작업자만 정산을 신청할 수 있습니다.');
@@ -2634,42 +2514,7 @@ export async function requestSettlementWithdrawal(workId: string, expertId: stri
         return;
     }
 
-    const currentWork = await getSupabaseWork(workId);
-    if (!currentWork) throw new Error('작업방을 찾을 수 없습니다.');
-    if (currentWork.expertId !== expertId) throw new Error('작업자만 정산을 신청할 수 있습니다.');
-    if (currentWork.status !== 'completed' || currentWork.settlementStatus !== 'pending') {
-        throw new Error('구매확정 후 정산 대기 상태에서만 정산을 신청할 수 있습니다.');
-    }
-    if (currentWork.disputeStatus === 'open') throw new Error('분쟁 처리 중에는 정산을 신청할 수 없습니다.');
-    if (currentWork.settlementHoldReason) throw new Error('정산 보류 상태에서는 관리자 확인이 필요합니다.');
-
-    const { error } = await supabase
-        .from('works')
-        .update({ settlement_requested_at: currentWork.settlementRequestedAt || requestedAt })
-        .eq('id', workId);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 정산 신청 실패');
-
-    const { error: payoutError } = await supabase
-        .from('settlement_payouts')
-        .upsert({
-            work_id: workId,
-            expert_id: expertId,
-            payout_account_id: payoutAccount.id,
-            amount: currentWork.expertPayout || 0,
-            status: 'queued',
-            requested_at: requestedAt,
-        }, { onConflict: 'work_id' });
-
-    if (payoutError) throw new Error('데이터베이스 통신 오류: 정산 지급 대기 등록 실패');
-    await queueNotificationEvent({
-        userId: expertId,
-        type: 'settlement_requested',
-        title: '정산 요청이 접수되었습니다',
-        body: `${currentWork.title} 정산 요청이 접수되었습니다. 관리자 확인 후 송금 처리됩니다.`,
-        relatedType: 'settlement',
-        relatedId: workId,
-    });
+    await invokeTradeWorkflow({ type: 'request_settlement_withdrawal', workId });
 }
 
 export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
@@ -2736,7 +2581,7 @@ export async function saveWorkMessage(input: {
     return toWorkMessage(data);
 }
 
-export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
+export async function saveDeliverable(deliverable: Deliverable): Promise<Deliverable> {
     if (hasExternalContact(deliverable.description)) {
         throw new Error(EXTERNAL_CONTACT_WARNING);
     }
@@ -2783,49 +2628,14 @@ export async function saveDeliverable(deliverable: Deliverable): Promise<void> {
                 relatedId: deliverable.id,
             });
         }
-        return;
+        return deliverableToSave;
     }
 
-    const currentWork = await getSupabaseWork(deliverable.workId).catch(() => null);
-
-    const { error } = await supabase.from('deliverables').insert([{
-        ...(isUuid(deliverableToSave.id) ? { id: deliverableToSave.id } : {}),
-        work_id: deliverableToSave.workId,
-        step_id: deliverableToSave.stepId || null,
-        expert_id: deliverableToSave.expertId,
-        description: deliverableToSave.description,
-        external_url: deliverableToSave.externalUrl || null,
-        file_url: deliverableToSave.fileUrl || null,
-        status: deliverableToSave.status,
-    }]);
-
-    if (error) throw new Error('데이터베이스 통신 오류: 제출물 저장 실패');
-
-    if (deliverable.stepId) {
-        const { error: stepError } = await supabase
-            .from('work_steps')
-            .update({ status: 'submitted' })
-            .eq('id', deliverable.stepId);
-
-        if (stepError) throw new Error('데이터베이스 통신 오류: 단계 제출 처리 실패');
-    }
-
-    const { error: workError } = await supabase
-        .from('works')
-        .update({ status: 'submitted' })
-        .eq('id', deliverable.workId);
-
-    if (workError) throw new Error('데이터베이스 통신 오류: 작업 제출 처리 실패');
-    if (currentWork) {
-        await queueNotificationEvent({
-            userId: currentWork.clientId,
-            type: 'deliverable_submitted',
-            title: '결과물이 제출되었습니다',
-            body: `${currentWork.title} 결과물이 도착했습니다. 확인 후 승인하거나 수정 요청을 남겨주세요.`,
-            relatedType: 'deliverable',
-            relatedId: deliverable.id,
-        });
-    }
+    const result = await invokeTradeWorkflow({
+        type: 'submit_deliverable',
+        deliverable: toTradeDeliverablePayload(deliverableToSave),
+    });
+    return result.deliverableId ? { ...deliverableToSave, id: result.deliverableId } : deliverableToSave;
 }
 
 export async function approveWorkDeliverable(
@@ -2901,54 +2711,7 @@ export async function approveWorkDeliverable(
         return;
     }
 
-    const currentWork = await getSupabaseWork(workId).catch(() => null);
-
-    const { error: deliverableError } = await supabase
-        .from('deliverables')
-        .update({ status: 'approved' })
-        .eq('id', deliverableId);
-
-    if (deliverableError) throw new Error('데이터베이스 통신 오류: 제출물 승인 실패');
-
-    if (stepId) {
-        const { error: stepError } = await supabase
-            .from('work_steps')
-            .update({ status: 'approved' })
-            .eq('id', stepId);
-
-        if (stepError) throw new Error('데이터베이스 통신 오류: 단계 승인 처리 실패');
-    }
-
-    const { error: workError } = await supabase
-        .from('works')
-        .update({
-            status: 'completed',
-            settlement_status: 'pending',
-            cancellation_requested_by: null,
-            cancellation_requested_at: null,
-            completed_at: completedAt,
-        })
-        .eq('id', workId);
-
-    if (workError) throw new Error('데이터베이스 통신 오류: 작업 완료 처리 실패');
-    if (requestId) {
-        const { error: requestError } = await supabase
-            .from('service_requests')
-            .update({ status: 'completed' })
-            .eq('id', requestId);
-
-        if (requestError) throw new Error('데이터베이스 통신 오류: 요청 완료 처리 실패');
-    }
-    if (currentWork) {
-        await queueNotificationEvent({
-            userId: currentWork.expertId,
-            type: 'settlement_available',
-            title: '정산 가능한 거래가 생겼습니다',
-            body: `${currentWork.title} 작업이 승인되어 정산을 요청할 수 있습니다.`,
-            relatedType: 'work',
-            relatedId: workId,
-        });
-    }
+    await invokeTradeWorkflow({ type: 'approve_deliverable', workId, deliverableId, ...(stepId ? { stepId } : {}) });
 }
 
 export async function requestWorkRevision(workId: string, deliverableId: string, stepId?: string): Promise<void> {
@@ -3010,55 +2773,7 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
         return;
     }
 
-    const currentWork = await getSupabaseWork(workId).catch(() => null);
-    const { data: workData, error: workReadError } = await supabase
-        .from('works')
-        .select('revision_limit, revision_used')
-        .eq('id', workId)
-        .single();
-
-    if (workReadError) throw new Error('데이터베이스 통신 오류: 작업 수정 횟수 확인 실패');
-
-    const revisionLimit = workData?.revision_limit ?? 0;
-    const revisionUsed = workData?.revision_used ?? 0;
-    const nextRevisionUsed = revisionUsed + 1;
-
-    if (revisionLimit > 0 && revisionUsed >= revisionLimit) {
-        throw new Error('수정 요청 가능 횟수를 모두 사용했습니다.');
-    }
-
-    const { error: deliverableError } = await supabase
-        .from('deliverables')
-        .update({ status: 'revision_requested' })
-        .eq('id', deliverableId);
-
-    if (deliverableError) throw new Error('데이터베이스 통신 오류: 제출물 수정 요청 실패');
-
-    if (stepId) {
-        const { error: stepError } = await supabase
-            .from('work_steps')
-            .update({ status: 'revision_requested' })
-            .eq('id', stepId);
-
-        if (stepError) throw new Error('데이터베이스 통신 오류: 단계 수정 요청 처리 실패');
-    }
-
-    const { error: workError } = await supabase
-        .from('works')
-        .update({ status: 'revision_requested', revision_used: nextRevisionUsed })
-        .eq('id', workId);
-
-    if (workError) throw new Error('데이터베이스 통신 오류: 작업 수정 요청 실패');
-    if (currentWork) {
-        await queueNotificationEvent({
-            userId: currentWork.expertId,
-            type: 'revision_requested',
-            title: '수정 요청이 도착했습니다',
-            body: `${currentWork.title} 결과물에 수정 요청이 등록되었습니다.`,
-            relatedType: 'deliverable',
-            relatedId: deliverableId,
-        });
-    }
+    await invokeTradeWorkflow({ type: 'request_work_revision', workId, deliverableId, ...(stepId ? { stepId } : {}) });
 }
 
 export async function saveReview(review: Review): Promise<void> {

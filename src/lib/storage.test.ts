@@ -175,6 +175,67 @@ describe('notification storage', () => {
             }),
         ])
     })
+
+    it('queues remote notifications through the notification edge function', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        const maybeSingle = vi.fn().mockResolvedValue({
+            data: {
+                user_id: 'notification-user-03',
+                phone_number: '01012345678',
+                kakao_alimtalk_enabled: true,
+                sms_fallback_enabled: false,
+                updated_at: '2026-07-13T00:00:00.000Z',
+            },
+            error: null,
+        })
+        const eq = vi.fn(() => ({ maybeSingle }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ select }))
+        const invoke = vi.fn().mockResolvedValue({
+            data: {
+                id: 'notification-remote-01',
+                user_id: 'notification-user-03',
+                event_type: 'payment_completed',
+                title: '결제가 완료되었습니다',
+                body: '작업방이 열렸습니다.',
+                channels: ['in_app', 'kakao_alimtalk'],
+                status: 'queued',
+                related_type: 'work',
+                related_id: '11111111-2222-4333-8444-555555555502',
+                created_at: '2026-07-13T00:00:00.000Z',
+            },
+            error: null,
+        })
+
+        vi.doMock('./supabase', () => ({
+            supabase: { from, functions: { invoke } },
+        }))
+
+        const { queueNotificationEvent } = await import('./storage')
+
+        await expect(queueNotificationEvent({
+            userId: 'notification-user-03',
+            type: 'payment_completed',
+            title: '결제가 완료되었습니다',
+            body: '작업방이 열렸습니다.',
+            relatedType: 'work',
+            relatedId: '11111111-2222-4333-8444-555555555502',
+        })).resolves.toEqual(expect.objectContaining({
+            id: 'notification-remote-01',
+            channels: ['in_app', 'kakao_alimtalk'],
+        }))
+
+        expect(invoke).toHaveBeenCalledWith('notification-queue', {
+            body: {
+                userId: 'notification-user-03',
+                type: 'payment_completed',
+                relatedType: 'work',
+                relatedId: '11111111-2222-4333-8444-555555555502',
+            },
+        })
+        expect(from).not.toHaveBeenCalledWith('notification_events')
+    })
 })
 
 describe('expert product storage', () => {
@@ -572,23 +633,19 @@ describe('profile storage', () => {
         expect(select).toHaveBeenCalledWith('name, display_name, avatar_url, is_expert')
     })
 
-    it('deletes the current public profile row for account withdrawal', async () => {
+    it('requests the account withdrawal edge function for account anonymization without local deletion', async () => {
         vi.resetModules()
-        const eq = vi.fn().mockResolvedValue({ error: null })
-        const deleteQuery = vi.fn(() => ({ eq }))
-        const from = vi.fn(() => ({ delete: deleteQuery }))
+        const invoke = vi.fn().mockResolvedValue({ error: null })
 
         vi.doMock('./supabase', () => ({
-            supabase: { from },
+            supabase: { functions: { invoke } },
         }))
 
         const { deleteUserPublicAccountData } = await import('./storage')
 
         await deleteUserPublicAccountData('user-test-01')
 
-        expect(from).toHaveBeenCalledWith('profiles')
-        expect(deleteQuery).toHaveBeenCalledTimes(1)
-        expect(eq).toHaveBeenCalledWith('id', 'user-test-01')
+        expect(invoke).toHaveBeenCalledWith('account-withdrawal', { body: { userId: 'user-test-01' } })
     })
 
     it('stores and loads expert contact availability fields through Supabase', async () => {
@@ -1016,86 +1073,123 @@ describe('transaction storage', () => {
         expect(or).toHaveBeenCalledWith(`client_id.eq.${request.expertId},expert_id.eq.${request.expertId}`)
     })
 
-    it('saves and accepts proposals through Supabase', async () => {
+    it('routes proposal creation and acceptance through the trade workflow Edge Function', async () => {
         vi.resetModules()
-        const proposalSingle = vi.fn().mockResolvedValue({ data: { id: 'proposal-db-01' }, error: null })
-        const proposalSelect = vi.fn(() => ({ single: proposalSingle }))
-        const insert = vi.fn(() => ({ select: proposalSelect }))
-        const stepInsert = vi.fn().mockResolvedValue({ error: null })
-        const workSingle = vi.fn().mockResolvedValue({ data: { id: work.id }, error: null })
-        const workSelect = vi.fn(() => ({ single: workSingle }))
-        const workInsert = vi.fn(() => ({ select: workSelect }))
-        const proposalEq = vi.fn().mockResolvedValue({ error: null })
-        const proposalUpdate = vi.fn(() => ({ eq: proposalEq }))
-        const requestEq = vi.fn().mockResolvedValue({ error: null })
-        const requestUpdate = vi.fn(() => ({ eq: requestEq }))
-        const from = vi.fn((table: string) => {
-            if (table === 'works') return { insert: workInsert }
-            if (table === 'work_steps') return { insert: stepInsert }
-            if (table === 'service_requests') return { update: requestUpdate }
-            return { insert, update: proposalUpdate }
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const invoke = vi.fn()
+            .mockResolvedValueOnce({ data: { proposalId: 'proposal-db-01' }, error: null })
+            .mockResolvedValueOnce({ data: { workId: work.id }, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { functions: { invoke }, from } }))
 
         const { saveProposal, acceptProposal } = await import('./storage')
 
         await expect(saveProposal(proposal)).resolves.toBe('proposal-db-01')
         await expect(acceptProposal(proposal)).resolves.toBe(work.id)
 
-        expect(from).toHaveBeenCalledWith('proposals')
-        expect(insert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                request_id: proposal.requestId,
-                total_price: proposal.totalPrice,
-                payment_status: 'unpaid',
-                platform_fee_rate: 0,
-                expires_at: proposal.expiresAt,
-            }),
-        ])
-        expect(proposalSelect).toHaveBeenCalledWith('id')
-        expect(proposalSingle).toHaveBeenCalled()
-        expect(proposalUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                status: 'accepted',
-                payment_status: 'paid',
-                platform_fee_rate: 0,
-            }),
-        )
-        expect(from).toHaveBeenCalledWith('works')
-        expect(workInsert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                proposal_id: proposal.id,
-                total_price: proposal.totalPrice,
-                platform_fee: 0,
-                expert_payout: 70000,
-                settlement_status: 'held',
-            }),
-        ])
-        expect(workSelect).toHaveBeenCalledWith('id')
-        expect(from).toHaveBeenCalledWith('work_steps')
-        expect(stepInsert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                work_id: work.id,
-                step_order: 1,
-                title: '콘셉트 확인',
-                status: 'in_progress',
-            }),
-            expect.objectContaining({
-                work_id: work.id,
-                step_order: 2,
-                title: '1차 시안',
-                status: 'waiting',
-            }),
-            expect.objectContaining({
-                work_id: work.id,
-                step_order: 3,
-                title: '최종 제출',
-                status: 'waiting',
-            }),
-        ])
-        expect(from).toHaveBeenCalledWith('service_requests')
-        expect(requestUpdate).toHaveBeenCalledWith({ status: 'in_progress' })
-        expect(requestEq).toHaveBeenCalledWith('id', proposal.requestId)
+        expect(invoke).toHaveBeenNthCalledWith(1, 'trade-workflow', {
+            body: {
+                type: 'create_proposal',
+                proposal: expect.objectContaining({
+                    requestId: proposal.requestId,
+                    totalPrice: proposal.totalPrice,
+                    paymentStatus: 'unpaid',
+                    expiresAt: proposal.expiresAt,
+                }),
+            },
+        })
+        expect(invoke).toHaveBeenNthCalledWith(2, 'trade-workflow', {
+            body: {
+                type: 'accept_proposal',
+                proposalId: proposal.id,
+            },
+        })
+        expect(from).not.toHaveBeenCalledWith('proposals')
+        expect(from).not.toHaveBeenCalledWith('works')
+        expect(from).not.toHaveBeenCalledWith('work_steps')
+        expect(from).not.toHaveBeenCalledWith('service_requests')
+    })
+
+    it('routes browser trade state changes through the trade workflow Edge Function', async () => {
+        vi.resetModules()
+        const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { functions: { invoke }, from } }))
+
+        const {
+            acceptWorkCancellation,
+            approveWorkDeliverable,
+            cancelProposal,
+            cancelWork,
+            requestProposalRevision,
+            requestSettlementWithdrawal,
+            requestWorkCancellation,
+            requestWorkRevision,
+            saveDeliverable,
+            updateProposal,
+        } = await import('./storage')
+
+        await updateProposal({ ...proposal, title: '수정된 제안' })
+        await requestProposalRevision(proposal.id)
+        await cancelProposal(proposal.id)
+        await saveDeliverable(deliverable)
+        await approveWorkDeliverable(work.id, deliverable.id, work.requestId, deliverable.stepId)
+        await requestWorkRevision(work.id, deliverable.id, deliverable.stepId)
+        await requestWorkCancellation(work.id, work.clientId, 'mutual_after_start')
+        await acceptWorkCancellation(work.id, work.expertId)
+        await cancelWork(work.id, 'before_start')
+        await requestSettlementWithdrawal(work.id, work.expertId)
+
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'update_proposal',
+                proposal: expect.objectContaining({ id: proposal.id, title: '수정된 제안' }),
+            },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'request_proposal_revision', proposalId: proposal.id },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'cancel_proposal', proposalId: proposal.id },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'submit_deliverable',
+                deliverable: expect.objectContaining({ workId: work.id, expertId: work.expertId }),
+            },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'approve_deliverable',
+                workId: work.id,
+                deliverableId: deliverable.id,
+                stepId: deliverable.stepId,
+            },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'request_work_revision',
+                workId: work.id,
+                deliverableId: deliverable.id,
+                stepId: deliverable.stepId,
+            },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'request_work_cancellation', workId: work.id, reason: 'mutual_after_start' },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'accept_work_cancellation', workId: work.id },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'request_work_cancellation', workId: work.id, reason: 'before_start' },
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'request_settlement_withdrawal', workId: work.id },
+        })
+        expect(from).not.toHaveBeenCalledWith('proposals')
+        expect(from).not.toHaveBeenCalledWith('works')
+        expect(from).not.toHaveBeenCalledWith('work_steps')
+        expect(from).not.toHaveBeenCalledWith('deliverables')
+        expect(from).not.toHaveBeenCalledWith('settlement_payouts')
     })
 
     it('saves consultation proposals to Supabase with consultation_id so clients can open the proposal link', async () => {
@@ -1107,9 +1201,10 @@ describe('transaction storage', () => {
             requestId: `consultation-${consultationId}`,
             consultationId,
         }
-        const insertSingle = vi.fn().mockResolvedValue({ data: { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, error: null })
-        const insertSelect = vi.fn(() => ({ single: insertSingle }))
-        const insert = vi.fn(() => ({ select: insertSelect }))
+        const invoke = vi.fn().mockResolvedValue({
+            data: { proposalId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
+            error: null,
+        })
         const single = vi.fn().mockResolvedValue({
             data: {
                 id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -1136,8 +1231,8 @@ describe('transaction storage', () => {
         })
         const eq = vi.fn(() => ({ single }))
         const select = vi.fn(() => ({ eq }))
-        const from = vi.fn(() => ({ insert, select }))
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const from = vi.fn(() => ({ select }))
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { getProposal, saveProposal } = await import('./storage')
 
@@ -1147,14 +1242,15 @@ describe('transaction storage', () => {
             requestId: `consultation-${consultationId}`,
             consultationId,
         }))
-        expect(insert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                request_id: null,
-                consultation_id: consultationId,
-                client_id: consultationProposal.clientId,
-                expert_id: consultationProposal.expertId,
-            }),
-        ])
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'create_proposal',
+                proposal: expect.objectContaining({
+                    requestId: `consultation-${consultationId}`,
+                    consultationId,
+                }),
+            },
+        })
     })
 
     it('keeps local proposal and request status in sync when accepting proposals', async () => {
@@ -1224,26 +1320,17 @@ describe('transaction storage', () => {
 
     it('does not create duplicate Supabase work when a paid proposal is accepted again', async () => {
         vi.resetModules()
-        const existingWorkSingle = vi.fn().mockResolvedValue({ data: { id: 'work-existing-db-01' }, error: null })
-        const existingWorkEq = vi.fn(() => ({ single: existingWorkSingle }))
-        const workSelect = vi.fn(() => ({ eq: existingWorkEq }))
-        const workInsert = vi.fn()
-        const proposalUpdate = vi.fn()
-        const from = vi.fn((table: string) => {
-            if (table === 'works') return { select: workSelect, insert: workInsert }
-            if (table === 'proposals') return { update: proposalUpdate }
-            return {}
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const invoke = vi.fn().mockResolvedValue({ data: { workId: 'work-existing-db-01' }, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { acceptProposal } = await import('./storage')
 
         await expect(acceptProposal({ ...proposal, status: 'accepted', paymentStatus: 'paid' })).resolves.toBe('work-existing-db-01')
-        expect(from).toHaveBeenCalledWith('works')
-        expect(workSelect).toHaveBeenCalledWith('id')
-        expect(existingWorkEq).toHaveBeenCalledWith('proposal_id', proposal.id)
-        expect(workInsert).not.toHaveBeenCalled()
-        expect(proposalUpdate).not.toHaveBeenCalled()
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'accept_proposal', proposalId: proposal.id },
+        })
+        expect(from).not.toHaveBeenCalled()
     })
 
     it('keeps the full local paid work lifecycle ordered around the latest deliverable', async () => {
@@ -2269,20 +2356,22 @@ describe('transaction storage', () => {
 
     it('updates proposal revision request and cancellation status through Supabase', async () => {
         vi.resetModules()
-        const eq = vi.fn().mockResolvedValue({ error: null })
-        const update = vi.fn(() => ({ eq }))
-        const from = vi.fn(() => ({ update }))
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { cancelProposal, requestProposalRevision } = await import('./storage')
 
         await requestProposalRevision(proposal.id)
-        expect(update).toHaveBeenCalledWith({ status: 'revision_requested' })
-        expect(eq).toHaveBeenCalledWith('id', proposal.id)
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'request_proposal_revision', proposalId: proposal.id },
+        })
 
         await cancelProposal(proposal.id)
-        expect(update).toHaveBeenCalledWith({ status: 'cancelled' })
-        expect(eq).toHaveBeenCalledWith('id', proposal.id)
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: { type: 'cancel_proposal', proposalId: proposal.id },
+        })
+        expect(from).not.toHaveBeenCalled()
     })
 
     it('loads workroom data and saves deliverables', async () => {
@@ -2334,6 +2423,7 @@ describe('transaction storage', () => {
             ],
             error: null,
         })
+        const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
         const from = vi.fn((table: string) => {
             if (table === 'works') return { select: vi.fn(() => ({ eq: workEq })), update: workUpdate }
             if (table === 'work_steps') return { select: vi.fn(() => ({ eq: vi.fn(() => ({ order: stepOrder })) })), update: stepUpdate }
@@ -2345,7 +2435,7 @@ describe('transaction storage', () => {
             }
             return {}
         })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { getWorkroomData, saveDeliverable } = await import('./storage')
 
@@ -2361,32 +2451,25 @@ describe('transaction storage', () => {
             deliverables: [{ ...deliverable, autoPurchaseConfirmAt: '2026-08-08T00:00:00.000Z' }],
         })
         await saveDeliverable(deliverable)
-        expect(deliverableInsert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                work_id: deliverable.workId,
-                external_url: deliverable.externalUrl,
-            }),
-        ])
-        expect(stepUpdate).toHaveBeenCalledWith({ status: 'submitted' })
-        expect(stepUpdateEq).toHaveBeenCalledWith('id', deliverable.stepId)
-        expect(workUpdate).toHaveBeenCalledWith({ status: 'submitted' })
-        expect(workUpdateEq).toHaveBeenCalledWith('id', deliverable.workId)
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'submit_deliverable',
+                deliverable: expect.objectContaining({
+                    workId: deliverable.workId,
+                    externalUrl: deliverable.externalUrl,
+                }),
+            },
+        })
+        expect(deliverableInsert).not.toHaveBeenCalled()
+        expect(stepUpdate).not.toHaveBeenCalled()
+        expect(workUpdate).not.toHaveBeenCalled()
     })
 
     it('marks revised deliverables as submitted again after resubmission through Supabase', async () => {
         vi.resetModules()
-        const deliverableInsert = vi.fn().mockResolvedValue({ error: null })
-        const stepEq = vi.fn().mockResolvedValue({ error: null })
-        const stepUpdate = vi.fn(() => ({ eq: stepEq }))
-        const workEq = vi.fn().mockResolvedValue({ error: null })
-        const workUpdate = vi.fn(() => ({ eq: workEq }))
-        const from = vi.fn((table: string) => {
-            if (table === 'deliverables') return { insert: deliverableInsert }
-            if (table === 'work_steps') return { update: stepUpdate }
-            if (table === 'works') return { update: workUpdate }
-            return {}
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { saveDeliverable } = await import('./storage')
 
@@ -2396,21 +2479,41 @@ describe('transaction storage', () => {
             status: 'submitted',
         })
 
-        expect(from).toHaveBeenCalledWith('deliverables')
-        expect(deliverableInsert).toHaveBeenCalledWith([
-            expect.objectContaining({
-                work_id: deliverable.workId,
-                step_id: deliverable.stepId,
-                description: '수정본 링크',
-                status: 'submitted',
-            }),
-        ])
-        expect(from).toHaveBeenCalledWith('work_steps')
-        expect(stepUpdate).toHaveBeenCalledWith({ status: 'submitted' })
-        expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
-        expect(from).toHaveBeenCalledWith('works')
-        expect(workUpdate).toHaveBeenCalledWith({ status: 'submitted' })
-        expect(workEq).toHaveBeenCalledWith('id', deliverable.workId)
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'submit_deliverable',
+                deliverable: expect.objectContaining({
+                    workId: deliverable.workId,
+                    stepId: deliverable.stepId,
+                    description: '수정본 링크',
+                }),
+            },
+        })
+        expect(from).not.toHaveBeenCalled()
+    })
+
+    it('returns the persisted deliverable id from the server workflow', async () => {
+        vi.resetModules()
+        const invoke = vi.fn().mockResolvedValue({ data: { deliverableId: 'deliverable-db-01' }, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
+
+        const { saveDeliverable } = await import('./storage')
+
+        await expect(saveDeliverable(deliverable)).resolves.toEqual({
+            ...deliverable,
+            id: 'deliverable-db-01',
+        })
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'submit_deliverable',
+                deliverable: expect.objectContaining({
+                    id: deliverable.id,
+                    workId: deliverable.workId,
+                }),
+            },
+        })
+        expect(from).not.toHaveBeenCalled()
     })
 
     it('blocks external contact details in deliverable descriptions before saving', async () => {
@@ -2484,83 +2587,44 @@ describe('transaction storage', () => {
 
     it('approves a deliverable and completes its work through Supabase', async () => {
         vi.resetModules()
-        const deliverableEq = vi.fn().mockResolvedValue({ error: null })
-        const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
-        const stepEq = vi.fn().mockResolvedValue({ error: null })
-        const stepUpdate = vi.fn(() => ({ eq: stepEq }))
-        const workEq = vi.fn().mockResolvedValue({ error: null })
-        const workUpdate = vi.fn(() => ({ eq: workEq }))
-        const requestEq = vi.fn().mockResolvedValue({ error: null })
-        const requestUpdate = vi.fn(() => ({ eq: requestEq }))
-        const from = vi.fn((table: string) => {
-            if (table === 'deliverables') return { update: deliverableUpdate }
-            if (table === 'work_steps') return { update: stepUpdate }
-            if (table === 'works') return { update: workUpdate }
-            if (table === 'service_requests') return { update: requestUpdate }
-            return {}
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { approveWorkDeliverable } = await import('./storage')
 
         await approveWorkDeliverable(work.id, deliverable.id, work.requestId, deliverable.stepId)
 
-        expect(from).toHaveBeenCalledWith('deliverables')
-        expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'approved' })
-        expect(deliverableEq).toHaveBeenCalledWith('id', deliverable.id)
-        expect(from).toHaveBeenCalledWith('work_steps')
-        expect(stepUpdate).toHaveBeenCalledWith({ status: 'approved' })
-        expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
-        expect(from).toHaveBeenCalledWith('works')
-        expect(workUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                status: 'completed',
-                settlement_status: 'pending',
-            }),
-        )
-        expect(workEq).toHaveBeenCalledWith('id', work.id)
-        expect(from).toHaveBeenCalledWith('service_requests')
-        expect(requestUpdate).toHaveBeenCalledWith({ status: 'completed' })
-        expect(requestEq).toHaveBeenCalledWith('id', work.requestId)
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'approve_deliverable',
+                workId: work.id,
+                deliverableId: deliverable.id,
+                stepId: deliverable.stepId,
+            },
+        })
+        expect(from).not.toHaveBeenCalled()
     })
 
     it('requests a deliverable revision and marks its work as revision requested through Supabase', async () => {
         vi.resetModules()
-        const deliverableEq = vi.fn().mockResolvedValue({ error: null })
-        const deliverableUpdate = vi.fn(() => ({ eq: deliverableEq }))
-        const stepEq = vi.fn().mockResolvedValue({ error: null })
-        const stepUpdate = vi.fn(() => ({ eq: stepEq }))
-        const workUpdateEq = vi.fn().mockResolvedValue({ error: null })
-        const workUpdate = vi.fn(() => ({ eq: workUpdateEq }))
-        const workSingle = vi.fn().mockResolvedValue({
-            data: { revision_limit: 2, revision_used: 0 },
-            error: null,
-        })
-        const workSelectEq = vi.fn(() => ({ single: workSingle }))
-        const workSelect = vi.fn(() => ({ eq: workSelectEq }))
-        const from = vi.fn((table: string) => {
-            if (table === 'deliverables') return { update: deliverableUpdate }
-            if (table === 'work_steps') return { update: stepUpdate }
-            if (table === 'works') return { select: workSelect, update: workUpdate }
-            return {}
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
+        const from = vi.fn()
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
 
         const { requestWorkRevision } = await import('./storage')
 
         await requestWorkRevision(work.id, deliverable.id, deliverable.stepId)
 
-        expect(from).toHaveBeenCalledWith('deliverables')
-        expect(deliverableUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
-        expect(deliverableEq).toHaveBeenCalledWith('id', deliverable.id)
-        expect(from).toHaveBeenCalledWith('work_steps')
-        expect(stepUpdate).toHaveBeenCalledWith({ status: 'revision_requested' })
-        expect(stepEq).toHaveBeenCalledWith('id', deliverable.stepId)
-        expect(from).toHaveBeenCalledWith('works')
-        expect(workSelect).toHaveBeenCalledWith('revision_limit, revision_used')
-        expect(workSelectEq).toHaveBeenCalledWith('id', work.id)
-        expect(workUpdate).toHaveBeenCalledWith({ status: 'revision_requested', revision_used: 1 })
-        expect(workUpdateEq).toHaveBeenCalledWith('id', work.id)
+        expect(invoke).toHaveBeenCalledWith('trade-workflow', {
+            body: {
+                type: 'request_work_revision',
+                workId: work.id,
+                deliverableId: deliverable.id,
+                stepId: deliverable.stepId,
+            },
+        })
+        expect(from).not.toHaveBeenCalled()
     })
 
     it('saves reviews to Supabase', async () => {

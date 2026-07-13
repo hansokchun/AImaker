@@ -15,3 +15,15 @@ verify_jwt = false
 
 [functions.trade-automation-runner]
 verify_jwt = false
+
+[functions.trade-workflow]
+verify_jwt = true
+
+[functions.account-withdrawal]
+verify_jwt = true
+
+[functions.notification-queue]
+verify_jwt = true
+
+[functions.notification-dispatcher]
+verify_jwt = false

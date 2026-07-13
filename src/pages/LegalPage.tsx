@@ -1,0 +1,77 @@
+import './LegalPage.css'
+
+type LegalPageProps = {
+    readonly variant: 'terms' | 'privacy'
+}
+
+const termsSections = [
+    {
+        title: '서비스 이용',
+        body: 'AIConnect는 의뢰자와 전문가가 AI 작업을 의뢰, 제안, 결제, 작업 진행, 결과물 승인까지 관리하는 중개형 마켓플레이스입니다. 사용자는 정확한 계정 정보와 거래 정보를 제공해야 하며, 외부 연락처 유도나 플랫폼 밖 결제 요청은 제한됩니다.',
+    },
+    {
+        title: '결제와 작업 진행',
+        body: '의뢰자가 제안서를 승인하고 토스페이먼츠 결제를 완료하면 작업방이 생성됩니다. 결제 금액은 작업 완료 전까지 정산 대기 상태로 관리되며, 결과물 승인 또는 자동 구매확정 이후 전문가 정산 가능 상태로 전환됩니다.',
+    },
+    {
+        title: '취소, 환불, 분쟁',
+        body: '작업 시작 전 취소, 상호 합의 취소, 수정 요청, 분쟁 접수는 서비스 화면의 상태 변경 기록을 기준으로 처리됩니다. 실제 환불은 결제 승인 내역과 Toss 결제 취소 처리 결과를 함께 확인합니다.',
+    },
+    {
+        title: '자동 구매확정',
+        body: '전문가가 결과물을 제출한 뒤 7일 동안 의뢰자 응답이 없으면 8일째 자동 구매확정될 수 있습니다. 자동 확정 이후에는 정산 가능 상태가 되며, 분쟁 또는 취소 요청이 진행 중인 거래는 자동 확정 대상에서 제외됩니다.',
+    },
+]
+
+const privacySections = [
+    {
+        title: '수집하는 정보',
+        body: '계정 이메일, 프로필 정보, 상품과 제안서 내용, 결제 주문 정보, 작업방 메시지, 정산 계좌 정보, 알림 수신 전화번호를 서비스 제공에 필요한 범위에서 처리합니다.',
+    },
+    {
+        title: '결제와 정산 정보',
+        body: '카드번호 등 결제수단의 민감 정보는 Toss Payments가 처리하며 AIConnect는 결제 승인 키, 주문번호, 금액, 거래 상태를 저장합니다. 전문가 정산 계좌 정보는 정산 확인과 송금 처리 목적으로 사용됩니다.',
+    },
+    {
+        title: '알림 발송',
+        body: '사용자가 동의한 경우 카카오 알림톡 또는 SMS 발송을 위해 전화번호, 알림 제목, 알림 본문, 관련 거래 식별자가 발송 대행 시스템으로 전달될 수 있습니다.',
+    },
+    {
+        title: '보관과 탈퇴',
+        body: '회원 탈퇴 요청 시 공개 상품은 숨김 처리되고 프로필은 거래 기록 식별에 필요한 최소 정보만 남긴 제한 상태로 전환됩니다. 상담, 제안서, 작업, 결제, 정산, 운영 기록처럼 거래 이력 보존이 필요한 데이터는 법령과 분쟁 대응에 필요한 기간 동안 제한적으로 보관됩니다.',
+    },
+]
+
+export default function LegalPage({ variant }: LegalPageProps) {
+    const isPrivacy = variant === 'privacy'
+    const title = isPrivacy ? '개인정보 처리방침' : '이용약관'
+    const description = isPrivacy
+        ? 'AIConnect가 서비스 제공을 위해 처리하는 개인정보와 보관 기준입니다.'
+        : 'AIConnect의 의뢰, 결제, 작업 진행, 정산 기준입니다.'
+    const sections = isPrivacy ? privacySections : termsSections
+
+    return (
+        <main className="legal-page" aria-labelledby="legal-page-title">
+            <section className="legal-hero">
+                <div className="container legal-hero-inner">
+                    <p className="legal-eyebrow">AIConnect 정책</p>
+                    <h1 id="legal-page-title">{title}</h1>
+                    <p>{description}</p>
+                    <span>시행일: 2026년 7월 12일</span>
+                </div>
+            </section>
+
+            <section className="container legal-content" aria-label={`${title} 본문`}>
+                <p className="legal-notice">
+                    본 문서는 서비스 운영 기준을 사용자에게 안내하기 위한 초안입니다. 정식 오픈 전 사업자 정보, 고객센터, 법무 검토 결과를 반영해 최종 고지해야 합니다.
+                </p>
+                {sections.map((section) => (
+                    <article className="legal-section" key={section.title}>
+                        <h2>{section.title}</h2>
+                        <p>{section.body}</p>
+                    </article>
+                ))}
+            </section>
+        </main>
+    )
+}

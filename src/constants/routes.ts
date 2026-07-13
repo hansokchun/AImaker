@@ -22,6 +22,8 @@ export const ROUTES = {
     PROFILE: '/profile',
     REPORT: '/report',
     ADMIN: '/admin',
+    TERMS: '/terms',
+    PRIVACY: '/privacy',
 } as const;
 
 /** ROUTES 값들의 유니온 타입 (타입 가드에 활용 가능) */

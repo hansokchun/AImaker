@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts'
+import { repairApprovedPayment, type PaymentWorkflowResult } from '../_shared/payment-workflow.ts'
 import { createServiceClient, getRequiredEnv } from '../_shared/supabase.ts'
-import { getTossPaymentByOrderId } from '../_shared/toss.ts'
+import { getTossPaymentByOrderId, TossApiError } from '../_shared/toss.ts'
 
 type TossWebhookPayload = {
     readonly eventType?: string
@@ -16,6 +17,14 @@ const isWebhookPayload = (value: unknown): value is TossWebhookPayload => {
     if (!value || typeof value !== 'object') return false
     const candidate = value as TossWebhookPayload
     return typeof candidate.data?.orderId === 'string'
+}
+
+const isFailureStatus = (status: string): boolean =>
+    status === 'CANCELED' || status === 'PARTIAL_CANCELED' || status === 'EXPIRED' || status === 'ABORTED'
+
+const paymentWorkflowFailureResponse = (result: PaymentWorkflowResult): Response | null => {
+    if (result.kind === 'ok') return null
+    return jsonResponse({ message: result.message }, { status: result.status })
 }
 
 Deno.serve(async (request) => {
@@ -36,32 +45,10 @@ Deno.serve(async (request) => {
         const client = createServiceClient()
 
         if (payment.status === 'DONE') {
-            const approvedAt = payment.approvedAt || new Date().toISOString()
-            const { data: order } = await client
-                .from('payment_orders')
-                .update({
-                    status: 'approved',
-                    payment_key: payment.paymentKey,
-                    approved_at: approvedAt,
-                })
-                .eq('order_id', payment.orderId)
-                .select('proposal_id')
-                .single()
-
-            if (order?.proposal_id) {
-                await client
-                    .from('proposals')
-                    .update({
-                        status: 'accepted',
-                        payment_status: 'paid',
-                        paid_at: approvedAt,
-                    })
-                    .eq('id', order.proposal_id)
-            }
-        }
-
-        if (['CANCELED', 'PARTIAL_CANCELED', 'EXPIRED', 'ABORTED'].includes(payment.status)) {
-            await client
+            const failureResponse = paymentWorkflowFailureResponse(await repairApprovedPayment({ client, payment }))
+            if (failureResponse) return failureResponse
+        } else if (isFailureStatus(payment.status)) {
+            const { error: failedOrderUpdateError } = await client
                 .from('payment_orders')
                 .update({
                     status: 'failed',
@@ -70,10 +57,18 @@ Deno.serve(async (request) => {
                     failure_message: '토스페이먼츠 결제 상태 변경 webhook으로 실패 상태가 반영되었습니다.',
                 })
                 .eq('order_id', payment.orderId)
+
+            if (failedOrderUpdateError) {
+                return jsonResponse({ message: 'Webhook 결제 실패 상태 반영에 실패했습니다.' }, { status: 500 })
+            }
         }
 
         return jsonResponse({ received: true })
     } catch (error) {
+        if (error instanceof TossApiError) {
+            return jsonResponse({ message: error.message }, { status: error.status })
+        }
+
         const message = error instanceof Error ? error.message : 'Webhook 처리 중 오류가 발생했습니다.'
         return jsonResponse({ message }, { status: 500 })
     }

@@ -912,7 +912,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const handleDeleteAccount = async () => {
         if (!user) return
-        const confirmed = window.confirm('탈퇴하면 프로필, 상품, 상담, 제안서, 작업 데이터가 삭제됩니다. 계속할까요?')
+        const confirmed = window.confirm('탈퇴하면 공개 상품은 숨김 처리되고 프로필은 제한 상태로 전환됩니다. 거래 기록은 법령과 분쟁 대응을 위해 보관될 수 있습니다. 계속할까요?')
         if (!confirmed) return
 
         try {

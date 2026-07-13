@@ -21,15 +21,15 @@ export default function Footer() {
                 </div>
                 <div className="link-column">
                     <h4>고객지원</h4>
-                    <a href="#">자주 묻는 질문</a>
-                    <a href="#">고객센터</a>
-                    <a href="#">이용약관</a>
+                    <Link to={ROUTES.REPORT}>신고하기</Link>
+                    <Link to={ROUTES.TERMS}>이용약관</Link>
+                    <Link to={ROUTES.PRIVACY}>개인정보 처리방침</Link>
                 </div>
                 <div className="link-column">
                     <h4>비즈니스</h4>
-                    <a href="#">전문가 등록</a>
-                    <a href="#">광고 안내</a>
-                    <a href="#">제휴 문의</a>
+                    <Link to={ROUTES.PROFILE}>전문가 등록</Link>
+                    <Link to={ROUTES.REPORT}>광고 안내</Link>
+                    <Link to={ROUTES.REPORT}>제휴 문의</Link>
                 </div>
             </div>
             <div className="container footer-bottom">

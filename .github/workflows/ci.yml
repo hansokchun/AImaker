@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Edge Function check
+        run: deno check supabase/functions/trade-workflow/index.ts supabase/functions/account-withdrawal/index.ts supabase/functions/notification-queue/index.ts supabase/functions/notification-dispatcher/index.ts supabase/functions/toss-payment-confirm/index.ts supabase/functions/toss-payment-order/index.ts supabase/functions/toss-payment-webhook/index.ts
+
+      - name: Route smoke E2E
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build

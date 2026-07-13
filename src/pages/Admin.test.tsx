@@ -11,6 +11,7 @@ const mockNavigate = vi.fn();
 const renderAdmin = async () => {
     render(<MemoryRouter><Admin /></MemoryRouter>);
     await waitFor(() => expect(getAdminSnapshot).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getAllByRole('button').length).toBeGreaterThan(6));
 };
 
 const clickAdminTab = (index: number) => {

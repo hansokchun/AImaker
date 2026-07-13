@@ -305,8 +305,8 @@ export default function Workroom() {
             status: 'submitted',
             submittedAt: new Date().toISOString(),
         }
-        await saveDeliverable(newDeliverable)
-        setDeliverables([newDeliverable, ...deliverables])
+        const savedDeliverable = await saveDeliverable(newDeliverable)
+        setDeliverables([savedDeliverable, ...deliverables])
         setDeliverableLink('')
         setStatusMessage(isRevisionMode ? '수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.' : '제출물 링크가 등록되었습니다.')
         notifyActivityChanged()

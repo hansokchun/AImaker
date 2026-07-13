@@ -66,9 +66,6 @@ create policy "Users can update own profile"
   with check (auth.uid() = id);
 
 drop policy if exists "Users can delete own profile" on public.profiles;
-create policy "Users can delete own profile"
-  on public.profiles for delete
-  using ((select auth.uid()) = id);
 
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
@@ -395,34 +392,9 @@ create policy "Proposal participants can view proposals"
 
 drop policy if exists "Experts can insert proposal for own request" on public.proposals;
 drop policy if exists "Experts can insert proposal for submitted request" on public.proposals;
-create policy "Experts can insert proposal for submitted request"
-  on public.proposals for insert
-  with check (
-    auth.uid() = expert_id
-    and (
-      exists (
-        select 1 from public.service_requests
-        where service_requests.id = proposals.request_id
-        and service_requests.client_id = proposals.client_id
-        and service_requests.status in ('submitted', 'pending')
-        and service_requests.expert_id = proposals.expert_id
-      )
-      or exists (
-        select 1 from public.consultations
-        where consultations.id = proposals.consultation_id
-        and consultations.client_id = proposals.client_id
-        and consultations.expert_id = proposals.expert_id
-        and consultations.status in ('open', 'proposal_sent')
-      )
-    )
-  );
 
 drop policy if exists "Clients and experts can update proposals" on public.proposals;
 drop policy if exists "Clients can update received proposals" on public.proposals;
-create policy "Clients can update received proposals"
-  on public.proposals for update
-  using (auth.uid() = client_id)
-  with check (auth.uid() = client_id);
 
 drop trigger if exists set_proposals_updated_at on public.proposals;
 create trigger set_proposals_updated_at
@@ -533,20 +505,6 @@ create policy "Work participants can view works"
   using (auth.uid() = client_id or auth.uid() = expert_id);
 
 drop policy if exists "Accepted proposal participants can insert works" on public.works;
-create policy "Accepted proposal participants can insert works"
-  on public.works for insert
-  with check (
-    auth.uid() = client_id
-    and exists (
-      select 1 from public.proposals
-      where proposals.id = works.proposal_id
-      and proposals.request_id = works.request_id
-      and proposals.client_id = works.client_id
-      and proposals.expert_id = works.expert_id
-      and proposals.status = 'accepted'
-      and proposals.payment_status = 'paid'
-    )
-  );
 
 drop policy if exists "Work participants can update works" on public.works;
 create policy "Work participants can update works"
@@ -646,44 +604,17 @@ alter table public.notification_events enable row level security;
 create index if not exists notification_events_user_created_idx
   on public.notification_events (user_id, created_at desc);
 
+create index if not exists notification_events_dispatch_idx
+  on public.notification_events (status, created_at)
+  where status = 'queued';
+
 drop policy if exists "Users can view own notification events" on public.notification_events;
 create policy "Users can view own notification events"
   on public.notification_events for select
   using (auth.uid() = user_id);
 
 drop policy if exists "Users can insert own notification events" on public.notification_events;
-create policy "Users can insert own notification events"
-  on public.notification_events for insert
-  with check (auth.uid() = user_id);
-
 drop policy if exists "Work participants can insert notification events" on public.notification_events;
-create policy "Work participants can insert notification events"
-  on public.notification_events for insert
-  with check (
-    auth.role() = 'authenticated'
-    and related_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-    and (
-      (
-        related_type in ('work', 'settlement')
-        and exists (
-          select 1 from public.works
-          where works.id = related_id::uuid
-          and auth.uid() in (works.client_id, works.expert_id)
-          and user_id in (works.client_id, works.expert_id)
-        )
-      )
-      or (
-        related_type = 'deliverable'
-        and exists (
-          select 1 from public.deliverables
-          join public.works on works.id = deliverables.work_id
-          where deliverables.id = related_id::uuid
-          and auth.uid() in (works.client_id, works.expert_id)
-          and user_id in (works.client_id, works.expert_id)
-        )
-      )
-    )
-  );
 
 -- 7. work_steps
 create table if not exists public.work_steps (
@@ -717,25 +648,6 @@ create policy "Work participants can view work steps"
 
 drop policy if exists "Work participants can update work steps" on public.work_steps;
 drop policy if exists "Work participants can insert work steps" on public.work_steps;
-create policy "Work participants can insert work steps"
-  on public.work_steps for insert
-  with check (
-    exists (
-      select 1 from public.works
-      where works.id = work_steps.work_id
-      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
-    )
-  );
-
-create policy "Work participants can update work steps"
-  on public.work_steps for update
-  using (
-    exists (
-      select 1 from public.works
-      where works.id = work_steps.work_id
-      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
-    )
-  );
 
 drop trigger if exists set_work_steps_updated_at on public.work_steps;
 create trigger set_work_steps_updated_at
@@ -771,27 +683,7 @@ create policy "Work participants can view deliverables"
   );
 
 drop policy if exists "Experts can insert deliverables" on public.deliverables;
-create policy "Experts can insert deliverables"
-  on public.deliverables for insert
-  with check (
-    deliverables.expert_id = auth.uid()
-    and exists (
-      select 1 from public.works
-      where works.id = deliverables.work_id
-      and works.expert_id = auth.uid()
-    )
-  );
-
 drop policy if exists "Work participants can update deliverables" on public.deliverables;
-create policy "Work participants can update deliverables"
-  on public.deliverables for update
-  using (
-    exists (
-      select 1 from public.works
-      where works.id = deliverables.work_id
-      and (works.client_id = auth.uid() or works.expert_id = auth.uid())
-    )
-  );
 
 drop trigger if exists set_deliverables_updated_at on public.deliverables;
 create trigger set_deliverables_updated_at
@@ -915,6 +807,27 @@ create table if not exists public.admin_actions (
 
 alter table public.admin_actions enable row level security;
 
+create table if not exists public.operation_logs (
+  id uuid primary key default gen_random_uuid(),
+  actor_id uuid references public.profiles(id) on delete set null,
+  event_type text not null,
+  target_type text not null,
+  target_id text,
+  detail jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.operation_logs enable row level security;
+
+create index if not exists operation_logs_created_idx
+  on public.operation_logs (created_at desc);
+
+drop policy if exists "Admins can view operation logs" on public.operation_logs;
+create policy "Admins can view operation logs"
+  on public.operation_logs for select
+  to authenticated
+  using (exists (select 1 from public.admin_users where admin_users.user_id = (select auth.uid())));
+
 drop policy if exists "Admins can view admin actions" on public.admin_actions;
 create policy "Admins can view admin actions"
   on public.admin_actions for select
@@ -969,10 +882,6 @@ create policy "Admins can view settlement payouts"
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can update settlement payouts" on public.settlement_payouts;
-create policy "Admins can update settlement payouts"
-  on public.settlement_payouts for update
-  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
-  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can view products" on public.expert_products;
 create policy "Admins can view products"
@@ -1017,10 +926,6 @@ create policy "Admins can view works"
   using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can update works" on public.works;
-create policy "Admins can update works"
-  on public.works for update
-  using (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()))
-  with check (exists (select 1 from public.admin_users where admin_users.user_id = auth.uid()));
 
 drop policy if exists "Admins can view work steps" on public.work_steps;
 create policy "Admins can view work steps"
@@ -1061,9 +966,39 @@ create policy "Public can read product samples"
   using (bucket_id = 'product-samples');
 
 drop policy if exists "Experts can upload product samples" on storage.objects;
-create policy "Experts can upload product samples"
+drop policy if exists "Authenticated users can upload product samples" on storage.objects;
+drop policy if exists "Users can upload own product samples" on storage.objects;
+create policy "Users can upload own product samples"
   on storage.objects for insert
-  with check (bucket_id = 'product-samples' and auth.role() = 'authenticated');
+  to authenticated
+  with check (
+    bucket_id = 'product-samples'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+drop policy if exists "Authenticated users can replace product samples" on storage.objects;
+drop policy if exists "Users can replace own product samples" on storage.objects;
+create policy "Users can replace own product samples"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'product-samples'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  )
+  with check (
+    bucket_id = 'product-samples'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+drop policy if exists "Authenticated users can select product samples for upsert" on storage.objects;
+drop policy if exists "Users can select own product samples for upsert" on storage.objects;
+create policy "Users can select own product samples for upsert"
+  on storage.objects for select
+  to authenticated
+  using (
+    bucket_id = 'product-samples'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
 
 drop policy if exists "Public can read profile images" on storage.objects;
 create policy "Public can read profile images"
@@ -1098,3 +1033,468 @@ create policy "Experts can upload deliverable files"
       and works.expert_id = auth.uid()
     )
   );
+
+create unique index if not exists payment_orders_one_active_per_proposal
+  on public.payment_orders (proposal_id)
+  where status in ('ready', 'approved');
+
+create unique index if not exists payment_orders_payment_key_unique
+  on public.payment_orders (payment_key)
+  where payment_key is not null;
+
+create unique index if not exists works_one_work_per_proposal
+  on public.works (proposal_id)
+  where proposal_id is not null;
+
+create extension if not exists pg_net with schema extensions;
+create extension if not exists pg_cron with schema extensions;
+
+create or replace function public.schedule_trade_automation_cron(
+  function_url text,
+  automation_secret text,
+  cron_schedule text default '0 * * * *'
+)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, extensions
+as $$
+begin
+  if current_role in ('anon', 'authenticated') and (auth.uid() is null or not public.is_admin(auth.uid())) then
+    raise exception 'only admins can schedule trade automation';
+  end if;
+
+  if length(trim(function_url)) = 0 or length(trim(automation_secret)) = 0 or length(trim(cron_schedule)) = 0 then
+    raise exception 'function_url, automation_secret, and cron_schedule are required';
+  end if;
+
+  begin
+    perform cron.unschedule('trade-automation-runner-hourly');
+  exception
+    when others then
+      null;
+  end;
+
+  perform cron.schedule(
+    'trade-automation-runner-hourly',
+    cron_schedule,
+    format(
+      'select net.http_post(url := %L, headers := jsonb_build_object(''Content-Type'', ''application/json'', ''x-automation-secret'', %L), body := ''{}''::jsonb);',
+      function_url,
+      automation_secret
+    )
+  );
+end;
+$$;
+
+revoke all on function public.schedule_trade_automation_cron(text, text, text) from public;
+revoke all on function public.schedule_trade_automation_cron(text, text, text) from anon;
+revoke all on function public.schedule_trade_automation_cron(text, text, text) from authenticated;
+grant execute on function public.schedule_trade_automation_cron(text, text, text) to service_role;
+
+create or replace function public.schedule_notification_dispatcher_cron(
+  function_url text,
+  automation_secret text,
+  cron_schedule text default '*/5 * * * *'
+)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, extensions
+as $$
+begin
+  if current_role in ('anon', 'authenticated') and (auth.uid() is null or not public.is_admin(auth.uid())) then
+    raise exception 'only admins can schedule notification dispatcher';
+  end if;
+
+  if length(trim(function_url)) = 0 or length(trim(automation_secret)) = 0 or length(trim(cron_schedule)) = 0 then
+    raise exception 'function_url, automation_secret, and cron_schedule are required';
+  end if;
+
+  begin
+    perform cron.unschedule('notification-dispatcher-runner');
+  exception
+    when others then
+      null;
+  end;
+
+  perform cron.schedule(
+    'notification-dispatcher-runner',
+    cron_schedule,
+    format(
+      'select net.http_post(url := %L, headers := jsonb_build_object(''Content-Type'', ''application/json'', ''x-automation-secret'', %L), body := ''{}''::jsonb);',
+      function_url,
+      automation_secret
+    )
+  );
+end;
+$$;
+
+revoke all on function public.schedule_notification_dispatcher_cron(text, text, text) from public;
+revoke all on function public.schedule_notification_dispatcher_cron(text, text, text) from anon;
+revoke all on function public.schedule_notification_dispatcher_cron(text, text, text) from authenticated;
+grant execute on function public.schedule_notification_dispatcher_cron(text, text, text) to service_role;
+
+create or replace function public.guard_proposal_authenticated_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_role <> 'authenticated' then
+    return new;
+  end if;
+
+  if auth.uid() = old.client_id then
+    if new.request_id is distinct from old.request_id
+      or new.consultation_id is distinct from old.consultation_id
+      or new.client_id is distinct from old.client_id
+      or new.expert_id is distinct from old.expert_id
+      or new.title is distinct from old.title
+      or new.scope is distinct from old.scope
+      or new.deliverables is distinct from old.deliverables
+      or new.total_price is distinct from old.total_price
+      or new.currency is distinct from old.currency
+      or new.delivery_days is distinct from old.delivery_days
+      or new.revision_count is distinct from old.revision_count
+      or new.progress_type is distinct from old.progress_type
+      or new.milestones is distinct from old.milestones
+      or new.commercial_use_allowed is distinct from old.commercial_use_allowed
+      or new.source_file_included is distinct from old.source_file_included
+      or new.payment_status is distinct from old.payment_status
+      or new.platform_fee_rate is distinct from old.platform_fee_rate
+      or new.paid_at is distinct from old.paid_at
+      or new.refunded_at is distinct from old.refunded_at
+      or new.expires_at is distinct from old.expires_at
+    then
+      raise exception 'clients may only request revision or cancel unpaid proposals';
+    end if;
+
+    if old.payment_status <> 'unpaid' or new.status not in ('revision_requested', 'cancelled') then
+      raise exception 'clients may only request revision or cancel unpaid proposals';
+    end if;
+
+    return new;
+  end if;
+
+  if auth.uid() = old.expert_id then
+    if new.request_id is distinct from old.request_id
+      or new.consultation_id is distinct from old.consultation_id
+      or new.client_id is distinct from old.client_id
+      or new.expert_id is distinct from old.expert_id
+      or new.payment_status is distinct from old.payment_status
+      or new.platform_fee_rate is distinct from old.platform_fee_rate
+      or new.paid_at is distinct from old.paid_at
+      or new.refunded_at is distinct from old.refunded_at
+    then
+      raise exception 'experts may not change proposal ownership or payment fields';
+    end if;
+
+    if old.payment_status <> 'unpaid' or new.payment_status <> 'unpaid' or new.status not in ('sent', 'cancelled') then
+      raise exception 'experts may only edit unpaid draft/sent proposals';
+    end if;
+
+    return new;
+  end if;
+
+  raise exception 'proposal update is not allowed for this user';
+end;
+$$;
+
+drop trigger if exists guard_proposal_authenticated_update on public.proposals;
+create trigger guard_proposal_authenticated_update
+  before update on public.proposals
+  for each row execute function public.guard_proposal_authenticated_update();
+
+drop policy if exists "Clients can update received proposals" on public.proposals;
+drop policy if exists "Clients can update unpaid proposal decisions" on public.proposals;
+
+drop policy if exists "Experts can update own unpaid proposals" on public.proposals;
+
+create or replace function public.guard_work_authenticated_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_role <> 'authenticated' then
+    return new;
+  end if;
+
+  if public.is_admin(auth.uid()) then
+    return new;
+  end if;
+
+  if auth.uid() <> old.client_id and auth.uid() <> old.expert_id then
+    raise exception 'work update is not allowed for this user';
+  end if;
+
+  if new.proposal_id is distinct from old.proposal_id
+    or new.request_id is distinct from old.request_id
+    or new.client_id is distinct from old.client_id
+    or new.expert_id is distinct from old.expert_id
+    or new.title is distinct from old.title
+    or new.progress_type is distinct from old.progress_type
+    or new.total_price is distinct from old.total_price
+    or new.platform_fee is distinct from old.platform_fee
+    or new.expert_payout is distinct from old.expert_payout
+    or new.started_at is distinct from old.started_at
+    or new.dispute_status is distinct from old.dispute_status
+    or new.revision_limit is distinct from old.revision_limit
+    or new.settlement_settled_at is distinct from old.settlement_settled_at
+    or new.settlement_hold_reason is distinct from old.settlement_hold_reason
+  then
+    raise exception 'work ownership, money, dispute, and settlement result fields are server-managed';
+  end if;
+
+  if new.refund_status is distinct from old.refund_status
+    and not (
+      old.status not in ('completed', 'cancelled')
+      and old.dispute_status is distinct from 'open'
+      and old.cancellation_requested_by is not null
+      and old.cancellation_requested_by <> auth.uid()
+      and new.status = 'cancelled'
+      and new.refund_status = 'fee_excluded_refund_pending'
+      and new.cancellation_requested_by is null
+      and new.cancellation_requested_at is null
+      and new.cancelled_at is not null
+    )
+  then
+    raise exception 'work refund fields are server-managed';
+  end if;
+
+  if new.status is not distinct from old.status
+    and new.settlement_status is not distinct from old.settlement_status
+    and new.settlement_requested_at is not distinct from old.settlement_requested_at
+    and new.refund_status is not distinct from old.refund_status
+    and new.cancellation_reason is not distinct from old.cancellation_reason
+    and new.cancellation_requested_by is not distinct from old.cancellation_requested_by
+    and new.cancellation_requested_at is not distinct from old.cancellation_requested_at
+    and new.cancelled_at is not distinct from old.cancelled_at
+    and new.completed_at is not distinct from old.completed_at
+    and new.revision_used is not distinct from old.revision_used
+  then
+    return new;
+  end if;
+
+  if auth.uid() = old.expert_id
+    and new.status = 'submitted'
+    and old.dispute_status is distinct from 'open'
+    and old.cancellation_requested_by is null
+    and new.settlement_status is not distinct from old.settlement_status
+    and new.settlement_requested_at is not distinct from old.settlement_requested_at
+    and new.refund_status is not distinct from old.refund_status
+    and new.cancellation_reason is not distinct from old.cancellation_reason
+    and new.cancellation_requested_by is not distinct from old.cancellation_requested_by
+    and new.cancellation_requested_at is not distinct from old.cancellation_requested_at
+    and new.cancelled_at is not distinct from old.cancelled_at
+    and new.completed_at is not distinct from old.completed_at
+    and new.revision_used is not distinct from old.revision_used
+  then
+    return new;
+  end if;
+
+  if auth.uid() = old.expert_id
+    and old.status = 'completed'
+    and old.settlement_status = 'pending'
+    and old.dispute_status is distinct from 'open'
+    and old.settlement_hold_reason is null
+    and new.status is not distinct from old.status
+    and new.settlement_status is not distinct from old.settlement_status
+    and new.settlement_requested_at is not null
+    and new.refund_status is not distinct from old.refund_status
+    and new.cancellation_reason is not distinct from old.cancellation_reason
+    and new.cancellation_requested_by is not distinct from old.cancellation_requested_by
+    and new.cancellation_requested_at is not distinct from old.cancellation_requested_at
+    and new.cancelled_at is not distinct from old.cancelled_at
+    and new.completed_at is not distinct from old.completed_at
+    and new.revision_used is not distinct from old.revision_used
+  then
+    return new;
+  end if;
+
+  if old.status not in ('completed', 'cancelled')
+    and old.dispute_status is distinct from 'open'
+    and old.cancellation_requested_by is null
+    and new.status is not distinct from old.status
+    and new.settlement_status is not distinct from old.settlement_status
+    and new.settlement_requested_at is not distinct from old.settlement_requested_at
+    and new.refund_status is not distinct from old.refund_status
+    and new.cancellation_reason is not null
+    and new.cancellation_requested_by = auth.uid()
+    and new.cancellation_requested_at is not null
+    and new.cancelled_at is not distinct from old.cancelled_at
+    and new.completed_at is not distinct from old.completed_at
+    and new.revision_used is not distinct from old.revision_used
+  then
+    return new;
+  end if;
+
+  if old.status not in ('completed', 'cancelled')
+    and old.dispute_status is distinct from 'open'
+    and old.cancellation_requested_by is not null
+    and old.cancellation_requested_by <> auth.uid()
+    and new.status = 'cancelled'
+    and new.settlement_status is not distinct from old.settlement_status
+    and new.settlement_requested_at is not distinct from old.settlement_requested_at
+    and new.refund_status = 'fee_excluded_refund_pending'
+    and new.cancellation_reason is not null
+    and new.cancellation_requested_by is null
+    and new.cancellation_requested_at is null
+    and new.cancelled_at is not null
+    and new.completed_at is not distinct from old.completed_at
+    and new.revision_used is not distinct from old.revision_used
+  then
+    return new;
+  end if;
+
+  if auth.uid() = old.client_id
+    and old.status = 'submitted'
+    and old.dispute_status is distinct from 'open'
+    and old.cancellation_requested_by is null
+    and new.status = 'completed'
+    and new.settlement_status = 'pending'
+    and new.settlement_requested_at is not distinct from old.settlement_requested_at
+    and new.refund_status is not distinct from old.refund_status
+    and new.cancellation_reason is not distinct from old.cancellation_reason
+    and new.cancellation_requested_by is null
+    and new.cancellation_requested_at is null
+    and new.cancelled_at is not distinct from old.cancelled_at
+    and new.completed_at is not null
+    and new.revision_used is not distinct from old.revision_used
+  then
+    return new;
+  end if;
+
+  if auth.uid() = old.client_id
+    and old.status = 'submitted'
+    and old.dispute_status is distinct from 'open'
+    and old.cancellation_requested_by is null
+    and new.status = 'revision_requested'
+    and new.settlement_status is not distinct from old.settlement_status
+    and new.settlement_requested_at is not distinct from old.settlement_requested_at
+    and new.refund_status is not distinct from old.refund_status
+    and new.cancellation_reason is not distinct from old.cancellation_reason
+    and new.cancellation_requested_by is not distinct from old.cancellation_requested_by
+    and new.cancellation_requested_at is not distinct from old.cancellation_requested_at
+    and new.cancelled_at is not distinct from old.cancelled_at
+    and new.completed_at is not distinct from old.completed_at
+    and new.revision_used = old.revision_used + 1
+  then
+    return new;
+  end if;
+
+  raise exception 'work update is not allowed for this participant action';
+end;
+$$;
+
+drop trigger if exists guard_work_authenticated_update on public.works;
+create trigger guard_work_authenticated_update
+  before update on public.works
+  for each row execute function public.guard_work_authenticated_update();
+
+drop policy if exists "Accepted proposal participants can insert works" on public.works;
+drop policy if exists "Work participants can update works" on public.works;
+drop policy if exists "Work participants can update own work state" on public.works;
+
+create or replace function public.guard_work_step_authenticated_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_role <> 'authenticated' or public.is_admin(auth.uid()) then
+    return new;
+  end if;
+
+  if new.work_id is distinct from old.work_id
+    or new.step_order is distinct from old.step_order
+    or new.title is distinct from old.title
+    or new.description is distinct from old.description
+    or new.submitted_at is distinct from old.submitted_at
+    or new.approved_at is distinct from old.approved_at
+    or new.revision_requested_at is distinct from old.revision_requested_at
+    or new.revision_message is distinct from old.revision_message
+    or new.created_at is distinct from old.created_at
+  then
+    raise exception 'work step review updates may only change status';
+  end if;
+
+  if new.status = 'submitted'
+    and old.status in ('waiting', 'in_progress', 'revision_requested')
+    and exists (
+      select 1 from public.works
+      where works.id = old.work_id
+      and works.expert_id = auth.uid()
+    )
+  then
+    return new;
+  end if;
+
+  if new.status in ('approved', 'revision_requested')
+    and old.status = 'submitted'
+    and exists (
+      select 1 from public.works
+      where works.id = old.work_id
+      and works.client_id = auth.uid()
+    )
+  then
+    return new;
+  end if;
+
+  raise exception 'work step status transition is not allowed';
+end;
+$$;
+
+drop trigger if exists guard_work_step_authenticated_update on public.work_steps;
+create trigger guard_work_step_authenticated_update
+  before update on public.work_steps
+  for each row execute function public.guard_work_step_authenticated_update();
+
+drop policy if exists "Work participants can update work steps" on public.work_steps;
+drop policy if exists "Experts can submit own work steps" on public.work_steps;
+drop policy if exists "Clients can review work steps" on public.work_steps;
+
+create or replace function public.guard_deliverable_authenticated_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_role <> 'authenticated' or public.is_admin(auth.uid()) then
+    return new;
+  end if;
+
+  if new.work_id is distinct from old.work_id
+    or new.step_id is distinct from old.step_id
+    or new.expert_id is distinct from old.expert_id
+    or new.description is distinct from old.description
+    or new.external_url is distinct from old.external_url
+    or new.file_url is distinct from old.file_url
+    or new.submitted_at is distinct from old.submitted_at
+    or new.created_at is distinct from old.created_at
+  then
+    raise exception 'deliverable review updates may only change status';
+  end if;
+
+  if new.status in ('approved', 'revision_requested')
+    and old.status = 'submitted'
+    and exists (
+      select 1 from public.works
+      where works.id = old.work_id
+      and works.client_id = auth.uid()
+    )
+  then
+    return new;
+  end if;
+
+  raise exception 'deliverable status transition is not allowed';
+end;
+$$;
+
+drop trigger if exists guard_deliverable_authenticated_update on public.deliverables;
+create trigger guard_deliverable_authenticated_update
+  before update on public.deliverables
+  for each row execute function public.guard_deliverable_authenticated_update();
+
+drop policy if exists "Work participants can update deliverables" on public.deliverables;
+drop policy if exists "Clients can review deliverables" on public.deliverables;
+
+drop policy if exists "Experts can insert settlement payouts" on public.settlement_payouts;
+drop policy if exists "Experts can retry own settlement payouts" on public.settlement_payouts;

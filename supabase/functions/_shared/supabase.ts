@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.3'
 
 export type AppUser = {
     readonly id: string
+    readonly email?: string
 }
 
 export const getRequiredEnv = (name: string): string => {
@@ -27,5 +28,5 @@ export async function requireUser(request: Request): Promise<AppUser> {
     const { data, error } = await client.auth.getUser()
 
     if (error || !data.user) throw new Error('Authenticated user is required')
-    return { id: data.user.id }
+    return { id: data.user.id, ...(data.user.email ? { email: data.user.email } : {}) }
 }
