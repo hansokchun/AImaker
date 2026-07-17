@@ -464,6 +464,53 @@
     font-weight: 700;
 }
 
+.admin-manual-settlement-form {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 520px;
+    margin-top: var(--space-6);
+    padding: var(--space-5);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    background: var(--background);
+}
+
+.admin-manual-settlement-form h3,
+.admin-manual-settlement-form p {
+    margin: 0;
+}
+
+.admin-manual-settlement-form p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.admin-manual-settlement-form label {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-weight: 850;
+}
+
+.admin-manual-settlement-form input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.admin-manual-settlement-form input:focus-visible {
+    border-color: var(--primary);
+    outline: 2px solid color-mix(in srgb, var(--primary) 24%, transparent);
+    outline-offset: 2px;
+}
+
+.admin-manual-settlement-error {
+    color: var(--danger) !important;
+}
+
 @media (max-width: 920px) {
     .admin-layout {
         grid-template-columns: 1fr;

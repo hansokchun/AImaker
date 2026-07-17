@@ -84,12 +84,12 @@ const expertReviews: Review[] = [
 ]
 
 const getExpertProducts = vi.fn(async () => [supabaseProduct])
-const getUserDisplayProfile = vi.fn(async () => ({
+const getUserDisplayProfile = vi.fn(async (_userId: string) => ({
     name: '검증된 AI 전문가',
     imageUrl: 'https://example.com/avatar.jpg',
     isExpert: true,
 }))
-const getStoredProfile = vi.fn(async () => ({
+const getStoredProfile = vi.fn(async (_userId: string) => ({
     imageUrl: 'https://example.com/avatar.jpg',
     profession: 'AI video',
     name: '검증된 AI 전문가',
@@ -108,11 +108,11 @@ const getStoredProfile = vi.fn(async () => ({
         premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
     },
 }))
-const getExpertReviews = vi.fn(async () => expertReviews)
+const getExpertReviews = vi.fn(async (_expertId: string) => expertReviews)
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
 const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)
 const toggleFavoriteProduct = vi.fn(async (_userId: string, productId: string) => [productId])
-const createConsultation = vi.fn(async () => ({
+const createConsultation = vi.fn(async (_input: unknown) => ({
     id: 'consultation-created-01',
     clientId: 'client-real-01',
     expertId: supabaseProduct.expertId,
@@ -333,12 +333,10 @@ describe('ExpertDetail', () => {
     })
 
     it('opens product details even when stored package data is missing', async () => {
-        const productWithoutPackages = {
-            ...supabaseProduct,
-            id: 'product-without-packages',
-            packages: undefined,
-            sampleLinks: undefined,
-        } as unknown as ExpertProduct
+        const productWithoutPackages = structuredClone(supabaseProduct)
+        productWithoutPackages.id = 'product-without-packages'
+        Object.defineProperty(productWithoutPackages, 'packages', { value: undefined })
+        Object.defineProperty(productWithoutPackages, 'sampleLinks', { value: undefined })
         getExpertProducts.mockResolvedValue([productWithoutPackages])
 
         render(

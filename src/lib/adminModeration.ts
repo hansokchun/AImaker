@@ -12,16 +12,6 @@ const STORAGE_KEYS = {
     SETTLEMENT_PAYOUTS: 'ai_settlement_payouts',
 } as const;
 
-const WORK_TRADE_ADMIN_ACTIONS = new Set<AdminAction['actionType']>([
-    'cancel_trade',
-    'mark_settlement_pending',
-    'mark_settlement_settled',
-    'hold_settlement',
-    'mark_refund_pending',
-    'open_dispute',
-    'resolve_dispute',
-]);
-
 type AdminTradeWorkflowRequest = {
     readonly type: 'admin_moderation_action';
     readonly action: AdminAction;
@@ -29,6 +19,13 @@ type AdminTradeWorkflowRequest = {
 
 const invokeAdminTradeWorkflow = async (action: AdminAction): Promise<void> => {
     if (!supabase) return;
+    if (action.actionType === 'execute_toss_refund' && action.targetType === 'work') {
+        const { error } = await supabase.functions.invoke('toss-payment-cancel', {
+            body: { workId: action.targetId, reason: action.reason },
+        });
+        if (error) throw new Error(error.message || '토스 환불 실행에 실패했습니다.');
+        return;
+    }
     const body: AdminTradeWorkflowRequest = { type: 'admin_moderation_action', action };
     const { error } = await supabase.functions.invoke('trade-workflow', { body });
     if (error) throw new Error(error.message || '관리자 거래 상태 변경에 실패했습니다.');
@@ -234,224 +231,10 @@ const applyLocalAdminAction = (action: AdminAction): void => {
     if (action.actionType === 'dismiss_report' && action.targetType === 'report') updateLocalReportStatus(action.targetId, 'dismissed', action);
 };
 
-const moveSupabaseProduct = async (productId: string, direction: 'up' | 'down'): Promise<boolean> => {
-    if (!supabase) return false;
-
-    const { data, error } = await supabase
-        .from('expert_products')
-        .select('id, display_order, title')
-        .order('display_order', { ascending: true })
-        .order('title', { ascending: true });
-
-    if (error || !Array.isArray(data)) return false;
-
-    const products = data.map((product, index) => ({
-        id: String(product.id),
-        displayOrder: Number(product.display_order) || index + 1,
-    }));
-    const targetIndex = products.findIndex((product) => product.id === productId);
-    const swapIndex = direction === 'up' ? targetIndex - 1 : targetIndex + 1;
-    const targetProduct = products[targetIndex];
-    const swapProduct = products[swapIndex];
-
-    if (!targetProduct || !swapProduct) return false;
-
-    const updatedAt = new Date().toISOString();
-    const [targetResult, swapResult] = await Promise.all([
-        supabase
-            .from('expert_products')
-            .update({ display_order: swapProduct.displayOrder, updated_at: updatedAt })
-            .eq('id', targetProduct.id),
-        supabase
-            .from('expert_products')
-            .update({ display_order: targetProduct.displayOrder, updated_at: updatedAt })
-            .eq('id', swapProduct.id),
-    ]);
-
-    return !targetResult.error && !swapResult.error;
-};
-
-const applySupabaseAdminAction = async (action: AdminAction): Promise<boolean> => {
-    if (!supabase) return false;
-    if (action.targetType === 'work' && WORK_TRADE_ADMIN_ACTIONS.has(action.actionType)) {
-        await invokeAdminTradeWorkflow(action);
-        return true;
-    }
-
-    if (action.actionType === 'restrict' && action.targetType === 'user') {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ account_status: 'restricted', updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.actionType === 'release_restriction' && action.targetType === 'user') {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ account_status: 'active', updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.actionType === 'hide_product' && action.targetType === 'product') {
-        const { error } = await supabase
-            .from('expert_products')
-            .update({ status: 'hidden', updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.actionType === 'restore_product' && action.targetType === 'product') {
-        const { error } = await supabase
-            .from('expert_products')
-            .update({ status: 'published', updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if ((action.actionType === 'feature_product' || action.actionType === 'unfeature_product') && action.targetType === 'product') {
-        const { error } = await supabase
-            .from('expert_products')
-            .update({ is_featured: action.actionType === 'feature_product', updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if ((action.actionType === 'move_product_up' || action.actionType === 'move_product_down') && action.targetType === 'product') {
-        return moveSupabaseProduct(action.targetId, action.actionType === 'move_product_up' ? 'up' : 'down');
-    }
-
-    if (action.actionType === 'cancel_trade' && action.targetType === 'work') {
-        const { error } = await supabase
-            .from('works')
-            .update({
-                status: 'cancelled',
-                refund_status: 'fee_excluded_refund_pending',
-                cancellation_reason: 'mutual_after_start',
-                cancelled_at: new Date().toISOString(),
-            })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.targetType === 'work' && action.actionType === 'mark_settlement_pending') {
-        const { error } = await supabase
-            .from('works')
-            .update({ settlement_status: 'pending', settlement_hold_reason: null, updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.targetType === 'work' && action.actionType === 'mark_settlement_settled') {
-        const settledAt = new Date().toISOString();
-        const workResult = await supabase
-            .from('works')
-            .update({
-                settlement_status: 'settled',
-                refund_status: null,
-                settlement_hold_reason: null,
-                settlement_settled_at: settledAt,
-                updated_at: settledAt,
-            })
-            .eq('id', action.targetId);
-        const payoutResult = await supabase
-            .from('settlement_payouts')
-            .update({
-                status: 'paid',
-                processed_at: settledAt,
-                updated_at: settledAt,
-            })
-            .eq('work_id', action.targetId);
-        return !workResult.error && !payoutResult.error;
-    }
-
-    if (action.targetType === 'work' && action.actionType === 'hold_settlement') {
-        const { error } = await supabase
-            .from('works')
-            .update({
-                settlement_status: 'pending',
-                settlement_hold_reason: action.reason,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.targetType === 'work' && action.actionType === 'mark_refund_pending') {
-        const { error } = await supabase
-            .from('works')
-            .update({
-                settlement_status: 'refunded',
-                refund_status: 'fee_excluded_refund_pending',
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.targetType === 'work' && action.actionType === 'execute_toss_refund') {
-        const { error } = await supabase.functions.invoke('toss-payment-cancel', {
-            body: {
-                workId: action.targetId,
-                reason: action.reason,
-            },
-        });
-        return !error;
-    }
-
-    if (action.targetType === 'work' && (action.actionType === 'open_dispute' || action.actionType === 'resolve_dispute')) {
-        const { error } = await supabase
-            .from('works')
-            .update({
-                dispute_status: action.actionType === 'open_dispute' ? 'open' : 'resolved',
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.targetType === 'review' && (action.actionType === 'hide_review' || action.actionType === 'restore_review')) {
-        const { error } = await supabase
-            .from('reviews')
-            .update({ status: action.actionType === 'hide_review' ? 'hidden' : 'published' })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if (action.actionType === 'close_consultation' && action.targetType === 'consultation') {
-        const { error } = await supabase
-            .from('consultations')
-            .update({ status: 'closed', updated_at: new Date().toISOString() })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    if ((action.actionType === 'resolve_report' || action.actionType === 'dismiss_report') && action.targetType === 'report') {
-        const { error } = await supabase
-            .from('admin_reports')
-            .update({
-                status: action.actionType === 'resolve_report' ? 'resolved' : 'dismissed',
-                resolved_at: new Date().toISOString(),
-                resolved_by: action.adminId,
-            })
-            .eq('id', action.targetId);
-        return !error;
-    }
-
-    return true;
-};
-
 export const applyAdminActionEffect = async (action: AdminAction): Promise<void> => {
     if (!supabase) {
         applyLocalAdminAction(action);
         return;
     }
-
-    const applied = await applySupabaseAdminAction(action);
-    if (applied) return;
-    if (action.actionType === 'execute_toss_refund') {
-        throw new Error('토스 환불 실행에 실패했습니다.');
-    }
-    applyLocalAdminAction(action);
+    await invokeAdminTradeWorkflow(action);
 };

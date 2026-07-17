@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { getCachedExpertProducts, getExpertProducts } from '../lib/storage';
+import { getCachedExpertProducts } from '../lib/storage';
+import { getMarketplaceProductSummaries } from '../lib/marketplaceProducts';
 import type { ExpertProduct } from '../types';
 
 const productCategoryLabels: Record<ExpertProduct['category'], string> = {
@@ -69,6 +70,8 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
                     aria-hidden="true"
                     data-testid={`home-product-image-${product.id}`}
                     className="home-minimal-product-image"
+                    loading="lazy"
+                    decoding="async"
                     onError={() => setImageFailed(true)}
                 />
             )}
@@ -103,7 +106,7 @@ export default function Home() {
 
     useEffect(() => {
         let active = true;
-        getExpertProducts()
+        getMarketplaceProductSummaries()
             .then((items) => {
                 if (active) setProducts(items);
             })

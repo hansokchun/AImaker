@@ -34,6 +34,11 @@ export type AdminActionPayload = {
     readonly reason: string
 }
 
+export type ManualSettlementPayload = {
+    readonly workId: string
+    readonly transferReference: string
+}
+
 export type WorkflowRequest =
     | { readonly type: 'create_proposal'; readonly proposal: ProposalPayload }
     | { readonly type: 'update_proposal'; readonly proposal: ProposalPayload }
@@ -47,5 +52,6 @@ export type WorkflowRequest =
     | { readonly type: 'approve_deliverable'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
     | { readonly type: 'request_work_revision'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
     | { readonly type: 'admin_moderation_action'; readonly action: AdminActionPayload }
+    | { readonly type: 'complete_manual_settlement'; readonly settlement: ManualSettlementPayload }
 
 export type RowRecord = Record<string, unknown>

@@ -1,84 +1,48 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts'
-import { createServiceClient, requireUser } from '../_shared/supabase.ts'
+import { executeFinancialRpc } from '../_shared/financial-contracts.ts'
+import { createServiceClient, getRequiredEnv, requireUser } from '../_shared/supabase.ts'
+import { getTossPaymentByOrderId, TossApiError } from '../_shared/toss.ts'
 
-type FailRequest = {
-    readonly orderId: string
-    readonly code?: string
-    readonly message?: string
-}
+type FailRequest = { readonly orderId: string; readonly code?: string; readonly message?: string }
+const isFailRequest = (value: unknown): value is FailRequest => typeof value === 'object' && value !== null
+    && 'orderId' in value && typeof value.orderId === 'string'
+    && /^[A-Za-z0-9_-]{1,128}$/.test(value.orderId)
+    && (!('code' in value) || value.code === undefined || (typeof value.code === 'string' && value.code.length <= 100))
+    && (!('message' in value) || value.message === undefined || (typeof value.message === 'string' && value.message.length <= 500))
 
-type PaymentOrderRow = {
-    readonly order_id: string
-    readonly client_id: string
-    readonly status: string
-}
-
-const isFailRequest = (value: unknown): value is FailRequest => {
-    if (!value || typeof value !== 'object') return false
-    const candidate = value as Partial<FailRequest>
-    return typeof candidate.orderId === 'string'
-        && candidate.orderId.trim().length > 0
-        && (candidate.code === undefined || typeof candidate.code === 'string')
-        && (candidate.message === undefined || typeof candidate.message === 'string')
-}
-
-const isPaymentOrderRow = (value: unknown): value is PaymentOrderRow => {
-    if (!value || typeof value !== 'object') return false
-    const candidate = value as Partial<PaymentOrderRow>
-    return typeof candidate.order_id === 'string'
-        && typeof candidate.client_id === 'string'
-        && typeof candidate.status === 'string'
-}
-
-Deno.serve(async (request) => {
+export async function handlePaymentFail(request: Request): Promise<Response> {
     const options = handleOptions(request)
     if (options) return options
-
-    const client = createServiceClient()
-
     try {
         const body: unknown = await request.json()
-        if (!isFailRequest(body)) {
-            return jsonResponse({ message: '결제 실패 정보가 올바르지 않습니다.' }, { status: 400 })
-        }
-
+        if (!isFailRequest(body)) return jsonResponse({ message: 'Invalid payment failure request.' }, { status: 400 })
         const user = await requireUser(request)
-        const { data: order, error } = await client
-            .from('payment_orders')
-            .select('order_id, client_id, status')
-            .eq('order_id', body.orderId)
-            .single()
-
-        if (error || !isPaymentOrderRow(order)) {
-            return jsonResponse({ message: '결제 주문을 찾을 수 없습니다.' }, { status: 404 })
+        const client = createServiceClient()
+        const { data: ownedOrder } = await client.from('payment_orders').select('id, status')
+            .eq('order_id', body.orderId).eq('client_id', user.id).maybeSingle()
+        if (!ownedOrder || ownedOrder.status !== 'ready') {
+            return jsonResponse({ message: 'A ready payment order owned by the caller is required.' }, { status: 404 })
         }
-
-        if (order.client_id !== user.id) {
-            return jsonResponse({ message: '결제 실패 기록 권한이 없습니다.' }, { status: 403 })
+        const payment = await getTossPaymentByOrderId({
+            secretKey: getRequiredEnv('TOSS_PAYMENTS_SECRET_KEY'),
+            orderId: body.orderId,
+        })
+        if (payment.status !== 'EXPIRED' && payment.status !== 'ABORTED') {
+            return jsonResponse({ status: 'provider_state_requires_reconciliation' }, { status: 202 })
         }
-
-        if (order.status === 'approved') {
-            return jsonResponse({ status: 'approved' })
-        }
-
-        const failureCode = body.code?.trim() || 'PAYMENT_FAILED'
-        const failureMessage = body.message?.trim() || '결제가 완료되지 않았습니다.'
-        const { error: updateError } = await client
-            .from('payment_orders')
-            .update({
-                status: 'failed',
-                failure_code: failureCode,
-                failure_message: failureMessage,
-            })
-            .eq('order_id', order.order_id)
-
-        if (updateError) {
-            return jsonResponse({ message: '결제 실패 상태 저장에 실패했습니다.' }, { status: 500 })
-        }
-
-        return jsonResponse({ status: 'failed' })
+        const result = await executeFinancialRpc(client, 'record_payment_failure', {
+            p_order_id: payment.orderId,
+            p_client_id: user.id,
+            p_failure_code: payment.status,
+            p_failure_message: 'Verified terminal provider status',
+            p_business_key: `failure:${payment.orderId}`,
+        })
+        return jsonResponse({ status: result.status ?? result.kind })
     } catch (error) {
-        const message = error instanceof Error ? error.message : '결제 실패 처리 중 오류가 발생했습니다.'
-        return jsonResponse({ message }, { status: 500 })
+        return error instanceof TossApiError
+            ? jsonResponse({ message: 'Payment provider status could not be verified.' }, { status: 502 })
+            : jsonResponse({ message: 'Payment failure could not be recorded.' }, { status: 409 })
     }
-})
+}
+
+if (import.meta.main) Deno.serve(handlePaymentFail)

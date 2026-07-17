@@ -1,3 +1,9 @@
+project_id = "aiconnect-disposable"
+
+[db.seed]
+enabled = true
+sql_paths = ["./roles.seed.sql"]
+
 [functions.toss-payment-order]
 verify_jwt = true
 

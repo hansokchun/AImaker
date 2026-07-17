@@ -236,6 +236,96 @@ describe('notification storage', () => {
         })
         expect(from).not.toHaveBeenCalledWith('notification_events')
     })
+
+    it('keeps the local notification when the provider returns a malformed event row', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+        const eq = vi.fn(() => ({ maybeSingle }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ select }))
+        const invoke = vi.fn().mockResolvedValue({
+            data: { event_type: 'payment_completed' },
+            error: null,
+        })
+
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
+
+        const { queueNotificationEvent } = await import('./storage')
+
+        await expect(queueNotificationEvent({
+            userId: 'notification-user-malformed-row',
+            type: 'payment_completed',
+            title: 'Payment complete',
+            body: 'The workroom is ready.',
+        })).resolves.toEqual(expect.objectContaining({
+            userId: 'notification-user-malformed-row',
+            type: 'payment_completed',
+            channels: ['in_app'],
+        }))
+    })
+
+    it('keeps the local notification when the provider invocation rejects', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+        const eq = vi.fn(() => ({ maybeSingle }))
+        const select = vi.fn(() => ({ eq }))
+        const from = vi.fn(() => ({ select }))
+        const invoke = vi.fn().mockRejectedValue(new Error('provider unavailable'))
+
+        vi.doMock('./supabase', () => ({ supabase: { from, functions: { invoke } } }))
+
+        const { queueNotificationEvent } = await import('./storage')
+
+        await expect(queueNotificationEvent({
+            userId: 'notification-user-provider-error',
+            type: 'payment_completed',
+            title: 'Payment complete',
+            body: 'The workroom is ready.',
+        })).resolves.toEqual(expect.objectContaining({
+            userId: 'notification-user-provider-error',
+            status: 'queued',
+            channels: ['in_app'],
+        }))
+    })
+
+    it('uses the latest saved channel preference when queueing a later event', async () => {
+        vi.resetModules()
+        vi.doMock('./supabase', () => ({ supabase: null }))
+        localStorage.clear()
+        const {
+            getUserNotifications,
+            queueNotificationEvent,
+            saveNotificationPreference,
+        } = await import('./storage')
+
+        await saveNotificationPreference({
+            userId: 'notification-user-latest-preference',
+            phoneNumber: '010-1234-5678',
+            kakaoAlimtalkEnabled: true,
+            smsFallbackEnabled: true,
+        })
+        await saveNotificationPreference({
+            userId: 'notification-user-latest-preference',
+            phoneNumber: '010-1234-5678',
+            kakaoAlimtalkEnabled: false,
+            smsFallbackEnabled: false,
+        })
+
+        await queueNotificationEvent({
+            userId: 'notification-user-latest-preference',
+            type: 'payment_completed',
+            title: 'Payment complete',
+            body: 'The workroom is ready.',
+            relatedType: 'work',
+            relatedId: 'work-notification-latest-preference',
+        })
+
+        await expect(getUserNotifications('notification-user-latest-preference')).resolves.toEqual([
+            expect.objectContaining({ channels: ['in_app'] }),
+        ])
+    })
 })
 
 describe('expert product storage', () => {
@@ -274,7 +364,11 @@ describe('expert product storage', () => {
     it('saves expert products to Supabase using expert_products columns', async () => {
         vi.resetModules()
         const upsert = vi.fn().mockResolvedValue({ error: null })
-        const from = vi.fn(() => ({ upsert }))
+        const profileUpdateEq = vi.fn().mockResolvedValue({ error: null })
+        const profileUpdate = vi.fn(() => ({ eq: profileUpdateEq }))
+        const from = vi.fn((table: string) => (
+            table === 'profiles' ? { update: profileUpdate } : { upsert }
+        ))
 
         vi.doMock('./supabase', () => ({
             supabase: { from },
@@ -284,6 +378,9 @@ describe('expert product storage', () => {
 
         await saveExpertProduct(product)
 
+        expect(from).toHaveBeenCalledWith('profiles')
+        expect(profileUpdate).toHaveBeenCalledWith({ is_expert: true })
+        expect(profileUpdateEq).toHaveBeenCalledWith('id', product.expertId)
         expect(from).toHaveBeenCalledWith('expert_products')
         expect(upsert).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -645,7 +742,56 @@ describe('profile storage', () => {
 
         await deleteUserPublicAccountData('user-test-01')
 
-        expect(invoke).toHaveBeenCalledWith('account-withdrawal', { body: { userId: 'user-test-01' } })
+        expect(invoke).toHaveBeenCalledWith('account-withdrawal')
+    })
+
+    it('loads lightweight marketplace summaries without product detail payloads', async () => {
+        vi.resetModules()
+        const rpc = vi.fn().mockResolvedValue({
+            data: [{
+                id: product.id,
+                expert_id: product.expertId,
+                expert_name: product.expertName,
+                expert_image_url: '',
+                title: product.title,
+                category: product.category,
+                summary: product.summary,
+                sample_image_url: product.sampleImageUrl,
+                starting_price: product.startingPrice,
+                delivery_days: product.deliveryDays,
+                revision_count: product.revisionCount,
+                created_at: product.createdAt,
+                tax_invoice_available: true,
+                is_featured: false,
+                display_order: 0,
+                status: product.status,
+            }],
+            error: null,
+        })
+        vi.doMock('./supabase', () => ({ supabase: { rpc } }))
+
+        const { getMarketplaceProductSummaries } = await import('./marketplaceProducts')
+
+        await expect(getMarketplaceProductSummaries()).resolves.toEqual([
+            expect.objectContaining({
+                id: product.id,
+                sampleImageUrl: product.sampleImageUrl,
+                description: '',
+                sampleLinks: [],
+                packages: {
+                    standard: {
+                        name: 'Standard',
+                        price: product.startingPrice,
+                        deliveryDays: product.deliveryDays,
+                        revisionCount: product.revisionCount,
+                        included: [],
+                    },
+                    deluxe: null,
+                    premium: null,
+                },
+            }),
+        ])
+        expect(rpc).toHaveBeenCalledWith('get_marketplace_product_summaries')
     })
 
     it('stores and loads expert contact availability fields through Supabase', async () => {
@@ -717,6 +863,39 @@ describe('profile storage', () => {
                 averageResponseTime: '평균 2시간 이내',
             }),
         )
+    })
+
+    it('reports a failed basic profile update after expert profile data was saved', async () => {
+        vi.resetModules()
+        const profile: ExpertProfile = {
+            imageUrl: 'https://example.com/profile.jpg',
+            profession: 'AI video',
+            name: 'Rumi AI Studio',
+            oneLiner: '',
+            greeting: '',
+            activities: [],
+            awards: [],
+            aiTools: ['Runway'],
+            editTools: [],
+            sampleLinks: [],
+            contactAvailableTime: '',
+            averageResponseTime: '',
+            packages: {
+                standard: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                deluxe: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+                premium: { price: '', description: '', workDays: '', revisions: '', features: [''] },
+            },
+        }
+        const profileUpdateEq = vi.fn().mockResolvedValue({ error: { message: 'row update denied' } })
+        const profileUpdate = vi.fn(() => ({ eq: profileUpdateEq }))
+        const upsert = vi.fn().mockResolvedValue({ error: null })
+        const from = vi.fn((table: string) => (table === 'profiles' ? { update: profileUpdate } : { upsert }))
+
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { saveProfile } = await import('./storage')
+
+        await expect(saveProfile(user.id, profile)).rejects.toThrow('row update denied')
     })
 })
 
@@ -1905,29 +2084,92 @@ describe('transaction storage', () => {
         expect(messageOrder).toHaveBeenCalledWith('created_at', { ascending: true })
     })
 
-    it('creates a consultation and its first message in Supabase', async () => {
+    it('does not query Supabase with demo consultation ids', async () => {
         vi.resetModules()
-        const consultationSingle = vi.fn().mockResolvedValue({
-            data: {
-                id: 'consultation-created-01',
-                client_id: request.clientId,
-                expert_id: request.expertId,
-                product_id: request.productId,
-                status: 'open',
-                title: 'AI 숏폼 상담',
-                last_message_at: '2026-06-02T10:00:00.000Z',
-                created_at: '2026-06-02T10:00:00.000Z',
-            },
-            error: null,
-        })
-        const consultationSelect = vi.fn(() => ({ single: consultationSingle }))
-        const consultationInsert = vi.fn(() => ({ select: consultationSelect }))
-        const messageInsert = vi.fn().mockResolvedValue({ error: null })
-        const from = vi.fn((table: string) => {
-            if (table === 'consultation_messages') return { insert: messageInsert }
-            return { insert: consultationInsert }
+        localStorage.clear()
+        localStorage.setItem('ai_consultations', JSON.stringify([{
+            id: 'demo-consultation-client-open',
+            clientId: 'demo-client',
+            expertId: 'demo-expert',
+            status: 'open',
+            title: 'Demo consultation',
+            lastMessageAt: '2026-06-02T10:00:00.000Z',
+            createdAt: '2026-06-02T09:00:00.000Z',
+        }]))
+        localStorage.setItem('ai_consultation_messages', JSON.stringify([{
+            id: 'demo-message-01',
+            consultationId: 'demo-consultation-client-open',
+            senderId: 'demo-client',
+            body: 'Demo consultation message',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:00:00.000Z',
+        }]))
+        const from = vi.fn(() => {
+            throw new Error('demo consultation ids must not reach Supabase')
         })
         vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getConsultationMessages } = await import('./storage')
+
+        await expect(getConsultationMessages('demo-consultation-client-open')).resolves.toEqual([
+            expect.objectContaining({ id: 'demo-message-01' }),
+        ])
+        expect(from).not.toHaveBeenCalled()
+    })
+
+    it('does not query Supabase with demo work ids', async () => {
+        vi.resetModules()
+        localStorage.clear()
+        localStorage.setItem('ai_works', JSON.stringify([{
+            id: 'demo-work-expert-submitted',
+            proposalId: 'demo-proposal',
+            requestId: 'demo-request',
+            clientId: 'demo-client',
+            expertId: 'demo-expert',
+            title: 'Demo work',
+            progressType: 'single',
+            status: 'submitted',
+            totalPrice: 1000,
+            platformFee: 0,
+            expertPayout: 1000,
+            settlementStatus: 'pending',
+            stepIds: [],
+        }]))
+        localStorage.setItem('ai_work_messages', JSON.stringify([{
+            id: 'demo-work-message-01',
+            workId: 'demo-work-expert-submitted',
+            senderId: 'demo-client',
+            body: 'Demo work message',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:00:00.000Z',
+        }]))
+        const from = vi.fn(() => {
+            throw new Error('demo work ids must not reach Supabase')
+        })
+        vi.doMock('./supabase', () => ({ supabase: { from } }))
+
+        const { getWorkMessages } = await import('./storage')
+
+        await expect(getWorkMessages('demo-work-expert-submitted')).resolves.toEqual([
+            expect.objectContaining({ id: 'demo-work-message-01' }),
+        ])
+        expect(from).not.toHaveBeenCalled()
+    })
+
+    it('creates a consultation and its first message atomically through the RPC', async () => {
+        vi.resetModules()
+        const row = {
+            id: 'consultation-created-01',
+            client_id: request.clientId,
+            expert_id: request.expertId,
+            product_id: request.productId,
+            status: 'open',
+            title: 'Consultation',
+            last_message_at: '2026-06-02T10:00:00.000Z',
+            created_at: '2026-06-02T10:00:00.000Z',
+        }
+        const rpc = vi.fn().mockResolvedValue({ data: row, error: null })
+        vi.doMock('./supabase', () => ({ supabase: { rpc } }))
 
         const { createConsultation } = await import('./storage')
 
@@ -1935,133 +2177,77 @@ describe('transaction storage', () => {
             clientId: request.clientId,
             expertId: request.expertId,
             productId: request.productId,
-            title: 'AI 숏폼 상담',
-            initialMessage: '작업 범위를 먼저 문의하고 싶습니다.',
-        })).resolves.toEqual({
-            id: 'consultation-created-01',
-            clientId: request.clientId,
-            expertId: request.expertId,
-            productId: request.productId,
-            status: 'open',
-            title: 'AI 숏폼 상담',
-            lastMessageAt: '2026-06-02T10:00:00.000Z',
-            createdAt: '2026-06-02T10:00:00.000Z',
-        })
-        expect(from).toHaveBeenCalledWith('consultations')
-        expect(consultationInsert).toHaveBeenCalledWith({
-            client_id: request.clientId,
-            expert_id: request.expertId,
-            product_id: request.productId,
-            title: 'AI 숏폼 상담',
-            status: 'open',
-        })
-        expect(from).toHaveBeenCalledWith('consultation_messages')
-        expect(messageInsert).toHaveBeenCalledWith({
-            consultation_id: 'consultation-created-01',
-            sender_id: request.clientId,
-            body: '작업 범위를 먼저 문의하고 싶습니다.',
-            attachment_urls: [],
+            title: 'Consultation',
+            initialMessage: 'Initial message',
+        })).resolves.toMatchObject({ id: row.id, status: 'open' })
+        expect(rpc).toHaveBeenCalledWith('create_consultation', {
+            consultation_title: 'Consultation',
+            expert_user_id: request.expertId,
+            initial_message: 'Initial message',
+            product_row_id: request.productId,
         })
     })
 
-    it('creates a consultation without a first message when no initial message is provided', async () => {
+    it('passes a null initial message to the consultation RPC when omitted', async () => {
         vi.resetModules()
-        const consultationSingle = vi.fn().mockResolvedValue({
+        const rpc = vi.fn().mockResolvedValue({
             data: {
                 id: 'consultation-created-02',
                 client_id: request.clientId,
                 expert_id: request.expertId,
                 product_id: request.productId,
                 status: 'open',
-                title: 'AI ?륂뤌 ?곷떞',
+                title: 'Consultation',
                 last_message_at: '2026-06-02T10:00:00.000Z',
                 created_at: '2026-06-02T10:00:00.000Z',
             },
             error: null,
         })
-        const consultationSelect = vi.fn(() => ({ single: consultationSingle }))
-        const consultationInsert = vi.fn(() => ({ select: consultationSelect }))
-        const messageInsert = vi.fn().mockResolvedValue({ error: null })
-        const from = vi.fn((table: string) => {
-            if (table === 'consultation_messages') return { insert: messageInsert }
-            return { insert: consultationInsert }
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        vi.doMock('./supabase', () => ({ supabase: { rpc } }))
 
         const { createConsultation } = await import('./storage')
-
-        await expect(createConsultation({
+        await createConsultation({
             clientId: request.clientId,
             expertId: request.expertId,
             productId: request.productId,
-            title: 'AI ?륂뤌 ?곷떞',
-        })).resolves.toEqual({
-            id: 'consultation-created-02',
-            clientId: request.clientId,
-            expertId: request.expertId,
-            productId: request.productId,
-            status: 'open',
-            title: 'AI ?륂뤌 ?곷떞',
-            lastMessageAt: '2026-06-02T10:00:00.000Z',
-            createdAt: '2026-06-02T10:00:00.000Z',
+            title: 'Consultation',
         })
-        expect(from).toHaveBeenCalledWith('consultations')
-        expect(from).not.toHaveBeenCalledWith('consultation_messages')
-        expect(messageInsert).not.toHaveBeenCalled()
+
+        expect(rpc).toHaveBeenCalledWith('create_consultation', expect.objectContaining({ initial_message: null }))
     })
 
-    it('saves a consultation message and refreshes the consultation timestamp in Supabase', async () => {
+    it('saves a consultation message and refreshes its timestamp atomically through the RPC', async () => {
         vi.resetModules()
-        const messageSingle = vi.fn().mockResolvedValue({
+        const rpc = vi.fn().mockResolvedValue({
             data: {
                 id: 'message-created-02',
                 consultation_id: 'consultation-db-01',
                 sender_id: request.clientId,
-                body: '추가 메시지입니다.',
+                body: 'Additional message',
                 attachment_urls: [],
                 created_at: '2026-06-02T10:05:00.000Z',
             },
             error: null,
         })
-        const messageSelect = vi.fn(() => ({ single: messageSingle }))
-        const messageInsert = vi.fn(() => ({ select: messageSelect }))
-        const consultationEq = vi.fn().mockResolvedValue({ error: null })
-        const consultationUpdate = vi.fn(() => ({ eq: consultationEq }))
-        const from = vi.fn((table: string) => {
-            if (table === 'consultation_messages') return { insert: messageInsert }
-            return { update: consultationUpdate }
-        })
-        vi.doMock('./supabase', () => ({ supabase: { from } }))
+        vi.doMock('./supabase', () => ({ supabase: { rpc } }))
 
         const { saveConsultationMessage } = await import('./storage')
-
         await expect(saveConsultationMessage({
             consultationId: 'consultation-db-01',
             senderId: request.clientId,
-            body: '추가 메시지입니다.',
-        })).resolves.toEqual({
-            id: 'message-created-02',
-            consultationId: 'consultation-db-01',
-            senderId: request.clientId,
-            body: '추가 메시지입니다.',
-            attachmentUrls: [],
-            createdAt: '2026-06-02T10:05:00.000Z',
+            body: 'Additional message',
+        })).resolves.toMatchObject({ id: 'message-created-02', body: 'Additional message' })
+
+        expect(rpc).toHaveBeenCalledWith('append_consultation_message', {
+            consultation_row_id: 'consultation-db-01',
+            message_attachment_urls: [],
+            message_body: 'Additional message',
         })
-        expect(from).toHaveBeenCalledWith('consultation_messages')
-        expect(messageInsert).toHaveBeenCalledWith({
-            consultation_id: 'consultation-db-01',
-            sender_id: request.clientId,
-            body: '추가 메시지입니다.',
-            attachment_urls: [],
-        })
-        expect(from).toHaveBeenCalledWith('consultations')
-        expect(consultationUpdate).toHaveBeenCalledWith({ last_message_at: '2026-06-02T10:05:00.000Z' })
-        expect(consultationEq).toHaveBeenCalledWith('id', 'consultation-db-01')
     })
 
     it('subscribes to new Supabase consultation messages for a selected consultation', async () => {
         vi.resetModules()
-        let realtimeCallback: ((payload: { readonly new: Record<string, unknown> }) => void) | null = null
+        let realtimeCallback: (payload: { readonly new: Record<string, unknown> }) => void = () => undefined
         const onMessage = vi.fn()
         const channelApi = {
             on: vi.fn((
@@ -2081,7 +2267,7 @@ describe('transaction storage', () => {
         const { subscribeToConsultationMessages } = await import('./storage')
 
         const unsubscribe = subscribeToConsultationMessages('consultation-db-01', onMessage)
-        realtimeCallback?.({
+        realtimeCallback({
             new: {
                 id: 'message-realtime-01',
                 consultation_id: 'consultation-db-01',

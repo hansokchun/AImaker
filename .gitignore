@@ -27,3 +27,12 @@ dist-ssr
 .vercel
 .env*
 supabase/.temp/
+
+# Local Codex/agent state and package cache (never required to run the app)
+.agents/
+.omo/
+.pnpm-store/
+skills/
+
+# Safe template: contains variable names only, never real values
+!.env.example

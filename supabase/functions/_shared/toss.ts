@@ -1,4 +1,12 @@
-export type TossPaymentStatus = 'DONE' | 'CANCELED' | 'PARTIAL_CANCELED' | 'EXPIRED' | 'ABORTED'
+export type TossPaymentStatus =
+    | 'READY'
+    | 'IN_PROGRESS'
+    | 'WAITING_FOR_DEPOSIT'
+    | 'DONE'
+    | 'CANCELED'
+    | 'PARTIAL_CANCELED'
+    | 'EXPIRED'
+    | 'ABORTED'
 
 export type TossPayment = {
     readonly paymentKey: string
@@ -22,12 +30,18 @@ export class TossApiError extends Error {
 
 const tossAuthorization = (secretKey: string): string => `Basic ${btoa(`${secretKey}:`)}`
 
+const tossPaymentStatuses = new Set<TossPaymentStatus>([
+    'READY', 'IN_PROGRESS', 'WAITING_FOR_DEPOSIT', 'DONE', 'CANCELED',
+    'PARTIAL_CANCELED', 'EXPIRED', 'ABORTED',
+])
+
 const isTossPayment = (value: unknown): value is TossPayment => {
     if (!value || typeof value !== 'object') return false
     const candidate = value as Partial<TossPayment>
     return typeof candidate.paymentKey === 'string'
         && typeof candidate.orderId === 'string'
         && typeof candidate.status === 'string'
+        && tossPaymentStatuses.has(candidate.status as TossPaymentStatus)
         && typeof candidate.totalAmount === 'number'
 }
 
@@ -67,7 +81,7 @@ export async function getTossPaymentByOrderId(input: {
     readonly secretKey: string
     readonly orderId: string
 }): Promise<TossPayment> {
-    const response = await fetch(`https://api.tosspayments.com/v1/payments/orders/${input.orderId}`, {
+    const response = await fetch(`https://api.tosspayments.com/v1/payments/orders/${encodeURIComponent(input.orderId)}`, {
         headers: {
             Authorization: tossAuthorization(input.secretKey),
         },

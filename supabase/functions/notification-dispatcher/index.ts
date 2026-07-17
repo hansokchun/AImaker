@@ -55,7 +55,7 @@ const requireAutomationSecret = (request: Request): Response | null => {
 const createPreferenceMap = (preferences: readonly NotificationPreferenceRow[]) =>
     new Map(preferences.map((preference) => [preference.user_id, preference]))
 
-const postProviderWebhook = async (url: string, body: Record<string, unknown>): Promise<boolean> => {
+export const postProviderWebhook = async (url: string, body: Record<string, unknown>): Promise<boolean> => {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 8_000)
     try {
@@ -66,6 +66,8 @@ const postProviderWebhook = async (url: string, body: Record<string, unknown>): 
             signal: controller.signal,
         })
         return response.ok
+    } catch {
+        return false
     } finally {
         clearTimeout(timeoutId)
     }

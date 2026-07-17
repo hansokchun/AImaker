@@ -21,10 +21,19 @@ const packageLabels: Record<PackageTier, string> = {
     premium: 'Premium',
 }
 
+const packageTiers = ['standard', 'deluxe', 'premium'] as const
+const fallbackPackage: ProductPackage = {
+    name: 'Standard',
+    price: 0,
+    deliveryDays: 1,
+    revisionCount: 1,
+    included: ['상담 후 작업 범위를 확정합니다.'],
+}
+
 const currency = new Intl.NumberFormat('ko-KR')
 
 function getPackageTabs(packages: ProductPackages) {
-    return (Object.keys(packageLabels) as PackageTier[]).filter((tab) => Boolean(packages?.[tab]))
+    return packageTiers.filter((tab) => Boolean(packages[tab]))
 }
 
 export default function PackageCard({
@@ -37,23 +46,18 @@ export default function PackageCard({
 }: PackageCardProps) {
     const navigate = useNavigate()
     const location = useLocation()
-    const fallbackPackage: ProductPackage = {
-        name: 'Standard',
-        price: 0,
-        deliveryDays: 1,
-        revisionCount: 1,
-        included: ['상담 후 작업 범위를 확정합니다.'],
-    }
-    const safePackages = packages?.standard
-        ? packages
-        : { standard: fallbackPackage, deluxe: null, premium: null }
+    const safePackages = useMemo(
+        () => packages.standard
+            ? packages
+            : { standard: fallbackPackage, deluxe: null, premium: null },
+        [packages],
+    )
     const tabs = useMemo(() => getPackageTabs(safePackages), [safePackages])
     const [activeTab, setActiveTab] = useState<PackageTier>('standard')
     const currentPackage = safePackages[activeTab] ?? safePackages.standard
 
-    const renderPackage = currentPackage as ProductPackage
-    const included = Array.isArray(renderPackage.included) && renderPackage.included.length > 0
-        ? renderPackage.included
+    const included = Array.isArray(currentPackage.included) && currentPackage.included.length > 0
+        ? currentPackage.included
         : fallbackPackage.included
     const optionRows = getPackageOptionRows(safePackages)
     const includedSet = new Set(included)
@@ -92,12 +96,12 @@ export default function PackageCard({
             </div>
 
             <div className="package-content">
-                <div className="package-price">{currency.format(renderPackage.price)}원</div>
-                <p className="package-description">{renderPackage.name} 패키지로 시작합니다.</p>
+                <div className="package-price">{currency.format(currentPackage.price)}원</div>
+                <p className="package-description">{currentPackage.name} 패키지로 시작합니다.</p>
 
                 <div className="package-features">
-                    <span>작업 {renderPackage.deliveryDays}일</span>
-                    <span>수정 {renderPackage.revisionCount}회</span>
+                    <span>작업 {currentPackage.deliveryDays}일</span>
+                    <span>수정 {currentPackage.revisionCount}회</span>
                 </div>
 
                 <ul className="package-list package-upgrade-list" data-testid="package-upgrade-feature-list">

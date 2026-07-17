@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import PackageCard from './PackageCard'
 import { mockExpertProducts } from '../data/mockData'
+import type { ExpertProduct } from '../types'
 
 function LocationProbe() {
     const location = useLocation()
@@ -38,16 +39,8 @@ describe('PackageCard', () => {
     })
 
     it('renders a fallback package item when included items are missing', () => {
-        const packages = {
-            standard: {
-                name: 'Standard',
-                price: 50000,
-                deliveryDays: 3,
-                revisionCount: 1,
-            },
-            deluxe: null,
-            premium: null,
-        } as unknown as typeof mockExpertProducts[0]['packages']
+        const packages = structuredClone(mockExpertProducts[0].packages)
+        Object.defineProperty(packages.standard, 'included', { value: undefined })
 
         render(
             <MemoryRouter initialEntries={['/expert/product-missing-included']}>
@@ -72,7 +65,7 @@ describe('PackageCard', () => {
     })
 
     it('shows unavailable upgrade features as muted unchecked items on lower packages', () => {
-        const product = {
+        const product: ExpertProduct = {
             ...mockExpertProducts[0],
             packages: {
                 standard: {
@@ -118,7 +111,7 @@ describe('PackageCard', () => {
     })
 
     it('groups quantity-only package options and shows the selected package value', () => {
-        const product = {
+        const product: ExpertProduct = {
             ...mockExpertProducts[0],
             packages: {
                 standard: {

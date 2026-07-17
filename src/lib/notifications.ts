@@ -86,7 +86,7 @@ export function buildUserNotifications({
         }))
 
     const messageNotifications = consultations
-        .map((consultation) => {
+        .map((consultation): UserNotification | null => {
             const latestMessage = [...(messagesByConsultation[consultation.id] || [])]
                 .reverse()
                 .find((message) => message.senderId !== userId)
@@ -100,7 +100,7 @@ export function buildUserNotifications({
                 createdAt: latestMessage.createdAt || consultation.lastMessageAt,
             } satisfies UserNotification
         })
-        .filter((notification): notification is UserNotification => Boolean(notification))
+        .filter((notification): notification is UserNotification => notification !== null)
 
     const workNotifications = works
         .filter((work) => (
@@ -122,7 +122,7 @@ export function buildUserNotifications({
         }))
 
     const workMessageNotifications = works
-        .map((work) => {
+        .map((work): UserNotification | null => {
             const latestMessage = [...(messagesByWork[work.id] || [])]
                 .reverse()
                 .find((message) => message.senderId !== userId)
@@ -136,7 +136,7 @@ export function buildUserNotifications({
                 createdAt: latestMessage.createdAt,
             } satisfies UserNotification
         })
-        .filter((notification): notification is UserNotification => Boolean(notification))
+        .filter((notification): notification is UserNotification => notification !== null)
 
     const cancelledWorkNotifications = works
         .filter((work) => (work.clientId === userId || work.expertId === userId) && work.status === 'cancelled')

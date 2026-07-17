@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AdminSnapshot } from '../lib/adminStorage';
 import { AdminStatus, AdminTablePanel, EmptyState } from './AdminShared';
-import type { AdminActionRequest } from './AdminDataPanels';
 
-export default function AdminSettlementsPanel({ snapshot, onAction }: {
+export default function AdminSettlementsPanel({ snapshot, onCompleteManualSettlement }: {
     readonly snapshot: AdminSnapshot;
-    readonly onAction: (input: AdminActionRequest) => void;
+    readonly onCompleteManualSettlement: (input: { readonly workId: string; readonly transferReference: string }) => Promise<void>;
 }) {
+    const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
+    const [transferReference, setTransferReference] = useState('');
+    const [submitError, setSubmitError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const settlementRows = snapshot.works
         .filter((work) => work.settlementStatus === 'pending' || work.settlementStatus === 'settled' || Boolean(work.settlementRequestedAt))
         .sort((first, second) => String(second.settlementRequestedAt || second.settlementSettledAt || '').localeCompare(String(first.settlementRequestedAt || first.settlementSettledAt || '')));
@@ -83,14 +87,9 @@ export default function AdminSettlementsPanel({ snapshot, onAction }: {
                                             disabled={!settlementCheck.canPay}
                                             title={settlementCheck.canPay ? undefined : '확인 필요 항목이 남아 있습니다.'}
                                             onClick={() => {
-                                                const confirmed = window.confirm(`${expertName} 계좌로 ${formatSettlementCurrency(amount)} 이체를 완료했나요? 확인하면 정산 완료로 기록됩니다.`);
-                                                if (!confirmed) return;
-                                                onAction({
-                                                    targetType: 'work',
-                                                    targetId: work.id,
-                                                    actionType: 'mark_settlement_settled',
-                                                    reason: `운영자가 ${expertName}에게 ${formatSettlementCurrency(amount)} 수동 계좌이체 완료를 확인했습니다.`,
-                                                });
+                                                setSelectedWorkId(work.id);
+                                                setTransferReference('');
+                                                setSubmitError('');
                                             }}
                                         >
                                             지급 완료 처리
@@ -101,6 +100,47 @@ export default function AdminSettlementsPanel({ snapshot, onAction }: {
                         );
                     })}</tbody>
                 </table>
+            )}
+            {selectedWorkId && (
+                <section className="admin-manual-settlement-form" aria-label="수동 정산 완료 기록">
+                    <h3>수동 정산 완료 기록</h3>
+                    <p>은행 송금을 먼저 완료한 뒤 이체 확인번호를 입력하세요.</p>
+                    <label htmlFor="manual-settlement-transfer-reference">이체 확인번호</label>
+                    <input
+                        id="manual-settlement-transfer-reference"
+                        value={transferReference}
+                        onChange={(event) => setTransferReference(event.target.value)}
+                        placeholder="예: bank-transfer-20260717-1"
+                    />
+                    {submitError && <p className="admin-manual-settlement-error" role="alert">{submitError}</p>}
+                    <div className="admin-action-row">
+                        <button
+                            type="button"
+                            className="admin-action-button"
+                            disabled={isSubmitting || !transferReference.trim()}
+                            onClick={() => {
+                                const submit = async () => {
+                                    setIsSubmitting(true);
+                                    setSubmitError('');
+                                    try {
+                                        await onCompleteManualSettlement({ workId: selectedWorkId, transferReference: transferReference.trim() });
+                                        setSelectedWorkId(null);
+                                    } catch (error) {
+                                        setSubmitError(error instanceof Error ? error.message : '수동 정산 완료를 기록하지 못했습니다.');
+                                    } finally {
+                                        setIsSubmitting(false);
+                                    }
+                                };
+                                void submit();
+                            }}
+                        >
+                            {isSubmitting ? '기록 중' : '이체 완료 기록'}
+                        </button>
+                        <button type="button" className="admin-copy-button" disabled={isSubmitting} onClick={() => setSelectedWorkId(null)}>
+                            취소
+                        </button>
+                    </div>
+                </section>
             )}
         </AdminTablePanel>
     );

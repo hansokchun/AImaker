@@ -417,7 +417,7 @@ export default function ProductRegister() {
                             </div>
                         )}
                         <Field label="상세 미디어 첨부">
-                            <input className="product-register-input" ref={referenceFilesRef} type="file" accept="image/jpeg,image/png,video/mp4,video/webm" multiple onChange={handleReferenceFilesChange} />
+                            <input className="product-register-input" ref={referenceFilesRef} type="file" accept="image/jpeg,image/png,video/mp4,video/webm,video/quicktime" multiple onChange={handleReferenceFilesChange} />
                         </Field>
                         {(existingReferenceDataUrls.length > 0 || selectedReferenceFiles.length > 0) && (
                             <div className="product-register-preview-grid">
@@ -702,7 +702,7 @@ const createPreviewPackage = (tier: PackageTier, state: PackageFormState): Produ
     })
 
 const isVideoMediaSource = (src: string) =>
-    /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
+    /^data:video\//i.test(src) || /\.(mp4|webm|mov|ogg)(\?|#|$)/i.test(src)
 
 function ImagePreviewCard({
     src,

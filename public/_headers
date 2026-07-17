@@ -1,0 +1,10 @@
+/*
+  Baseline security headers for Cloudflare Pages.
+  CSP is intentionally omitted until all Supabase/Toss third-party origins
+  are enumerated and tested in the payment flow.
+*/
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

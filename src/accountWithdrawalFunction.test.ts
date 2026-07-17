@@ -6,21 +6,24 @@ const accountWithdrawalSource = readFileSync(
     join(process.cwd(), 'supabase', 'functions', 'account-withdrawal', 'index.ts'),
     'utf8',
 )
+const accountWithdrawalHandlerSource = readFileSync(
+    join(process.cwd(), 'supabase', 'functions', 'account-withdrawal', 'handler.ts'),
+    'utf8',
+)
 
 describe('account-withdrawal Edge Function', () => {
     it('requires an authenticated user before anonymizing account data', () => {
         expect(accountWithdrawalSource).toMatch(/const user = await requireUser\(request\)/)
-        expect(accountWithdrawalSource).toMatch(/Authenticated user is required/)
-        expect(accountWithdrawalSource.indexOf('await requireUser(request)'))
-            .toBeLessThan(accountWithdrawalSource.indexOf('createServiceClient()'))
+        expect(accountWithdrawalHandlerSource).toMatch(/Authenticated user is required/)
+        expect(accountWithdrawalHandlerSource.indexOf('dependencies.authenticate(request)'))
+            .toBeLessThan(accountWithdrawalHandlerSource.indexOf('dependencies.blockAndAnonymize(actor.userId)'))
     })
 
-    it('hides products and anonymizes the public profile while preserving transaction records', () => {
-        expect(accountWithdrawalSource).toMatch(/from\('expert_products'\)\.update/)
-        expect(accountWithdrawalSource).toMatch(/status: 'hidden'/)
-        expect(accountWithdrawalSource).toMatch(/from\('profiles'\)\.update/)
-        expect(accountWithdrawalSource).toMatch(/account_status: 'restricted'/)
-        expect(accountWithdrawalSource).not.toMatch(/from\('works'\)\.delete/)
-        expect(accountWithdrawalSource).not.toMatch(/from\('proposals'\)\.delete/)
+    it('delegates one transactional account block and separately revokes global sessions', () => {
+        expect(accountWithdrawalSource).toMatch(/rpc\('withdraw_account'/)
+        expect(accountWithdrawalSource).toMatch(/auth\.admin\.signOut\(accessToken, 'global'\)/)
+        expect(accountWithdrawalSource).toMatch(/rpc\('record_withdrawal_session_revocation'/)
+        expect(accountWithdrawalSource).not.toMatch(/\.delete\(\)/)
+        expect(accountWithdrawalSource).not.toMatch(/request\.json\(\)/)
     })
 })

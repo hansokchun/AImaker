@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import CategoryBrowsePanel from './CategoryBrowsePanel'
 import ProductCard from '../components/ProductCard'
 import { AI_CATEGORIES } from '../constants/categories'
-import { getCachedExpertProducts, getExpertProducts } from '../lib/storage'
+import { getCachedExpertProducts } from '../lib/storage'
+import { getMarketplaceProductSummaries } from '../lib/marketplaceProducts'
 import type { AiCategoryId, ExpertProduct } from '../types'
 import './CategoryHero.css'
 import './Category.css'
@@ -29,7 +30,7 @@ export default function Category() {
 
     useEffect(() => {
         let active = true
-        getExpertProducts()
+        getMarketplaceProductSummaries()
             .then((items) => {
                 if (active) setProducts(items)
             })

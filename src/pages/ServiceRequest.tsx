@@ -5,7 +5,8 @@ import { EXTERNAL_CONTACT_WARNING, hasExternalContactInFields } from '../constan
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { PageLoading } from '../components/PageLoading'
-import { getCachedExpertProducts, getExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
+import { getCachedExpertProducts, getRequestById, saveRequest, updateRequest } from '../lib/storage'
+import { getMarketplaceProductSummaries } from '../lib/marketplaceProducts'
 import type { ExpertProduct, ServiceRequestData } from '../types'
 import './ServiceRequest.css'
 
@@ -40,7 +41,7 @@ export default function ServiceRequest() {
     useEffect(() => {
         let active = true
         setProductsLoaded(false)
-        getExpertProducts()
+        getMarketplaceProductSummaries()
             .then((items) => {
                 if (active) setProducts(items)
                 if (active) setProductsLoaded(true)

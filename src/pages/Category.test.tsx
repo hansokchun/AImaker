@@ -6,7 +6,9 @@ import { AI_CATEGORIES } from '../constants/categories'
 import { mockExpertProducts } from '../data/mockData'
 import type { ExpertProduct } from '../types'
 
-const getExpertProducts = vi.fn(async () => mockExpertProducts)
+type StoredProductRecord = Omit<ExpertProduct, 'category'> & { readonly category: string }
+
+const getExpertProducts = vi.fn(async (): Promise<StoredProductRecord[]> => mockExpertProducts)
 const getCachedExpertProducts = vi.fn(() => [] as ExpertProduct[])
 const getUserFavoriteProductIds = vi.fn(async (_userId: string) => [] as string[])
 const getFavoriteProductCount = vi.fn(async (_productId: string) => 0)

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "localOnly": true,
+  "credentialsIncluded": false,
+  "fixtures": [
+    { "role": "anon", "userId": null, "accountStatus": null, "isExpert": false, "isAdmin": false },
+    { "role": "client", "userId": "10000000-0000-4000-8000-000000000001", "accountStatus": "active", "isExpert": false, "isAdmin": false },
+    { "role": "expert", "userId": "10000000-0000-4000-8000-000000000002", "accountStatus": "active", "isExpert": true, "isAdmin": false },
+    { "role": "admin", "userId": "10000000-0000-4000-8000-000000000003", "accountStatus": "active", "isExpert": false, "isAdmin": true },
+    { "role": "restricted", "userId": "10000000-0000-4000-8000-000000000004", "accountStatus": "restricted", "isExpert": false, "isAdmin": false },
+    { "role": "other", "userId": "10000000-0000-4000-8000-000000000005", "accountStatus": "active", "isExpert": false, "isAdmin": false },
+    { "role": "withdrawal", "userId": "10000000-0000-4000-8000-000000000006", "accountStatus": "active", "isExpert": false, "isAdmin": false }
+  ]
+}

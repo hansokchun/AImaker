@@ -90,8 +90,6 @@ AIconnect/
     │   ├── ExpertCard.tsx      # 전문가 카드 (이미지, 이름, 평점, 가격)
     │   ├── ExpertCard.css
     │   ├── PackageCard.tsx     # 요금 패키지 카드 (Standard/Deluxe/Premium 탭)
-    │   ├── CategorySelector.tsx # 카테고리 선택 체크박스 컴포넌트
-    │   ├── CategorySelector.css
     │   ├── ChatModal.tsx       # 1:1 채팅 모달 (현재 목업 수준)
     │   └── ErrorBoundary.tsx   # 런타임 에러 처리 래퍼
     │

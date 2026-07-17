@@ -6,6 +6,7 @@ type NotificationEventType =
     | 'revision_requested'
     | 'settlement_available'
     | 'settlement_requested'
+    | 'settlement_paid'
 
 type RelatedType = 'work' | 'deliverable' | 'settlement'
 
@@ -14,6 +15,7 @@ const notificationTemplates: Record<NotificationEventType, { readonly title: str
     revision_requested: { title: '수정 요청이 등록되었습니다', body: '작업방에서 요청 내용을 확인해 주세요.' },
     settlement_available: { title: '정산 가능 금액이 생겼습니다', body: '내관리 정산 관리에서 정산을 요청할 수 있습니다.' },
     settlement_requested: { title: '정산 요청이 접수되었습니다', body: '관리자 확인 후 송금 처리됩니다.' },
+    settlement_paid: { title: '정산 송금이 완료되었습니다', body: '등록된 계좌의 입금 내역을 확인해 주세요.' },
 }
 
 const getDeliveryChannels = async (client: ServiceClient, targetUserId: string): Promise<readonly string[]> => {
@@ -37,7 +39,7 @@ export async function queueTradeNotification(
     type: NotificationEventType,
     relatedType: RelatedType,
     relatedId: string,
-): Promise<void> {
+): Promise<boolean> {
     const template = notificationTemplates[type]
     const { error } = await client.from('notification_events').insert({
         body: template.body,
@@ -49,7 +51,7 @@ export async function queueTradeNotification(
         title: template.title,
         user_id: userId,
     })
-    if (!error) return
+    if (!error) return true
     await client.from('operation_logs').insert({
         actor_id: userId,
         detail: { eventType: type, error: error.message },
@@ -57,4 +59,5 @@ export async function queueTradeNotification(
         target_id: relatedId,
         target_type: relatedType,
     })
+    return false
 }

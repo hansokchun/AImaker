@@ -121,10 +121,9 @@ export interface CreateAdminActionInput {
 const ADMIN_EMAILS = new Set(
     [
         'benet9827@gmail.com',
-        'benet9818@gmail.com',
         ...(import.meta.env.VITE_ADMIN_EMAILS || '')
             .split(',')
-            .map((email) => email.trim().toLowerCase())
+            .map((email: string) => email.trim().toLowerCase())
             .filter(Boolean),
     ],
 );
@@ -190,7 +189,11 @@ const readLocalProfile = (key: string): AdminProfile | null => {
 
 const selectAll = async <T>(table: string, mapper: (item: unknown) => T | null): Promise<T[]> => {
     if (!supabase) return [];
-    const { data, error } = await supabase.from(table).select('*').limit(200);
+    const request = supabase.from(table).select('*').limit(200);
+    const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error(`admin query timeout: ${table}`)), 8000);
+    });
+    const { data, error } = await Promise.race([request, timeout]).catch(() => ({ data: null, error: true }));
     if (error || !Array.isArray(data)) return [];
     return data.map(mapper).filter((item): item is T => Boolean(item));
 };
@@ -273,21 +276,7 @@ export async function saveAdminAction(input: CreateAdminActionInput): Promise<Ad
     };
 
     await applyAdminActionEffect(action);
-
-    if (!supabase) return saveLocalAdminAction(action);
-
-    const { error } = await supabase.from('admin_actions').insert({
-        id: action.id,
-        admin_id: action.adminId,
-        target_type: action.targetType,
-        target_id: action.targetId,
-        action_type: action.actionType,
-        reason: action.reason,
-        created_at: action.createdAt,
-    });
-
-    if (error) return saveLocalAdminAction(action);
-    return action;
+    return supabase ? action : saveLocalAdminAction(action);
 }
 
 function getLocalAdminSnapshot(): AdminSnapshot {

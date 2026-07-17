@@ -37,8 +37,31 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Node regression tests
+        run: npm run test:node
+
       - name: Edge Function check
-        run: deno check supabase/functions/trade-workflow/index.ts supabase/functions/account-withdrawal/index.ts supabase/functions/notification-queue/index.ts supabase/functions/notification-dispatcher/index.ts supabase/functions/toss-payment-confirm/index.ts supabase/functions/toss-payment-order/index.ts supabase/functions/toss-payment-webhook/index.ts
+        shell: bash
+        run: |
+          expected_edge_functions=(
+            supabase/functions/account-withdrawal/index.ts
+            supabase/functions/notification-dispatcher/index.ts
+            supabase/functions/notification-queue/index.ts
+            supabase/functions/toss-payment-cancel/index.ts
+            supabase/functions/toss-payment-confirm/index.ts
+            supabase/functions/toss-payment-fail/index.ts
+            supabase/functions/toss-payment-order/index.ts
+            supabase/functions/toss-payment-webhook/index.ts
+            supabase/functions/trade-automation-runner/index.ts
+            supabase/functions/trade-workflow/index.ts
+          )
+          mapfile -t edge_functions < <(find supabase/functions -mindepth 2 -maxdepth 2 -name index.ts -print | sort)
+          diff -u <(printf '%s\n' "${expected_edge_functions[@]}") <(printf '%s\n' "${edge_functions[@]}")
+          test "${#edge_functions[@]}" -eq "${#expected_edge_functions[@]}"
+          deno check "${edge_functions[@]}"
+
+      - name: Edge financial boundary tests
+        run: deno test --allow-env supabase/functions/_shared/financial-entrypoints.deno-test.ts
 
       - name: Route smoke E2E
         run: npm run test:e2e

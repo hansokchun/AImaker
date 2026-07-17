@@ -43,10 +43,15 @@ describe('Onboarding', () => {
         render(<Onboarding />)
 
         const fileInput = document.querySelector('#profile-image') as HTMLInputElement
-        const file = new File(['profile'], 'profile.png', { type: 'image/png' })
+        const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])], 'profile.png', { type: 'image/png' })
         fireEvent.change(fileInput, { target: { files: [file] } })
 
         await waitFor(() => expect(mockUpload).toHaveBeenCalledTimes(1))
+        expect(mockUpload).toHaveBeenCalledWith(
+            expect.stringMatching(/^user-onboarding-01\/[0-9a-f-]+\.png$/),
+            expect.any(File),
+            { contentType: 'image/png', upsert: false },
+        )
 
         fireEvent.change(document.querySelector('#nickname') as HTMLInputElement, {
             target: { value: '새 사용자' },

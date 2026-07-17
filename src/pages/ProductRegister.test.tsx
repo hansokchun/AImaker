@@ -6,7 +6,7 @@ import type { ExpertProduct } from '../types'
 
 const saveExpertProduct = vi.fn(async (_product: ExpertProduct) => undefined)
 const deleteExpertProduct = vi.fn(async (_productId: string) => undefined)
-const uploadProductSample = vi.fn(async () => ({ error: null }))
+const uploadProductSample = vi.fn(async (_path: string, _file: File, _options: unknown) => ({ error: null }))
 const getProductSamplePublicUrl = vi.fn((path: string) => ({
     data: { publicUrl: `https://storage.example/product-samples/${path}` },
 }))
@@ -524,7 +524,7 @@ describe('ProductRegister', () => {
             target: { files: [new File(['main'], 'main.png', { type: 'image/png' })] },
         })
         fireEvent.change(screen.getByLabelText('상세 미디어 첨부'), {
-            target: { files: [new File(['video'], 'sample.mp4', { type: 'video/mp4' })] },
+            target: { files: [new File(['video'], 'sample.mov', { type: 'video/quicktime' })] },
         })
         fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
         fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '2' } })
@@ -540,6 +540,19 @@ describe('ProductRegister', () => {
                 }),
             ),
         )
+    })
+
+    it('allows MOV files from the picker and previews them as video detail media', async () => {
+        renderRegister()
+
+        const detailMediaInput = screen.getByLabelText('상세 미디어 첨부')
+        expect(detailMediaInput).toHaveAttribute('accept', expect.stringContaining('video/quicktime'))
+
+        fireEvent.change(detailMediaInput, {
+            target: { files: [new File(['video'], 'sample.mov', { type: 'video/quicktime' })] },
+        })
+
+        expect(await screen.findByLabelText('새 상세 미디어 1')).toBeInstanceOf(HTMLVideoElement)
     })
 
     it('lets owners delete an existing product from the edit page', async () => {

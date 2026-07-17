@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
-const ACCEPTED_DETAIL_MEDIA_TYPES = ['image/jpeg', 'image/png', 'video/mp4', 'video/webm']
+const ACCEPTED_DETAIL_MEDIA_TYPES = ['image/jpeg', 'image/png', 'video/mp4', 'video/webm', 'video/quicktime']
 const MAIN_IMAGE_MIN_WIDTH = 652
 const MAIN_IMAGE_MIN_HEIGHT = 488
 const PRODUCT_SAMPLE_BUCKET = 'product-samples'
@@ -75,7 +75,7 @@ const validateProductImageFile = async (file: File, kind: ProductImageKind) => {
     if (!acceptedTypes.includes(file.type)) {
         throw new Error(kind === 'main'
             ? '대표 이미지는 JPG 또는 PNG 파일만 등록할 수 있습니다.'
-            : '상세 미디어는 JPG, PNG, MP4, WebM 파일만 등록할 수 있습니다.')
+            : '상세 미디어는 JPG, PNG, MP4, WebM, MOV 파일만 등록할 수 있습니다.')
     }
 
     if (kind === 'main') {

@@ -2,15 +2,15 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { ProjectListPanel } from './ProjectListPanel'
-import type { ExpertProduct, Review, ServiceRequestData, Work } from '../types'
+import type { ExpertProduct, ProductPackage, Review, ServiceRequestData, Work } from '../types'
 
-const basePackage = {
+const basePackage: ProductPackage = {
     name: 'Standard',
     price: 50000,
     deliveryDays: 3,
     revisionCount: 1,
     included: ['초안'],
-} as const
+}
 
 const productWithImage: ExpertProduct = {
     id: 'product-image',

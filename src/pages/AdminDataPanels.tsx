@@ -8,6 +8,7 @@ interface AdminDataPanelsProps {
     readonly activeTab: string;
     readonly snapshot: AdminSnapshot;
     readonly onAction: (input: AdminActionRequest) => void;
+    readonly onCompleteManualSettlement: (input: { readonly workId: string; readonly transferReference: string }) => Promise<void>;
 }
 
 export interface AdminActionRequest {
@@ -25,7 +26,7 @@ interface AdminButtonAction {
     readonly onClick: () => void;
 }
 
-export default function AdminDataPanels({ activeTab, snapshot, onAction }: AdminDataPanelsProps) {
+export default function AdminDataPanels({ activeTab, snapshot, onAction, onCompleteManualSettlement }: AdminDataPanelsProps) {
     if (activeTab === 'members') return <MembersPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'products') return <ProductsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'trades') return <TradesPanel snapshot={snapshot} onAction={onAction} />;
@@ -34,7 +35,7 @@ export default function AdminDataPanels({ activeTab, snapshot, onAction }: Admin
     if (activeTab === 'reviews') return <ReviewsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'reports') return <ReportsPanel snapshot={snapshot} onAction={onAction} />;
     if (activeTab === 'actions') return <ActionsPanel actions={snapshot.adminActions} />;
-    if (activeTab === 'settlements') return <AdminSettlementsPanel snapshot={snapshot} onAction={onAction} />;
+    if (activeTab === 'settlements') return <AdminSettlementsPanel snapshot={snapshot} onCompleteManualSettlement={onCompleteManualSettlement} />;
     return null;
 }
 
@@ -234,11 +235,6 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
         <AdminTablePanel title="작업방 관리" copy="결제 이후 생성된 작업방, 정산 상태, 환불/분쟁 상태, 작업방 메시지를 확인합니다.">
             {snapshot.works.length === 0 ? <EmptyState label="작업방이 없습니다." /> : snapshot.works.map((work) => {
                 const canExecuteTossRefund = work.refundStatus === 'fee_excluded_refund_pending' && work.settlementStatus !== 'settled';
-                const canMarkSettlementSettled = work.settlementStatus === 'pending'
-                    && work.refundStatus !== 'fee_excluded_refund_pending'
-                    && work.refundStatus !== 'refunded'
-                    && work.disputeStatus !== 'open';
-
                 return (
                     <MessageCard
                         key={work.id}
@@ -256,21 +252,6 @@ function WorkroomsPanel({ snapshot, onAction }: { readonly snapshot: AdminSnapsh
                                     actionType: 'mark_settlement_pending',
                                     reason: '관리자가 작업방을 정산 대기 상태로 변경했습니다.',
                                 }),
-                            },
-                            {
-                                label: '정산 완료 처리',
-                                disabled: !canMarkSettlementSettled,
-                                title: canMarkSettlementSettled ? undefined : '정산 대기 상태이며 환불/분쟁이 없는 작업만 정산 완료 처리할 수 있습니다.',
-                                onClick: () => {
-                                    const confirmed = window.confirm('실제 전문가 지급이 완료된 거래인가요? 정산 완료로 표시하면 환불 실행 대상에서 제외됩니다.');
-                                    if (!confirmed) return;
-                                    onAction({
-                                        targetType: 'work',
-                                        targetId: work.id,
-                                        actionType: 'mark_settlement_settled',
-                                        reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
-                                    });
-                                },
                             },
                             {
                                 label: '정산 보류',

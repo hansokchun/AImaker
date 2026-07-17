@@ -305,7 +305,7 @@ export interface ServiceRequestData {
     /** Supabase expert id */
     expertId?: string;
     /** 요청 상태 */
-    status: 'pending' | 'in_progress' | 'completed';
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
     /** 선택 상품 ID */
     productId?: string;
     /** 선택 패키지 */

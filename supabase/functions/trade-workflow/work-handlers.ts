@@ -1,7 +1,9 @@
+import { executeFinancialRpc } from '../_shared/financial-contracts.ts'
 import { ok, responseError } from './responses.ts'
 import type { DeliverablePayload, RowRecord, ServiceClient } from './types.ts'
 import { queueTradeNotification } from './notifications.ts'
 import { isRecord } from './validation.ts'
+import { isPaymentPolicyActive, paymentPolicyUnavailableResponse } from '../_shared/payment-policy.ts'
 
 async function fetchParticipantWork(client: ServiceClient, workId: string, userId: string): Promise<RowRecord | Response> {
     const { data, error } = await client
@@ -37,34 +39,14 @@ export async function cancelWork(
     reason?: string,
     accept = false,
 ): Promise<Response> {
-    const work = await fetchParticipantWork(client, workId, userId)
-    if (work instanceof Response) return work
-    if (work.status === 'completed' || work.status === 'cancelled') return responseError('취소할 수 없는 작업 상태입니다.', 409)
-    if (work.dispute_status === 'open') return responseError('분쟁 처리 중에는 거래 취소를 진행할 수 없습니다.', 409)
-    if (accept) {
-        if (typeof work.cancellation_requested_by !== 'string') return responseError('수락할 취소 요청이 없습니다.', 409)
-        if (work.cancellation_requested_by === userId) return responseError('상대방의 취소 요청만 수락할 수 있습니다.', 409)
-    }
-
-    if (!accept && reason) {
-        if (hasOpenCancellation(work)) return responseError('이미 취소 요청이 접수된 거래입니다.', 409)
-        const { error } = await client.from('works').update({
-            cancellation_reason: reason,
-            cancellation_requested_by: userId,
-            cancellation_requested_at: new Date().toISOString(),
-        }).eq('id', workId)
-        return error ? responseError('취소 요청에 실패했습니다.', 500) : ok({ workId })
-    }
-
-    if (!accept) return responseError('거래 취소는 취소 요청 후 상대방 수락 또는 관리자 처리로 진행됩니다.', 409)
-    const { error } = await client.from('works').update({
-        status: 'cancelled',
-        refund_status: 'fee_excluded_refund_pending',
-        cancellation_requested_by: null,
-        cancellation_requested_at: null,
-        cancelled_at: new Date().toISOString(),
-    }).eq('id', workId)
-    return error ? responseError('작업 취소에 실패했습니다.', 500) : ok({ workId })
+    const result = await executeFinancialRpc(client, 'apply_work_cancellation', {
+        p_work_id: workId,
+        p_actor_id: userId,
+        p_reason: reason?.trim() ?? '',
+        p_accept: accept,
+        p_business_key: `cancellation:${workId}:${accept ? 'accept' : 'request'}:${userId}`,
+    })
+    return ok({ workId, operationId: result.operationId })
 }
 
 export async function submitDeliverable(client: ServiceClient, userId: string, payload: DeliverablePayload): Promise<Response> {
@@ -111,35 +93,17 @@ export async function reviewDeliverable(
 ): Promise<Response> {
     const work = await fetchParticipantWork(client, workId, userId)
     if (work instanceof Response) return work
-    if (work.client_id !== userId || work.status !== 'submitted') return responseError('제출물 검토 권한이 없습니다.', 403)
+    if (work.client_id !== userId) return responseError('결과물 검토 권한이 없습니다.', 403)
     const frozen = assertNotFrozen(work, approved ? '결과물을 승인' : '수정 요청')
     if (frozen) return frozen
-    const revisionUsed = Number(work.revision_used) || 0
-    const revisionLimit = Number(work.revision_limit) || 0
-    if (!approved && revisionLimit > 0 && revisionUsed >= revisionLimit) return responseError('수정 요청 가능 횟수를 초과했습니다.', 409)
 
-    const { data: deliverable, error: deliverableError } = await client
-        .from('deliverables')
-        .select('id, step_id, status')
-        .eq('id', deliverableId)
-        .eq('work_id', workId)
-        .maybeSingle()
-    if (deliverableError || !isRecord(deliverable) || deliverable.status !== 'submitted') return responseError('제출물을 찾을 수 없습니다.', 404)
-    const status = approved ? 'approved' : 'revision_requested'
-    const deliverableResult = await client.from('deliverables').update({ status }).eq('id', deliverableId).eq('work_id', workId)
-    if (deliverableResult.error) return responseError('제출물 상태 변경에 실패했습니다.', 500)
-    if (typeof deliverable.step_id === 'string') {
-        const stepResult = await client.from('work_steps').update({ status }).eq('id', deliverable.step_id).eq('work_id', workId)
-        if (stepResult.error) return responseError('작업 단계 상태 변경에 실패했습니다.', 500)
-    }
-    const workUpdate = approved
-        ? { status: 'completed', settlement_status: 'pending', completed_at: new Date().toISOString() }
-        : { status: 'revision_requested', revision_used: revisionUsed + 1 }
-    const workResult = await client.from('works').update(workUpdate).eq('id', workId)
-    if (workResult.error) return responseError('작업 상태 변경에 실패했습니다.', 500)
-    if (approved && typeof work.request_id === 'string') {
-        await client.from('service_requests').update({ status: 'completed' }).eq('id', work.request_id)
-    }
+    const result = await executeFinancialRpc(client, 'apply_deliverable_review', {
+        p_work_id: workId,
+        p_deliverable_id: deliverableId,
+        p_client_id: userId,
+        p_approved: approved,
+        p_business_key: `deliverable-review:${deliverableId}:${approved ? 'approve' : 'revision'}`,
+    })
     if (typeof work.expert_id === 'string') {
         await queueTradeNotification(
             client,
@@ -149,32 +113,26 @@ export async function reviewDeliverable(
             approved ? workId : deliverableId,
         )
     }
-    return ok({ workId, deliverableId })
+    return ok({ workId, deliverableId, operationId: result.operationId })
 }
 
-export async function requestSettlement(client: ServiceClient, userId: string, workId: string): Promise<Response> {
-    const work = await fetchParticipantWork(client, workId, userId)
-    if (work instanceof Response) return work
-    if (work.expert_id !== userId) return responseError('작업자만 정산을 신청할 수 있습니다.', 403)
-    if (work.status !== 'completed' || work.settlement_status !== 'pending') return responseError('구매확정 후 정산 대기 상태에서만 신청할 수 있습니다.', 409)
-    if (work.dispute_status === 'open' || typeof work.settlement_hold_reason === 'string') return responseError('관리자 확인이 필요한 정산입니다.', 409)
-
-    const { data: account, error: accountError } = await client.from('expert_payout_accounts').select('id').eq('expert_id', userId).limit(1).maybeSingle()
-    if (accountError || !isRecord(account) || typeof account.id !== 'string') return responseError('정산 받을 계좌를 먼저 등록해주세요.', 409)
-    const requestedAt = new Date().toISOString()
-    const workResult = await client.from('works').update({ settlement_requested_at: requestedAt }).eq('id', workId)
-    if (workResult.error) return responseError('정산 신청 상태 저장에 실패했습니다.', 500)
-    const payoutResult = await client.from('settlement_payouts').upsert({
-        work_id: workId,
-        expert_id: userId,
-        payout_account_id: account.id,
-        amount: Number(work.expert_payout) || 0,
-        status: 'queued',
-        requested_at: requestedAt,
-        failure_reason: null,
-        processed_at: null,
-    }, { onConflict: 'work_id' })
-    if (payoutResult.error) return responseError('정산 큐 생성에 실패했습니다.', 500)
+export async function requestSettlement(
+    client: ServiceClient,
+    userId: string,
+    workId: string,
+): Promise<Response> {
+    if (!isPaymentPolicyActive()) return paymentPolicyUnavailableResponse()
+    const { data: profile } = await client.from('profiles')
+        .select('account_status, withdrawn_at').eq('id', userId).maybeSingle()
+    if (!isRecord(profile) || profile.account_status !== 'active' || profile.withdrawn_at !== null) {
+        return responseError('An active expert account is required.', 403)
+    }
+    const result = await executeFinancialRpc(client, 'begin_settlement_request', {
+        p_work_id: workId,
+        p_expert_id: userId,
+        p_policy_authorized: true,
+        p_business_key: `settlement-request:${workId}`,
+    })
     await queueTradeNotification(client, userId, 'settlement_requested', 'settlement', workId)
-    return ok({ workId })
+    return ok({ workId, operationId: result.operationId })
 }

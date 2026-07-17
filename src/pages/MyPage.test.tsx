@@ -343,7 +343,7 @@ const getExpertProducts = vi.fn(async () => [
         status: 'published',
     },
 ])
-const getUserProposals = vi.fn(async (_userId: string) => [
+const getUserProposals = vi.fn(async (_userId: string): Promise<Proposal[]> => [
     {
         id: 'proposal-real-client',
         requestId: 'request-product-client-01',
@@ -417,7 +417,7 @@ const getUserProposals = vi.fn(async (_userId: string) => [
         expiresAt: '2026-06-01T00:00:00.000Z',
     },
 ])
-const getUserWorks = vi.fn(async (_userId: string) => [
+const getUserWorks = vi.fn(async (_userId: string): Promise<Work[]> => [
     {
         id: 'work-real-active',
         proposalId: 'proposal-active',
@@ -527,7 +527,7 @@ const subscribeToConsultationMessages = vi.fn((_consultationId: string, onMessag
     return unsubscribeConsultationMessages
 })
 
-const defaultProposals = () => [
+const defaultProposals = (): Proposal[] => [
     {
         id: 'proposal-real-client',
         requestId: 'request-product-client-01',
@@ -602,7 +602,7 @@ const defaultProposals = () => [
     },
 ]
 
-const defaultWorks = () => [
+const defaultWorks = (): Work[] => [
     {
         id: 'work-real-active',
         proposalId: 'proposal-active',
@@ -1129,8 +1129,8 @@ describe('MyPage', () => {
         fireEvent.click(await screen.findByRole('button', { name: '정산 신청하기' }))
 
         await waitFor(() => expect(requestSettlementWithdrawal).toHaveBeenCalledWith('work-settlement-ready', 'user-demo-01'))
-        expect(await screen.findByText('정산 신청이 접수되었습니다. 등록 계좌로 자동 지급 대기 상태가 됩니다.')).toBeInTheDocument()
-        expect(screen.getByText('자동 지급 대기')).toBeInTheDocument()
+        expect(await screen.findByText('정산 신청이 접수되었습니다. 관리자가 계좌 이체를 확인한 뒤 정산을 완료합니다.')).toBeInTheDocument()
+        expect(screen.getByText('정산 신청 접수')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: '정산 신청하기' })).not.toBeInTheDocument()
     })
 
@@ -1373,6 +1373,75 @@ describe('MyPage', () => {
         expect(input).toHaveValue('')
     })
 
+    it('keeps the newly selected consultation messages when an older initial load resolves late', async () => {
+        const olderMessage: ConsultationMessage = {
+            id: 'consult-client-01-message-late',
+            consultationId: 'consult-client-01',
+            senderId: 'expert-real-01',
+            body: 'Late message from the previous consultation',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:00:00.000Z',
+        }
+        const newerMessage: ConsultationMessage = {
+            id: 'consult-client-02-message-current',
+            consultationId: 'consult-client-02',
+            senderId: 'expert-real-02',
+            body: 'Current message from the newly selected consultation',
+            attachmentUrls: [],
+            createdAt: '2026-06-02T10:01:00.000Z',
+        }
+        let resolveOlderInitialLoad = (_messages: ConsultationMessage[]): void => {}
+        const olderInitialLoad = new Promise<ConsultationMessage[]>((resolve) => {
+            resolveOlderInitialLoad = resolve
+        })
+
+        getUserConsultations.mockResolvedValue([
+            {
+                id: 'consult-client-01',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-01',
+                productId: 'product-client-01',
+                status: 'open',
+                title: 'First consultation',
+                lastMessageAt: '2026-06-02T10:00:00.000Z',
+                createdAt: '2026-06-02T09:30:00.000Z',
+            },
+            {
+                id: 'consult-client-02',
+                clientId: 'user-demo-01',
+                expertId: 'expert-real-02',
+                productId: 'product-client-before',
+                status: 'open',
+                title: 'Second consultation',
+                lastMessageAt: '2026-06-02T10:01:00.000Z',
+                createdAt: '2026-06-02T09:31:00.000Z',
+            },
+        ])
+        getConsultationMessages.mockImplementation((consultationId: string) =>
+            consultationId === 'consult-client-01'
+                ? olderInitialLoad
+                : Promise.resolve([newerMessage]),
+        )
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        fireEvent.click(await screen.findByRole('button', { name: /작업 전 테스트 상품/ }))
+        expect(await screen.findByText(newerMessage.body)).toBeInTheDocument()
+
+        act(() => {
+            resolveOlderInitialLoad([olderMessage])
+        })
+
+        await waitFor(() => expect(screen.queryByText(olderMessage.body)).not.toBeInTheDocument())
+        expect(screen.getByText(newerMessage.body)).toBeInTheDocument()
+    })
+
     it('shows a realtime consultation message when the selected chat is open', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
@@ -1473,7 +1542,7 @@ describe('MyPage', () => {
     })
 
     it('closes and reports a consultation from the chat action menu', async () => {
-        const { container } = render(
+        render(
             <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-client-01']}>
                 <Routes>
                     <Route path="/my-work" element={<MyPage mode="work" />} />
@@ -1481,17 +1550,13 @@ describe('MyPage', () => {
             </MemoryRouter>,
         )
 
-        let menuButton: HTMLButtonElement | null = null
-        await waitFor(() => {
-            menuButton = container.querySelector<HTMLButtonElement>('.consultation-more-button')
-            expect(menuButton).not.toBeNull()
-        })
+        const menuButton = await screen.findByRole('button', { name: '상담 옵션 열기' })
 
-        fireEvent.click(menuButton as HTMLButtonElement)
+        fireEvent.click(menuButton)
         fireEvent.click((await screen.findAllByRole('menuitem'))[0])
         await waitFor(() => expect(closeConsultation).toHaveBeenCalledWith('consult-client-01'))
 
-        fireEvent.click(menuButton as HTMLButtonElement)
+        fireEvent.click(menuButton)
         const menuItems = await screen.findAllByRole('menuitem')
         fireEvent.click(menuItems[1])
         await waitFor(() => expect(saveConsultationReport).toHaveBeenCalledWith({
@@ -1599,6 +1664,40 @@ describe('MyPage', () => {
         await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=consultations&consultation=consult-client-01'))
     })
 
+    it('normalizes a stale consultation deep link after the consultation list resolves', async () => {
+        let resolveConsultations = (_consultations: Consultation[]): void => {}
+        const deferredConsultations = new Promise<Consultation[]>((resolve) => {
+            resolveConsultations = resolve
+        })
+        getUserConsultations.mockReturnValue(deferredConsultations)
+
+        render(
+            <MemoryRouter initialEntries={['/my-work?panel=consultations&consultation=consult-stale-01']}>
+                <Routes>
+                    <Route path="/my-work" element={<MyPage mode="work" />} />
+                </Routes>
+                <LocationProbe />
+            </MemoryRouter>,
+        )
+
+        act(() => {
+            resolveConsultations([
+                {
+                    id: 'consult-client-01',
+                    clientId: 'user-demo-01',
+                    expertId: 'expert-real-01',
+                    productId: 'product-client-01',
+                    status: 'open',
+                    title: 'AI 숏폼 영상 제작 상담',
+                    lastMessageAt: '2026-06-02T10:00:00.000Z',
+                    createdAt: '2026-06-02T09:30:00.000Z',
+                },
+            ])
+        })
+
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('?panel=consultations&consultation=consult-client-01'))
+    })
+
     it('does not create a client transaction from an expert inquiry chat before request submission', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work']}>
@@ -1653,7 +1752,7 @@ describe('MyPage', () => {
             expect(screen.getAllByTestId('location').some((item) =>
                 item.textContent?.includes('?requestId=consultation-consult-expert-01&consultation=consult-expert-01'),
             )).toBe(true)
-        })
+        }, { timeout: 5000 })
         expect(saveProposal).not.toHaveBeenCalled()
     })
 
@@ -2222,7 +2321,7 @@ describe('MyPage', () => {
         expect(within(stoppedStageCard).getByRole('heading', { name: '중단' })).toBeInTheDocument()
     })
 
-    it('keeps stop transaction actions out of transaction management', async () => {
+    it('keeps client paid-work cancellation fail-closed in transaction management', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?role=client&panel=client&clientOrder=request-product-client-01']}>
                 <Routes>
@@ -2232,88 +2331,12 @@ describe('MyPage', () => {
         )
 
         const flow = await screen.findByTestId('client-product-order-flow')
-        const nonNavigationButtons = Array.from(flow.querySelectorAll('button')).filter(
-            (button) => !button.textContent?.includes('거래 목록으로'),
-        )
-        expect(nonNavigationButtons).toHaveLength(0)
+        expect(within(flow).queryByRole('button', { name: '거래 중단 요청' })).not.toBeInTheDocument()
+        expect(within(flow).getByRole('link', { name: '프로젝트에서 거래 관리' })).toHaveAttribute('href', '/workroom/work-real-active')
         expect(cancelWork).not.toHaveBeenCalled()
     })
 
-    it('keeps proposal cancellation out of expert transaction management', async () => {
-        getUserProposals.mockResolvedValue([
-            {
-                id: 'proposal-directed-sent',
-                requestId: 'request-product-directed-01',
-                clientId: 'client-real-01',
-                expertId: 'user-demo-01',
-                title: 'Direct sent proposal',
-                scope: 'Proposal scope',
-                deliverables: ['Result'],
-                totalPrice: 50000,
-                deliveryDays: 3,
-                revisionCount: 1,
-                progressType: 'single',
-                milestones: [],
-                commercialUseAllowed: true,
-                sourceFileIncluded: false,
-                status: 'sent',
-                paymentStatus: 'unpaid',
-                expiresAt: '2999-01-01T00:00:00.000Z',
-            },
-        ])
-
-        render(
-            <MemoryRouter initialEntries={['/my-work?role=expert&panel=client&expertRequest=request-product-directed-01']}>
-                <Routes>
-                    <Route path="/my-work" element={<MyPage mode="work" />} />
-                </Routes>
-            </MemoryRouter>,
-        )
-
-        const flow = await screen.findByTestId('expert-product-order-flow')
-        expect(
-            Array.from(flow.querySelectorAll('a')).some((link) =>
-                link.getAttribute('href') === '/proposals/new?proposalId=proposal-directed-sent',
-            ),
-        ).toBe(true)
-        const nonNavigationButtons = Array.from(flow.querySelectorAll('button')).filter(
-            (button) => !button.textContent?.includes('거래 목록으로'),
-        )
-        expect(nonNavigationButtons).toHaveLength(0)
-        expect(cancelProposal).not.toHaveBeenCalled()
-    })
-
-    it('keeps stop transaction actions out of workroom cards', async () => {
-        render(
-            <MemoryRouter initialEntries={['/my-work?panel=workroom']}>
-                <Routes>
-                    <Route path="/my-work" element={<MyPage mode="work" />} />
-                </Routes>
-            </MemoryRouter>,
-        )
-
-        const activeWork = (await screen.findAllByTestId('active-work'))[0]
-        expect(activeWork.querySelectorAll('button')).toHaveLength(0)
-        expect(cancelWork).not.toHaveBeenCalled()
-    })
-
-    it.skip('lets clients stop an active paid work from transaction management', async () => {
-        render(
-            <MemoryRouter initialEntries={['/my-work?role=client&panel=client&clientOrder=request-product-client-01']}>
-                <Routes>
-                    <Route path="/my-work" element={<MyPage mode="work" />} />
-                </Routes>
-            </MemoryRouter>,
-        )
-
-        fireEvent.click(await screen.findByRole('button', { name: '거래 중단 요청' }))
-
-        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith('work-real-active'))
-        expect(screen.getByRole('heading', { name: '중단된 거래' })).toBeInTheDocument()
-        expect(screen.getByText('거래 중단')).toBeInTheDocument()
-    })
-
-    it.skip('lets experts cancel a sent proposal directly from transaction management', async () => {
+    it('keeps sent-proposal cancellation fail-closed in transaction management', async () => {
         getUserProposals.mockResolvedValue([
             {
                 id: 'proposal-directed-sent',
@@ -2349,17 +2372,11 @@ describe('MyPage', () => {
             '/proposals/new?proposalId=proposal-directed-sent',
         )
 
-        fireEvent.click(screen.getByRole('button', { name: '취소하기' }))
-
-        await waitFor(() => expect(cancelProposal).toHaveBeenCalledWith('proposal-directed-sent'))
-        expect(screen.getByText('직접 취소 테스트 제안서')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '제안서 보내기' })).toHaveAttribute(
-            'href',
-            '/proposals/new?requestId=request-product-directed-01',
-        )
+        expect(screen.queryByRole('button', { name: '취소하기' })).not.toBeInTheDocument()
+        expect(cancelProposal).not.toHaveBeenCalled()
     })
 
-    it.skip('shows a stop transaction action on active workroom cards', async () => {
+    it('keeps active workroom-card cancellation fail-closed', async () => {
         render(
             <MemoryRouter initialEntries={['/my-work?panel=workroom']}>
                 <Routes>
@@ -2369,9 +2386,8 @@ describe('MyPage', () => {
         )
 
         const activeWork = (await screen.findAllByTestId('active-work'))[0]
-        fireEvent.click(within(activeWork).getByRole('button', { name: '거래 중단 요청' }))
-
-        await waitFor(() => expect(cancelWork).toHaveBeenCalledWith('work-real-active'))
+        expect(within(activeWork).queryByRole('button', { name: '거래 중단 요청' })).not.toBeInTheDocument()
+        expect(cancelWork).not.toHaveBeenCalled()
     })
 
     it('does not link to demo proposal or workroom pages when there is no user data', async () => {

@@ -6,6 +6,15 @@ import { closeConsultation, deleteUserPublicAccountData, getConsultationMessages
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import type { Consultation, ConsultationMessage, ExpertPayoutAccount, ExpertProduct, Proposal, Review, ServiceRequestData, SettlementPayout, UserNotificationPreference, Work } from '../types'
 import ProductCard from '../components/ProductCard'
+import {
+    formatTransactionDate,
+    formatTransactionDateTime,
+    getTransactionNumber,
+    sortUnifiedWorkItems,
+    type UnifiedWorkItem,
+    type UnifiedWorkStopReason,
+    type WorkStatusTone,
+} from './MyPageTransactionView'
 import { ConsultationChatPanel } from './ConsultationChatPanel'
 import { ProjectListPanel } from './ProjectListPanel'
 import './MyPage.css'
@@ -50,7 +59,6 @@ type WorkActivityItem = {
     state: StageVisualState
 }
 type WorkTransactionView = 'active' | 'stopped'
-type WorkStatusTone = 'consultation' | 'payment' | 'work' | 'done' | 'stopped' | 'neutral'
 type WorkDetailHero = {
     typeLabel: string
     statusLabel: string
@@ -473,7 +481,10 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     useEffect(() => {
         const currentParams = new URLSearchParams(searchParamString)
         const panel = currentParams.get('panel')
-        if (panel === 'consultations' && activePanel === 'consultations' && !selectedConsultationId && consultations.length > 0) {
+        const hasSelectedConsultation = selectedConsultationId
+            ? consultations.some((consultation) => consultation.id === selectedConsultationId)
+            : false
+        if (panel === 'consultations' && activePanel === 'consultations' && !hasSelectedConsultation && consultations.length > 0) {
             setSelectedConsultationId(consultations[0].id)
         }
     }, [activePanel, consultations, searchParamString, selectedConsultationId])
@@ -484,12 +495,21 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             return
         }
 
+        let cancelled = false
         getConsultationMessages(selectedConsultationId)
-            .then(setConsultationMessages)
+            .then((messages) => {
+                if (cancelled) return
+                setConsultationMessages(messages)
+            })
             .catch((error) => {
+                if (cancelled) return
                 console.error('상담 메시지 로딩 오류:', error)
                 setConsultationMessages([])
             })
+
+        return () => {
+            cancelled = true
+        }
     }, [selectedConsultationId])
 
     useEffect(() => {
@@ -609,14 +629,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
     const roleFilteredConsultations = mode === 'work'
         ? workRole === 'client' ? clientConsultationsByCreatedAt : expertConsultationsByCreatedAt
         : consultations
-
-    type UnifiedWorkStopReason = 'cancelled-request' | 'cancelled-work' | 'cancelled-proposal'
-    type UnifiedWorkItem =
-        | { kind: 'product'; id: string | number; createdTime: number; request: ServiceRequestData; stoppedReason?: UnifiedWorkStopReason }
-        | { kind: 'consultation'; id: string; createdTime: number; consultation: Consultation }
-
-    const sortUnifiedWorkItems = (items: UnifiedWorkItem[]) =>
-        [...items].sort((first, second) => second.createdTime - first.createdTime)
 
     const clientUnifiedWorkItems = sortUnifiedWorkItems([
         ...clientProductRequestsByCreatedAt.map((request): UnifiedWorkItem => ({
@@ -846,7 +858,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                 ),
             )
             setSettlementPayouts(await getExpertSettlementPayouts(user.id))
-            setSettlementActionMessage('정산 신청이 접수되었습니다. 등록 계좌로 자동 지급 대기 상태가 됩니다.')
+            setSettlementActionMessage('정산 신청이 접수되었습니다. 관리자가 계좌 이체를 확인한 뒤 정산을 완료합니다.')
         } catch (error) {
             setSettlementActionError(error instanceof Error ? error.message : '정산 신청을 처리하지 못했습니다.')
         } finally {
@@ -1023,8 +1035,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             .filter((work) => work.settlementStatus !== 'settled')
             .reduce((total, work) => total + (work.expertPayout || 0), 0)
         const payoutStatusText: Record<SettlementPayout['status'], string> = {
-            queued: '자동 지급 대기',
-            processing: '자동 지급 처리 중',
+            queued: '관리자 이체 대기',
+            processing: '관리자 지급 확인 중',
             paid: '지급 완료',
             failed: '지급 실패',
         }
@@ -1093,7 +1105,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                             const isRequested = Boolean(work.settlementRequestedAt)
                             const isSubmitting = settlementSubmittingWorkId === work.id
                             const payout = settlementPayouts.find((item) => item.workId === work.id)
-                            const statusLabel = isSettled ? '정산 완료' : payout ? payoutStatusText[payout.status] : isRequested ? '자동 지급 대기' : '정산 신청 가능'
+                            const statusLabel = isSettled ? '정산 완료' : payout ? payoutStatusText[payout.status] : isRequested ? '정산 신청 접수' : '정산 신청 가능'
                             return (
                                 <article className="settlement-item" key={work.id}>
                                     <div className="settlement-item-main">
@@ -1105,7 +1117,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                         <Link className="settlement-project-link" to={`/workroom/${work.id}`} state={myPageReturnState}>프로젝트 보기</Link>
                                     </div>
                                     <div className="settlement-item-footer">
-                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '등록 계좌로 자동 지급 대기 중입니다.' : payoutAccount ? '정산 관리에서 바로 신청할 수 있습니다.' : '계좌 등록 후 정산을 신청할 수 있습니다.'}</span>
+                                        <span>{isSettled ? '정산 처리가 완료되었습니다.' : isRequested ? '관리자가 등록 계좌로 수동 이체를 준비 중입니다.' : payoutAccount ? '정산 관리에서 바로 신청할 수 있습니다.' : '계좌 등록 후 정산을 신청할 수 있습니다.'}</span>
                                         {!isSettled && !isRequested && (
                                             <button
                                                 className="settlement-request-button"
@@ -1168,25 +1180,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             : item.kind === 'product'
             ? getRequestStatusLabel(item.request)
             : getConsultationStatusLabel(item.consultation)
-
-    const formatTransactionDate = (value?: number | string | null) => {
-        if (!value) return '-'
-        const date = typeof value === 'number' ? new Date(value) : new Date(value)
-        if (Number.isNaN(date.getTime())) return '-'
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        return `${year}.${month}.${day}`
-    }
-
-    const formatTransactionDateTime = (value?: number | string | null) => {
-        if (!value) return '-'
-        const date = typeof value === 'number' ? new Date(value) : new Date(value)
-        if (Number.isNaN(date.getTime())) return '-'
-        const hours = String(date.getHours()).padStart(2, '0')
-        const minutes = String(date.getMinutes()).padStart(2, '0')
-        return `${formatTransactionDate(value)} ${hours}:${minutes}`
-    }
 
     const getUnifiedWorkProduct = (item: UnifiedWorkItem) =>
         item.kind === 'product'
@@ -1254,15 +1247,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const isPresentUnifiedWorkItem = (item: UnifiedWorkItem | null): item is UnifiedWorkItem => Boolean(item)
 
-    const getTransactionNumber = (item: UnifiedWorkItem) => {
-        const date = new Date(item.createdTime)
-        const year = Number.isNaN(date.getTime()) ? '0000' : String(date.getFullYear())
-        const month = Number.isNaN(date.getTime()) ? '00' : String(date.getMonth() + 1).padStart(2, '0')
-        const day = Number.isNaN(date.getTime()) ? '00' : String(date.getDate()).padStart(2, '0')
-        const rawId = String(item.id).replace(/[^a-zA-Z0-9]/g, '').slice(-3).toUpperCase().padStart(3, '0')
-        return `TR-${year}-${month}${day}-${rawId}`
-    }
-
     const buildWorkDetailHero = (item: UnifiedWorkItem, onBack: () => void): WorkDetailHero => {
         const product = getUnifiedWorkProduct(item)
         const title = getUnifiedWorkTitle(item)
@@ -1312,8 +1296,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
 
     const getProductActivityItems = (
         request: ServiceRequestData,
-        proposal: Proposal | undefined,
-        work: Work | undefined,
+        proposal: Proposal | null | undefined,
+        work: Work | null | undefined,
         role: 'client' | 'expert',
     ): WorkActivityItem[] => {
         const items: WorkActivityItem[] = [
@@ -2642,7 +2626,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             consultations={roleFilteredConsultations}
             products={products}
             selectedConsultation={selectedPanelConsultation}
-            selectedProduct={selectedPanelConsultationProduct}
+            selectedProduct={selectedPanelConsultationProduct ?? null}
             messages={consultationMessages}
             currentUserId={user?.id || ''}
             messageBody={consultationMessageBody}
@@ -3000,12 +2984,6 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
                                 <div>
                                     <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>접속 계정</span>
                                     <strong style={{ color: '#1e293b', wordBreak: 'break-all' }}>{user?.email || ''}</strong>
-                                </div>
-                                <div>
-                                    <span style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.8rem', marginBottom: '0.35rem' }}>회원 유형</span>
-                                    <strong style={{ color: isExpert ? '#1e40af' : '#166534' }}>
-                                        {isExpert ? '전문가' : '의뢰자'}
-                                    </strong>
                                 </div>
                             </div>
                         )}

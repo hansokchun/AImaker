@@ -63,6 +63,7 @@ vi.mock('../lib/storage', () => ({
 describe('Profile editing', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        localStorage.clear()
         vi.spyOn(window, 'alert').mockImplementation(() => {})
         mockProfile = makeProfile()
         supabaseMocks.upload.mockResolvedValue({ error: null })
@@ -106,6 +107,19 @@ describe('Profile editing', () => {
         expect(container.querySelector('.product-register-section')).not.toBeInTheDocument()
     })
 
+    it('does not expose a member-type switch in profile editing', async () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(container.querySelector('form')).toBeInTheDocument())
+
+        expect(screen.queryByText('프로필 유형')).not.toBeInTheDocument()
+        expect(screen.queryByText('의뢰자')).not.toBeInTheDocument()
+    })
+
     it('saves the expert profile without publishing a product', async () => {
         const { container } = render(
             <MemoryRouter>
@@ -136,10 +150,15 @@ describe('Profile editing', () => {
 
         const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
         fireEvent.change(fileInput, {
-            target: { files: [new File(['avatar'], 'avatar.png', { type: 'image/png' })] },
+            target: { files: [new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])], 'avatar.png', { type: 'image/png' })] },
         })
 
         await waitFor(() => expect(supabaseMocks.upload).toHaveBeenCalledTimes(1))
+        expect(supabaseMocks.upload).toHaveBeenCalledWith(
+            expect.stringMatching(/^expert-video-01\/[0-9a-f-]+\.png$/),
+            expect.any(File),
+            { contentType: 'image/png', upsert: false },
+        )
         fireEvent.submit(container.querySelector('form') as HTMLFormElement)
 
         await waitFor(() =>
@@ -147,9 +166,6 @@ describe('Profile editing', () => {
                 'expert-video-01',
                 expect.objectContaining({ imageUrl: 'https://example.com/updated-avatar.jpg' }),
             ),
-        )
-        expect(supabaseMocks.profileUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({ avatar_url: 'https://example.com/updated-avatar.jpg' }),
         )
     })
 
@@ -209,6 +225,33 @@ describe('Profile editing', () => {
                     request_purposes: ['promotion', 'youtube'],
                 }),
             ),
+        )
+    })
+
+    it('shows the server failure instead of confirming a rejected client profile save', async () => {
+        supabaseMocks.profileSingle.mockResolvedValue({
+            data: {
+                is_expert: false,
+                name: 'Client User',
+                avatar_url: '',
+                interests: ['image'],
+                request_purposes: ['shop'],
+            },
+            error: null,
+        })
+        supabaseMocks.profileUpdateEq.mockResolvedValue({ error: { message: 'profile update denied' } })
+
+        const { container } = render(
+            <MemoryRouter>
+                <Profile />
+            </MemoryRouter>,
+        )
+
+        await waitFor(() => expect(container.querySelector('#client-interests')).toBeInTheDocument())
+        fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('profile update denied')),
         )
     })
 

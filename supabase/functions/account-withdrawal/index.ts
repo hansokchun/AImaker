@@ -1,85 +1,43 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient, requireUser } from '../_shared/supabase.ts'
+import { handleAccountWithdrawal, type AccountWithdrawalDependencies } from './handler.ts'
 
-type DeleteTarget = {
-    readonly table: string
-    readonly column: string
+const authorizationToken = (request: Request): string => {
+    const authorization = request.headers.get('Authorization')?.trim() ?? ''
+    const match = /^Bearer\s+(.+)$/i.exec(authorization)
+    if (!match?.[1]) throw new Error('Authorization header is required')
+    return match[1]
 }
 
-const deleteTargets: readonly DeleteTarget[] = [
-    { column: 'user_id', table: 'notification_events' },
-    { column: 'user_id', table: 'notification_preferences' },
-    { column: 'expert_id', table: 'expert_payout_accounts' },
-]
-
-const logOperation = async (
-    client: ReturnType<typeof createServiceClient>,
-    userId: string,
-    eventType: string,
-    detail: Record<string, unknown>,
-) => {
-    await client.from('operation_logs').insert({
-        actor_id: userId,
-        detail,
-        event_type: eventType,
-        target_id: userId,
-        target_type: 'user',
-    })
+const client = createServiceClient()
+const dependencies: AccountWithdrawalDependencies = {
+    authenticate: async (request) => {
+        const user = await requireUser(request)
+        return { accessToken: authorizationToken(request), userId: user.id }
+    },
+    blockAndAnonymize: async (userId) => {
+        const { error } = await client.rpc('withdraw_account', { requested_user_id: userId })
+        if (error) throw error
+    },
+    recordSessionRevocation: async (userId, outcome) => {
+        const { error } = await client.rpc('record_withdrawal_session_revocation', {
+            detail_text: outcome.detail,
+            requested_user_id: userId,
+            revocation_succeeded: outcome.succeeded,
+        })
+        if (error) throw error
+    },
+    revokeGlobalSessions: async (accessToken) => {
+        const { error } = await client.auth.admin.signOut(accessToken, 'global')
+        if (error) throw error
+    },
 }
 
 Deno.serve(async (request) => {
     const options = handleOptions(request)
     if (options) return options
 
-    if (request.method !== 'POST') {
-        return jsonResponse({ message: 'Only POST requests are supported.' }, { status: 405 })
-    }
-
-    let userId = ''
-    try {
-        const user = await requireUser(request)
-        userId = user.id
-    } catch {
-        return jsonResponse({ message: 'Authenticated user is required.' }, { status: 401 })
-    }
-
-    const client = createServiceClient()
-    await logOperation(client, userId, 'account_withdrawal_started', {})
-
-    const failures: string[] = []
-    for (const target of deleteTargets) {
-        const { error } = await client.from(target.table).delete().eq(target.column, userId)
-        if (error) failures.push(`${target.table}.${target.column}`)
-    }
-
-    const { error: productError } = await client.from('expert_products').update({
-        display_order: 0,
-        is_featured: false,
-        status: 'hidden',
-        updated_at: new Date().toISOString(),
-    }).eq('expert_id', userId)
-    if (productError) failures.push('expert_products.expert_id')
-
-    const { error: profileError } = await client.from('profiles').update({
-        account_status: 'restricted',
-        ai_tools: [],
-        avatar_url: null,
-        display_name: '탈퇴한 사용자',
-        email: null,
-        expert_intro: null,
-        interests: [],
-        name: '탈퇴한 사용자',
-        request_purposes: [],
-        sample_links: [],
-        updated_at: new Date().toISOString(),
-    }).eq('id', userId)
-    if (profileError) failures.push('profiles.id')
-
-    if (failures.length > 0) {
-        await logOperation(client, userId, 'account_withdrawal_failed', { failures })
-        return jsonResponse({ failures, message: 'Failed to delete all account data.' }, { status: 500 })
-    }
-
-    await logOperation(client, userId, 'account_withdrawal_completed', {})
-    return jsonResponse({ anonymized: true, deleted: true })
+    const result = await handleAccountWithdrawal(request, dependencies)
+    const body = await result.json()
+    return jsonResponse(body, { status: result.status })
 })

@@ -1,56 +1,47 @@
+import { executeFinancialRpc } from '../_shared/financial-contracts.ts'
 import { ok, responseError } from './responses.ts'
-import type { AdminActionPayload, RowRecord, ServiceClient } from './types.ts'
+import type { AdminActionPayload, ServiceClient } from './types.ts'
 import { isRecord } from './validation.ts'
+import { isPaymentPolicyActive, paymentPolicyUnavailableResponse } from '../_shared/payment-policy.ts'
+
+const financialActions = new Set([
+    'cancel_trade',
+    'hold_settlement',
+    'mark_refund_pending',
+    'mark_settlement_pending',
+    'mark_settlement_settled',
+])
 
 export async function runAdminAction(client: ServiceClient, userId: string, action: AdminActionPayload): Promise<Response> {
     const { data: admin } = await client.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle()
     if (!isRecord(admin)) return responseError('관리자 권한이 없습니다.', 403)
-    if (action.targetType !== 'work') return responseError('지원하지 않는 관리자 거래 작업입니다.', 400)
-    const now = new Date().toISOString()
-    const actionRecord = {
-        admin_id: userId,
-        target_type: action.targetType,
-        target_id: action.targetId,
-        action_type: action.actionType,
-        reason: action.reason,
-        created_at: now,
+    const { data: profile } = await client.from('profiles').select('id').eq('id', userId).eq('account_status', 'active').is('withdrawn_at', null).maybeSingle()
+    if (!isRecord(profile)) return responseError('활성 관리자 계정이 필요합니다.', 403)
+    if (action.actionType === 'execute_toss_refund') {
+        return responseError('토스 환불 실행은 toss-payment-cancel 함수로 처리합니다.', 409)
     }
 
-    let update: RowRecord | null = null
-    switch (action.actionType) {
-        case 'cancel_trade':
-            update = { status: 'cancelled', refund_status: 'fee_excluded_refund_pending', cancellation_reason: 'mutual_after_start', cancelled_at: now }
-            break
-        case 'mark_settlement_pending':
-            update = { settlement_status: 'pending', settlement_hold_reason: null }
-            break
-        case 'mark_settlement_settled':
-            update = { settlement_status: 'settled', refund_status: null, settlement_hold_reason: null, settlement_settled_at: now }
-            break
-        case 'hold_settlement':
-            update = { settlement_status: 'pending', settlement_hold_reason: action.reason }
-            break
-        case 'mark_refund_pending':
-            update = { settlement_status: 'refunded', refund_status: 'fee_excluded_refund_pending' }
-            break
-        case 'open_dispute':
-            update = { dispute_status: 'open' }
-            break
-        case 'resolve_dispute':
-            update = { dispute_status: 'resolved' }
-            break
-        case 'execute_toss_refund':
-            return responseError('토스 환불 실행은 toss-payment-cancel 함수로 처리합니다.', 409)
-        default:
-            return responseError('지원하지 않는 관리자 거래 작업입니다.', 400)
+    if (action.targetType === 'work' && financialActions.has(action.actionType)) {
+        if (!isPaymentPolicyActive()) return paymentPolicyUnavailableResponse()
+        const result = await executeFinancialRpc(client, 'apply_admin_financial_transition', {
+            p_work_id: action.targetId,
+            p_admin_id: userId,
+            p_action: action.actionType,
+            p_reason: action.reason,
+            p_business_key: `admin-financial:${action.actionType}:${action.targetId}`,
+            p_policy_authorized: true,
+        })
+        return ok({ workId: action.targetId, operationId: result.operationId })
     }
 
-    const workResult = await client.from('works').update({ ...update, updated_at: now }).eq('id', action.targetId)
-    if (workResult.error) return responseError('관리자 거래 상태 변경에 실패했습니다.', 500)
-    if (action.actionType === 'mark_settlement_settled') {
-        const payoutResult = await client.from('settlement_payouts').update({ status: 'paid', processed_at: now, updated_at: now }).eq('work_id', action.targetId)
-        if (payoutResult.error) return responseError('정산 지급 상태 변경에 실패했습니다.', 500)
-    }
-    const auditResult = await client.from('admin_actions').insert(actionRecord)
-    return auditResult.error ? responseError('관리자 작업 기록에 실패했습니다.', 500) : ok({ workId: action.targetId })
+    const result = await client.rpc('apply_admin_moderation_action', {
+        action_type_value: action.actionType,
+        admin_user_id: userId,
+        reason_value: action.reason,
+        target_id_value: action.targetId,
+        target_type_value: action.targetType,
+    })
+    return result.error
+        ? responseError('관리자 조치 적용 또는 감사 기록에 실패했습니다.', 500)
+        : ok({ targetId: action.targetId })
 }

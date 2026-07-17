@@ -16,15 +16,18 @@ export const createServiceClient = () => createClient(
     getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'),
 )
 
-export async function requireUser(request: Request): Promise<AppUser> {
+export const createUserClient = (request: Request) => {
     const authorization = request.headers.get('Authorization')
     if (!authorization) throw new Error('Authorization header is required')
-
-    const client = createClient(
+    return createClient(
         getRequiredEnv('SUPABASE_URL'),
         getRequiredEnv('SUPABASE_ANON_KEY'),
         { global: { headers: { Authorization: authorization } } },
     )
+}
+
+export async function requireUser(request: Request): Promise<AppUser> {
+    const client = createUserClient(request)
     const { data, error } = await client.auth.getUser()
 
     if (error || !data.user) throw new Error('Authenticated user is required')

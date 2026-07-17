@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAdminSnapshot, saveAdminAction } from '../lib/adminStorage';
+import { completeManualSettlement } from '../lib/manualSettlement';
 import Admin from './Admin';
 import { adminSnapshot } from './adminTestFixtures';
 
@@ -39,6 +40,10 @@ vi.mock('../lib/adminStorage', async () => {
     };
 });
 
+vi.mock('../lib/manualSettlement', () => ({
+    completeManualSettlement: vi.fn(),
+}));
+
 describe('Admin', () => {
     beforeEach(() => {
         mockNavigate.mockReset();
@@ -60,6 +65,8 @@ describe('Admin', () => {
             reason: input.reason,
             createdAt: '2026-07-01T00:30:00.000Z',
         }));
+        vi.mocked(completeManualSettlement).mockReset();
+        vi.mocked(completeManualSettlement).mockResolvedValue(undefined);
     });
 
     it('renders admin data panels for an admin account', async () => {
@@ -233,7 +240,7 @@ describe('Admin', () => {
         }));
     });
 
-    it('executes settlement completion only after admin confirmation', async () => {
+    it('does not expose generic settlement completion from the workroom action list', async () => {
         vi.mocked(getAdminSnapshot).mockResolvedValueOnce({
             ...adminSnapshot,
             works: adminSnapshot.works.map((work) => ({
@@ -247,22 +254,7 @@ describe('Admin', () => {
         await renderAdmin();
 
         clickAdminTab(5);
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
-        fireEvent.click(screen.getByRole('button', { name: '정산 완료 처리' }));
-        expect(saveAdminAction).not.toHaveBeenCalledWith(expect.objectContaining({
-            actionType: 'mark_settlement_settled',
-        }));
-
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
-        fireEvent.click(screen.getByRole('button', { name: '정산 완료 처리' }));
-
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'work',
-            targetId: 'work-admin-01',
-            actionType: 'mark_settlement_settled',
-            reason: '관리자가 작업방을 정산 완료 상태로 변경했습니다.',
-        }));
+        expect(screen.queryByRole('button', { name: '정산 완료 처리' })).not.toBeInTheDocument();
     });
 
     it('shows a manual payout queue with account and amount filled in', async () => {
@@ -336,24 +328,31 @@ describe('Admin', () => {
         expect(screen.getByText('작업 완료 확인')).toBeInTheDocument();
         expect(screen.getByText('환불 대기 없음')).toBeInTheDocument();
 
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
         fireEvent.click(screen.getByRole('button', { name: '지급 완료 처리' }));
 
-        await waitFor(() => expect(saveAdminAction).toHaveBeenCalledWith({
-            adminId: 'user-admin-01',
-            targetType: 'work',
-            targetId: 'work-admin-settlement-01',
+        expect(screen.getByText('은행 송금을 먼저 완료한 뒤 이체 확인번호를 입력하세요.')).toBeInTheDocument();
+        const submitButton = screen.getByRole('button', { name: '이체 완료 기록' });
+        expect(submitButton).toBeDisabled();
+        expect(completeManualSettlement).not.toHaveBeenCalled();
+
+        fireEvent.change(screen.getByLabelText('이체 확인번호'), { target: { value: 'bank-transfer-20260717-1' } });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => expect(completeManualSettlement).toHaveBeenCalledWith({
+            workId: 'work-admin-settlement-01',
+            transferReference: 'bank-transfer-20260717-1',
+        }));
+        expect(saveAdminAction).not.toHaveBeenCalledWith(expect.objectContaining({
             actionType: 'mark_settlement_settled',
-            reason: '운영자가 하루스튜디오에게 100,000원 수동 계좌이체 완료를 확인했습니다.',
         }));
     });
 
-    it('disables settlement completion for refund pending workrooms', async () => {
+    it('keeps manual settlement completion out of refund pending workrooms', async () => {
         await renderAdmin();
 
         clickAdminTab(5);
 
-        expect(screen.getByRole('button', { name: '정산 완료 처리' })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: '정산 완료 처리' })).not.toBeInTheDocument();
     });
 
     it('disables Toss refund execution until a work is marked refund pending', async () => {

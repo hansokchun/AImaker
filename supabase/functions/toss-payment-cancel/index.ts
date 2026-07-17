@@ -1,172 +1,71 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts'
+import { executeFinancialRpc, requiredString } from '../_shared/financial-contracts.ts'
+import { isPaymentPolicyActive } from '../_shared/payment-policy.ts'
 import { createServiceClient, getRequiredEnv, requireUser } from '../_shared/supabase.ts'
 import { cancelTossPayment, TossApiError } from '../_shared/toss.ts'
 
-type CancelRequest = {
-    readonly workId: string
-    readonly reason: string
-}
+type CancelRequest = { readonly workId: string; readonly reason: string }
+const isCancelRequest = (value: unknown): value is CancelRequest => typeof value === 'object' && value !== null
+    && 'workId' in value && typeof value.workId === 'string' && value.workId.trim().length > 0
+    && 'reason' in value && typeof value.reason === 'string' && value.reason.trim().length > 0
+const isAdminRow = (value: unknown): boolean => typeof value === 'object' && value !== null
+    && 'user_id' in value && typeof value.user_id === 'string'
+const isActiveProfile = (value: unknown): boolean => typeof value === 'object' && value !== null
+    && 'account_status' in value && value.account_status === 'active'
+    && 'withdrawn_at' in value && value.withdrawn_at === null
 
-type AdminUserRow = {
-    readonly user_id: string
-}
-
-type WorkRow = {
-    readonly id: string
-    readonly proposal_id: string
-    readonly settlement_status: string
-    readonly refund_status: string | null
-}
-
-type PaymentOrderRow = {
-    readonly order_id: string
-    readonly proposal_id: string
-    readonly payment_key: string
-    readonly status: string
-}
-
-const isCancelRequest = (value: unknown): value is CancelRequest => {
-    if (!value || typeof value !== 'object') return false
-    const candidate = value as Partial<CancelRequest>
-    return typeof candidate.workId === 'string'
-        && candidate.workId.trim().length > 0
-        && typeof candidate.reason === 'string'
-        && candidate.reason.trim().length > 0
-}
-
-const isAdminUserRow = (value: unknown): value is AdminUserRow => {
-    if (!value || typeof value !== 'object') return false
-    const candidate = value as Partial<AdminUserRow>
-    return typeof candidate.user_id === 'string'
-}
-
-const isWorkRow = (value: unknown): value is WorkRow => {
-    if (!value || typeof value !== 'object') return false
-    const candidate = value as Partial<WorkRow>
-    return typeof candidate.id === 'string'
-        && typeof candidate.proposal_id === 'string'
-        && typeof candidate.settlement_status === 'string'
-        && (typeof candidate.refund_status === 'string' || candidate.refund_status === null)
-}
-
-const isPaymentOrderRow = (value: unknown): value is PaymentOrderRow => {
-    if (!value || typeof value !== 'object') return false
-    const candidate = value as Partial<PaymentOrderRow>
-    return typeof candidate.order_id === 'string'
-        && typeof candidate.proposal_id === 'string'
-        && typeof candidate.payment_key === 'string'
-        && typeof candidate.status === 'string'
-}
-
-const normalizeReason = (reason: string): string => reason.trim().slice(0, 200)
-
-Deno.serve(async (request) => {
+export async function handlePaymentCancel(request: Request): Promise<Response> {
     const options = handleOptions(request)
     if (options) return options
-
     const client = createServiceClient()
-
+    let operationId: string | null = null
     try {
         const user = await requireUser(request)
-        const { data: adminUser } = await client
-            .from('admin_users')
-            .select('user_id')
-            .eq('user_id', user.id)
-            .maybeSingle()
-
-        if (!isAdminUserRow(adminUser)) {
-            return jsonResponse({ message: '결제 취소 권한이 없습니다.' }, { status: 403 })
-        }
-
+        const { data: admin } = await client.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle()
+        if (!isAdminRow(admin)) return jsonResponse({ message: 'Payment cancellation requires an administrator.' }, { status: 403 })
+        const { data: profile } = await client.from('profiles')
+            .select('account_status, withdrawn_at').eq('id', user.id).maybeSingle()
+        if (!isActiveProfile(profile)) return jsonResponse({ message: 'An active administrator account is required.' }, { status: 403 })
         const body: unknown = await request.json()
-        if (!isCancelRequest(body)) {
-            return jsonResponse({ message: '결제 취소 정보가 올바르지 않습니다.' }, { status: 400 })
+        if (!isCancelRequest(body)) return jsonResponse({ message: 'Invalid payment cancellation request.' }, { status: 400 })
+        const reason = body.reason.trim().slice(0, 200)
+        const begun = await executeFinancialRpc(client, 'begin_payment_refund', {
+            p_work_id: body.workId, p_actor_id: user.id, p_reason: reason,
+            p_policy_authorized: isPaymentPolicyActive(),
+            p_business_key: `refund:${body.workId}`,
+        })
+        if (begun.kind === 'completed') return jsonResponse({ workId: body.workId, status: 'refunded' })
+        operationId = requiredString(begun, 'operationId')
+        if (begun.kind === 'manual_review') {
+            return jsonResponse({ message: 'Refund is held for manual review.', operationId, status: 'manual_review' }, { status: 202 })
         }
-
-        const { data: work, error: workError } = await client
-            .from('works')
-            .select('id, proposal_id, settlement_status, refund_status')
-            .eq('id', body.workId)
-            .single()
-
-        if (workError || !isWorkRow(work)) {
-            return jsonResponse({ message: '작업방을 찾을 수 없습니다.' }, { status: 404 })
-        }
-
-        if (work.refund_status === 'refunded') {
-            return jsonResponse({ workId: work.id, proposalId: work.proposal_id, status: 'refunded' })
-        }
-
-        if (work.settlement_status === 'settled') {
-            return jsonResponse({ message: '이미 정산 완료된 작업은 결제 취소할 수 없습니다.' }, { status: 409 })
-        }
-
-        if (work.refund_status !== 'fee_excluded_refund_pending') {
-            return jsonResponse({ message: '환불 대기 처리된 작업만 결제 취소할 수 있습니다.' }, { status: 409 })
-        }
-
-        const { data: order, error: orderError } = await client
-            .from('payment_orders')
-            .select('order_id, proposal_id, payment_key, status')
-            .eq('proposal_id', work.proposal_id)
-            .eq('status', 'approved')
-            .limit(1)
-            .maybeSingle()
-
-        if (orderError || !isPaymentOrderRow(order)) {
-            return jsonResponse({ message: '취소 가능한 결제 주문을 찾을 수 없습니다.' }, { status: 404 })
-        }
-
-        const cancelReason = normalizeReason(body.reason)
         const payment = await cancelTossPayment({
             secretKey: getRequiredEnv('TOSS_PAYMENTS_SECRET_KEY'),
-            paymentKey: order.payment_key,
-            cancelReason,
-            idempotencyKey: `work-${work.id}-refund`,
+            paymentKey: requiredString(begun, 'paymentKey'), cancelReason: reason,
+            idempotencyKey: `work-${body.workId}-refund`,
         })
-        const cancelledAt = payment.canceledAt || new Date().toISOString()
-
-        await client
-            .from('payment_orders')
-            .update({
-                status: 'refunded',
-                cancel_reason: cancelReason,
-                cancelled_at: cancelledAt,
-                failure_code: null,
-                failure_message: null,
-            })
-            .eq('order_id', order.order_id)
-
-        await client
-            .from('proposals')
-            .update({
-                payment_status: 'refunded',
-                refunded_at: cancelledAt,
-            })
-            .eq('id', order.proposal_id)
-
-        await client
-            .from('works')
-            .update({
-                settlement_status: 'refunded',
-                refund_status: 'refunded',
-                cancelled_at: cancelledAt,
-                updated_at: cancelledAt,
-            })
-            .eq('id', work.id)
-
-        return jsonResponse({
-            workId: work.id,
-            proposalId: work.proposal_id,
-            paymentStatus: payment.status,
-            cancelledAt,
+        const finalized = await executeFinancialRpc(client, 'finalize_payment_refund', {
+            p_operation_id: operationId, p_provider_status: payment.status,
+            p_cancelled_at: payment.canceledAt ?? null, p_reason: reason,
         })
+        return jsonResponse({ ...finalized, paymentStatus: payment.status }, { status: finalized.kind === 'manual_review' ? 202 : 200 })
     } catch (error) {
-        if (error instanceof TossApiError) {
-            return jsonResponse({ message: error.message }, { status: error.status })
+        if (operationId) {
+            try {
+                await executeFinancialRpc(client, 'record_financial_reconciliation', {
+                    p_operation_id: operationId,
+                    p_reason: 'payment_refund_outcome_uncertain',
+                    p_failure_code: error instanceof TossApiError ? 'PROVIDER_REQUEST_FAILED' : 'DB_FINALIZE_FAILED',
+                    p_failure_message: 'Payment refund requires reconciliation',
+                })
+            } catch {
+                return jsonResponse({ message: 'Refund reconciliation could not be recorded.', operationId }, { status: 500 })
+            }
         }
-
-        const message = error instanceof Error ? error.message : '결제 취소 중 오류가 발생했습니다.'
-        return jsonResponse({ message }, { status: 500 })
+        return error instanceof TossApiError
+            ? jsonResponse({ message: 'Payment refund is pending reconciliation.', operationId, status: 'retry_required' }, { status: 502 })
+            : jsonResponse({ message: 'Payment refund could not be finalized.', operationId }, { status: 500 })
     }
-})
+}
+
+if (import.meta.main) Deno.serve(handlePaymentCancel)

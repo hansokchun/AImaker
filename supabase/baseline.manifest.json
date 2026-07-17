@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "mode": "static-preflight-only",
+  "databaseSnapshot": {
+    "path": "database.sql",
+    "sha256": "b13ce98d16ba8aa45c1851bbdde95584357f781a100ce182a14d9caf69e1ec44"
+  },
+  "baseline": {
+    "strategy": "baseline-plus-preserved-history",
+    "runtimeReplayStatus": "not-verified-until-task-06",
+    "migration": {
+      "path": "supabase/migrations/20260601000000_baseline.sql",
+      "file": "20260601000000_baseline.sql",
+      "sha256": "ae1cefed5364afa9b260c835fe25443df4017c3993232e67b0ec855831357521"
+    },
+    "sources": [
+      {
+        "path": "supabase/baseline-prehistory.sql",
+        "sha256": "21bf35847f2ac378157ae396980ca6b51b5b4ebb6a2b160a781483911f50dcf7"
+      },
+      {
+        "path": "supabase/baseline-prelude.sql",
+        "sha256": "344e1da7fe2e2a81ff78a4d9ea8251eb17e80aa79fb3acda5f208affb68277ab"
+      }
+    ],
+    "requirements": {
+      "objects": [
+        {
+          "name": "public.profiles.account_status",
+          "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.profiles[\\s\\S]*?account_status\\s+text\\s+not\\s+null\\s+default"
+        },
+        {
+          "name": "public.admin_actions",
+          "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.admin_actions"
+        }
+      ],
+      "dependencies": []
+    }
+  },
+  "migrationDirectory": "supabase/migrations",
+  "archivedMigrationDirectory": "supabase/migration-history",
+  "migrations": [
+    { "version": "20260601210407", "file": "20260601210407_add_consultation_chats.sql", "sha256": "b9253022ec250f62d3516ca5550113aa26e78f700d111956441cc5abba343f2a" },
+    { "version": "20260605095600", "file": "20260605095600_allow_users_delete_own_profile.sql", "sha256": "a67e8cfb002d730293af33d6cbf972c34f51f1ff29dd50c42ef3d50084f7941a" },
+    { "version": "20260605124235", "file": "20260605124235_add_profile_role_detail_fields.sql", "sha256": "bae3bc6251849559d58975e0f1d416d24eb511073ac04733bdf728299984874c" },
+    { "version": "20260617084516", "file": "20260617084516_add_launch_verification_fields.sql", "sha256": "0d945b372a177181acd812b841b9b575f054019421e17f7e0d7ff39a5a194ee4" },
+    { "version": "20260704173855", "file": "20260704173855_add_toss_payment_orders.sql", "sha256": "41de8dd53594aa3e142d039b8752644e93b5536d0b5464c3265c78a021ee4aac" },
+    { "version": "20260711102000", "file": "20260711102000_add_work_cancellation_settlement_fields.sql", "sha256": "18fbf9a57e6fb59254724555137deae1c99f619c229795552481753d0279d557" },
+    { "version": "20260712093000", "file": "20260712093000_add_toss_payment_cancel_fields.sql", "sha256": "2a60c17e69499da7d8045ef6ff28f2a4de0da892105ed07c344ce2f56039816b" },
+    { "version": "20260712130000", "file": "20260712130000_add_settlement_payout_automation.sql", "sha256": "b8b81bfb20277776a572f05468bd11800271e894aaa3e714c0803389e9e9d099" },
+    { "version": "20260712141529", "file": "20260712141529_harden_payment_work_settlement_policies.sql", "sha256": "aacec2ea8f5d5b32584b2eae62add9901ba4d9a84564ede256e8d52824a5bb60" },
+    { "version": "20260712143000", "file": "20260712143000_add_admin_settlement_payout_policy.sql", "sha256": "bc4b5719c5206076c8cc37a019efe0284107f8e6e937edd7b68c309e7239a8f8" },
+    { "version": "20260712150034", "file": "20260712150034_add_notification_dispatch_and_account_withdrawal.sql", "sha256": "6071858c62add0d12786df370d78920da1bfef624a97710b33dde997743d4753" },
+    { "version": "20260712150531", "file": "20260712150531_schedule_notification_dispatcher_cron.sql", "sha256": "700fbe46938603ae1059e51510af69037e9bc67d4317675ef6b537e34550c80d" },
+    { "version": "20260712154000", "file": "20260712154000_add_notification_preferences_and_events.sql", "sha256": "3caa43a6e3e61e77805ce84e7aea7e93d751ecc96676243fcb847cc8f59a310e" },
+    { "version": "20260713070526", "file": "20260713070526_harden_notification_storage_and_withdrawal.sql", "sha256": "43d25b51078fed386ea5b265568737db83dd761ef13195ac4b97bf41ccac6dcc" },
+    { "version": "20260713072554", "file": "20260713072554_revoke_profile_self_delete.sql", "sha256": "79b61c3bd650cac9b663c4094ce18236f64ed8f8c0b42abf66364c9262d25d83" },
+    { "version": "20260713084000", "file": "20260713084000_close_direct_trade_mutation_policies.sql", "sha256": "3e9d834fcc8c9a58ed5900c2d0ae015fd2ce7a3e0eccffa50de21f515e09cfd1" },
+    { "version": "20260713181500", "file": "20260713181500_close_proposal_admin_direct_policies.sql", "sha256": "0760eaf0dc67e18d96391e0c4682629e134ae2cb2e4786f7a47a705e18b4ece7" },
+    { "version": "20260714081201", "file": "20260714081201_add_atomic_financial_contracts.sql", "sha256": "da5f425e42573b1e4e7aa2cf57a95e94746fa76469d6fd5e93c38d5e36e8a45a" },
+    { "version": "20260714089900", "file": "20260714089900_restore_missing_core_tables.sql", "sha256": "83049a9596eca03a8370bcf5bf0b8615b464c8112931f717e4a10536e4947ed6" },
+    { "version": "20260714090000", "file": "20260714090000_harden_identity_consultation_withdrawal.sql", "sha256": "84f17d8cd7f1f26118329a8a670f529b2ab7223db14d8a34898effa13e59bcca" },
+    { "version": "20260716000000", "file": "20260716000000_harden_profile_select_for_active_accounts.sql", "sha256": "7287c8477d61679c97651a3ca4604baabe9d7bd87093313f0e175ac28256fc01" },
+    { "version": "20260716001000", "file": "20260716001000_restore_rls_table_grants.sql", "sha256": "94012b37407be4bf55ec09106e672ef7217e73b1c87851fa2f65935275eac866" },
+    { "version": "20260716002000", "file": "20260716002000_add_unique_work_proposal_constraint.sql", "sha256": "6189afba66d737f17228c0aac2d8d3afa01a86aa767bfb70d02c6907740b540c" },
+    { "version": "20260716002100", "file": "20260716002100_fix_work_proposal_unique_constraint.sql", "sha256": "7564b491b375f41a6f4789f564872f57f3b098f185cb40136766664472beee5e" },
+    { "version": "20260716055832", "file": "20260716055832_revoke_anon_is_admin_execute.sql", "sha256": "0607007f71a662b125e4795c53aaba653465abf7b0e47eed16f343e3937daa6a" },
+    { "version": "20260716060224", "file": "20260716060224_harden_function_search_paths.sql", "sha256": "c680b205df52f9429189b2f0ffc3fe32e27d072e7f432c60969b8bf88750973f" },
+    { "version": "20260716082202", "file": "20260716082202_add_marketplace_product_summaries.sql", "sha256": "6f6110583f06e725b85d0be7dc2794357fef49ef02d77d5ee3f7a87f823d676c" },
+    { "version": "20260716120000", "file": "20260716120000_relax_profile_image_insert_policy.sql", "sha256": "59bc9f4147ae3c31a1b0d926f160ce022f0afff07fa535d84eed7ddb37cc81a2" },
+    { "version": "20260716150000", "file": "20260716150000_revoke_anon_is_admin_execute.sql", "sha256": "02bb36a473e6ec8d6db646ca7881f66c2e1a228c6bb060c722cda564a310bf49" },
+    { "version": "20260716160000", "file": "20260716160000_harden_function_search_paths.sql", "sha256": "3ac256dd51abf48b63b2eedccb7d8dc2499f7c8fd7d6e33351ead4aeb89b5326" },
+    { "version": "20260717093402", "file": "20260717093402_ensure_settlement_paid_notification_idempotency.sql", "sha256": "98e0572b5582d2b564b0eb5f680e193f79d8abcc9810de0b7566779cd7d770af" },
+    { "version": "20260717160000", "file": "20260717160000_harden_public_storage_listing.sql", "sha256": "e1660ff909dfd83ea76c028ca2bef4e1b0b3d82112771882e53d26102eb2fc99" }
+  ],
+  "fixtures": {
+    "manifest": "supabase/roles.fixture.json",
+    "manifestSha256": "a6adcf39269a6d63775d65cbd77af7fb0befc3731961cbe1535e8f1f1503070f",
+    "seed": "supabase/roles.seed.sql",
+    "seedSha256": "766d3489e11614fff3edad41adf7cab9323f57027b6dc4e399b1f313d7a827b6",
+    "requiredRoles": ["anon", "client", "expert", "admin", "restricted", "other", "withdrawal"]
+  },
+  "requirements": {
+    "objects": [
+      { "name": "public.profiles", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.profiles" },
+      { "name": "public.admin_users", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.admin_users" },
+      { "name": "public.expert_profiles", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.expert_profiles" },
+      { "name": "public.expert_products", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.expert_products" },
+      { "name": "public.proposals", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.proposals" },
+      { "name": "public.works", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.works" },
+      { "name": "public.payment_orders", "pattern": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.payment_orders" },
+      { "name": "public.set_updated_at", "pattern": "create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.set_updated_at" },
+      { "name": "public.is_admin", "pattern": "create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.is_admin" }
+    ],
+    "dependencies": [
+      { "name": "profiles before admin_users", "prerequisite": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.profiles", "dependent": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.admin_users" },
+      { "name": "admin_users before is_admin", "prerequisite": "create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.admin_users", "dependent": "create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.is_admin" },
+      { "name": "set_updated_at before triggers", "prerequisite": "create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.set_updated_at", "dependent": "execute\\s+function\\s+public\\.set_updated_at" }
+    ]
+  }
+}

@@ -37,10 +37,14 @@ const work: Work = {
     stepIds: [],
 }
 
-const confirmTossProposalPayment = vi.fn(async () => ({ proposalId: paidProposal.id, workId: work.id }))
-const reportTossProposalPaymentFailure = vi.fn(async () => ({ status: 'failed' as const }))
-const getProposal = vi.fn(async () => paidProposal)
-const acceptProposal = vi.fn(async () => work.id)
+const confirmTossProposalPayment = vi.fn(async (
+    _input: { readonly paymentKey: string; readonly orderId: string; readonly amount: number },
+): Promise<{ readonly proposalId: string; readonly workId?: string }> => ({ proposalId: paidProposal.id, workId: work.id }))
+const reportTossProposalPaymentFailure = vi.fn(async (
+    _input: { readonly orderId: string; readonly code?: string; readonly message?: string },
+) => ({ status: 'failed' as const }))
+const getProposal = vi.fn(async (_proposalId: string) => paidProposal)
+const acceptProposal = vi.fn(async (_proposal: Proposal) => work.id)
 
 vi.mock('../lib/tossPayments', () => ({
     confirmTossProposalPayment: (input: { readonly paymentKey: string; readonly orderId: string; readonly amount: number }) =>

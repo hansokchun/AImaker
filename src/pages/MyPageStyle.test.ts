@@ -8,10 +8,20 @@ const workroomCss = readFileSync('src/pages/Workroom.css', 'utf8')
 const loginCss = readFileSync('src/pages/Login.css', 'utf8')
 
 const getRule = (css: string, selector: string) => {
-    const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const match = css.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`))
+    const normalizedCss = css.replace(/\r\n?/g, '\n')
+    const normalizedSelector = selector.replace(/\r\n?/g, '\n')
+    const escapedSelector = normalizedSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = normalizedCss.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`))
     return match?.[1] ?? ''
 }
+
+describe('CSS rule lookup', () => {
+    it('matches a multi-line selector when the stylesheet uses CRLF newlines', () => {
+        const css = '.first,\r\n.second {\r\n    padding: 0;\r\n}'
+
+        expect(getRule(css, '.first,\n.second')).toContain('padding: 0')
+    })
+})
 
 describe('MyPage work dashboard visual styles', () => {
     it('uses a flat SaaS manager shell with sidebar, list, and detail columns', () => {

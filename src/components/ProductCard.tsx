@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ExpertProduct } from '../types'
 import FavoriteProductButton from './FavoriteProductButton'
@@ -13,17 +13,24 @@ const currency = new Intl.NumberFormat('ko-KR')
 export default function ProductCard({ product }: ProductCardProps) {
     const navigate = useNavigate()
     const [imageFailed, setImageFailed] = useState(false)
+    const [imageCandidateIndex, setImageCandidateIndex] = useState(0)
     const [avatarFailed, setAvatarFailed] = useState(false)
     const detailUrl = `/expert/${product.id}`
     const expertUrl = `/expert/${product.expertId}`
-    const showSampleImage = Boolean(product.sampleImageUrl) && !imageFailed
+    const imageCandidates = useMemo(() => {
+        const candidates = product.sampleImageUrl ? [product.sampleImageUrl, ...product.sampleLinks] : []
+        return candidates.filter((url, index) => Boolean(url) && candidates.indexOf(url) === index && !/\.(mp4|webm|mov)(\?|#|$)/i.test(url))
+    }, [product.sampleImageUrl, product.sampleLinks])
+    const currentImageUrl = imageCandidates[imageCandidateIndex] || ''
+    const showSampleImage = Boolean(currentImageUrl) && !imageFailed
     const expertImageUrl = product.expertImageUrl || ''
     const showExpertImage = expertImageUrl.length > 0 && !avatarFailed
     const openDetail = () => navigate(detailUrl)
 
     useEffect(() => {
         setImageFailed(false)
-    }, [product.sampleImageUrl])
+        setImageCandidateIndex(0)
+    }, [product.sampleImageUrl, product.sampleLinks])
 
     useEffect(() => {
         setAvatarFailed(false)
@@ -46,9 +53,17 @@ export default function ProductCard({ product }: ProductCardProps) {
             <div className="product-card-image">
                 {showSampleImage ? (
                     <img
-                        src={product.sampleImageUrl}
+                        src={currentImageUrl}
+                        loading="lazy"
+                        decoding="async"
                         alt={`${product.title} 샘플`}
-                        onError={() => setImageFailed(true)}
+                        onError={() => {
+                            if (imageCandidateIndex < imageCandidates.length - 1) {
+                                setImageCandidateIndex((index) => index + 1)
+                            } else {
+                                setImageFailed(true)
+                            }
+                        }}
                     />
                 ) : (
                     <div className="product-card-image-placeholder">이미지 준비 중</div>

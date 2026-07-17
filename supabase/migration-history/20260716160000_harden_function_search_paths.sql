@@ -1,0 +1,5 @@
+alter function public.set_updated_at() set search_path = public, pg_temp;
+alter function public.guard_proposal_authenticated_update() set search_path = public, pg_temp;
+alter function public.guard_work_authenticated_update() set search_path = public, pg_temp;
+alter function public.guard_work_step_authenticated_update() set search_path = public, pg_temp;
+alter function public.guard_deliverable_authenticated_update() set search_path = public, pg_temp;

@@ -56,7 +56,7 @@ describe('startTossProposalPayment', () => {
         const paymentPromise = startTossProposalPayment(proposal, { id: proposal.clientId })
         const rejection = expect(paymentPromise).rejects.toThrow('토스페이먼츠 SDK 로딩 시간이 초과되었습니다.')
 
-        await vi.advanceTimersByTimeAsync(15_000)
+        await vi.advanceTimersByTimeAsync(30_000)
 
         await rejection
         expect(document.head.querySelector('script[src="https://js.tosspayments.com/v2/standard"]')).toBeNull()

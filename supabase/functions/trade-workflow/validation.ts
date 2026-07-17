@@ -1,3 +1,4 @@
+import { isManualSettlementPayload } from './manual-settlement.ts'
 import type { AdminActionPayload, DeliverablePayload, ProposalPayload, RowRecord, WorkflowRequest } from './types.ts'
 
 export const isRecord = (value: unknown): value is RowRecord => typeof value === 'object' && value !== null
@@ -88,6 +89,8 @@ export const isWorkflowRequest = (value: unknown): value is WorkflowRequest => {
             return typeof value.workId === 'string' && typeof value.deliverableId === 'string'
         case 'admin_moderation_action':
             return isAdminActionPayload(value.action)
+        case 'complete_manual_settlement':
+            return isManualSettlementPayload(value.settlement)
         default:
             return false
     }

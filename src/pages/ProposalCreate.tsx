@@ -90,7 +90,7 @@ export default function ProposalCreate() {
 
     const returnTo = useMemo(() => {
         const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
-        if (from && [ROUTES.MY_PAGE, ROUTES.WORK_DASHBOARD].includes(from.pathname || '')) {
+        if (from && (from.pathname === ROUTES.MY_PAGE || from.pathname === ROUTES.WORK_DASHBOARD)) {
             return `${from.pathname}${from.search || ''}`
         }
 

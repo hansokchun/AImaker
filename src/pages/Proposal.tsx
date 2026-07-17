@@ -37,7 +37,7 @@ const mockProposals: ProposalData[] = [
 
 const currency = new Intl.NumberFormat('ko-KR')
 const percent = new Intl.NumberFormat('ko-KR', { style: 'percent', maximumFractionDigits: 1 })
-const PAYMENT_START_TIMEOUT_MS = 20_000
+const PAYMENT_START_TIMEOUT_MS = 60_000
 
 const statusText: Record<ProposalData['status'], string> = {
     sent: '제안 대기',

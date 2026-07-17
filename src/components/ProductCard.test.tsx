@@ -151,7 +151,11 @@ describe('ProductCard', () => {
   })
 
   it('falls back to a placeholder when the product image fails to load', async () => {
-    const product = { ...mockExpertProducts[0], sampleImageUrl: 'https://example.invalid/missing.jpg' }
+    const product = {
+      ...mockExpertProducts[0],
+      sampleImageUrl: 'https://example.invalid/missing.jpg',
+      sampleLinks: [],
+    }
 
     render(
       <MemoryRouter>
@@ -163,6 +167,32 @@ describe('ProductCard', () => {
 
     expect(await screen.findByText('이미지 준비 중')).toBeInTheDocument()
     expect(screen.queryByAltText(`${product.title} 샘플`)).not.toBeInTheDocument()
+  })
+  it('uses an image sample when the primary thumbnail fails to load', () => {
+    const product = {
+      ...mockExpertProducts[0],
+      sampleImageUrl: 'https://example.invalid/missing.jpg',
+      sampleLinks: [
+        'https://example.com/fallback-image.jpg',
+        'https://example.com/sample-video.mp4',
+      ],
+    }
+
+    const { container } = render(
+      <MemoryRouter>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    )
+
+    const primaryImage = container.querySelector('.product-card-image img')
+    expect(primaryImage).toHaveAttribute('src', product.sampleImageUrl)
+
+    fireEvent.error(primaryImage!)
+
+    expect(container.querySelector('.product-card-image img')).toHaveAttribute(
+      'src',
+      'https://example.com/fallback-image.jpg',
+    )
   })
 })
 

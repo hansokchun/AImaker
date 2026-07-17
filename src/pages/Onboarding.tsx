@@ -7,6 +7,7 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { AvatarUploadError, prepareAvatarUpload } from '../lib/avatarUpload';
 import { ROUTES } from '../constants/routes';
 import './Onboarding.css';
 
@@ -31,20 +32,21 @@ export default function Onboarding() {
 
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+            const upload = await prepareAvatarUpload(user.id, file);
             
             const { error: uploadError } = await supabase.storage
                 .from('profile-images')
-                .upload(fileName, file, { upsert: true });
+                .upload(upload.objectPath, file, { contentType: upload.contentType, upsert: false });
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage.from('profile-images').getPublicUrl(fileName);
+            const { data } = supabase.storage.from('profile-images').getPublicUrl(upload.objectPath);
             setImageUrl(data.publicUrl);
         } catch (err) {
             console.error('이미지 업로드 에러:', err);
-            // 실패해도 온보딩 진행에는 지장 없음 (이미지는 선택사항)
+            setError(err instanceof AvatarUploadError
+                ? err.message
+                : '이미지 업로드에 실패했습니다. Supabase Storage 설정을 확인해 주세요.');
         } finally {
             setUploading(false);
         }
@@ -99,7 +101,7 @@ export default function Onboarding() {
 
             // 2. 전문가 선택 시 expert_profiles 빈 레코드 생성 (나중에 상세 입력할 수 있게)
             if (role === 'expert') {
-                await supabase
+                const { error: expertProfileError } = await supabase
                     .from('expert_profiles')
                     .upsert({
                         user_id: user.id,
@@ -108,6 +110,7 @@ export default function Onboarding() {
                         profession: '',
                         ai_tools: parseCommaList(aiTools),
                     });
+                if (expertProfileError) throw expertProfileError;
             }
 
             // 3. 완료 후 분기 이동
@@ -118,9 +121,9 @@ export default function Onboarding() {
             } else {
                 window.location.href = ROUTES.HOME;
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error('온보딩 저장 에러:', err);
-            setError(err.message || '저장 중 오류가 발생했습니다.');
+            setError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.');
             setLoading(false);
         }
     };

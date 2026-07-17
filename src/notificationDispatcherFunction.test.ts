@@ -22,4 +22,8 @@ describe('notification-dispatcher Edge Function', () => {
             .toBeLessThan(notificationDispatcherSource.indexOf("event.channels.includes('sms')"))
         expect(notificationDispatcherSource).not.toMatch(/return sent\s*\?\s*\{ provider: 'kakao_alimtalk', status: 'sent' \}\s*:\s*\{ failureReason: 'Kakao provider returned a non-2xx response.'/)
     })
+
+    it('treats provider network errors as a failed delivery instead of aborting the batch', () => {
+        expect(notificationDispatcherSource).toMatch(/const postProviderWebhook[\s\S]*?try \{[\s\S]*?await fetch\([\s\S]*?\}\s*catch \{\s*return false\s*\}[\s\S]*?finally \{\s*clearTimeout\(timeoutId\)/)
+    })
 })

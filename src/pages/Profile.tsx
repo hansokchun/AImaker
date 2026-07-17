@@ -6,10 +6,35 @@ import { useAuth } from '../contexts/AuthContext';
 import { PageLoading } from '../components/PageLoading';
 import { createDefaultProfile, getStoredProfile, saveProfile } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { AvatarUploadError, prepareAvatarUpload } from '../lib/avatarUpload';
 import type { ExpertProfile } from '../types';
 import './Profile.css';
 
 type Role = 'client' | 'expert';
+
+type ProfileDraft = {
+    readonly role: Role;
+    readonly clientName: string;
+    readonly clientInterests: string;
+    readonly clientPurposes: string;
+    readonly profile: ExpertProfile;
+    readonly expertTools: string;
+    readonly expertSamples: string;
+};
+
+const profileDraftKey = (userId: string) => `aiconnect:profile-draft:${userId}`;
+
+const readProfileDraft = (userId: string): ProfileDraft | null => {
+    try {
+        const raw = localStorage.getItem(profileDraftKey(userId));
+        if (!raw) return null;
+        const value: unknown = JSON.parse(raw);
+        if (!value || typeof value !== 'object') return null;
+        return value as ProfileDraft;
+    } catch {
+        return null;
+    }
+};
 
 const parseCommaList = (value: string) =>
     value
@@ -34,6 +59,7 @@ export default function Profile() {
     const [uploading, setUploading] = useState(false);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const uploadedImageUrlRef = useRef('');
+    const profileDraftHydratedRef = useRef(false);
 
     const notifyProfileUpdated = () => {
         if (!user) return;
@@ -76,12 +102,38 @@ export default function Profile() {
             setExpertTools(listToInput(nextProfile.aiTools));
             setExpertSamples(listToInput(nextProfile.sampleLinks));
             if (!clientName && nextProfile.name) setClientName(nextProfile.name);
+
+            const draft = readProfileDraft(user.id);
+            if (draft?.profile && (draft.role === 'client' || draft.role === 'expert')) {
+                setRole(draft.role);
+                setClientName(draft.clientName || '');
+                setClientInterests(draft.clientInterests || '');
+                setClientPurposes(draft.clientPurposes || '');
+                setProfile({ ...nextProfile, ...draft.profile });
+                setExpertTools(draft.expertTools || '');
+                setExpertSamples(draft.expertSamples || '');
+            }
+            profileDraftHydratedRef.current = true;
         };
 
         loadProfile();
         // clientName is intentionally not a dependency; loading should run once per user.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
+
+    useEffect(() => {
+        if (!user || !profileDraftHydratedRef.current) return;
+        const draft: ProfileDraft = {
+            role,
+            clientName,
+            clientInterests,
+            clientPurposes,
+            profile,
+            expertTools,
+            expertSamples,
+        };
+        localStorage.setItem(profileDraftKey(user.id), JSON.stringify(draft));
+    }, [clientInterests, clientName, clientPurposes, expertSamples, expertTools, profile, role, user]);
 
     if (authLoading) {
         return (
@@ -118,20 +170,21 @@ export default function Profile() {
         const file = e.target.files[0];
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+            const upload = await prepareAvatarUpload(user.id, file);
             const { error: uploadError } = await supabase.storage
                 .from('profile-images')
-                .upload(fileName, file, { upsert: true });
+                .upload(upload.objectPath, file, { contentType: upload.contentType, upsert: false });
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage.from('profile-images').getPublicUrl(fileName);
+            const { data } = supabase.storage.from('profile-images').getPublicUrl(upload.objectPath);
             uploadedImageUrlRef.current = data.publicUrl;
             setProfile((prev) => ({ ...prev, imageUrl: data.publicUrl }));
         } catch (error) {
             console.error('프로필 이미지 업로드 실패:', error);
-            alert('이미지 업로드에 실패했습니다. Supabase Storage 설정을 확인해 주세요.');
+            alert(error instanceof AvatarUploadError
+                ? error.message
+                : '이미지 업로드에 실패했습니다. Supabase Storage 설정을 확인해 주세요.');
         } finally {
             setUploading(false);
         }
@@ -154,26 +207,6 @@ export default function Profile() {
             if (prev[field].length <= 1) return prev;
             return { ...prev, [field]: prev[field].filter((_, itemIndex) => itemIndex !== index) };
         });
-    };
-
-    const handleRoleChange = async (nextRole: Role) => {
-        setRole(nextRole);
-        setValidationErrors({});
-        if (!supabase || !user) return;
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({ is_expert: nextRole === 'expert' })
-            .eq('id', user.id);
-
-        if (!error && nextRole === 'expert') {
-            await supabase.from('expert_profiles').upsert({
-                user_id: user.id,
-                name: profile.name || clientName,
-                image_url: uploadedImageUrlRef.current || profile.imageUrl,
-                ai_tools: parseCommaList(expertTools),
-            });
-        }
     };
 
     const validateClient = () => {
@@ -208,13 +241,15 @@ export default function Profile() {
                     is_expert: false,
                 };
                 if (supabase) {
-                    await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+                    const { error } = await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+                    if (error) throw new Error(`기본 프로필 저장 실패 (${error.message})`);
                 }
                 notifyProfileUpdated();
+                localStorage.removeItem(profileDraftKey(user.id));
                 alert('프로필이 저장되었습니다.');
                 navigate(ROUTES.MY_PAGE);
-            } catch {
-                alert('저장에 실패했습니다.');
+            } catch (error) {
+                alert(error instanceof Error ? error.message : '저장에 실패했습니다.');
             } finally {
                 setSaving(false);
             }
@@ -238,7 +273,7 @@ export default function Profile() {
         const policyFields = [
             cleanedProfile.name,
             cleanedProfile.greeting,
-            ...cleanedProfile.sampleLinks,
+            ...(cleanedProfile.sampleLinks ?? []),
             ...cleanedProfile.activities,
             ...cleanedProfile.awards,
         ];
@@ -250,17 +285,8 @@ export default function Profile() {
         setSaving(true);
         try {
             await saveProfile(user.id, cleanedProfile);
-            if (supabase) {
-                await supabase
-                    .from('profiles')
-                    .update({
-                        name: cleanedProfile.name,
-                        avatar_url: uploadedImageUrlRef.current || cleanedProfile.imageUrl,
-                        is_expert: true,
-                    })
-                    .eq('id', user.id);
-            }
             notifyProfileUpdated();
+            localStorage.removeItem(profileDraftKey(user.id));
             alert('프로필이 성공적으로 저장되었습니다.');
             navigate(`/expert/${user.id}`);
         } catch (error) {
@@ -343,33 +369,6 @@ export default function Profile() {
 
             <main className="container">
                 <form className="profile-layout" onSubmit={handleSave} noValidate>
-                    <div className="profile-section">
-                        <h2>
-                            <span className="material-symbols-outlined">badge</span>
-                            프로필 유형
-                        </h2>
-                        <div className="profile-role-switch">
-                            <button
-                                type="button"
-                                className={`profile-role-card ${role === 'client' ? 'active' : ''}`}
-                                onClick={() => handleRoleChange('client')}
-                            >
-                                <span className="material-symbols-outlined">person_search</span>
-                                <strong>의뢰자</strong>
-                                <small>작업을 맡길 때 쓰는 정보</small>
-                            </button>
-                            <button
-                                type="button"
-                                className={`profile-role-card ${role === 'expert' ? 'active' : ''}`}
-                                onClick={() => handleRoleChange('expert')}
-                            >
-                                <span className="material-symbols-outlined">workspace_premium</span>
-                                <strong>전문가</strong>
-                                <small>상품과 작업을 받을 때 쓰는 정보</small>
-                            </button>
-                        </div>
-                    </div>
-
                     {role === 'client' && (
                         <div className="profile-section">
                             <h2>

@@ -8,13 +8,11 @@ const paymentWorkflowSource = readFileSync(
 )
 
 describe('payment workflow shared Edge Function helper', () => {
-    it('queues payment and workroom notifications after approved payment repair', () => {
-        expect(paymentWorkflowSource).toMatch(/const queuePaymentNotifications = async/)
-        expect(paymentWorkflowSource).toMatch(/event_type: 'payment_completed'/)
-        expect(paymentWorkflowSource).toMatch(/event_type: 'workroom_created'/)
-        expect(paymentWorkflowSource).toMatch(/from\('notification_events'\)\.insert\(events\)/)
-        expect(paymentWorkflowSource).toMatch(/payment_notification_queue_failed/)
-        expect(paymentWorkflowSource).toMatch(/detail: \{ proposalId: proposal\.id, error: error\.message \}/)
-        expect(paymentWorkflowSource).toMatch(/await queuePaymentNotifications\(client, proposal, workResult\.workId\)/)
+    it('routes approved payment repair through the atomic confirmation contracts', () => {
+        expect(paymentWorkflowSource).toMatch(/executeFinancialRpc\(input\.client, 'begin_payment_confirmation'/)
+        expect(paymentWorkflowSource).toMatch(/executeFinancialRpc\(input\.client, 'finalize_payment_confirmation'/)
+        expect(paymentWorkflowSource).not.toMatch(/\.from\('payment_orders'\)/)
+        expect(paymentWorkflowSource).not.toMatch(/\.from\('proposals'\)/)
+        expect(paymentWorkflowSource).not.toMatch(/\.from\('works'\)/)
     })
 })

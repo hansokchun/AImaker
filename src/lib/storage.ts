@@ -10,19 +10,14 @@ import type {
     ConsultationMessage,
     Deliverable,
     Expert,
-    ExpertPayoutAccount,
     ExpertProduct,
     ExpertProfile,
-    NotificationChannel,
-    NotificationEvent,
-    NotificationEventType,
     PackageTier,
     Proposal,
     ProductPackage,
     Review,
     ServiceRequestData,
     SettlementPayout,
-    UserNotificationPreference,
     Work,
     WorkMessage,
     WorkStep,
@@ -35,6 +30,17 @@ import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/polic
 import { readCachedExpertProducts, writeCachedExpertProducts } from './expertProductCache';
 import { validateMarketplaceMessage } from './tradeSafety';
 import { SAFE_EXTERNAL_URL_MESSAGE, normalizeSafeExternalUrl } from './urlSafety';
+import {
+    getNotificationPreference,
+    getUserNotifications,
+    queueNotificationEvent,
+    saveNotificationPreference,
+} from './notificationStorage';
+import {
+    getExpertPayoutAccount,
+    getExpertSettlementPayouts,
+    saveExpertPayoutAccount,
+} from './payoutStorage';
 import type { User } from '@supabase/supabase-js';
 import type { AdminReport, AdminReportSeverity, AdminReportTargetType } from './adminStorage';
 
@@ -170,10 +176,10 @@ const getLocalExpertReviews = (expertId: string) =>
         .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
 
 const hasLocalDemoWork = (workId: string) =>
-    isDemoAccountRecordId(workId) && readLocalArray<Work>(STORAGE_KEYS.WORKS).some((work) => work.id === workId);
+    isDemoAccountRecordId(workId);
 
 const hasLocalDemoConsultation = (consultationId: string) =>
-    isDemoAccountRecordId(consultationId) && readLocalArray<Consultation>(STORAGE_KEYS.CONSULTATIONS).some((consultation) => consultation.id === consultationId);
+    isDemoAccountRecordId(consultationId);
 
 const hasLocalDemoProposal = (proposalId: string) =>
     isDemoAccountRecordId(proposalId) && readLocalArray<Proposal>(STORAGE_KEYS.PROPOSALS).some((proposal) => proposal.id === proposalId);
@@ -386,69 +392,6 @@ const toWorkMessage = (item: any): WorkMessage => ({
     createdAt: item.created_at,
 });
 
-const toExpertPayoutAccount = (item: any): ExpertPayoutAccount => ({
-    id: item.id,
-    expertId: item.expert_id,
-    bankName: item.bank_name || '',
-    accountNumber: item.account_number || '',
-    accountHolder: item.account_holder || '',
-    ...(item.verified_at ? { verifiedAt: item.verified_at } : {}),
-    ...(item.updated_at ? { updatedAt: item.updated_at } : {}),
-});
-
-const toSettlementPayout = (item: any): SettlementPayout => ({
-    id: item.id,
-    workId: item.work_id,
-    expertId: item.expert_id,
-    ...(item.payout_account_id ? { payoutAccountId: item.payout_account_id } : {}),
-    amount: item.amount || 0,
-    status: item.status || 'queued',
-    ...(item.failure_reason ? { failureReason: item.failure_reason } : {}),
-    requestedAt: item.requested_at || new Date().toISOString(),
-    ...(item.processed_at ? { processedAt: item.processed_at } : {}),
-});
-
-const toNotificationPreference = (item: any): UserNotificationPreference => ({
-    userId: item.user_id ?? item.userId,
-    phoneNumber: item.phone_number ?? item.phoneNumber ?? '',
-    kakaoAlimtalkEnabled: Boolean(item.kakao_alimtalk_enabled ?? item.kakaoAlimtalkEnabled),
-    smsFallbackEnabled: Boolean(item.sms_fallback_enabled ?? item.smsFallbackEnabled),
-    updatedAt: item.updated_at ?? item.updatedAt,
-});
-
-const toNotificationEvent = (item: any): NotificationEvent => ({
-    id: item.id,
-    userId: item.user_id ?? item.userId,
-    type: item.event_type ?? item.type,
-    title: item.title,
-    body: item.body,
-    channels: item.channels ?? ['in_app'],
-    status: item.status ?? 'queued',
-    relatedType: item.related_type ?? item.relatedType,
-    relatedId: item.related_id ?? item.relatedId,
-    provider: item.provider,
-    failureReason: item.failure_reason ?? item.failureReason,
-    createdAt: item.created_at ?? item.createdAt ?? new Date().toISOString(),
-    sentAt: item.sent_at ?? item.sentAt,
-});
-
-type QueueNotificationInput = {
-    userId: string;
-    type: NotificationEventType;
-    title: string;
-    body: string;
-    relatedType?: NotificationEvent['relatedType'];
-    relatedId?: string;
-};
-
-const resolveNotificationChannels = (preference: UserNotificationPreference | null): NotificationChannel[] => {
-    const channels: NotificationChannel[] = ['in_app'];
-    const hasPhone = Boolean(preference?.phoneNumber.trim());
-    if (hasPhone && preference?.kakaoAlimtalkEnabled) channels.push('kakao_alimtalk');
-    if (hasPhone && preference?.smsFallbackEnabled) channels.push('sms');
-    return channels;
-};
-
 const toBoardRequestStatus = (status?: string): ServiceRequestData['status'] => {
     if (status === 'in_progress') return 'in_progress';
     if (status === 'completed' || status === 'cancelled') return 'completed';
@@ -456,7 +399,7 @@ const toBoardRequestStatus = (status?: string): ServiceRequestData['status'] => 
 };
 
 const toLegacyRequest = (request: AiServiceRequest, createdAt?: string): ServiceRequestData => ({
-    id: request.id as any,
+    id: request.id,
     title: request.desiredResult,
     description: request.purpose,
     budget: '',
@@ -805,11 +748,15 @@ export async function getUserDisplayProfile(userId: string): Promise<{ name: str
 
 export async function deleteUserPublicAccountData(userId: string): Promise<void> {
     if (!supabase) {
-        localStorage.removeItem(`${STORAGE_KEYS.PROFILE}_${userId}`);
+        localStorage.setItem(`${STORAGE_KEYS.PROFILE}_${userId}`, JSON.stringify({
+            accountStatus: 'restricted',
+            name: '탈퇴한 사용자',
+            withdrawnAt: new Date().toISOString(),
+        }));
         return;
     }
 
-    const { error } = await supabase.functions.invoke('account-withdrawal', { body: { userId } });
+    const { error } = await supabase.functions.invoke('account-withdrawal');
     if (error) {
         console.error('회원 public 데이터 삭제 실패:', error);
         throw new Error('회원 탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -909,7 +856,7 @@ export async function getUserConsultations(userId: string): Promise<Consultation
 }
 
 export async function getConsultationMessages(consultationId: string): Promise<ConsultationMessage[]> {
-    if (!supabase) {
+    if (!supabase || hasLocalDemoConsultation(consultationId)) {
         return getLocalConsultationMessages(consultationId);
     }
 
@@ -986,41 +933,19 @@ export async function createConsultation(input: CreateConsultationInput): Promis
         return consultation;
     }
 
-    const { data, error } = await supabase
-        .from('consultations')
-        .insert({
-            client_id: input.clientId,
-            expert_id: input.expertId,
-            product_id: input.productId,
-            title: input.title,
-            status: 'open',
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase.rpc('create_consultation', {
+        consultation_title: input.title,
+        expert_user_id: input.expertId,
+        initial_message: initialMessage || null,
+        product_row_id: input.productId,
+    });
 
     if (error || !data) {
         console.error('상담 생성 실패:', error);
         throw new Error('데이터베이스 통신 오류: 상담 생성 실패');
     }
 
-    const consultation = toConsultation(data);
-    if (!initialMessage) return consultation;
-
-    const { error: messageError } = await supabase
-        .from('consultation_messages')
-        .insert({
-            consultation_id: consultation.id,
-            sender_id: input.clientId,
-            body: initialMessage,
-            attachment_urls: [],
-        });
-
-    if (messageError) {
-        console.error('상담 첫 메시지 저장 실패:', messageError);
-        throw new Error('데이터베이스 통신 오류: 상담 메시지 저장 실패');
-    }
-
-    return consultation;
+    return toConsultation(data);
 }
 
 export async function saveConsultationMessage(input: {
@@ -1063,34 +988,18 @@ export async function saveConsultationMessage(input: {
         return message;
     }
 
-    const { data, error } = await supabase
-        .from('consultation_messages')
-        .insert({
-            consultation_id: input.consultationId,
-            sender_id: input.senderId,
-            body,
-            attachment_urls: [...(input.attachmentUrls || [])],
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase.rpc('append_consultation_message', {
+        consultation_row_id: input.consultationId,
+        message_attachment_urls: [...(input.attachmentUrls || [])],
+        message_body: body,
+    });
 
     if (error || !data) {
         console.error('상담 메시지 저장 실패:', error);
         throw new Error('데이터베이스 통신 오류: 상담 메시지 저장 실패');
     }
 
-    const message = toConsultationMessage(data);
-    const { error: consultationError } = await supabase
-        .from('consultations')
-        .update({ last_message_at: message.createdAt })
-        .eq('id', input.consultationId);
-
-    if (consultationError) {
-        console.error('상담 최근 메시지 시간 갱신 실패:', consultationError);
-        throw new Error('데이터베이스 통신 오류: 상담 갱신 실패');
-    }
-
-    return message;
+    return toConsultationMessage(data);
 }
 
 const toAdminReport = (row: Record<string, any>): AdminReport => ({
@@ -1122,12 +1031,10 @@ export async function closeConsultation(consultationId: string): Promise<Consult
         return closed;
     }
 
-    const { data, error } = await supabase
-        .from('consultations')
-        .update({ status: 'closed', last_message_at: now })
-        .eq('id', consultationId)
-        .select()
-        .single();
+    const { data, error } = await supabase.rpc('transition_consultation', {
+        consultation_row_id: consultationId,
+        next_status: 'closed',
+    });
 
     if (error || !data) {
         console.error('상담 종료 저장 실패:', error);
@@ -1153,12 +1060,10 @@ export async function markConsultationProposalSent(consultationId: string): Prom
         return updated;
     }
 
-    const { data, error } = await supabase
-        .from('consultations')
-        .update({ status: 'proposal_sent', last_message_at: now })
-        .eq('id', consultationId)
-        .select()
-        .single();
+    const { data, error } = await supabase.rpc('transition_consultation', {
+        consultation_row_id: consultationId,
+        next_status: 'proposal_sent',
+    });
 
     if (error || !data) {
         console.error('상담 제안서 발송 상태 저장 실패:', error);
@@ -1572,7 +1477,7 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
     }
 
     // Supabase Upsert (존재하면 수정, 없으면 삽입)
-    const { error } = await supabase.from('expert_profiles').upsert({
+    const { error: expertProfileError } = await supabase.from('expert_profiles').upsert({
         user_id: userId,
         image_url: profile.imageUrl,
         profession: profile.profession,
@@ -1590,19 +1495,22 @@ export async function saveProfile(userId: string, profile: ExpertProfile): Promi
         updated_at: new Date().toISOString(),
     });
 
-    if (!error) {
-        await supabase
-            .from('profiles')
-            .update({
-                name: profile.name,
-                avatar_url: profile.imageUrl,
-            })
-            .eq('id', userId);
+    if (expertProfileError) {
+        console.error('Supabase 전문가 프로필 저장 실패:', expertProfileError);
+        throw new Error(`데이터베이스 통신 오류: 프로필 저장 실패 (${expertProfileError.message})`);
     }
 
-    if (error) {
-        console.error('Supabase 프로필 저장 실패:', error);
-        throw new Error(`데이터베이스 통신 오류: 프로필 저장 실패 (${error.message})`);
+    const { error: basicProfileError } = await supabase
+        .from('profiles')
+        .update({
+            name: profile.name,
+            avatar_url: profile.imageUrl,
+        })
+        .eq('id', userId);
+
+    if (basicProfileError) {
+        console.error('Supabase 기본 프로필 저장 실패:', basicProfileError);
+        throw new Error(`데이터베이스 통신 오류: 기본 프로필 저장 실패 (${basicProfileError.message})`);
     }
 }
 
@@ -1623,6 +1531,16 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
         next.push(product);
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(next));
         return;
+    }
+
+    const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ is_expert: true })
+        .eq('id', product.expertId);
+
+    if (profileError) {
+        console.error('Supabase 판매자 기능 활성화 실패:', profileError);
+        throw new Error(`데이터베이스 통신 오류: 판매자 기능 활성화 실패 (${profileError.message})`);
     }
 
     const { error } = await supabase.from('expert_products').upsert({
@@ -1652,236 +1570,15 @@ export async function saveExpertProduct(product: ExpertProduct): Promise<void> {
     }
 }
 
-export async function getNotificationPreference(userId: string): Promise<UserNotificationPreference | null> {
-    const localPreference = readLocalArray<UserNotificationPreference>(STORAGE_KEYS.USER_NOTIFICATION_PREFERENCES)
-        .find((preference) => preference.userId === userId) || null;
-
-    if (!supabase) return localPreference;
-
-    try {
-        const { data, error } = await supabase
-            .from('notification_preferences')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-        if (error) {
-            console.error('알림 설정 로딩 실패:', error);
-            return localPreference;
-        }
-
-        return data ? toNotificationPreference(data) : localPreference;
-    } catch (error) {
-        console.error('알림 설정 로딩 실패:', error);
-        return localPreference;
-    }
-}
-
-export async function saveNotificationPreference(
-    preference: UserNotificationPreference,
-): Promise<UserNotificationPreference> {
-    const nextPreference: UserNotificationPreference = {
-        ...preference,
-        phoneNumber: preference.phoneNumber.replace(/[^\d-]/g, '').trim(),
-        updatedAt: new Date().toISOString(),
-    };
-
-    if (!nextPreference.phoneNumber) {
-        nextPreference.kakaoAlimtalkEnabled = false;
-        nextPreference.smsFallbackEnabled = false;
-    }
-
-    const preferences = readLocalArray<UserNotificationPreference>(STORAGE_KEYS.USER_NOTIFICATION_PREFERENCES);
-    writeLocalArray(
-        STORAGE_KEYS.USER_NOTIFICATION_PREFERENCES,
-        [nextPreference, ...preferences.filter((item) => item.userId !== nextPreference.userId)],
-    );
-
-    if (!supabase) return nextPreference;
-
-    try {
-        const { data, error } = await supabase
-            .from('notification_preferences')
-            .upsert({
-                user_id: nextPreference.userId,
-                phone_number: nextPreference.phoneNumber,
-                kakao_alimtalk_enabled: nextPreference.kakaoAlimtalkEnabled,
-                sms_fallback_enabled: nextPreference.smsFallbackEnabled,
-                updated_at: nextPreference.updatedAt,
-            }, { onConflict: 'user_id' })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('알림 설정 저장 실패:', error);
-            return nextPreference;
-        }
-
-        return toNotificationPreference(data);
-    } catch (error) {
-        console.error('알림 설정 저장 실패:', error);
-        return nextPreference;
-    }
-}
-
-export async function getUserNotifications(userId: string): Promise<NotificationEvent[]> {
-    const localEvents = readLocalArray<NotificationEvent>(STORAGE_KEYS.NOTIFICATION_EVENTS)
-        .filter((event) => event.userId === userId);
-
-    if (!supabase) return localEvents;
-
-    try {
-        const { data, error } = await supabase
-            .from('notification_events')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('알림 목록 로딩 실패:', error);
-            return localEvents;
-        }
-
-        return mergeById((data || []).map(toNotificationEvent), localEvents);
-    } catch (error) {
-        console.error('알림 목록 로딩 실패:', error);
-        return localEvents;
-    }
-}
-
-export async function queueNotificationEvent(input: QueueNotificationInput): Promise<NotificationEvent> {
-    const createdAt = new Date().toISOString();
-    const preference = await getNotificationPreference(input.userId);
-    const event: NotificationEvent = {
-        id: `notification-${input.type}-${input.relatedId || input.userId}-${Date.now()}`,
-        userId: input.userId,
-        type: input.type,
-        title: input.title,
-        body: input.body,
-        channels: resolveNotificationChannels(preference),
-        status: 'queued',
-        relatedType: input.relatedType,
-        relatedId: input.relatedId,
-        createdAt,
-    };
-
-    const localEvents = readLocalArray<NotificationEvent>(STORAGE_KEYS.NOTIFICATION_EVENTS);
-    writeLocalArray(STORAGE_KEYS.NOTIFICATION_EVENTS, [event, ...localEvents]);
-
-    if (!supabase) return event;
-
-    try {
-        const { data, error } = await supabase.functions.invoke('notification-queue', {
-            body: {
-                userId: event.userId,
-                type: event.type,
-                relatedType: event.relatedType,
-                relatedId: event.relatedId,
-            },
-        });
-
-        if (error) {
-            console.error('알림 큐 등록 실패:', error);
-            return event;
-        }
-
-        const savedEvent = toNotificationEvent(data);
-        writeLocalArray(
-            STORAGE_KEYS.NOTIFICATION_EVENTS,
-            [savedEvent, ...readLocalArray<NotificationEvent>(STORAGE_KEYS.NOTIFICATION_EVENTS).filter((item) => item.id !== event.id)],
-        );
-        return savedEvent;
-    } catch (error) {
-        console.error('알림 큐 등록 실패:', error);
-        return event;
-    }
-}
-
-export async function getExpertPayoutAccount(expertId: string): Promise<ExpertPayoutAccount | null> {
-    const localAccount = readLocalArray<ExpertPayoutAccount>(STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS)
-        .find((account) => account.expertId === expertId) || null;
-
-    if (!supabase) return localAccount;
-
-    const { data, error } = await supabase
-        .from('expert_payout_accounts')
-        .select('*')
-        .eq('expert_id', expertId)
-        .maybeSingle();
-
-    if (error) {
-        console.error('정산 계좌 로딩 실패:', error);
-        return localAccount;
-    }
-
-    return data ? toExpertPayoutAccount(data) : localAccount;
-}
-
-export async function saveExpertPayoutAccount(account: ExpertPayoutAccount): Promise<ExpertPayoutAccount> {
-    const normalizedAccount: ExpertPayoutAccount = {
-        ...account,
-        bankName: account.bankName.trim(),
-        accountNumber: account.accountNumber.replace(/[^\d-]/g, '').trim(),
-        accountHolder: account.accountHolder.trim(),
-        updatedAt: new Date().toISOString(),
-    };
-
-    if (!normalizedAccount.bankName || !normalizedAccount.accountNumber || !normalizedAccount.accountHolder) {
-        throw new Error('은행명, 계좌번호, 예금주를 모두 입력해주세요.');
-    }
-
-    if (!supabase) {
-        const accounts = readLocalArray<ExpertPayoutAccount>(STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS);
-        const nextAccount = {
-            ...normalizedAccount,
-            id: normalizedAccount.id || `payout-account-${normalizedAccount.expertId}`,
-        };
-        writeLocalArray(
-            STORAGE_KEYS.EXPERT_PAYOUT_ACCOUNTS,
-            [nextAccount, ...accounts.filter((item) => item.expertId !== normalizedAccount.expertId)],
-        );
-        return nextAccount;
-    }
-
-    const { data, error } = await supabase
-        .from('expert_payout_accounts')
-        .upsert({
-            expert_id: normalizedAccount.expertId,
-            bank_name: normalizedAccount.bankName,
-            account_number: normalizedAccount.accountNumber,
-            account_holder: normalizedAccount.accountHolder,
-            updated_at: normalizedAccount.updatedAt,
-        }, { onConflict: 'expert_id' })
-        .select()
-        .single();
-
-    if (error || !data) {
-        console.error('정산 계좌 저장 실패:', error);
-        throw new Error('데이터베이스 통신 오류: 정산 계좌 저장 실패');
-    }
-
-    return toExpertPayoutAccount(data);
-}
-
-export async function getExpertSettlementPayouts(expertId: string): Promise<SettlementPayout[]> {
-    const localPayouts = readLocalArray<SettlementPayout>(STORAGE_KEYS.SETTLEMENT_PAYOUTS)
-        .filter((payout) => payout.expertId === expertId);
-
-    if (!supabase) return localPayouts;
-
-    const { data, error } = await supabase
-        .from('settlement_payouts')
-        .select('*')
-        .eq('expert_id', expertId)
-        .order('requested_at', { ascending: false });
-
-    if (error) {
-        console.error('정산 지급 내역 로딩 실패:', error);
-        return localPayouts;
-    }
-
-    return mergeById((data || []).map(toSettlementPayout), localPayouts);
-}
+export {
+    getExpertPayoutAccount,
+    getExpertSettlementPayouts,
+    getNotificationPreference,
+    getUserNotifications,
+    queueNotificationEvent,
+    saveExpertPayoutAccount,
+    saveNotificationPreference,
+};
 
 export async function deleteExpertProduct(productId: string): Promise<void> {
     if (!supabase) {
@@ -1899,6 +1596,20 @@ export async function deleteExpertProduct(productId: string): Promise<void> {
     if (error) {
         console.error('Supabase 상품 삭제 실패:', error);
         throw new Error(`데이터베이스 통신 오류: 상품 삭제 실패 (${error.message})`);
+    }
+}
+
+const withTimeout = async <T>(promise: PromiseLike<T>, milliseconds: number): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+        return await Promise.race([
+            promise,
+            new Promise<T>((_, reject) => {
+                timer = setTimeout(() => reject(new Error('request timed out')), milliseconds)
+            }),
+        ])
+    } finally {
+        if (timer) clearTimeout(timer)
     }
 }
 
@@ -1931,7 +1642,7 @@ export async function getExpertProducts(options: { includeOwned?: boolean } = {}
     if (!options.includeOwned) {
         productQuery = productQuery.eq('status', 'published');
     }
-    const { data, error } = await productQuery;
+    const { data, error } = await withTimeout(productQuery, 8000);
 
     if (error) {
         console.error('Supabase 상품 목록 로딩 실패:', error);
@@ -1948,7 +1659,7 @@ export async function getExpertProducts(options: { includeOwned?: boolean } = {}
     const profileById = new Map<string, { name: string; imageUrl: string }>();
 
     if (expertIds.length > 0) {
-        const [basicProfileResult, expertProfileResult] = await Promise.all([
+        const [basicProfileResult, expertProfileResult] = await withTimeout(Promise.all([
             supabase
                 .from('profiles')
                 .select('id, name, display_name, avatar_url')
@@ -1957,7 +1668,10 @@ export async function getExpertProducts(options: { includeOwned?: boolean } = {}
                 .from('expert_profiles')
                 .select('user_id, name, image_url')
                 .in('user_id', expertIds),
-        ]);
+        ]), 8000).catch(() => [
+            { data: null, error: new Error('profile lookup timed out') },
+            { data: null, error: new Error('profile lookup timed out') },
+        ] as const);
         const { data: profiles, error: profileError } = basicProfileResult;
         const { data: expertProfiles, error: expertProfileError } = expertProfileResult;
 
@@ -2518,7 +2232,7 @@ export async function requestSettlementWithdrawal(workId: string, expertId: stri
 }
 
 export async function getWorkMessages(workId: string): Promise<WorkMessage[]> {
-    if (!supabase) return getLocalWorkMessages(workId);
+    if (!supabase || hasLocalDemoWork(workId)) return getLocalWorkMessages(workId);
 
     const { data, error } = await supabase
         .from('work_messages')

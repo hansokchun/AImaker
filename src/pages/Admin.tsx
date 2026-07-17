@@ -5,6 +5,7 @@ import { hasExternalContact } from '../constants/policies';
 import { useAuth } from '../contexts/AuthContext';
 import { defaultAdminFilters, filterAdminSnapshot, type AdminFilterState } from '../lib/adminFilters';
 import { getAdminSnapshot, isAdminEmail, saveAdminAction, type AdminAction, type AdminSnapshot } from '../lib/adminStorage';
+import { completeManualSettlement } from '../lib/manualSettlement';
 import AdminDashboardPanel from './AdminDashboardPanel';
 import AdminDataPanels, { type AdminActionRequest } from './AdminDataPanels';
 import AdminFilters from './AdminFilters';
@@ -67,6 +68,13 @@ export default function Admin() {
             .catch(() => setActionNotice('운영 조치를 처리하지 못했습니다. 관리자 권한과 Supabase 정책을 확인해 주세요.'));
     };
 
+    const handleManualSettlementCompletion = async (input: { readonly workId: string; readonly transferReference: string }): Promise<void> => {
+        await completeManualSettlement(input);
+        const completedAt = new Date().toISOString();
+        setSnapshot((current) => current ? applyManualSettlementCompletion(current, input.workId, completedAt) : current);
+        setActionNotice('은행 이체 완료를 기록했습니다.');
+    };
+
     if (loading || (!snapshot && canAccessAdmin && !loadError)) {
         return <AdminShell>관리자 데이터를 불러오는 중입니다.</AdminShell>;
     }
@@ -102,12 +110,37 @@ export default function Admin() {
                 <section className="admin-main">
                     {visibleSnapshot && activeTab === 'dashboard' && <AdminDashboardPanel stats={stats} />}
                     {visibleSnapshot && activeTab !== 'dashboard' && (
-                        <AdminDataPanels activeTab={activeTab} snapshot={visibleSnapshot} onAction={handleAdminAction} />
+                        <AdminDataPanels
+                            activeTab={activeTab}
+                            snapshot={visibleSnapshot}
+                            onAction={handleAdminAction}
+                            onCompleteManualSettlement={handleManualSettlementCompletion}
+                        />
                     )}
                 </section>
             </div>
         </AdminShell>
     );
+}
+
+function applyManualSettlementCompletion(snapshot: AdminSnapshot, workId: string, completedAt: string): AdminSnapshot {
+    return {
+        ...snapshot,
+        works: snapshot.works.map((work) =>
+            work.id === workId
+                ? {
+                    ...work,
+                    settlementStatus: 'settled',
+                    refundStatus: undefined,
+                    settlementHoldReason: undefined,
+                    settlementSettledAt: completedAt,
+                }
+                : work,
+        ),
+        settlementPayouts: snapshot.settlementPayouts.map((payout) =>
+            payout.workId === workId ? { ...payout, status: 'paid', processedAt: completedAt } : payout,
+        ),
+    };
 }
 
 function applyAdminActionToSnapshot(snapshot: AdminSnapshot, action: AdminAction): AdminSnapshot {

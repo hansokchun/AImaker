@@ -7,22 +7,37 @@ const readWorkflowFile = (fileName: string): string =>
 
 const indexSource = readWorkflowFile('index.ts')
 const workHandlersSource = readWorkflowFile('work-handlers.ts')
+const adminHandlersSource = readWorkflowFile('admin-handlers.ts')
 const validationSource = readWorkflowFile('validation.ts')
 const proposalHandlersSource = readWorkflowFile('proposal-handlers.ts')
 const notificationsSource = readWorkflowFile('notifications.ts')
+const financialMigrationSource = readFileSync(
+    join(process.cwd(), 'supabase', 'migrations', '20260714081201_add_atomic_financial_contracts.sql'),
+    'utf8',
+)
 
 describe('trade-workflow Edge Function', () => {
     it('keeps the public entrypoint as a thin authenticated dispatcher', () => {
         expect(indexSource).toMatch(/const user = await requireUser\(request\)/)
+        expect(indexSource).toMatch(/from\('profiles'\)[\s\S]*select\('account_status, withdrawn_at'\)[\s\S]*eq\('id', user\.id\)/)
+        expect(indexSource).toMatch(/!isRecord\(profile\)[\s\S]*profile\.account_status !== 'active'[\s\S]*profile\.withdrawn_at !== null/)
+        expect(indexSource.indexOf('createServiceClient()')).toBeGreaterThan(indexSource.indexOf('profile.withdrawn_at !== null'))
+        expect(indexSource.indexOf(".from('profiles')")).toBeLessThan(indexSource.indexOf('switch (body.type)'))
         expect(indexSource).toMatch(/if \(!isWorkflowRequest\(body\)\)/)
         expect(indexSource).toMatch(/case 'request_settlement_withdrawal':/)
         expect(indexSource.split('\n').length).toBeLessThan(80)
     })
 
+    it('rejects withdrawn administrators before service-role moderation', () => {
+        expect(adminHandlersSource).toMatch(/from\('profiles'\)[\s\S]*eq\('account_status', 'active'\)[\s\S]*is\('withdrawn_at', null\)/)
+        expect(adminHandlersSource).toMatch(/if \(!isRecord\(profile\)\) return responseError\([^,]+, 403\)/)
+    })
+
     it('proves work steps belong to the same work before service-role mutations', () => {
         expect(workHandlersSource).toMatch(/from\('work_steps'\)\.select\('id'\)\.eq\('id', stepId\)\.eq\('work_id', workId\)/)
         expect(workHandlersSource).toMatch(/update\(\{ status: 'submitted' \}\)\.eq\('id', payload\.stepId\)\.eq\('work_id', payload\.workId\)/)
-        expect(workHandlersSource).toMatch(/update\(\{ status \}\)\.eq\('id', deliverable\.step_id\)\.eq\('work_id', workId\)/)
+        expect(workHandlersSource).toMatch(/executeFinancialRpc\(client, 'apply_deliverable_review'/)
+        expect(financialMigrationSource).toMatch(/where id = deliverable_row\.step_id and work_id = work_row\.id/i)
     })
 
     it('recreates frozen-work guards that RLS cannot enforce for service-role calls', () => {
@@ -33,8 +48,8 @@ describe('trade-workflow Edge Function', () => {
     })
 
     it('preserves delivered-work completion and unlimited revision semantics', () => {
-        expect(workHandlersSource).toMatch(/revisionLimit > 0 && revisionUsed >= revisionLimit/)
-        expect(workHandlersSource).toMatch(/service_requests'\)\.update\(\{ status: 'completed' \}\)\.eq\('id', work\.request_id\)/)
+        expect(financialMigrationSource).toMatch(/work_row\.revision_limit > 0 and work_row\.revision_used >= work_row\.revision_limit/i)
+        expect(financialMigrationSource).toMatch(/update public\.service_requests set status = 'completed' where id = work_row\.request_id/i)
     })
 
     it('rejects incomplete deliverable submissions at the boundary', () => {
