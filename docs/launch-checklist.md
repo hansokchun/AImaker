@@ -30,7 +30,7 @@
 - [x] 공개 Storage의 전체 파일 목록 조회 권한 완화 적용
 - [ ] Supabase 유출 비밀번호 차단 기능 켜기
 - [ ] 실제 도메인을 Auth Redirect URL과 Google OAuth Redirect URL에 등록
-- [ ] Performance Advisor 경고 최종 확인
+- [x] Performance Advisor 외래키 인덱스 경고 해소 (누락 0개 확인)
 
 ## 3. 토스 운영 결제 전환
 
