@@ -23,14 +23,11 @@
 
 .brand-logo-check {
     position: absolute;
-    top: -0.7rem;
-    left: 0.08rem;
-    width: 0.8rem;
-    height: 0.42rem;
-    border-right: 0.2rem solid var(--ilpick-blue);
-    border-bottom: 0.2rem solid var(--ilpick-blue);
-    border-radius: 0.08rem;
-    transform: rotate(42deg);
+    top: -0.82rem;
+    left: -0.16rem;
+    width: 1.18rem;
+    height: auto;
+    display: block;
 }
 
 .brand-logo--inverse {
@@ -43,9 +40,8 @@
     }
 
     .brand-logo-check {
-        top: -0.63rem;
-        left: 0.05rem;
-        width: 0.72rem;
-        height: 0.38rem;
+        top: -0.76rem;
+        left: -0.15rem;
+        width: 1.08rem;
     }
 }

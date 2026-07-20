@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="780 425 165 118" aria-hidden="true">
+  <defs>
+    <clipPath id="check-shape">
+      <path d="M805 469c-5-5-13-5-18 0-10 10-10 21 0 31l40 40c9 9 20 9 30 0l80-79c10-10 10-21 1-30-9-9-20-8-30 1l-65 69-38-32Z"/>
+    </clipPath>
+  </defs>
+  <image href="/ilpick-social.png" x="0" y="0" width="1254" height="1254" clip-path="url(#check-shape)"/>
+</svg>
