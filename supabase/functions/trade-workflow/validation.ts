@@ -87,6 +87,10 @@ export const isWorkflowRequest = (value: unknown): value is WorkflowRequest => {
         case 'approve_deliverable':
         case 'request_work_revision':
             return typeof value.workId === 'string' && typeof value.deliverableId === 'string'
+        case 'request_work_dispute':
+            return typeof value.workId === 'string'
+                && ['scope_mismatch', 'missing_deliverable', 'quality_issue', 'late_delivery', 'other'].includes(String(value.reason))
+                && typeof value.details === 'string' && value.details.trim().length >= 10 && value.details.trim().length <= 1000
         case 'admin_moderation_action':
             return isAdminActionPayload(value.action)
         case 'complete_manual_settlement':

@@ -14,6 +14,7 @@ import {
     getWorkMessages,
     getWorkroomData,
     requestSettlementWithdrawal,
+    requestWorkDispute,
     requestWorkCancellation,
     requestWorkRevision,
     saveDeliverable,
@@ -108,6 +109,14 @@ const refundStatusText: Record<NonNullable<Work['refundStatus']>, string> = {
     refunded: '환불 처리',
 }
 
+const disputeReasonLabels: Record<NonNullable<Work['disputeReason']>, string> = {
+    scope_mismatch: '합의한 작업 범위와 다름',
+    missing_deliverable: '결과물 또는 파일이 누락됨',
+    quality_issue: '합의한 형식·품질 기준과 다름',
+    late_delivery: '약속한 납기 지연',
+    other: '기타 거래 문제',
+}
+
 const isMyPageReturnPath = (pathname?: string) =>
     pathname === ROUTES.MY_PAGE || pathname === ROUTES.WORK_DASHBOARD
 
@@ -189,6 +198,10 @@ export default function Workroom() {
     const [messageSubmitting, setMessageSubmitting] = useState(false)
     const [deliverableLink, setDeliverableLink] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
+    const [isDisputeFormOpen, setIsDisputeFormOpen] = useState(false)
+    const [disputeReason, setDisputeReason] = useState<NonNullable<Work['disputeReason']>>('scope_mismatch')
+    const [disputeDetails, setDisputeDetails] = useState('')
+    const [isDisputeSubmitting, setIsDisputeSubmitting] = useState(false)
     const [participants, setParticipants] = useState<Record<'client' | 'expert', ParticipantProfile>>({
         client: { name: '', imageUrl: '' },
         expert: { name: '', imageUrl: '' },
@@ -218,6 +231,11 @@ export default function Workroom() {
         && work.settlementStatus === 'pending'
         && !work.settlementRequestedAt
         && !work.settlementHoldReason
+    const canOpenDispute = (isClientParticipant || isExpertParticipant)
+        && !isClosedWork
+        && work.disputeStatus !== 'open'
+        && work.settlementStatus !== 'settled'
+        && work.settlementStatus !== 'refunded'
     const revisionLimit = work.revisionLimit ?? 0
     const revisionUsed = work.revisionUsed ?? 0
     const hasRevisionLimit = revisionLimit > 0
@@ -434,6 +452,33 @@ export default function Workroom() {
             notifyActivityChanged()
         } catch (error) {
             setStatusMessage(error instanceof Error ? error.message : '정산 신청을 처리하지 못했습니다.')
+        }
+    }
+
+    const handleOpenDispute = async () => {
+        if (!canOpenDispute || disputeDetails.trim().length < 10) {
+            setStatusMessage('분쟁 사유를 10자 이상 구체적으로 입력해주세요.')
+            return
+        }
+        setIsDisputeSubmitting(true)
+        try {
+            await requestWorkDispute(work.id, disputeReason, disputeDetails)
+            setWork((current) => ({
+                ...current,
+                disputeStatus: 'open',
+                disputeReason,
+                disputeDetails: disputeDetails.trim(),
+                disputeOpenedBy: user?.id,
+                disputeOpenedAt: new Date().toISOString(),
+                settlementHoldReason: '분쟁 접수로 정산 보류',
+            }))
+            setIsDisputeFormOpen(false)
+            setStatusMessage('분쟁을 접수했습니다. 정산과 자동 구매확정이 중단되며 관리자가 기록을 검토합니다.')
+            notifyActivityChanged()
+        } catch (error) {
+            setStatusMessage(error instanceof Error ? error.message : '분쟁 접수에 실패했습니다.')
+        } finally {
+            setIsDisputeSubmitting(false)
         }
     }
 
@@ -700,9 +745,30 @@ export default function Workroom() {
                             </div>
                         </>
                     )}
+                    {canOpenDispute && (
+                        <section className="workroom-dispute" aria-label="분쟁 신청">
+                            <button type="button" className="workroom-dispute-trigger" onClick={() => setIsDisputeFormOpen((current) => !current)}>
+                                <span className="material-symbols-outlined" aria-hidden="true">gavel</span>
+                                분쟁 신청
+                            </button>
+                            {isDisputeFormOpen && (
+                                <div className="workroom-dispute-form">
+                                    <label htmlFor="work-dispute-reason">분쟁 사유</label>
+                                    <select id="work-dispute-reason" value={disputeReason} onChange={(event) => setDisputeReason(event.target.value as NonNullable<Work['disputeReason']>)}>
+                                        {Object.entries(disputeReasonLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                                    </select>
+                                    <label htmlFor="work-dispute-details">합의 내용과 다른 점</label>
+                                    <textarea id="work-dispute-details" value={disputeDetails} onChange={(event) => setDisputeDetails(event.target.value)} placeholder="제안서, 요청사항, 제출물 중 어떤 부분이 다른지 작성해주세요." maxLength={1000} />
+                                    <button type="button" className="btn-primary" disabled={isDisputeSubmitting} onClick={handleOpenDispute}>
+                                        {isDisputeSubmitting ? '접수 중' : '분쟁 접수하기'}
+                                    </button>
+                                </div>
+                            )}
+                        </section>
+                    )}
                     {work.disputeStatus === 'open' && (
                         <p className="workroom-state-notice danger">
-                            분쟁 처리 중입니다. 결과물 승인, 수정 요청, 거래 취소, 자동 구매확정이 잠시 중단됩니다.
+                            분쟁 처리 중입니다. {work.disputeReason ? `${disputeReasonLabels[work.disputeReason]} 사유로 접수되었습니다. ` : ''}결과물 승인, 수정 요청, 거래 취소, 자동 구매확정이 잠시 중단됩니다.
                         </p>
                     )}
                     {isCancellationPending && (

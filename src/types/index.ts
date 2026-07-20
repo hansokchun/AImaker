@@ -168,6 +168,10 @@ export interface Work {
     settlementStatus?: 'held' | 'pending' | 'settled' | 'refunded';
     refundStatus?: 'fee_excluded_refund_pending' | 'refunded';
     disputeStatus?: 'open' | 'resolved';
+    disputeReason?: 'scope_mismatch' | 'missing_deliverable' | 'quality_issue' | 'late_delivery' | 'other';
+    disputeDetails?: string;
+    disputeOpenedBy?: string;
+    disputeOpenedAt?: string;
     cancellationReason?: 'before_start' | 'mutual_after_start';
     cancellationRequestedBy?: string;
     cancellationRequestedAt?: string;

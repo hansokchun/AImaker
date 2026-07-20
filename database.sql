@@ -467,6 +467,10 @@ create table if not exists public.works (
   revision_used integer not null default 0 check (revision_used >= 0),
   refund_status text check (refund_status in ('fee_excluded_refund_pending', 'refunded')),
   dispute_status text check (dispute_status in ('open', 'resolved')),
+  dispute_reason text check (dispute_reason in ('scope_mismatch', 'missing_deliverable', 'quality_issue', 'late_delivery', 'other')),
+  dispute_details text,
+  dispute_opened_by uuid references public.profiles(id) on delete set null,
+  dispute_opened_at timestamptz,
   cancellation_reason text check (cancellation_reason in ('before_start', 'mutual_after_start')),
   cancellation_requested_by uuid references public.profiles(id) on delete set null,
   cancellation_requested_at timestamptz,
@@ -488,6 +492,10 @@ alter table public.works add column if not exists revision_limit integer not nul
 alter table public.works add column if not exists revision_used integer not null default 0;
 alter table public.works add column if not exists refund_status text;
 alter table public.works add column if not exists dispute_status text;
+alter table public.works add column if not exists dispute_reason text;
+alter table public.works add column if not exists dispute_details text;
+alter table public.works add column if not exists dispute_opened_by uuid references public.profiles(id) on delete set null;
+alter table public.works add column if not exists dispute_opened_at timestamptz;
 alter table public.works add column if not exists cancellation_reason text;
 alter table public.works add column if not exists cancellation_requested_by uuid references public.profiles(id) on delete set null;
 alter table public.works add column if not exists cancellation_requested_at timestamptz;

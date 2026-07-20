@@ -51,6 +51,7 @@ export type WorkflowRequest =
     | { readonly type: 'submit_deliverable'; readonly deliverable: DeliverablePayload }
     | { readonly type: 'approve_deliverable'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
     | { readonly type: 'request_work_revision'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
+    | { readonly type: 'request_work_dispute'; readonly workId: string; readonly reason: 'scope_mismatch' | 'missing_deliverable' | 'quality_issue' | 'late_delivery' | 'other'; readonly details: string }
     | { readonly type: 'admin_moderation_action'; readonly action: AdminActionPayload }
     | { readonly type: 'complete_manual_settlement'; readonly settlement: ManualSettlementPayload }
 

@@ -69,6 +69,7 @@ const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
 const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
+const requestWorkDispute = vi.fn(async (_workId: string, _reason: string, _details: string) => undefined)
 const requestWorkCancellation = vi.fn(
     async (_workId: string, _requesterId: string, _reason?: 'before_start' | 'mutual_after_start') => undefined,
 )
@@ -132,6 +133,7 @@ vi.mock('../lib/storage', () => ({
         requestWorkCancellation(workId, requesterId, reason),
     requestWorkRevision: (workId: string, deliverableId: string, stepId?: string) =>
         requestWorkRevision(workId, deliverableId, stepId),
+    requestWorkDispute: (workId: string, reason: string, details: string) => requestWorkDispute(workId, reason, details),
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
     saveWorkMessage: (message: { workId: string; senderId: string; body: string }) => saveWorkMessage(message),
     getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
@@ -145,6 +147,7 @@ describe('Workroom', () => {
         getWorkroomData.mockResolvedValue({ work, steps: [step], deliverables: [deliverable] })
         approveWorkDeliverable.mockClear()
         requestWorkRevision.mockClear()
+        requestWorkDispute.mockClear()
         saveDeliverable.mockClear()
         requestWorkCancellation.mockClear()
         acceptWorkCancellation.mockClear()
@@ -561,6 +564,30 @@ describe('Workroom', () => {
         expect(screen.getByText('수정 요청을 보냈습니다. 전문가가 다시 제출할 수 있습니다.')).toBeInTheDocument()
         expect(screen.getByText('수정 요청 2/2회 사용')).toBeInTheDocument()
         expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0)
+    })
+
+    it('holds settlement and freezes the work when a participant opens a dispute', async () => {
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes><Route path="/workroom/:workId" element={<Workroom />} /></Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '분쟁 신청' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '분쟁 신청' }))
+        fireEvent.change(screen.getByLabelText('합의 내용과 다른 점'), {
+            target: { value: '제안서에 적힌 세로 영상 파일이 제출물에 없습니다.' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '분쟁 접수하기' }))
+
+        await waitFor(() => expect(requestWorkDispute).toHaveBeenCalledWith(
+            work.id,
+            'scope_mismatch',
+            '제안서에 적힌 세로 영상 파일이 제출물에 없습니다.',
+        ))
+        expect(screen.getByText(/분쟁을 접수했습니다/)).toBeInTheDocument()
+        expect(screen.getByText(/분쟁 처리 중입니다/)).toBeInTheDocument()
+        expect(screen.getByText('정산 보류: 분쟁 접수로 정산 보류')).toBeInTheDocument()
     })
 
     it('shows revision copy when experts resubmit after a revision request', async () => {

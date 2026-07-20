@@ -642,7 +642,8 @@ type TradeWorkflowRequest =
     | { readonly type: 'request_settlement_withdrawal'; readonly workId: string }
     | { readonly type: 'submit_deliverable'; readonly deliverable: TradeDeliverablePayload }
     | { readonly type: 'approve_deliverable'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
-    | { readonly type: 'request_work_revision'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string };
+    | { readonly type: 'request_work_revision'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
+    | { readonly type: 'request_work_dispute'; readonly workId: string; readonly reason: NonNullable<Work['disputeReason']>; readonly details: string };
 
 type TradeWorkflowResponse = {
     readonly proposalId?: string;
@@ -2488,6 +2489,39 @@ export async function requestWorkRevision(workId: string, deliverableId: string,
     }
 
     await invokeTradeWorkflow({ type: 'request_work_revision', workId, deliverableId, ...(stepId ? { stepId } : {}) });
+}
+
+export async function requestWorkDispute(
+    workId: string,
+    reason: NonNullable<Work['disputeReason']>,
+    details: string,
+): Promise<void> {
+    const trimmedDetails = details.trim();
+    if (!trimmedDetails) throw new Error('분쟁 사유를 구체적으로 입력해주세요.');
+
+    if (!supabase || hasLocalDemoWork(workId)) {
+        const worksRaw = localStorage.getItem(STORAGE_KEYS.WORKS);
+        const works = worksRaw ? (JSON.parse(worksRaw) as Work[]) : [];
+        const currentWork = works.find((work) => work.id === workId);
+        if (!currentWork || currentWork.disputeStatus === 'open') throw new Error('분쟁을 접수할 수 없는 거래입니다.');
+        if (currentWork.settlementStatus === 'settled' || currentWork.settlementStatus === 'refunded') {
+            throw new Error('정산 또는 환불이 완료된 거래는 관리자에게 문의해주세요.');
+        }
+        localStorage.setItem(
+            STORAGE_KEYS.WORKS,
+            JSON.stringify(works.map((work) => work.id === workId ? {
+                ...work,
+                disputeStatus: 'open',
+                disputeReason: reason,
+                disputeDetails: trimmedDetails,
+                disputeOpenedAt: new Date().toISOString(),
+                settlementHoldReason: '분쟁 접수로 정산 보류',
+            } : work)),
+        );
+        return;
+    }
+
+    await invokeTradeWorkflow({ type: 'request_work_dispute', workId, reason, details: trimmedDetails });
 }
 
 export async function saveReview(review: Review): Promise<void> {

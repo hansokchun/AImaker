@@ -116,6 +116,22 @@ export async function reviewDeliverable(
     return ok({ workId, deliverableId, operationId: result.operationId })
 }
 
+export async function openWorkDispute(
+    client: ServiceClient,
+    userId: string,
+    workId: string,
+    reason: 'scope_mismatch' | 'missing_deliverable' | 'quality_issue' | 'late_delivery' | 'other',
+    details: string,
+): Promise<Response> {
+    const result = await executeFinancialRpc(client, 'open_work_dispute', {
+        p_work_id: workId,
+        p_actor_id: userId,
+        p_reason: reason,
+        p_details: details.trim(),
+    })
+    return ok({ workId, operationId: result.operationId })
+}
+
 export async function requestSettlement(
     client: ServiceClient,
     userId: string,

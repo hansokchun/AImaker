@@ -456,6 +456,51 @@
     margin-top: 1.5rem;
 }
 
+.workroom-dispute {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+}
+
+.workroom-dispute-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    background: transparent;
+    color: #b42318;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.workroom-dispute-trigger .material-symbols-outlined { font-size: 1.1rem; }
+
+.workroom-dispute-form {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: 0.85rem;
+    padding: 1rem;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-lg);
+    background: #fff7f7;
+}
+
+.workroom-dispute-form label { color: var(--text-primary); font-weight: 800; }
+
+.workroom-dispute-form select,
+.workroom-dispute-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #fca5a5;
+    border-radius: var(--radius-md);
+    background: #fff;
+    font: inherit;
+    padding: 0.75rem;
+}
+
+.workroom-dispute-form textarea { min-height: 104px; resize: vertical; }
+
 .auto-confirm-notice {
     padding: 0.85rem 0.95rem;
     background: #f4f7fc;

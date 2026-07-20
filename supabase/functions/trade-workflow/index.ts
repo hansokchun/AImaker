@@ -5,7 +5,7 @@ import { runAdminAction } from './admin-handlers.ts'
 import { completeManualSettlementWithClient } from './manual-settlement.ts'
 import { acceptProposal, createProposal, updateProposal, updateProposalDecision } from './proposal-handlers.ts'
 import { ok, responseError } from './responses.ts'
-import { cancelWork, requestSettlement, reviewDeliverable, submitDeliverable } from './work-handlers.ts'
+import { cancelWork, openWorkDispute, requestSettlement, reviewDeliverable, submitDeliverable } from './work-handlers.ts'
 import { isRecord, isWorkflowRequest } from './validation.ts'
 
 Deno.serve(async (request) => {
@@ -49,6 +49,8 @@ Deno.serve(async (request) => {
                 return await reviewDeliverable(client, user.id, body.workId, body.deliverableId, true)
             case 'request_work_revision':
                 return await reviewDeliverable(client, user.id, body.workId, body.deliverableId, false)
+            case 'request_work_dispute':
+                return await openWorkDispute(client, user.id, body.workId, body.reason, body.details)
             case 'request_settlement_withdrawal':
                 return await requestSettlement(client, user.id, body.workId)
             case 'admin_moderation_action':
