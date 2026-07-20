@@ -9,6 +9,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ROUTES } from '../constants/routes';
 import type { Provider } from '@supabase/supabase-js';
+import BrandLogo from '../components/BrandLogo';
 import './Login.css';
 
 export default function Login() {
@@ -85,10 +86,9 @@ export default function Login() {
             <div className="login-card">
                 <div className="login-header">
                     <Link to={ROUTES.HOME} className="logo login-logo">
-                        <span className="material-symbols-outlined">handshake</span>
-                        AIConnect
+                        <BrandLogo />
                     </Link>
-                    <h1>AIConnect 시작하기</h1>
+                    <h1>일픽 시작하기</h1>
                     <p>
                         {isSignUp
                             ? '가입 후 프로필을 작성하면 의뢰자와 작업자 기능을 모두 이용할 수 있어요.'

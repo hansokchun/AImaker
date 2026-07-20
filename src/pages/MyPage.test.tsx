@@ -1155,7 +1155,7 @@ describe('MyPage', () => {
 
         expect(screen.getByRole('heading', { name: '내 작업' })).toBeInTheDocument()
         expect(screen.getByRole('navigation', { name: '내 작업 메뉴' })).toBeInTheDocument()
-        expect(screen.queryByText('AIConnect Marketplace')).not.toBeInTheDocument()
+        expect(screen.queryByText('일픽 마켓플레이스')).not.toBeInTheDocument()
         expect(screen.queryByText('의뢰, 제안, 프로젝트, 완료 리뷰를 한 곳에서 관리합니다.')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 등록' })).not.toBeInTheDocument()

@@ -1,5 +1,5 @@
 .page-hero {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(135deg, #071a3d 0%, #102d60 100%);
     color: white;
 }
 
@@ -52,7 +52,7 @@
     padding: 1.5rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    background: #f8fafc;
+    background: #f4f7fc;
     margin-bottom: 2rem;
 }
 
@@ -116,7 +116,7 @@
     font-family: inherit;
     font-size: 1rem;
     transition: var(--transition);
-    background: #f8fafc;
+    background: #f4f7fc;
     line-height: 1.5;
 }
 
@@ -124,7 +124,7 @@
     outline: none;
     border-color: var(--primary);
     background: white;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 4px rgba(20, 121, 255, 0.1);
 }
 
 .form-row {
@@ -155,7 +155,7 @@
     gap: 0.55rem;
     min-width: 160px;
     padding: 0.9rem 1rem;
-    background: #f8fafc;
+    background: #f4f7fc;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     color: var(--text-secondary);

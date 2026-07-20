@@ -37,7 +37,7 @@ describe('Login', () => {
   it('prioritizes social login and keeps email login as a verified fallback', () => {
     renderLogin()
 
-    expect(screen.getByRole('heading', { name: 'AIConnect 시작하기' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '일픽 시작하기' })).toBeInTheDocument()
     expect(screen.getByText('Google 또는 카카오로 빠르게 로그인하고 거래를 이어가세요.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Google로 계속하기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '카카오로 계속하기' })).toBeInTheDocument()

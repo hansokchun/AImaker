@@ -62,7 +62,7 @@ describe('Onboarding', () => {
         fireEvent.change(document.querySelector('#client-purposes') as HTMLInputElement, {
             target: { value: 'promotion' },
         })
-        fireEvent.click(screen.getByRole('button', { name: /AIConnect/ }))
+        fireEvent.click(screen.getByRole('button', { name: /일픽/ }))
 
         await waitFor(() =>
             expect(mockUpsert).toHaveBeenCalledWith(
@@ -88,7 +88,7 @@ describe('Onboarding', () => {
         fireEvent.change(screen.getByLabelText('주로 맡기려는 목적'), {
             target: { value: '홍보, 업무 자동화' },
         })
-        fireEvent.click(screen.getByRole('button', { name: /AIConnect/ }))
+        fireEvent.click(screen.getByRole('button', { name: /일픽/ }))
 
         await waitFor(() =>
             expect(mockUpsert).toHaveBeenCalledWith(
@@ -112,7 +112,7 @@ describe('Onboarding', () => {
         fireEvent.change(screen.getByLabelText('사용 도구'), {
             target: { value: 'ChatGPT, Midjourney' },
         })
-        fireEvent.click(screen.getByRole('button', { name: /AIConnect/ }))
+        fireEvent.click(screen.getByRole('button', { name: /일픽/ }))
 
         await waitFor(() =>
             expect(mockUpsert).toHaveBeenCalledWith(

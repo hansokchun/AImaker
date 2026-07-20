@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { AvatarUploadError, prepareAvatarUpload } from '../lib/avatarUpload';
 import { ROUTES } from '../constants/routes';
+import BrandLogo from '../components/BrandLogo';
 import './Onboarding.css';
 
 export default function Onboarding() {
@@ -134,11 +135,10 @@ export default function Onboarding() {
                 {/* 헤더 */}
                 <div className="onboarding-header">
                     <div className="onboarding-logo">
-                        <span className="material-symbols-outlined">handshake</span>
-                        AIConnect
+                        <BrandLogo />
                     </div>
                     <h1>환영합니다! 🎉</h1>
-                    <p>AIConnect 시작을 위해 몇 가지 정보를 알려주세요.</p>
+                    <p>일픽 시작을 위해 몇 가지 정보를 알려주세요.</p>
                 </div>
 
                 {error && (
@@ -271,7 +271,7 @@ export default function Onboarding() {
 
                     {/* 완료 버튼 */}
                     <button type="submit" className="btn-primary onboarding-submit" disabled={loading}>
-                        {loading ? '시작 준비 중...' : 'AIConnect 시작하기 →'}
+                        {loading ? '시작 준비 중...' : '일픽 시작하기 →'}
                     </button>
                 </form>
             </div>

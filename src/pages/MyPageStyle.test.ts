@@ -44,15 +44,15 @@ describe('MyPage work dashboard visual styles', () => {
         expect(detailRule).toContain('border-radius: 16px')
     })
 
-    it('restores the original light marketplace backgrounds', () => {
-        expect(getRule(globalCss, ':root')).toContain('--background: #f8fafc')
+    it('uses the ilpick light marketplace backgrounds', () => {
+        expect(getRule(globalCss, ':root')).toContain('--background: #f4f7fc')
         expect(getRule(globalCss, 'body')).toContain('background-color: var(--background)')
         expect(getRule(myPageCss, '.mypage-page')).toContain('background: var(--background)')
         expect(getRule(myPageCss, '.work-dashboard-page')).toContain('background: var(--background)')
-        expect(getRule(globalCss, '.recent-requests-section')).toContain('background: #f8fafc')
-        expect(getRule(proposalCss, '.proposal-page')).toContain('background: #f8fafc')
-        expect(getRule(workroomCss, '.workroom-page')).toContain('background: #f8fafc')
-        expect(getRule(loginCss, '.login-page')).toContain('linear-gradient(135deg, #f8fbff 0%, #eef4ff 50%, #f8fafc 100%)')
+        expect(getRule(globalCss, '.recent-requests-section')).toContain('background: #f4f7fc')
+        expect(getRule(proposalCss, '.proposal-page')).toContain('background: #f4f7fc')
+        expect(getRule(workroomCss, '.workroom-page')).toContain('background: #f4f7fc')
+        expect(getRule(loginCss, '.login-page')).toContain('linear-gradient(135deg, #f8fbff 0%, #eef4ff 50%, #f4f7fc 100%)')
     })
 
     it('uses a reference-style pill role switch with icon buttons', () => {
@@ -99,7 +99,7 @@ describe('MyPage work dashboard visual styles', () => {
 
         expect(menuButtonRule).toContain('display: flex')
         expect(menuButtonRule).toContain('border-left: 3px solid transparent')
-        expect(selectedMenuRule).toContain('border-left-color: #2563eb')
+        expect(selectedMenuRule).toContain('border-left-color: #1479ff')
         expect(listCardRule).toContain('min-height: 92px')
         expect(listCardRule).toContain('padding: var(--space-4)')
         expect(listMetaRule).toContain('justify-content: space-between')
@@ -111,7 +111,7 @@ describe('MyPage work dashboard visual styles', () => {
         expect(progressLineRule).toContain('position: absolute')
         expect(progressLineRule).toContain('left: calc(50% + 1.35rem)')
         expect(progressLineRule).toContain('right: calc(-50% + 1.35rem)')
-        expect(currentCardRule).toContain('background: #eff6ff')
+        expect(currentCardRule).toContain('background: #edf3ff')
         expect(timelineRule).toContain('display: grid')
         expect(transactionInfoRule).toContain('border: 1px solid #e8edf5')
     })

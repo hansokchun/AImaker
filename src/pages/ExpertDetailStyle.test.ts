@@ -11,6 +11,14 @@ const getRule = (selector: string) => {
 }
 
 describe('ExpertDetail gallery styles', () => {
+    it('scopes the ilpick palette to the product detail preview', () => {
+        const previewRule = getRule('.ilpick-product-detail')
+
+        expect(previewRule).toContain('--primary: #1479ff')
+        expect(previewRule).toContain('--ilpick-navy: #071a3d')
+        expect(previewRule).toContain('--ilpick-blue-soft: #e5f0ff')
+    })
+
     it('keeps the gallery stage size fixed while media changes', () => {
         const stageRule = getRule('.product-gallery-stage')
         const imageRule = getRule('.product-gallery-image')

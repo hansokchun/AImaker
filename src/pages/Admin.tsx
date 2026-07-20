@@ -245,7 +245,7 @@ function AdminHeader({ source }: { readonly source: AdminSnapshot['source'] }) {
     return (
         <header className="admin-header">
             <div>
-                <p className="admin-kicker">AIConnect Admin</p>
+                <p className="admin-kicker">일픽 관리자</p>
                 <h1 className="admin-title">운영 관리자</h1>
                 <p className="admin-description">
                     회원, 상품, 거래, 상담채팅, 작업방, 리뷰를 한 곳에서 확인합니다. 운영 조치는 기록과 실제 상태 변경을 함께 남깁니다.

@@ -61,7 +61,7 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
             aria-label={`${product.title} 썸네일`}
         >
             <span className="home-minimal-thumbnail-label" aria-hidden="true">
-                AIConnect
+                일픽
             </span>
             {showImage && (
                 <img

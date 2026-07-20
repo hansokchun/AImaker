@@ -4,8 +4,8 @@
     align-items: center;
     justify-content: center;
     background:
-        radial-gradient(circle at 18% 18%, rgba(37, 99, 235, 0.18), transparent 34%),
-        linear-gradient(135deg, #f8fbff 0%, #eef4ff 50%, #f8fafc 100%);
+        radial-gradient(circle at 18% 18%, rgba(20, 121, 255, 0.18), transparent 34%),
+        linear-gradient(135deg, #f8fbff 0%, #eef4ff 50%, #f4f7fc 100%);
     padding: 2rem;
 }
 .login-card {
@@ -38,7 +38,7 @@
 }
 .auth-primary-panel {
     padding: 1rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #d8e1ef;
     border-radius: 14px;
     background: #f8fbff;
 }
@@ -48,19 +48,19 @@
     justify-content: center;
     gap: 0.35rem;
     margin-top: 0.9rem;
-    color: #475569;
+    color: #50627f;
     font-size: 0.82rem;
     font-weight: 650;
     line-height: 1.45;
     text-align: center;
 }
 .auth-trust-note .material-symbols-outlined {
-    color: #2563eb;
+    color: #1479ff;
     font-size: 1rem;
 }
 .email-auth-panel {
     padding: 1.15rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #d8e1ef;
     border-radius: 14px;
     background: #ffffff;
 }
@@ -74,7 +74,7 @@
     font-weight: 800;
 }
 .email-auth-header p {
-    color: #64748b;
+    color: #657790;
     font-size: 0.84rem;
     line-height: 1.45;
 }
@@ -95,14 +95,14 @@
     border-radius: var(--radius-lg);
     font-size: 1rem;
     font-family: inherit;
-    background: #f8fafc;
+    background: #f4f7fc;
     transition: var(--transition);
 }
 .login-card .form-control:focus {
     outline: none;
     border-color: var(--primary);
     background: white;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 4px rgba(20, 121, 255, 0.1);
 }
 .login-btn {
     width: 100%;
@@ -158,7 +158,7 @@
     border: 1px solid var(--border-color);
     color: var(--text-primary);
 }
-.oauth-btn.google:hover { background: #f8fafc; box-shadow: var(--shadow-sm); }
+.oauth-btn.google:hover { background: #f4f7fc; box-shadow: var(--shadow-sm); }
 .oauth-btn.kakao {
     background: #FEE500;
     border: 1px solid #FEE500;

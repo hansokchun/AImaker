@@ -20,7 +20,7 @@ export default function AdminDashboardPanel({ stats }: { readonly stats: readonl
                         <h2 className="admin-panel-title">운영 우선순위</h2>
                         <p className="admin-panel-copy">
                             Shopify식 주문/상품 관리, Stripe식 결제/분쟁 추적, 마켓플레이스식 신고 대응을
-                            AIConnect 거래 흐름에 맞춰 묶었습니다.
+                            일픽 거래 흐름에 맞춰 묶었습니다.
                         </p>
                     </div>
                 </div>

@@ -34,6 +34,7 @@ const proposal: Proposal = {
 describe('startTossProposalPayment', () => {
     beforeEach(() => {
         vi.useRealTimers()
+        vi.resetModules()
         vi.unstubAllEnvs()
         vi.stubEnv('VITE_TOSS_PAYMENTS_CLIENT_KEY', 'test_ck_timeout')
         invoke.mockReset()
@@ -59,6 +60,18 @@ describe('startTossProposalPayment', () => {
         await vi.advanceTimersByTimeAsync(30_000)
 
         await rejection
+        expect(document.head.querySelector('script[src="https://js.tosspayments.com/v2/standard"]')).toBeNull()
+    })
+
+    it('rejects missing Toss client configuration without creating an order', async () => {
+        vi.stubEnv('VITE_TOSS_PAYMENTS_CLIENT_KEY', '')
+
+        const { startTossProposalPayment } = await import('./tossPayments')
+
+        await expect(startTossProposalPayment(proposal, { id: proposal.clientId }))
+            .rejects.toThrow('VITE_TOSS_PAYMENTS_CLIENT_KEY가 설정되어 있지 않습니다.')
+
+        expect(invoke).not.toHaveBeenCalled()
         expect(document.head.querySelector('script[src="https://js.tosspayments.com/v2/standard"]')).toBeNull()
     })
 })

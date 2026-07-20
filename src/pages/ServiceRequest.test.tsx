@@ -78,7 +78,7 @@ describe('ServiceRequest', () => {
         expect(screen.getByRole('radio', { name: '단일 진행' })).toBeChecked()
         expect(screen.getByRole('radio', { name: '단계별 진행' })).toBeInTheDocument()
         expect(screen.queryByLabelText(/이메일|연락처|주문자/)).not.toBeInTheDocument()
-        expect(screen.getByText('플랫폼 외부 연락처를 주고받지 말고, 진행 안내는 AIConnect 안에서 확인합니다.')).toBeInTheDocument()
+        expect(screen.getByText('플랫폼 외부 연락처를 주고받지 말고, 진행 안내는 일픽 안에서 확인합니다.')).toBeInTheDocument()
     })
 
     it('submits product requirements to the selected expert without opening the request board', async () => {

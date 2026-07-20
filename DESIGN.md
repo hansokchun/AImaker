@@ -1,8 +1,8 @@
-# AIConnect Design System
+# 일픽 Design System
 
 ## 1. Atmosphere & Identity
 
-AIConnect feels like a clear, practical AI work marketplace: calm enough for first-time clients, structured enough for repeat work. The signature is a clean marketplace surface with trust metadata close to each decision point.
+일픽 feels like a clear, practical AI work marketplace: calm enough for first-time clients, structured enough for repeat work. The signature is a clean marketplace surface with trust metadata close to each decision point.
 
 ## 2. Color
 
@@ -122,7 +122,7 @@ All spacing derives from a base of 4px.
 
 ### Strategy
 
-AIConnect uses a mixed but restrained strategy: subtle borders define marketplace structure, and shadows are reserved for navigation or floating overlays.
+일픽 uses a mixed but restrained strategy: subtle borders define marketplace structure, and shadows are reserved for navigation or floating overlays.
 
 | Level | Value | Usage |
 |-------|-------|-------|

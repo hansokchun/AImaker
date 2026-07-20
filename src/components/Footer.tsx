@@ -5,13 +5,16 @@
  */
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
+import BrandLogo from './BrandLogo';
 
 export default function Footer() {
     return (
         <footer className="footer">
             <div className="container footer-content">
                 <div className="footer-brand">
-                    <Link to={ROUTES.HOME} className="logo" style={{ color: 'white', marginBottom: '1.5rem', display: 'block' }}>AIConnect</Link>
+                    <Link to={ROUTES.HOME} className="logo footer-logo">
+                        <BrandLogo tone="inverse" />
+                    </Link>
                     <p className="footer-desc">상상을 현실로 만드는 가장 스마트한 방법. 최고의 전문가들과 함께하세요.</p>
                 </div>
                 <div className="link-column">
@@ -33,7 +36,7 @@ export default function Footer() {
                 </div>
             </div>
             <div className="container footer-bottom">
-                <p>&copy; 2026 AIConnect. All rights reserved.</p>
+                <p>&copy; 2026 ilpick. All rights reserved.</p>
             </div>
         </footer>
     );

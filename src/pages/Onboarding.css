@@ -5,7 +5,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background: linear-gradient(135deg, #071a3d 0%, #102d60 50%, #071a3d 100%);
     padding: 2rem 1rem;
     position: relative;
     overflow: hidden;
@@ -17,7 +17,7 @@
     position: absolute;
     width: 500px;
     height: 500px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(74, 156, 255, 0.15) 0%, transparent 70%);
     top: -100px;
     right: -100px;
     border-radius: 50%;
@@ -128,13 +128,13 @@
 
 .role-btn:hover {
     border-color: var(--primary-light, #93c5fd);
-    background: rgba(59, 130, 246, 0.04);
+    background: rgba(74, 156, 255, 0.04);
 }
 
 .role-btn.active {
     border-color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: rgba(74, 156, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(74, 156, 255, 0.1);
 }
 
 .role-icon {
@@ -176,7 +176,7 @@
 .onboarding-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(74, 156, 255, 0.1);
 }
 
 /* 이미지 업로드 */

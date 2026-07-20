@@ -7,7 +7,7 @@ type LegalPageProps = {
 const termsSections = [
     {
         title: '서비스 이용',
-        body: 'AIConnect는 의뢰자와 전문가가 AI 작업을 의뢰, 제안, 결제, 작업 진행, 결과물 승인까지 관리하는 중개형 마켓플레이스입니다. 사용자는 정확한 계정 정보와 거래 정보를 제공해야 하며, 외부 연락처 유도나 플랫폼 밖 결제 요청은 제한됩니다.',
+        body: '일픽는 의뢰자와 전문가가 AI 작업을 의뢰, 제안, 결제, 작업 진행, 결과물 승인까지 관리하는 중개형 마켓플레이스입니다. 사용자는 정확한 계정 정보와 거래 정보를 제공해야 하며, 외부 연락처 유도나 플랫폼 밖 결제 요청은 제한됩니다.',
     },
     {
         title: '결제와 작업 진행',
@@ -30,7 +30,7 @@ const privacySections = [
     },
     {
         title: '결제와 정산 정보',
-        body: '카드번호 등 결제수단의 민감 정보는 Toss Payments가 처리하며 AIConnect는 결제 승인 키, 주문번호, 금액, 거래 상태를 저장합니다. 전문가 정산 계좌 정보는 정산 확인과 송금 처리 목적으로 사용됩니다.',
+        body: '카드번호 등 결제수단의 민감 정보는 Toss Payments가 처리하며 일픽는 결제 승인 키, 주문번호, 금액, 거래 상태를 저장합니다. 전문가 정산 계좌 정보는 정산 확인과 송금 처리 목적으로 사용됩니다.',
     },
     {
         title: '알림 발송',
@@ -46,15 +46,15 @@ export default function LegalPage({ variant }: LegalPageProps) {
     const isPrivacy = variant === 'privacy'
     const title = isPrivacy ? '개인정보 처리방침' : '이용약관'
     const description = isPrivacy
-        ? 'AIConnect가 서비스 제공을 위해 처리하는 개인정보와 보관 기준입니다.'
-        : 'AIConnect의 의뢰, 결제, 작업 진행, 정산 기준입니다.'
+        ? '일픽가 서비스 제공을 위해 처리하는 개인정보와 보관 기준입니다.'
+        : '일픽의 의뢰, 결제, 작업 진행, 정산 기준입니다.'
     const sections = isPrivacy ? privacySections : termsSections
 
     return (
         <main className="legal-page" aria-labelledby="legal-page-title">
             <section className="legal-hero">
                 <div className="container legal-hero-inner">
-                    <p className="legal-eyebrow">AIConnect 정책</p>
+                    <p className="legal-eyebrow">일픽 정책</p>
                     <h1 id="legal-page-title">{title}</h1>
                     <p>{description}</p>
                     <span>시행일: 2026년 7월 12일</span>

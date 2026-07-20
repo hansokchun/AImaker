@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import BrandLogo from './BrandLogo';
 import { ROUTES } from '../constants/routes';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserNotifications, type UserNotification } from '../lib/notifications';
@@ -119,8 +120,8 @@ export default function Navbar() {
     return (
         <header className="navbar" id="navbar">
             <div className="nav-container container">
-                <Link to={ROUTES.HOME} className="logo" aria-label="AIConnect">
-                    AIConnect
+                <Link to={ROUTES.HOME} className="logo" aria-label="일픽">
+                    <BrandLogo />
                 </Link>
 
                 {showSearch && (

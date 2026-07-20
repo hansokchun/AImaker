@@ -80,7 +80,6 @@ export class PaymentRequestError extends Error {
 
 let sdkPromise: Promise<TossPaymentsFactory> | null = null
 const TOSS_SDK_LOAD_TIMEOUT_MS = 30_000
-const FALLBACK_TOSS_PAYMENTS_TEST_CLIENT_KEY = 'test_ck_AQ92ymxN34ZbgeYk2mY4rajRKXvd'
 
 const assertConfiguredSupabase = () => {
     if (!supabase) {
@@ -92,7 +91,6 @@ const assertConfiguredSupabase = () => {
 
 const getClientKey = () => {
     const clientKey = import.meta.env.VITE_TOSS_PAYMENTS_CLIENT_KEY?.trim()
-        || FALLBACK_TOSS_PAYMENTS_TEST_CLIENT_KEY
     if (!clientKey) {
         throw new PaymentConfigurationError('VITE_TOSS_PAYMENTS_CLIENT_KEY가 설정되어 있지 않습니다.')
     }
@@ -169,6 +167,7 @@ const loadTossPayments = async (): Promise<TossPaymentsFactory> => {
 }
 
 export async function startTossProposalPayment(proposal: Proposal, customer: TossCustomer): Promise<void> {
+    const clientKey = getClientKey()
     const client = assertConfiguredSupabase()
     const { data, error } = await client.functions.invoke('toss-payment-order', {
         body: { proposalId: proposal.id },
@@ -183,7 +182,7 @@ export async function startTossProposalPayment(proposal: Proposal, customer: Tos
     }
 
     const tossPayments = await loadTossPayments()
-    const payment = tossPayments(getClientKey()).payment({
+    const payment = tossPayments(clientKey).payment({
         customerKey: customer.id || tossPayments.ANONYMOUS,
     })
 

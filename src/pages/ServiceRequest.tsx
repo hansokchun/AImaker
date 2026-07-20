@@ -391,7 +391,7 @@ export default function ServiceRequest() {
                         </fieldset>
 
                         <p className="platform-notice">
-                            플랫폼 외부 연락처를 주고받지 말고, 진행 안내는 AIConnect 안에서 확인합니다.
+                            플랫폼 외부 연락처를 주고받지 말고, 진행 안내는 일픽 안에서 확인합니다.
                         </p>
 
                         <button type="submit" className="btn-primary request-submit">

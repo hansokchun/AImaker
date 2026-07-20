@@ -183,7 +183,7 @@ describe('Workroom', () => {
         expect(screen.getByRole('heading', { name: '결제/정산' })).toBeInTheDocument()
         expect(screen.getByText('결제 완료')).toBeInTheDocument()
         expect(screen.getByText('70,000원')).toBeInTheDocument()
-        expect(screen.getByText('AIConnect 수수료 0원')).toBeInTheDocument()
+        expect(screen.getByText('일픽 수수료 0원')).toBeInTheDocument()
         expect(screen.getByText('전문가 정산 예정 70,000원')).toBeInTheDocument()
         expect(screen.getByText('작업 진행 중 보관')).toBeInTheDocument()
 

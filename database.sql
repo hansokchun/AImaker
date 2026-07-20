@@ -1,4 +1,4 @@
--- AIConnect Supabase schema
+-- ilpick Supabase schema
 -- Based on SupabasePlan.md. This file is intended for Supabase SQL editor execution.
 
 create extension if not exists "pgcrypto";

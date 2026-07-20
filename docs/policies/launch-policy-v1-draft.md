@@ -7,7 +7,7 @@
 
 ## Approved default
 
-AIConnect remains a closed beta. No real user, real payment, public launch, or production release is authorized until the applicable Stage 1 and Stage 2 acceptance criteria and external gates have passed.
+일픽 remains a closed beta. No real user, real payment, public launch, or production release is authorized until the applicable Stage 1 and Stage 2 acceptance criteria and external gates have passed.
 
 ## Allowed while pending
 

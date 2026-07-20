@@ -7,6 +7,7 @@ import SellerReviewCard from '../components/SellerReviewCard'
 import { AI_CATEGORIES } from '../constants/categories'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
+import { mockExpertProducts } from '../data/mockData'
 import { createConsultation, getExpertProducts, getExpertReviews, getStoredProfile, getUserDisplayProfile } from '../lib/storage'
 import { getPackageOptionRows } from '../lib/packageOptions'
 import type { ExpertProduct, ExpertProfile, ProductPackage, Review } from '../types'
@@ -64,6 +65,19 @@ const formatProductCreatedAt = (createdAt?: string) => {
 const isVideoMedia = (src: string) =>
     /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
 
+const ilpickPreviewSeller: SellerProfile = {
+    name: '일픽 AI 스튜디오',
+    imageUrl: '',
+    isExpert: true,
+    profession: 'AI 영상 제작 전문가',
+    oneLiner: '브랜드의 메시지를 짧고 선명한 AI 영상으로 만듭니다.',
+    greeting: '의뢰 목적과 채널에 맞춰 기획부터 시안까지 함께 정리합니다.',
+    activities: ['브랜드 숏폼 캠페인 제작', 'AI 영상 워크플로우 컨설팅'],
+    awards: [],
+    contactAvailableTime: '평일 10:00-19:00',
+    averageResponseTime: '보통 2시간 이내',
+}
+
 export default function ExpertDetail() {
     const { id } = useParams<{ id: string }>()
     const location = useLocation()
@@ -82,6 +96,22 @@ export default function ExpertDetail() {
     useEffect(() => {
         let active = true
         setLoading(true)
+
+        const isIlpickPreview = import.meta.env.DEV
+            && new URLSearchParams(location.search).get('brand-preview') === 'ilpick'
+        if (isIlpickPreview) {
+            const previewProduct = mockExpertProducts[0]
+            setAllProducts(mockExpertProducts)
+            setProduct(previewProduct)
+            setSellerProducts([previewProduct])
+            setSellerProfile(ilpickPreviewSeller)
+            setExpertReviews([])
+            setLoading(false)
+
+            return () => {
+                active = false
+            }
+        }
 
         getExpertProducts().then(async (products) => {
             if (!active) return
@@ -114,7 +144,7 @@ export default function ExpertDetail() {
         return () => {
             active = false
         }
-    }, [id])
+    }, [id, location.search])
 
     useEffect(() => {
         setActiveGalleryIndex(0)
@@ -211,7 +241,7 @@ export default function ExpertDetail() {
                     <div>
                         <div className="product-detail-category">판매자 프로필</div>
                         <h1>{sellerName}</h1>
-                        <p>{sellerProfile?.isExpert ? 'AIConnect 전문가' : '상품 등록 전문가'}</p>
+                        <p>{sellerProfile?.isExpert ? '일픽 전문가' : '상품 등록 전문가'}</p>
                         {sellerProfile?.contactAvailableTime && (
                             <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
                         )}
@@ -306,12 +336,12 @@ export default function ExpertDetail() {
     const similarProducts = allProducts
         .filter((candidate) => candidate.id !== product.id && candidate.category === product.category)
         .slice(0, 4)
-    const sellerProfession = sellerProfile?.profession || (sellerProfile?.isExpert ? 'AIConnect 판매자' : 'AI 작업 판매자')
+    const sellerProfession = sellerProfile?.profession || (sellerProfile?.isExpert ? '일픽 판매자' : 'AI 작업 판매자')
     const sellerContactAvailableTime = sellerProfile?.contactAvailableTime || '상담 후 안내'
     const sellerAverageResponseTime = sellerProfile?.averageResponseTime || '응답 정보 준비 중'
 
     return (
-        <main className="container">
+        <main className="container ilpick-product-detail">
             {myPageReturnTo && (
                 <div className="detail-owner-actions">
                     <Link to={myPageReturnTo} className="btn-text">
