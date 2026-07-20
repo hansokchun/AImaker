@@ -4,6 +4,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 const ACCEPTED_DETAIL_MEDIA_TYPES = ['image/jpeg', 'image/png', 'video/mp4', 'video/webm', 'video/quicktime']
 const MAIN_IMAGE_MIN_WIDTH = 652
 const MAIN_IMAGE_MIN_HEIGHT = 488
+const MAX_PRODUCT_SAMPLE_FILE_BYTES = 25 * 1024 * 1024
 const PRODUCT_SAMPLE_BUCKET = 'product-samples'
 
 export type ProductImageKind = 'main' | 'detail'
@@ -76,6 +77,14 @@ const validateProductImageFile = async (file: File, kind: ProductImageKind) => {
         throw new Error(kind === 'main'
             ? '대표 이미지는 JPG 또는 PNG 파일만 등록할 수 있습니다.'
             : '상세 미디어는 JPG, PNG, MP4, WebM, MOV 파일만 등록할 수 있습니다.')
+    }
+
+    if (file.size <= 0) {
+        throw new Error('비어 있는 파일은 등록할 수 없습니다.')
+    }
+
+    if (file.size > MAX_PRODUCT_SAMPLE_FILE_BYTES) {
+        throw new Error('상품 샘플 파일은 파일당 25MB 이하만 등록할 수 있습니다.')
     }
 
     if (kind === 'main') {

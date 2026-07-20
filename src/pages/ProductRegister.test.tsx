@@ -241,6 +241,24 @@ describe('ProductRegister', () => {
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work?role=expert&panel=products'))
     })
 
+    it('keeps an existing draft private until the owner explicitly publishes it', async () => {
+        getExpertProducts.mockResolvedValue([{ ...editableProduct, status: 'draft' }])
+        renderEditRegister()
+
+        expect(await screen.findByRole('button', { name: '임시저장 유지' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '공개 등록하기' })).toBeInTheDocument()
+        expect(screen.getByText('현재 임시저장 상태입니다. 아래 공개 등록하기를 누르면 AI 작업 찾기에 공개됩니다.')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: '임시저장 유지' }))
+
+        await waitFor(() =>
+            expect(saveExpertProduct).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'draft' }),
+            ),
+        )
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/my-work?role=expert&panel=products'))
+    })
+
     it('saves product tax invoice and visibility status without product-level AI tools', async () => {
         renderRegister()
 
@@ -539,6 +557,29 @@ describe('ProductRegister', () => {
                 }),
             ),
         )
+    })
+
+    it('rejects detail media larger than 25MB before saving the product', async () => {
+        renderRegister()
+
+        fireEvent.change(screen.getByLabelText('상품명'), { target: { value: '대용량 영상 상품' } })
+        fireEvent.change(screen.getByLabelText('서비스 요약'), { target: { value: '용량 제한을 확인하는 상품입니다.' } })
+        fireEvent.change(screen.getByLabelText('상세 설명'), { target: { value: '상세 미디어 파일 용량 제한을 확인합니다.' } })
+        fireEvent.change(screen.getByLabelText('메인 이미지 첨부'), {
+            target: { files: [new File(['main'], 'main.png', { type: 'image/png' })] },
+        })
+        fireEvent.change(screen.getByLabelText('상세 미디어 첨부'), {
+            target: { files: [new File([new Uint8Array(25 * 1024 * 1024 + 1)], 'large.mp4', { type: 'video/mp4' })] },
+        })
+        fireEvent.change(screen.getByLabelText('가격'), { target: { value: '30000' } })
+        fireEvent.change(screen.getByLabelText('작업일'), { target: { value: '2' } })
+        fireEvent.change(screen.getByLabelText('수정 횟수'), { target: { value: '1' } })
+        fireEvent.change(screen.getByLabelText('기본 제공 항목'), { target: { value: '영상 샘플 확인' } })
+        fireEvent.click(screen.getByRole('checkbox', { name: '이미지와 설명 등록 유의사항을 확인했습니다' }))
+        fireEvent.click(screen.getByRole('button', { name: '등록하기' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('상품 샘플 파일은 파일당 25MB 이하만 등록할 수 있습니다.')
+        expect(saveExpertProduct).not.toHaveBeenCalled()
     })
 
     it('allows MOV files from the picker and previews them as video detail media', async () => {

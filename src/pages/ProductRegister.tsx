@@ -39,8 +39,8 @@ const packageNames: Record<PackageTier, ProductPackage['name']> = {
     premium: 'Premium',
 }
 
-type PublishableProductStatus = Exclude<ExpertProduct['status'], 'draft'>
 type ProductSaveStatus = ExpertProduct['status']
+type PublishableProductStatus = Exclude<ProductSaveStatus, 'draft'>
 
 const productStatusLabels: Record<PublishableProductStatus, string> = {
     published: '공개',
@@ -58,7 +58,7 @@ export default function ProductRegister() {
     const [summary, setSummary] = useState('')
     const [description, setDescription] = useState('')
     const [taxInvoiceAvailable, setTaxInvoiceAvailable] = useState(false)
-    const [productStatus, setProductStatus] = useState<PublishableProductStatus>('published')
+    const [productStatus, setProductStatus] = useState<ProductSaveStatus>('published')
     const [usePackagePricing, setUsePackagePricing] = useState(false)
     const [basePackage, setBasePackage] = useState<PackageFormState>(createPackageState)
     const [packages, setPackages] = useState<Record<PackageTier, PackageFormState>>({
@@ -105,7 +105,7 @@ export default function ProductRegister() {
                 setSummary(targetProduct.summary)
                 setDescription(targetProduct.description)
                 setTaxInvoiceAvailable(Boolean(targetProduct.taxInvoiceAvailable))
-                setProductStatus(targetProduct.status === 'hidden' ? 'hidden' : 'published')
+                setProductStatus(targetProduct.status === 'draft' ? 'draft' : targetProduct.status === 'hidden' ? 'hidden' : 'published')
                 setExistingThumbnailDataUrl(targetProduct.sampleImageUrl || '')
                 setExistingReferenceDataUrls(targetProduct.sampleLinks || [])
 
@@ -298,7 +298,7 @@ export default function ProductRegister() {
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        await saveProductWithStatus(productStatus)
+        await saveProductWithStatus(productStatus === 'draft' ? 'published' : productStatus)
     }
 
     const handleSaveDraft = async () => {
@@ -448,7 +448,7 @@ export default function ProductRegister() {
                         <div className="product-register-notice">
                             <strong>등록 유의사항</strong>
                             <p>
-                                대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 미디어는 JPG/PNG 이미지와 MP4/WebM 영상을 등록할 수 있습니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 자료는 넣지 않습니다.
+                                대표 이미지는 JPG/PNG, 최소 652x488px 이상이어야 합니다. 상세 미디어는 JPG/PNG 이미지와 MP4/WebM/MOV 영상을 파일당 25MB 이하로 등록할 수 있습니다. 외부 연락처, 직접 결제 안내, 최저가/무조건 보장 같은 과장 표현, 타인의 권리를 침해하는 자료는 넣지 않습니다.
                             </p>
                             <label className="product-register-check-label">
                                 <input
@@ -513,6 +513,7 @@ export default function ProductRegister() {
                                         }
                                     }}
                                 >
+                                    {productStatus === 'draft' && <option value="draft" disabled>임시저장</option>}
                                     {Object.entries(productStatusLabels).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
                                     ))}
@@ -522,12 +523,18 @@ export default function ProductRegister() {
                     </Section>
                     {errorMessage && <p className="product-register-error" role="alert">{errorMessage}</p>}
 
+                    {productStatus === 'draft' && (
+                        <p className="product-register-help-text">
+                            현재 임시저장 상태입니다. 아래 공개 등록하기를 누르면 AI 작업 찾기에 공개됩니다.
+                        </p>
+                    )}
+
                     <div className="product-register-actions">
                         <button type="button" className="btn-secondary product-register-draft" onClick={handleSaveDraft} disabled={submitting}>
-                            {submitting ? '저장 중' : '임시저장'}
+                            {submitting ? '저장 중' : productStatus === 'draft' ? '임시저장 유지' : '임시저장'}
                         </button>
                         <button type="submit" className="btn-primary product-register-submit" disabled={submitting}>
-                            {submitting ? (productId ? '수정 중' : '등록 중') : (productId ? '수정 저장하기' : '등록하기')}
+                            {submitting ? (productId ? '수정 중' : '등록 중') : productStatus === 'draft' ? '공개 등록하기' : (productId ? '수정 저장하기' : '등록하기')}
                         </button>
                     </div>
 

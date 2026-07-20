@@ -17,5 +17,7 @@ describe('Supabase storage buckets', () => {
     it('uses the product-samples bucket for product sample uploads', () => {
         expect(productSampleUploads).toContain(".from(PRODUCT_SAMPLE_BUCKET)")
         expect(productSampleUploads).toContain("const PRODUCT_SAMPLE_BUCKET = 'product-samples'")
+        expect(productSampleUploads).toContain('MAX_PRODUCT_SAMPLE_FILE_BYTES')
+        expect(productSampleUploads).toContain('25MB 이하')
     })
 })
