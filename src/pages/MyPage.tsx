@@ -2522,7 +2522,8 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
         <section style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>내 상품관리</h2>
-                <Link to={ROUTES.PRODUCT_NEW} className="btn-primary" style={{ padding: '0.85rem 1.1rem', textDecoration: 'none' }}>
+                <Link to={ROUTES.PRODUCT_NEW} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1.1rem', textDecoration: 'none' }}>
+                    <span className="material-symbols-outlined" aria-hidden="true">add</span>
                     상품 등록하기
                 </Link>
             </div>
