@@ -1,17 +1,51 @@
 .brand-logo {
     display: inline-flex;
     align-items: center;
+    color: var(--ilpick-navy);
     line-height: 1;
 }
 
-.brand-logo-image {
-    width: auto;
-    height: 2.45rem;
-    display: block;
+.brand-logo-word {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", var(--font-family);
+    font-size: 1.52rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 0.96;
+}
+
+.brand-logo-k {
+    position: relative;
+    display: inline-block;
+}
+
+.brand-logo-check {
+    position: absolute;
+    top: -0.7rem;
+    left: 0.08rem;
+    width: 0.8rem;
+    height: 0.42rem;
+    border-right: 0.2rem solid var(--ilpick-blue);
+    border-bottom: 0.2rem solid var(--ilpick-blue);
+    border-radius: 0.08rem;
+    transform: rotate(42deg);
+}
+
+.brand-logo--inverse {
+    color: white;
 }
 
 @media (max-width: 640px) {
-    .brand-logo-image {
-        height: 2.2rem;
+    .brand-logo-word {
+        font-size: 1.4rem;
+    }
+
+    .brand-logo-check {
+        top: -0.63rem;
+        left: 0.05rem;
+        width: 0.72rem;
+        height: 0.38rem;
     }
 }
