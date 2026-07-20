@@ -46,7 +46,7 @@ describe('Home', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: /AI로 더 싸고 빠르게,\s*필요한 작업을 의뢰하세요/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /AI로 더 싸고 빠르게,\s*필요한 작업을 골라보세요/ })).toBeInTheDocument()
     expect(screen.queryByText('샘플과 가격을 보고 바로 의뢰하세요.')).not.toBeInTheDocument()
     expect(
       screen.queryByText('샘플과 가격을 보고 AI 작업자를 찾아 의뢰할 수 있어요. 전문가의 손길로 AI의 잠재력을 비즈니스에 연결하세요.'),

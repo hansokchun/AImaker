@@ -126,7 +126,7 @@ export default function Home() {
                     <h1 className="home-minimal-title">
                         AI로 더 싸고 빠르게,
                         <br />
-                        필요한 작업을 의뢰하세요
+                        필요한 작업을 골라보세요
                     </h1>
                     <form className="home-minimal-search" onSubmit={handleSearchSubmit}>
                         <label htmlFor="home-product-search">상품 검색</label>

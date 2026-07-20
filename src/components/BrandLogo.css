@@ -1,32 +1,17 @@
 .brand-logo {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    color: var(--ilpick-navy);
     line-height: 1;
 }
 
-.brand-logo-mark {
-    width: 2rem;
-    height: 2rem;
-    display: grid;
-    place-items: center;
-    border-radius: 0.56rem;
-    overflow: hidden;
-}
-
-.brand-logo-mark img {
-    width: 100%;
-    height: 100%;
+.brand-logo-image {
+    width: auto;
+    height: 2.45rem;
     display: block;
 }
 
-.brand-logo-word {
-    font-size: 1.36rem;
-    font-weight: 850;
-    letter-spacing: 0;
-}
-
-.brand-logo--inverse {
-    color: white;
+@media (max-width: 640px) {
+    .brand-logo-image {
+        height: 2.2rem;
+    }
 }
