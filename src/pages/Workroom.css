@@ -413,10 +413,14 @@
 }
 
 .submitted-deliverable a {
+    display: block;
     overflow-wrap: anywhere;
     color: var(--primary);
     font-weight: 800;
 }
+
+.submitted-deliverable small { display: block; margin-top: 0.45rem; color: var(--text-muted); font-size: 0.75rem; }
+.workroom-late { color: #b42318; }
 
 .deliverable-version-notice {
     margin: 0.45rem 0 0;
@@ -455,6 +459,11 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     font: inherit;
+}
+
+.deliverable-form input[type='file'] {
+    padding: 0.65rem;
+    background: #f8fafc;
 }
 
 .review-actions {

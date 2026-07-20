@@ -54,8 +54,8 @@ describe('trade-workflow Edge Function', () => {
 
     it('rejects incomplete deliverable submissions at the boundary', () => {
         expect(validationSource).toMatch(/stringValue\(value, 'description'\)/)
-        expect(validationSource).toMatch(/const externalUrl = stringValue\(value, 'externalUrl'\)/)
-        expect(validationSource).toMatch(/&& \(externalUrl \|\| fileUrl\)/)
+        expect(validationSource).toMatch(/const hasOfficialFile = Boolean\(fileUrl && stringValue\(value, 'fileName'\)/)
+        expect(validationSource).toMatch(/&& hasOfficialFile/)
     })
 
     it('keeps proposal revision requests client-only before service-role updates', () => {

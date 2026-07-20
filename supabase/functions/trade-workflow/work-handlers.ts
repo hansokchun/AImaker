@@ -60,7 +60,9 @@ export async function submitDeliverable(client: ServiceClient, userId: string, p
     const description = payload.description.trim()
     const externalUrl = payload.externalUrl?.trim() || null
     const fileUrl = payload.fileUrl?.trim() || null
-    if (!description || (!externalUrl && !fileUrl)) return responseError('제출물 정보가 올바르지 않습니다.', 400)
+    const hasOfficialFile = Boolean(fileUrl && payload.fileName && typeof payload.fileSize === 'number' && payload.fileSha256)
+    if (!description || !hasOfficialFile) return responseError('공식 제출 파일을 함께 등록해주세요.', 400)
+    if (fileUrl && !fileUrl.startsWith(`${payload.workId}/${userId}/`)) return responseError('공식 제출 파일 경로가 올바르지 않습니다.', 400)
 
     const { data, error } = await client.from('deliverables').insert({
         work_id: payload.workId,
@@ -68,7 +70,10 @@ export async function submitDeliverable(client: ServiceClient, userId: string, p
         expert_id: userId,
         description,
         external_url: externalUrl,
-        file_url: fileUrl,
+        file_url: hasOfficialFile ? fileUrl : null,
+        file_name: hasOfficialFile ? payload.fileName?.trim() : null,
+        file_size: hasOfficialFile ? payload.fileSize : null,
+        file_sha256: hasOfficialFile ? payload.fileSha256?.trim().toLowerCase() : null,
         status: 'submitted',
     }).select('id').single()
     if (error || !isRecord(data) || typeof data.id !== 'string') return responseError('제출물 저장에 실패했습니다.', 500)

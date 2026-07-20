@@ -3,7 +3,7 @@
   "mode": "static-preflight-only",
   "databaseSnapshot": {
     "path": "database.sql",
-    "sha256": "b13ce98d16ba8aa45c1851bbdde95584357f781a100ce182a14d9caf69e1ec44"
+    "sha256": "ca37eb75ad540231c99362b6483157863e321930583d5d0ccd75b9e328b0a1e7"
   },
   "baseline": {
     "strategy": "baseline-plus-preserved-history",
@@ -72,7 +72,9 @@
     { "version": "20260716160000", "file": "20260716160000_harden_function_search_paths.sql", "sha256": "3ac256dd51abf48b63b2eedccb7d8dc2499f7c8fd7d6e33351ead4aeb89b5326" },
     { "version": "20260717093402", "file": "20260717093402_ensure_settlement_paid_notification_idempotency.sql", "sha256": "98e0572b5582d2b564b0eb5f680e193f79d8abcc9810de0b7566779cd7d770af" },
     { "version": "20260717160000", "file": "20260717160000_harden_public_storage_listing.sql", "sha256": "e1660ff909dfd83ea76c028ca2bef4e1b0b3d82112771882e53d26102eb2fc99" },
-    { "version": "20260721103000", "file": "20260721103000_add_participant_dispute_intake.sql", "sha256": "5df28714c9a6d37004b5085066562588a5243d9198d5ce95b67a4c7bf54b7e88" }
+    { "version": "20260721103000", "file": "20260721103000_add_participant_dispute_intake.sql", "sha256": "5df28714c9a6d37004b5085066562588a5243d9198d5ce95b67a4c7bf54b7e88" },
+    { "version": "20260721113000", "file": "20260721113000_add_immutable_deliverable_evidence.sql", "sha256": "d9962c84ed76b5c9aa35c154ae0e6ecb578876e43a73e3b21edf87b08f0dfebf" },
+    { "version": "20260721123000", "file": "20260721123000_add_work_delivery_deadlines.sql", "sha256": "4d8074ad8a7bf597122f53140f4a5b765ec547a61fea80acf113cd5f11ba6379" }
   ],
   "fixtures": {
     "manifest": "supabase/roles.fixture.json",

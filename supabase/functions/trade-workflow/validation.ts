@@ -46,12 +46,12 @@ const isProposalPayload = (value: unknown): value is ProposalPayload => {
 
 const isDeliverablePayload = (value: unknown): value is DeliverablePayload => {
     if (!isRecord(value)) return false
-    const externalUrl = stringValue(value, 'externalUrl')
     const fileUrl = stringValue(value, 'fileUrl')
+    const hasOfficialFile = Boolean(fileUrl && stringValue(value, 'fileName') && numberValue(value, 'fileSize') !== null && stringValue(value, 'fileSha256'))
     return Boolean(
         stringValue(value, 'workId')
         && stringValue(value, 'description')
-        && (externalUrl || fileUrl)
+        && hasOfficialFile
         && (value.stepId === undefined || typeof value.stepId === 'string'),
     )
 }

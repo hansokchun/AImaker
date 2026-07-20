@@ -480,6 +480,8 @@ create table if not exists public.works (
   settlement_requested_at timestamptz,
   settlement_settled_at timestamptz,
   settlement_hold_reason text,
+  delivery_due_at timestamptz,
+  first_submitted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -504,6 +506,8 @@ alter table public.works add column if not exists completed_at timestamptz;
 alter table public.works add column if not exists settlement_requested_at timestamptz;
 alter table public.works add column if not exists settlement_settled_at timestamptz;
 alter table public.works add column if not exists settlement_hold_reason text;
+alter table public.works add column if not exists delivery_due_at timestamptz;
+alter table public.works add column if not exists first_submitted_at timestamptz;
 
 alter table public.works enable row level security;
 
@@ -671,6 +675,9 @@ create table if not exists public.deliverables (
   description text not null,
   external_url text,
   file_url text,
+  file_name text,
+  file_size bigint check (file_size is null or file_size > 0),
+  file_sha256 text check (file_sha256 is null or file_sha256 ~ '^[a-f0-9]{64}$'),
   status text not null default 'submitted' check (status in ('submitted', 'approved', 'revision_requested')),
   submitted_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
@@ -678,6 +685,10 @@ create table if not exists public.deliverables (
 );
 
 alter table public.deliverables enable row level security;
+
+alter table public.deliverables add column if not exists file_name text;
+alter table public.deliverables add column if not exists file_size bigint;
+alter table public.deliverables add column if not exists file_sha256 text;
 
 drop policy if exists "Work participants can view deliverables" on public.deliverables;
 create policy "Work participants can view deliverables"
@@ -1475,6 +1486,9 @@ begin
     or new.description is distinct from old.description
     or new.external_url is distinct from old.external_url
     or new.file_url is distinct from old.file_url
+    or new.file_name is distinct from old.file_name
+    or new.file_size is distinct from old.file_size
+    or new.file_sha256 is distinct from old.file_sha256
     or new.submitted_at is distinct from old.submitted_at
     or new.created_at is distinct from old.created_at
   then

@@ -30,6 +30,7 @@ import { EXTERNAL_CONTACT_WARNING, hasExternalContact } from '../constants/polic
 import { readCachedExpertProducts, writeCachedExpertProducts } from './expertProductCache';
 import { validateMarketplaceMessage } from './tradeSafety';
 import { SAFE_EXTERNAL_URL_MESSAGE, normalizeSafeExternalUrl } from './urlSafety';
+import { createDeliverableSignedUrl } from './deliverableUpload';
 import {
     getNotificationPreference,
     getUserNotifications,
@@ -507,6 +508,8 @@ const toWork = (item: any): Work => ({
     ...(item.settlement_requested_at ? { settlementRequestedAt: item.settlement_requested_at } : {}),
     ...(item.settlement_settled_at ? { settlementSettledAt: item.settlement_settled_at } : {}),
     ...(item.settlement_hold_reason ? { settlementHoldReason: item.settlement_hold_reason } : {}),
+    ...(item.delivery_due_at ? { deliveryDueAt: item.delivery_due_at } : {}),
+    ...(item.first_submitted_at ? { firstSubmittedAt: item.first_submitted_at } : {}),
     ...(item.cancelled_at ? { cancelledAt: item.cancelled_at } : {}),
     ...(item.completed_at ? { completedAt: item.completed_at } : {}),
     ...(item.revision_limit !== undefined && item.revision_limit !== null ? { revisionLimit: item.revision_limit } : {}),
@@ -526,9 +529,11 @@ const toWorkStep = (item: any): WorkStep => ({
     status: item.status || 'waiting',
 });
 
-const toDeliverable = (item: any): Deliverable => {
+const toDeliverable = async (item: any): Promise<Deliverable> => {
     const safeExternalUrl = normalizeSafeExternalUrl(item.external_url);
     const submittedAt = item.submitted_at;
+    const storagePath = typeof item.file_url === 'string' && !item.file_url.startsWith('http') ? item.file_url : '';
+    const signedFileUrl = storagePath ? await createDeliverableSignedUrl(storagePath) : item.file_url;
 
     return {
         id: item.id,
@@ -537,7 +542,11 @@ const toDeliverable = (item: any): Deliverable => {
         expertId: item.expert_id,
         description: item.description,
         ...(safeExternalUrl ? { externalUrl: safeExternalUrl } : {}),
-        ...(item.file_url ? { fileUrl: item.file_url } : {}),
+        ...(signedFileUrl ? { fileUrl: signedFileUrl } : {}),
+        ...(storagePath ? { filePath: storagePath } : {}),
+        ...(item.file_name ? { fileName: item.file_name } : {}),
+        ...(typeof item.file_size === 'number' ? { fileSize: item.file_size } : {}),
+        ...(item.file_sha256 ? { fileSha256: item.file_sha256 } : {}),
         status: item.status || 'submitted',
         submittedAt,
         ...(typeof submittedAt === 'string' ? { autoPurchaseConfirmAt: getAutoPurchaseConfirmAt(submittedAt) } : {}),
@@ -629,6 +638,9 @@ type TradeDeliverablePayload = {
     readonly description: string;
     readonly externalUrl?: string;
     readonly fileUrl?: string;
+    readonly fileName?: string;
+    readonly fileSize?: number;
+    readonly fileSha256?: string;
 };
 
 type TradeWorkflowRequest =
@@ -676,7 +688,10 @@ const toTradeDeliverablePayload = (deliverable: Deliverable): TradeDeliverablePa
     expertId: deliverable.expertId,
     description: deliverable.description,
     ...(deliverable.externalUrl ? { externalUrl: deliverable.externalUrl } : {}),
-    ...(deliverable.fileUrl ? { fileUrl: deliverable.fileUrl } : {}),
+    ...(deliverable.filePath || deliverable.fileUrl ? { fileUrl: deliverable.filePath || deliverable.fileUrl } : {}),
+    ...(deliverable.fileName ? { fileName: deliverable.fileName } : {}),
+    ...(typeof deliverable.fileSize === 'number' ? { fileSize: deliverable.fileSize } : {}),
+    ...(deliverable.fileSha256 ? { fileSha256: deliverable.fileSha256 } : {}),
 });
 
 const isTradeWorkflowResponse = (value: unknown): value is TradeWorkflowResponse => {
@@ -1850,6 +1865,7 @@ export async function acceptProposal(proposal: Proposal): Promise<string> {
             settlementStatus: 'held',
             revisionLimit: proposal.revisionCount,
             revisionUsed: 0,
+            deliveryDueAt: new Date(Date.now() + proposal.deliveryDays * 24 * 60 * 60 * 1000).toISOString(),
             stepIds: [],
         };
         const steps = buildInitialWorkSteps(proposal, work.id);
@@ -2025,7 +2041,7 @@ export async function getWorkroomData(workId: string): Promise<{
 
     const steps = (stepData || []).map(toWorkStep);
     const work = toWork(workData);
-    const deliverables = (deliverableData || []).map(toDeliverable);
+    const deliverables = await Promise.all((deliverableData || []).map(toDeliverable));
     const workWithSteps = { ...work, stepIds: steps.map((step) => step.id) };
 
     return {

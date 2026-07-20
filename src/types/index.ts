@@ -178,6 +178,8 @@ export interface Work {
     settlementRequestedAt?: string;
     settlementSettledAt?: string;
     settlementHoldReason?: string;
+    deliveryDueAt?: string;
+    firstSubmittedAt?: string;
     cancelledAt?: string;
     completedAt?: string;
     revisionLimit?: number;
@@ -259,6 +261,10 @@ export interface Deliverable {
     description: string;
     externalUrl?: string;
     fileUrl?: string;
+    filePath?: string;
+    fileName?: string;
+    fileSize?: number;
+    fileSha256?: string;
     status: 'submitted' | 'approved' | 'revision_requested';
     submittedAt: string;
     autoPurchaseConfirmAt?: string;
