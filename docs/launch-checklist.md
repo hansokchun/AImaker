@@ -27,7 +27,7 @@
 
 - [x] 주요 RLS, Storage 업로드, JWT, 관리자 권한 점검
 - [x] 결제·정산 Edge Function 배포
-- [ ] 공개 Storage의 전체 파일 목록 조회 권한 완화 적용
+- [x] 공개 Storage의 전체 파일 목록 조회 권한 완화 적용
 - [ ] Supabase 유출 비밀번호 차단 기능 켜기
 - [ ] 실제 도메인을 Auth Redirect URL과 Google OAuth Redirect URL에 등록
 - [ ] Performance Advisor 경고 최종 확인
