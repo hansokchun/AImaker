@@ -418,6 +418,13 @@
     font-weight: 800;
 }
 
+.deliverable-version-notice {
+    margin: 0.45rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
 .workroom-empty-messages {
     display: grid;
     min-height: 132px;

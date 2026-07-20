@@ -36,6 +36,15 @@ export default function Footer() {
                 </div>
             </div>
             <div className="container footer-bottom">
+                <div className="footer-business-info" aria-label="사업자 정보">
+                    <span>상호: 원코리아</span>
+                    <span>대표자: 태영호</span>
+                    <span>사업자등록번호: 107-39-44459</span>
+                    <span>통신판매업 신고번호: 신고 전</span>
+                    <span>사업장 주소: 서울특별시 영등포구 영중로 61, 7층 2호(영등포동6가, 극동빌딩)</span>
+                    <span>고객센터 이메일: 미정</span>
+                    <span>고객센터 전화번호: 미정</span>
+                </div>
                 <p>&copy; 2026 ilpick. All rights reserved.</p>
             </div>
         </footer>

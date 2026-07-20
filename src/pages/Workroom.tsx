@@ -579,6 +579,7 @@ export default function Workroom() {
                         {canSubmitDeliverable ? (
                             <form className="deliverable-form">
                                 <label htmlFor="deliverable-link">{deliverableFieldLabel}</label>
+                                <p className="deliverable-version-notice">Google Drive, Dropbox 등에서 링크 공개 범위를 확인한 뒤 제출하세요. 수정본은 새 파일 또는 새 버전 링크로 제출해야 합니다.</p>
                                 <div>
                                     <input
                                         id="deliverable-link"
@@ -716,6 +717,7 @@ export default function Workroom() {
                         <>
                             <h2>의뢰자 확인</h2>
                             <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
+                            <p className="deliverable-version-notice">수정본은 기존 제출물을 덮어쓰지 않고 새 제출 기록으로 남깁니다.</p>
                             {autoPurchaseConfirmText && (
                                 <p className="auto-confirm-notice">
                                     {autoPurchaseConfirmText} 수정이 필요하면 자동확정 전에 수정 요청을 보내주세요.

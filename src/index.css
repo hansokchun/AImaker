@@ -1286,7 +1286,9 @@ section { padding: 8rem 0; }
 .footer-desc { color: #7b8ba5; line-height: 1.8; }
 .link-column h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: white; }
 .link-column a { color: #7b8ba5; display: block; margin-bottom: 0.75rem; }
-.footer-bottom { border-top: 1px solid #102d60; padding-top: 2rem; text-align: center; color: #657790; font-size: 0.9rem; }
+.footer-bottom { border-top: 1px solid #102d60; padding-top: 2rem; color: #657790; font-size: 0.9rem; }
+.footer-business-info { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem 1rem; line-height: 1.6; }
+.footer-bottom > p { margin: 1rem 0 0; text-align: center; }
 
 /* Responsive adjustments for PC/Tablet */
 @media (max-width: 1200px) {
@@ -1321,6 +1323,7 @@ section { padding: 8rem 0; }
         gap: 1.5rem;
     }
     .footer-content { grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .footer-business-info { justify-content: flex-start; }
 }
 
 @media (max-width: 760px) {
