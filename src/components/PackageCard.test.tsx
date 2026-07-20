@@ -64,7 +64,7 @@ describe('PackageCard', () => {
         expect(screen.getByTestId('location')).toHaveTextContent('/request/product-missing-included')
     })
 
-    it('shows unavailable upgrade features as muted unchecked items on lower packages', () => {
+    it('hides unavailable upgrade features on lower packages', () => {
         const product: ExpertProduct = {
             ...mockExpertProducts[0],
             packages: {
@@ -100,8 +100,8 @@ describe('PackageCard', () => {
 
         const standardFeatureList = screen.getByTestId('package-upgrade-feature-list')
         expect(within(standardFeatureList).getByText('기본 편집')).toHaveClass('available')
-        expect(within(standardFeatureList).getByText('썸네일 제작')).toHaveClass('unavailable')
-        expect(within(standardFeatureList).getByText('소스 파일 제공')).toHaveClass('unavailable')
+        expect(within(standardFeatureList).queryByText('썸네일 제작')).not.toBeInTheDocument()
+        expect(within(standardFeatureList).queryByText('소스 파일 제공')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Premium' }))
 

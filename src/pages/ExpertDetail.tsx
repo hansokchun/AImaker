@@ -508,13 +508,11 @@ export default function ExpertDetail() {
                                     <div role="cell">{packageInfo.revisionCount}회</div>
                                     <div role="cell">
                                         <ul className="price-comparison-feature-list">
-                                            {packageComparisonFeatures.map((feature) => {
-                                                const included = feature.available[tier]
-
+                                            {packageComparisonFeatures.filter((feature) => feature.available[tier]).map((feature) => {
                                                 return (
-                                                    <li key={`${tier}-${feature.label}`} className={included ? 'available' : 'unavailable'}>
+                                                    <li key={`${tier}-${feature.label}`} className="available">
                                                         <span className="material-symbols-outlined" aria-hidden="true">
-                                                            {included ? 'check' : 'remove'}
+                                                            check
                                                         </span>
                                                         <span>{feature.label}</span>
                                                         <small>{feature.values[tier]}</small>
@@ -697,6 +695,7 @@ export default function ExpertDetail() {
                                 productId={product.id}
                                 productTitle={product.title}
                                 className="product-detail-favorite product-sidebar-favorite"
+                                variant="icon"
                             />
                         )}
                         <button type="button" className="package-icon-action" aria-label="상품 공유" onClick={handleShareProduct}>

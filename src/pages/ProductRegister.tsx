@@ -608,7 +608,7 @@ function PackageFields({
                 </Field>
             </div>
             <Field label="포함 항목">
-                <textarea className="product-register-input product-register-textarea" value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required={!optional} rows={3} placeholder="한 줄에 하나씩 입력" />
+                <textarea className="product-register-input product-register-textarea" value={state.included} onChange={(event) => onChange(tier, { included: event.target.value })} required={!optional} rows={3} placeholder={'한 줄에 하나씩 입력\n예: 원본 영상: 1개'} />
             </Field>
         </fieldset>
     )
@@ -622,7 +622,7 @@ function PackageOptionPreview({ packages }: { packages: Record<PackageTier, Pack
             <div className="product-register-package-preview-copy">
                 <strong>패키지별 포함 항목 비교</strong>
                 <span>
-                    상위 패키지에만 들어가는 항목은 하위 패키지에서 회색 미포함으로 표시됩니다.
+                    같은 항목은 패키지마다 같은 이름으로 쓰고 값만 다르게 입력하세요. 예: 원본 영상: 1개 / 2개 / 3개. 없는 항목은 빈칸으로 표시됩니다.
                 </span>
             </div>
             <div className="product-register-package-table" role="table" aria-label="패키지 포함 항목 미리보기">
@@ -651,11 +651,13 @@ function PackageOptionPreview({ packages }: { packages: Record<PackageTier, Pack
 
 function PackageOptionCell({ included, value }: { included: boolean; value: string }) {
     return (
-        <span className={`product-register-package-cell ${included ? 'is-included' : 'is-excluded'}`} role="cell">
-            <span className="material-symbols-outlined" aria-hidden="true">
-                {included ? 'check' : 'remove'}
-            </span>
-            {value}
+        <span className={`product-register-package-cell ${included ? 'is-included' : 'is-empty'}`} role="cell">
+            {included && (
+                <>
+                    <span className="material-symbols-outlined" aria-hidden="true">check</span>
+                    {value}
+                </>
+            )}
         </span>
     )
 }

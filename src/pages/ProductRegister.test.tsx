@@ -290,7 +290,7 @@ describe('ProductRegister', () => {
         fireEvent.click(screen.getByRole('checkbox', { name: '패키지 가격 사용' }))
 
         expect(screen.getByText('패키지별 포함 항목 비교')).toBeInTheDocument()
-        expect(screen.getByText('상위 패키지에만 들어가는 항목은 하위 패키지에서 회색 미포함으로 표시됩니다.')).toBeInTheDocument()
+        expect(screen.getByText('같은 항목은 패키지마다 같은 이름으로 쓰고 값만 다르게 입력하세요. 예: 원본 영상: 1개 / 2개 / 3개. 없는 항목은 빈칸으로 표시됩니다.')).toBeInTheDocument()
 
         const standard = screen.getByTestId('package-standard')
         const deluxe = screen.getByTestId('package-deluxe')
@@ -303,7 +303,6 @@ describe('ProductRegister', () => {
         const preview = screen.getByTestId('package-option-preview')
         expect(within(preview).getByText('기본 편집')).toBeInTheDocument()
         expect(within(preview).getByText('소스 파일 제공')).toBeInTheDocument()
-        expect(within(preview).getAllByText('미포함').length).toBeGreaterThan(0)
         expect(within(preview).getAllByText('포함').length).toBeGreaterThan(0)
     })
 

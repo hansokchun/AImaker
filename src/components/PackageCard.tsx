@@ -113,16 +113,14 @@ export default function PackageCard({
                             deluxe: includedSet.has(feature),
                             premium: includedSet.has(feature),
                         },
-                    }))).map((row) => {
-                        const isAvailable = row.available[activeTab]
-
+                    }))).filter((row) => row.available[activeTab]).map((row) => {
                         return (
-                            <li key={row.label} className={isAvailable ? 'available' : 'unavailable'}>
+                            <li key={row.label} className="available">
                                 <span className="material-symbols-outlined package-feature-icon" aria-hidden="true">
-                                    {isAvailable ? 'check' : 'remove'}
+                                    check
                                 </span>
-                                <span className={`package-option-label ${isAvailable ? 'available' : 'unavailable'}`}>{row.label}</span>
-                                <span className={`package-option-value ${isAvailable ? 'available' : 'unavailable'}`}>{row.values[activeTab]}</span>
+                                <span className="package-option-label available">{row.label}</span>
+                                <span className="package-option-value available">{row.values[activeTab]}</span>
                             </li>
                         )
                     })}

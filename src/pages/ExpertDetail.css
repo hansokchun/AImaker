@@ -965,8 +965,14 @@ img.seller-review-avatar {
 
 .package-icon-action:hover,
 .product-package-actions .favorite-product-button:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: #f6c344;
+    color: #d89b00;
+}
+
+.product-package-actions .favorite-product-button.is-active {
+    border-color: #f6c344;
+    background: #fff8d6;
+    color: #d89b00;
 }
 
 .package-more-action {

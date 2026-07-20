@@ -49,9 +49,9 @@
 }
 
 .favorite-product-button.is-active {
-    border-color: rgba(239, 68, 68, 0.28);
-    background: #fff1f2;
-    color: #e11d48;
+    border-color: #f6c344;
+    background: #fff8d6;
+    color: #d89b00;
 }
 
 .favorite-product-button.is-icon {
@@ -65,14 +65,14 @@
 
 .favorite-product-button.is-icon:hover,
 .favorite-product-button.is-icon:focus-visible {
-    border-color: rgba(225, 29, 72, 0.22);
-    color: #e11d48;
+    border-color: #f6c344;
+    color: #d89b00;
 }
 
 .favorite-product-button.is-icon.is-active {
-    border-color: rgba(225, 29, 72, 0.2);
-    background: #fff1f2;
-    color: #e11d48;
+    border-color: #f6c344;
+    background: #fff8d6;
+    color: #d89b00;
 }
 
 .favorite-product-button-icon {
@@ -80,7 +80,7 @@
     height: 20px;
 }
 
-.favorite-product-button-heart {
+.favorite-product-button-star {
     fill: transparent;
     stroke: currentColor;
     stroke-linecap: round;
@@ -91,7 +91,7 @@
         stroke 0.18s ease;
 }
 
-.favorite-product-button.is-active .favorite-product-button-heart {
+.favorite-product-button.is-active .favorite-product-button-star {
     fill: currentColor;
 }
 

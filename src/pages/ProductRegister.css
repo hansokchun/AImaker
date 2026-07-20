@@ -408,8 +408,8 @@
     color: var(--primary);
 }
 
-.product-register-package-cell.is-excluded {
-    color: var(--text-muted);
+.product-register-package-cell.is-empty {
+    min-height: 1.25rem;
 }
 
 .product-register-package-empty {
