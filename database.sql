@@ -497,6 +497,7 @@ alter table public.works add column if not exists dispute_status text;
 alter table public.works add column if not exists dispute_reason text;
 alter table public.works add column if not exists dispute_details text;
 alter table public.works add column if not exists dispute_opened_by uuid references public.profiles(id) on delete set null;
+create index if not exists works_dispute_opened_by_idx on public.works (dispute_opened_by) where dispute_opened_by is not null;
 alter table public.works add column if not exists dispute_opened_at timestamptz;
 alter table public.works add column if not exists cancellation_reason text;
 alter table public.works add column if not exists cancellation_requested_by uuid references public.profiles(id) on delete set null;

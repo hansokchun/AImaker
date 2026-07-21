@@ -399,4 +399,8 @@ describe('database.sql', () => {
         expect(guardSql).toMatch(/new\.retention_confirmed is distinct from old\.retention_confirmed/i)
         expect(guardSql).toMatch(/new\.file_url is distinct from old\.file_url/i)
     })
+
+    it('indexes the participant who opened a work dispute', () => {
+        expect(sql).toMatch(/create index if not exists works_dispute_opened_by_idx on public\.works \(dispute_opened_by\)/i)
+    })
 })
