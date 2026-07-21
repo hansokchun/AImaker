@@ -131,6 +131,9 @@
   - 담당: 사용자
 - [ ] `P0` HTTPS, Google 로그인, Toss 성공·실패 복귀 확인
   - 담당: 사용자와 Codex
+- [ ] `P1` 운영 도메인 기준 Content Security Policy 적용·결제 회귀 테스트
+  - 담당: Codex
+  - 현재: 기본 보안 헤더는 적용됨. Supabase·Toss·외부 이미지·폰트 출처를 운영 도메인과 운영 키 확정 후 허용 목록으로 고정하고 결제 성공·실패 복귀까지 확인
 - [ ] `P0` 도메인 확정 후 Cloudflare, Google OAuth, Toss Payments의 노출 서비스명·리디렉션 주소를 일픽 기준으로 통일
   - 담당: 사용자와 Codex
 
@@ -164,6 +167,9 @@
 - [x] `P1` 데스크톱·모바일 핵심 화면 자동 스크린샷 QA
   - 완료: 로컬 1440×900·390×844에서 홈·카테고리·상품 상세 가로 넘침 없음, 관심상품 버튼 50×44px 확인
   - 잔여: 로그인 역할별 작업방·관리자 화면은 최신 Preview 실제 계정 QA 항목에서 확인
+- [x] `P1` Cloudflare Preview 공개 경로·기본 보안 헤더 실제 응답 확인
+  - 완료: `7f741abf` Preview에서 홈·카테고리·상품 상세·약관·개인정보·로그인 경로 모두 HTTP 200 확인
+  - 완료: HTTPS HSTS, 프레임 제한, MIME 스니핑 차단, Referrer·Permissions Policy와 Preview 검색 제외 헤더 확인
 
 대표자가 확정할 값과 입력 순서는 `docs/runbooks/owner-launch-inputs.md`에 한곳으로 모았습니다.
 
