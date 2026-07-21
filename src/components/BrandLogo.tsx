@@ -11,7 +11,7 @@ export default function BrandLogo({ tone = 'default' }: BrandLogoProps) {
                 ilpic
                 <span className="brand-logo-k">
                     k
-                    <img className="brand-logo-check" src="/ilpick-check.svg" alt="" />
+                    <span className="brand-logo-check" aria-hidden="true" />
                 </span>
             </span>
         </span>
