@@ -71,6 +71,7 @@ const mockDeliverables: Deliverable[] = [
         expertId: 'expert-video-01',
         description: '1차 AI 숏폼 영상 시안 링크',
         externalUrl: 'https://example.com/deliverables/ai-shortform-draft',
+        retentionConfirmed: true,
         status: 'submitted',
         submittedAt: new Date().toISOString(),
     },
@@ -197,6 +198,7 @@ export default function Workroom() {
     const [messageError, setMessageError] = useState('')
     const [messageSubmitting, setMessageSubmitting] = useState(false)
     const [deliverableLink, setDeliverableLink] = useState('')
+    const [retentionConfirmed, setRetentionConfirmed] = useState(false)
     const [statusMessage, setStatusMessage] = useState('')
     const [isDisputeFormOpen, setIsDisputeFormOpen] = useState(false)
     const [disputeReason, setDisputeReason] = useState<NonNullable<Work['disputeReason']>>('scope_mismatch')
@@ -208,6 +210,7 @@ export default function Workroom() {
     })
     const [isLoaded, setIsLoaded] = useState(false)
     const [notFound, setNotFound] = useState(false)
+    const [currentTime, setCurrentTime] = useState(0)
     const activeDeliverable = deliverables[0]
     const progressSteps = getWorkProgressSteps(work, deliverables)
     const isRevisionMode = work.status === 'revision_requested'
@@ -256,10 +259,14 @@ export default function Workroom() {
     const autoPurchaseConfirmText = autoPurchaseConfirmAt
         ? `응답이 없으면 ${autoConfirmDateFormat.format(new Date(autoPurchaseConfirmAt))} 자동 구매확정됩니다.`
         : ''
-    const isDeliveryLate = Boolean(work.deliveryDueAt && !work.firstSubmittedAt && new Date(work.deliveryDueAt).getTime() < Date.now())
+    const isDeliveryLate = Boolean(currentTime && work.deliveryDueAt && !work.firstSubmittedAt && new Date(work.deliveryDueAt).getTime() < currentTime)
     const deliveryDueText = work.deliveryDueAt
         ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(work.deliveryDueAt))
         : '납기 미정'
+
+    useEffect(() => {
+        setCurrentTime(Date.now())
+    }, [])
 
     useEffect(() => {
         let active = true
@@ -312,6 +319,10 @@ export default function Workroom() {
 
     const handleSubmitDeliverable = async () => {
         if (!canSubmitDeliverable || !deliverableLink.trim()) return
+        if (!retentionConfirmed) {
+            setStatusMessage('이전 작업물을 정산 완료까지 보관한다는 확인이 필요합니다.')
+            return
+        }
         const safeDeliverableLink = normalizeSafeExternalUrl(deliverableLink)
         if (!safeDeliverableLink) {
             setStatusMessage(SAFE_EXTERNAL_URL_MESSAGE)
@@ -324,12 +335,14 @@ export default function Workroom() {
             expertId: work.expertId,
             description: deliverableFieldLabel,
             externalUrl: safeDeliverableLink,
+            retentionConfirmed: true,
             status: 'submitted',
             submittedAt: new Date().toISOString(),
         }
         const savedDeliverable = await saveDeliverable(newDeliverable)
         setDeliverables([savedDeliverable, ...deliverables])
         setDeliverableLink('')
+        setRetentionConfirmed(false)
         setStatusMessage(isRevisionMode ? '수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.' : '제출물 링크가 등록되었습니다.')
         notifyActivityChanged()
     }
@@ -571,6 +584,7 @@ export default function Workroom() {
                                         </a>
                                     )}
                                     {activeDeliverable.fileSha256 && <small>파일 확인값: {activeDeliverable.fileSha256.slice(0, 12)}...</small>}
+                                    {activeDeliverable.retentionConfirmed && <small>정산 전 모든 버전 보관 확인됨</small>}
                                 </div>
                                 <span
                                     className="deliverable-status-icon"
@@ -586,10 +600,33 @@ export default function Workroom() {
                             <p className="submitted-deliverable">등록된 제출물이 없습니다.</p>
                         )}
 
+                        {deliverables.length > 1 && (
+                            <section className="deliverable-history" aria-labelledby="deliverable-history-title">
+                                <h3 id="deliverable-history-title">이전 제출 이력</h3>
+                                <ol>
+                                    {deliverables.slice(1).map((item, index) => {
+                                        const safeUrl = normalizeSafeExternalUrl(item.externalUrl)
+                                        return (
+                                            <li key={item.id}>
+                                                <div>
+                                                    <strong>{deliverables.length - index - 1}차 제출</strong>
+                                                    <time dateTime={item.submittedAt}>
+                                                        {new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.submittedAt))}
+                                                    </time>
+                                                </div>
+                                                {safeUrl && <a href={safeUrl} target="_blank" rel="noreferrer">{safeUrl}</a>}
+                                                <span>{statusLabels[item.status]}{item.retentionConfirmed ? ' · 버전 보관 확인됨' : ''}</span>
+                                            </li>
+                                        )
+                                    })}
+                                </ol>
+                            </section>
+                        )}
+
                         {canSubmitDeliverable ? (
                             <form className="deliverable-form">
                                 <label htmlFor="deliverable-link">{deliverableFieldLabel}</label>
-                                <p className="deliverable-version-notice">Google Drive, Dropbox 등에서 링크 공개 범위를 확인한 뒤 제출하세요. 수정본은 새 파일 또는 새 버전 링크로 제출해야 합니다.</p>
+                                <p className="deliverable-version-notice">같은 Google Drive·Dropbox 폴더 링크를 계속 사용해도 됩니다. 수정 전 파일을 삭제하거나 덮어쓰지 말고, 정산 완료까지 모든 버전을 보관하세요.</p>
                                 <div>
                                     <input
                                         id="deliverable-link"
@@ -603,6 +640,14 @@ export default function Workroom() {
                                         {deliverableButtonLabel}
                                     </button>
                                 </div>
+                                <label className="deliverable-retention-confirm">
+                                    <input
+                                        type="checkbox"
+                                        checked={retentionConfirmed}
+                                        onChange={(event) => setRetentionConfirmed(event.target.checked)}
+                                    />
+                                    <span>이전 작업물을 삭제하거나 덮어쓰지 않았으며, 모든 버전을 정산 완료까지 보관합니다.</span>
+                                </label>
                             </form>
                         ) : null}
                         {statusMessage && <p>{statusMessage}</p>}
@@ -728,7 +773,7 @@ export default function Workroom() {
                         <>
                             <h2>의뢰자 확인</h2>
                             <p>제출물을 확인한 뒤 승인하거나 수정 요청을 남길 수 있습니다.</p>
-                            <p className="deliverable-version-notice">수정본은 기존 제출물을 덮어쓰지 않고 새 제출 기록으로 남깁니다.</p>
+                            <p className="deliverable-version-notice">같은 폴더 링크를 사용할 수 있으며, 정산 완료 전까지 이전 버전을 삭제하거나 덮어쓰지 않아야 합니다.</p>
                             {autoPurchaseConfirmText && (
                                 <p className="auto-confirm-notice">
                                     {autoPurchaseConfirmText} 수정이 필요하면 자동확정 전에 수정 요청을 보내주세요.

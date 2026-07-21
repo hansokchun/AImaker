@@ -678,6 +678,7 @@ create table if not exists public.deliverables (
   file_name text,
   file_size bigint check (file_size is null or file_size > 0),
   file_sha256 text check (file_sha256 is null or file_sha256 ~ '^[a-f0-9]{64}$'),
+  retention_confirmed boolean not null default false,
   status text not null default 'submitted' check (status in ('submitted', 'approved', 'revision_requested')),
   submitted_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
@@ -689,6 +690,7 @@ alter table public.deliverables enable row level security;
 alter table public.deliverables add column if not exists file_name text;
 alter table public.deliverables add column if not exists file_size bigint;
 alter table public.deliverables add column if not exists file_sha256 text;
+alter table public.deliverables add column if not exists retention_confirmed boolean not null default false;
 
 drop policy if exists "Work participants can view deliverables" on public.deliverables;
 create policy "Work participants can view deliverables"
@@ -1489,6 +1491,7 @@ begin
     or new.file_name is distinct from old.file_name
     or new.file_size is distinct from old.file_size
     or new.file_sha256 is distinct from old.file_sha256
+    or new.retention_confirmed is distinct from old.retention_confirmed
     or new.submitted_at is distinct from old.submitted_at
     or new.created_at is distinct from old.created_at
   then

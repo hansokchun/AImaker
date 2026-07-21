@@ -396,6 +396,7 @@ describe('database.sql', () => {
         expect(guardSql).toMatch(/new\.expert_id is distinct from old\.expert_id/i)
         expect(guardSql).toMatch(/new\.description is distinct from old\.description/i)
         expect(guardSql).toMatch(/new\.external_url is distinct from old\.external_url/i)
+        expect(guardSql).toMatch(/new\.retention_confirmed is distinct from old\.retention_confirmed/i)
         expect(guardSql).toMatch(/new\.file_url is distinct from old\.file_url/i)
     })
 })

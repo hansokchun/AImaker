@@ -265,6 +265,7 @@ export interface Deliverable {
     fileName?: string;
     fileSize?: number;
     fileSha256?: string;
+    retentionConfirmed: boolean;
     status: 'submitted' | 'approved' | 'revision_requested';
     submittedAt: string;
     autoPurchaseConfirmAt?: string;

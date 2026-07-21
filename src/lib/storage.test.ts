@@ -968,6 +968,7 @@ const deliverable: Deliverable = {
     expertId: request.expertId,
     description: '1차 시안 링크',
     externalUrl: 'https://example.com/deliverable',
+    retentionConfirmed: true,
     status: 'submitted',
     submittedAt: '2026-08-01T00:00:00.000Z',
 }
@@ -1580,6 +1581,7 @@ describe('transaction storage', () => {
             expertId: proposal.expertId,
             description: '1차 제출물 링크',
             externalUrl: 'https://example.com/first-flow',
+            retentionConfirmed: true,
             status: 'submitted',
             submittedAt: '2026-08-01T00:00:00.000Z',
         }
@@ -2603,6 +2605,7 @@ describe('transaction storage', () => {
                     expert_id: deliverable.expertId,
                     description: deliverable.description,
                     external_url: deliverable.externalUrl,
+                    retention_confirmed: deliverable.retentionConfirmed,
                     status: deliverable.status,
                     submitted_at: deliverable.submittedAt,
                 },

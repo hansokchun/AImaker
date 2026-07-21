@@ -42,6 +42,7 @@ const deliverable: Deliverable = {
     expertId: work.expertId,
     description: '1차 시안 링크',
     externalUrl: 'https://example.com/deliverables/ai-shortform-draft',
+    retentionConfirmed: true,
     status: 'submitted',
     submittedAt: '2026-06-01T00:00:00.000Z',
 }
@@ -193,6 +194,7 @@ describe('Workroom', () => {
         fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'https://example.com/new-deliverable' },
         })
+        fireEvent.click(screen.getByRole('checkbox', { name: /모든 버전을 정산 완료까지 보관합니다/ }))
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         await waitFor(() =>
@@ -201,6 +203,7 @@ describe('Workroom', () => {
                     workId: work.id,
                     expertId: work.expertId,
                     externalUrl: 'https://example.com/new-deliverable',
+                    retentionConfirmed: true,
                     status: 'submitted',
                 }),
             ),
@@ -229,6 +232,7 @@ describe('Workroom', () => {
         fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'https://example.com/new-deliverable' },
         })
+        fireEvent.click(screen.getByRole('checkbox', { name: /모든 버전을 정산 완료까지 보관합니다/ }))
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         await waitFor(() => expect(screen.getByText('https://example.com/new-deliverable')).toBeInTheDocument())
@@ -254,10 +258,56 @@ describe('Workroom', () => {
         fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'javascript:alert(1)' },
         })
+        fireEvent.click(screen.getByRole('checkbox', { name: /모든 버전을 정산 완료까지 보관합니다/ }))
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         expect(screen.getByText('http:// 또는 https://로 시작하는 제출물 링크만 등록할 수 있습니다.')).toBeInTheDocument()
         expect(saveDeliverable).not.toHaveBeenCalled()
+    })
+
+    it('requires the expert to confirm version retention before submission', async () => {
+        currentUserId = 'expert-video-01'
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await screen.findByRole('heading', { name: '작업 진행방' })
+        fireEvent.change(screen.getByLabelText('제출물 링크'), {
+            target: { value: 'https://example.com/shared-folder' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
+
+        expect(screen.getByText('이전 작업물을 정산 완료까지 보관한다는 확인이 필요합니다.')).toBeInTheDocument()
+        expect(saveDeliverable).not.toHaveBeenCalled()
+    })
+
+    it('shows previous submissions even when the same folder link is reused', async () => {
+        getWorkroomData.mockResolvedValue({
+            work,
+            steps: [step],
+            deliverables: [
+                { ...deliverable, id: 'deliverable-v2', submittedAt: '2026-06-02T00:00:00.000Z' },
+                { ...deliverable, id: 'deliverable-v1', submittedAt: '2026-06-01T00:00:00.000Z' },
+            ],
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes>
+                    <Route path="/workroom/:workId" element={<Workroom />} />
+                </Routes>
+            </MemoryRouter>,
+        )
+
+        await screen.findByRole('heading', { name: '이전 제출 이력' })
+        expect(screen.getByText('1차 제출')).toBeInTheDocument()
+        expect(screen.getAllByRole('link', { name: deliverable.externalUrl }).length).toBe(2)
+        expect(screen.getByText('제출됨 · 버전 보관 확인됨')).toBeInTheDocument()
     })
 
     it('does not render unsafe stored deliverable URLs as links', async () => {
@@ -612,6 +662,7 @@ describe('Workroom', () => {
         fireEvent.change(screen.getByLabelText('수정본 링크'), {
             target: { value: 'https://example.com/revision-deliverable' },
         })
+        fireEvent.click(screen.getByRole('checkbox', { name: /모든 버전을 정산 완료까지 보관합니다/ }))
         fireEvent.click(screen.getByRole('button', { name: '수정본 제출하기' }))
 
         await waitFor(() =>
@@ -621,6 +672,7 @@ describe('Workroom', () => {
                     expertId: revisionWork.expertId,
                     description: '수정본 링크',
                     externalUrl: 'https://example.com/revision-deliverable',
+                    retentionConfirmed: true,
                     status: 'submitted',
                 }),
             ),

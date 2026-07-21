@@ -547,6 +547,7 @@ const toDeliverable = async (item: any): Promise<Deliverable> => {
         ...(item.file_name ? { fileName: item.file_name } : {}),
         ...(typeof item.file_size === 'number' ? { fileSize: item.file_size } : {}),
         ...(item.file_sha256 ? { fileSha256: item.file_sha256 } : {}),
+        retentionConfirmed: item.retention_confirmed === true,
         status: item.status || 'submitted',
         submittedAt,
         ...(typeof submittedAt === 'string' ? { autoPurchaseConfirmAt: getAutoPurchaseConfirmAt(submittedAt) } : {}),
@@ -637,6 +638,7 @@ type TradeDeliverablePayload = {
     readonly expertId: string;
     readonly description: string;
     readonly externalUrl?: string;
+    readonly retentionConfirmed: boolean;
 };
 
 type TradeWorkflowRequest =
@@ -684,6 +686,7 @@ const toTradeDeliverablePayload = (deliverable: Deliverable): TradeDeliverablePa
     expertId: deliverable.expertId,
     description: deliverable.description,
     ...(deliverable.externalUrl ? { externalUrl: deliverable.externalUrl } : {}),
+    retentionConfirmed: deliverable.retentionConfirmed,
 });
 
 const isTradeWorkflowResponse = (value: unknown): value is TradeWorkflowResponse => {
@@ -2305,6 +2308,9 @@ export async function saveWorkMessage(input: {
 }
 
 export async function saveDeliverable(deliverable: Deliverable): Promise<Deliverable> {
+    if (!deliverable.retentionConfirmed) {
+        throw new Error('이전 작업물을 정산 완료까지 보관한다는 확인이 필요합니다.');
+    }
     if (hasExternalContact(deliverable.description)) {
         throw new Error(EXTERNAL_CONTACT_WARNING);
     }

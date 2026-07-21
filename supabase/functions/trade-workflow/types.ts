@@ -24,6 +24,7 @@ export type DeliverablePayload = {
     readonly stepId?: string
     readonly description: string
     readonly externalUrl?: string
+    readonly retentionConfirmed: boolean
 }
 
 export type AdminActionPayload = {

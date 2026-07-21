@@ -212,6 +212,7 @@ const createDeliverable = (
     expertId: work.expertId,
     description,
     externalUrl: `https://example.com/demo/${work.id}`,
+    retentionConfirmed: true,
     status,
     submittedAt: '2026-06-30T15:30:00.000Z',
 });

@@ -32,6 +32,7 @@ const deliverable: Deliverable = {
     expertId: work.expertId,
     description: 'Draft link',
     externalUrl: 'https://example.com/draft',
+    retentionConfirmed: true,
     status: 'submitted',
     submittedAt: '2026-06-01T00:00:00.000Z',
 }

@@ -51,6 +51,7 @@ const isDeliverablePayload = (value: unknown): value is DeliverablePayload => {
         stringValue(value, 'workId')
         && stringValue(value, 'description')
         && externalUrl
+        && value.retentionConfirmed === true
         && (value.stepId === undefined || typeof value.stepId === 'string'),
     )
 }

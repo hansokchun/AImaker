@@ -60,6 +60,7 @@ export async function submitDeliverable(client: ServiceClient, userId: string, p
     const description = payload.description.trim()
     const externalUrl = payload.externalUrl?.trim() || null
     if (!description || !externalUrl) return responseError('제출물 링크를 등록해주세요.', 400)
+    if (!payload.retentionConfirmed) return responseError('이전 작업물을 정산 완료까지 보관한다는 확인이 필요합니다.', 400)
 
     const { data, error } = await client.from('deliverables').insert({
         work_id: payload.workId,
@@ -71,6 +72,7 @@ export async function submitDeliverable(client: ServiceClient, userId: string, p
         file_name: null,
         file_size: null,
         file_sha256: null,
+        retention_confirmed: true,
         status: 'submitted',
     }).select('id').single()
     if (error || !isRecord(data) || typeof data.id !== 'string') return responseError('제출물 저장에 실패했습니다.', 500)

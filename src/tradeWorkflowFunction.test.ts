@@ -56,6 +56,7 @@ describe('trade-workflow Edge Function', () => {
         expect(validationSource).toMatch(/stringValue\(value, 'description'\)/)
         expect(validationSource).toMatch(/const externalUrl = stringValue\(value, 'externalUrl'\)/)
         expect(validationSource).toMatch(/&& externalUrl/)
+        expect(validationSource).toMatch(/value\.retentionConfirmed === true/)
     })
 
     it('keeps proposal revision requests client-only before service-role updates', () => {
