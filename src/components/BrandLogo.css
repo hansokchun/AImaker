@@ -14,47 +14,6 @@
     font-weight: 800;
     letter-spacing: 0;
     line-height: 0.96;
-    padding-top: 0.5em;
-}
-
-.brand-logo-k {
-    position: relative;
-    display: inline-block;
-}
-
-.brand-logo-check {
-    position: absolute;
-    top: 0.06em;
-    left: 0.02em;
-    width: 1.02em;
-    height: 0.64em;
-    display: block;
-    pointer-events: none;
-}
-
-.brand-logo-check::before,
-.brand-logo-check::after {
-    position: absolute;
-    display: block;
-    height: 0.22em;
-    content: '';
-    background: var(--ilpick-blue);
-    border-radius: 999px;
-    transform-origin: center;
-}
-
-.brand-logo-check::before {
-    top: 0.32em;
-    left: 0.02em;
-    width: 0.44em;
-    transform: rotate(45deg);
-}
-
-.brand-logo-check::after {
-    top: 0.18em;
-    left: 0.28em;
-    width: 0.82em;
-    transform: rotate(-45deg);
 }
 
 .brand-logo--inverse {
@@ -65,5 +24,4 @@
     .brand-logo-word {
         font-size: 1.4rem;
     }
-
 }
