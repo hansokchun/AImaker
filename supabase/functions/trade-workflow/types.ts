@@ -24,10 +24,6 @@ export type DeliverablePayload = {
     readonly stepId?: string
     readonly description: string
     readonly externalUrl?: string
-    readonly fileUrl?: string
-    readonly fileName?: string
-    readonly fileSize?: number
-    readonly fileSha256?: string
 }
 
 export type AdminActionPayload = {

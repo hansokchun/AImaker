@@ -86,7 +86,13 @@ describe.each([
         expect(sql).toMatch(/create policy "Work participants can view messages"[\s\S]*account_status = 'active'[\s\S]*withdrawn_at is null/i)
         expect(sql).toMatch(/create policy "Work participants can insert messages"[\s\S]*sender_id = \(select auth\.uid\(\)\)[\s\S]*account_status = 'active'[\s\S]*withdrawn_at is null/i)
         expect(sql).toMatch(/create policy "Users can upload own product samples"[\s\S]*account_status = 'active'[\s\S]*withdrawn_at is null/i)
-        expect(sql).toMatch(/create policy "Experts can upload deliverable files"[\s\S]*account_status = 'active'[\s\S]*withdrawn_at is null/i)
+        if (_label === 'database mirror') {
+            expect(sql.lastIndexOf('drop policy if exists "Experts can upload deliverable files"')).toBeGreaterThan(
+                sql.lastIndexOf('create policy "Experts can upload deliverable files"'),
+            )
+        } else {
+            expect(sql).toMatch(/create policy "Experts can upload deliverable files"[\s\S]*account_status = 'active'[\s\S]*withdrawn_at is null/i)
+        }
     })
 
     it('keeps withdrawal transactional and service-only without physical deletion', () => {

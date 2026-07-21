@@ -65,13 +65,6 @@ const revisionDeliverable: Deliverable = {
 }
 
 const saveDeliverable = vi.fn(async (savedDeliverable: Deliverable) => savedDeliverable)
-const uploadDeliverableFile = vi.fn(async (_workId: string, _expertId: string, _file: File) => ({
-    storagePath: 'work-demo-01/expert-video-01/deliverable.pdf',
-    fileName: 'deliverable.pdf',
-    fileSize: 1024,
-    fileSha256: 'a'.repeat(64),
-    signedUrl: 'https://example.com/private/deliverable.pdf',
-}))
 const approveWorkDeliverable = vi.fn(
     async (_workId: string, _deliverableId: string, _requestId?: string, _stepId?: string) => undefined,
 )
@@ -147,16 +140,6 @@ vi.mock('../lib/storage', () => ({
     getStoredProfile: (userId: string) => getStoredProfile(userId),
 }))
 
-vi.mock('../lib/deliverableUpload', () => ({
-    uploadDeliverableFile: (workId: string, expertId: string, file: File) => uploadDeliverableFile(workId, expertId, file),
-}))
-
-const chooseOfficialDeliverable = () => {
-    fireEvent.change(screen.getByLabelText('공식 제출 파일'), {
-        target: { files: [new File(['official deliverable'], 'deliverable.pdf', { type: 'application/pdf' })] },
-    })
-}
-
 describe('Workroom', () => {
     beforeEach(() => {
         currentUserId = 'client-demo-01'
@@ -166,7 +149,6 @@ describe('Workroom', () => {
         requestWorkRevision.mockClear()
         requestWorkDispute.mockClear()
         saveDeliverable.mockClear()
-        uploadDeliverableFile.mockClear()
         requestWorkCancellation.mockClear()
         acceptWorkCancellation.mockClear()
         requestSettlementWithdrawal.mockClear()
@@ -176,7 +158,7 @@ describe('Workroom', () => {
         getStoredProfile.mockClear()
     })
 
-    it('loads workroom data and saves official deliverable files with an optional reference link', async () => {
+    it('loads workroom data and saves deliverable links', async () => {
         currentUserId = 'expert-video-01'
 
         render(
@@ -208,10 +190,9 @@ describe('Workroom', () => {
         expect(screen.getByText('전문가 정산 예정 70,000원')).toBeInTheDocument()
         expect(screen.getByText('작업 진행 중 보관')).toBeInTheDocument()
 
-        fireEvent.change(screen.getByLabelText('제출물 참고 링크 (선택)'), {
+        fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'https://example.com/new-deliverable' },
         })
-        chooseOfficialDeliverable()
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         await waitFor(() =>
@@ -220,13 +201,11 @@ describe('Workroom', () => {
                     workId: work.id,
                     expertId: work.expertId,
                     externalUrl: 'https://example.com/new-deliverable',
-                    filePath: 'work-demo-01/expert-video-01/deliverable.pdf',
-                    fileSha256: 'a'.repeat(64),
                     status: 'submitted',
                 }),
             ),
         )
-        expect(screen.getByText('제출물이 등록되었습니다.')).toBeInTheDocument()
+        expect(screen.getByText('제출물 링크가 등록되었습니다.')).toBeInTheDocument()
     })
 
     it('uses the persisted deliverable id returned by the save call', async () => {
@@ -247,10 +226,9 @@ describe('Workroom', () => {
         )
 
         await screen.findByRole('heading', { name: '작업 진행방' })
-        fireEvent.change(screen.getByLabelText('제출물 참고 링크 (선택)'), {
+        fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'https://example.com/new-deliverable' },
         })
-        chooseOfficialDeliverable()
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         await waitFor(() => expect(screen.getByText('https://example.com/new-deliverable')).toBeInTheDocument())
@@ -273,10 +251,9 @@ describe('Workroom', () => {
         )
 
         await screen.findByRole('heading', { name: '작업 진행방' })
-        fireEvent.change(screen.getByLabelText('제출물 참고 링크 (선택)'), {
+        fireEvent.change(screen.getByLabelText('제출물 링크'), {
             target: { value: 'javascript:alert(1)' },
         })
-        chooseOfficialDeliverable()
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         expect(screen.getByText('http:// 또는 https://로 시작하는 제출물 링크만 등록할 수 있습니다.')).toBeInTheDocument()
@@ -632,10 +609,9 @@ describe('Workroom', () => {
         await waitFor(() => expect(screen.getAllByText('수정 요청됨').length).toBeGreaterThan(0))
         expect(screen.getByText('의뢰자가 수정 요청을 보냈습니다. 수정본을 다시 제출해 주세요.')).toBeInTheDocument()
 
-        fireEvent.change(screen.getByLabelText('수정본 참고 링크 (선택)'), {
+        fireEvent.change(screen.getByLabelText('수정본 링크'), {
             target: { value: 'https://example.com/revision-deliverable' },
         })
-        chooseOfficialDeliverable()
         fireEvent.click(screen.getByRole('button', { name: '수정본 제출하기' }))
 
         await waitFor(() =>
@@ -643,12 +619,12 @@ describe('Workroom', () => {
                 expect.objectContaining({
                     workId: revisionWork.id,
                     expertId: revisionWork.expertId,
-                    description: '수정본 참고 링크 (선택)',
+                    description: '수정본 링크',
                     externalUrl: 'https://example.com/revision-deliverable',
                     status: 'submitted',
                 }),
             ),
         )
-        expect(screen.getByText('수정본이 제출되었습니다. 의뢰자 확인을 기다립니다.')).toBeInTheDocument()
+        expect(screen.getByText('수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.')).toBeInTheDocument()
     })
 })

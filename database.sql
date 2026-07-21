@@ -3270,3 +3270,4 @@ revoke all on function public.withdraw_account(uuid) from public, anon, authenti
 revoke all on function public.record_withdrawal_session_revocation(uuid, boolean, text) from public, anon, authenticated;
 grant execute on function public.withdraw_account(uuid) to service_role;
 grant execute on function public.record_withdrawal_session_revocation(uuid, boolean, text) to service_role;
+drop policy if exists "Experts can upload deliverable files" on storage.objects;

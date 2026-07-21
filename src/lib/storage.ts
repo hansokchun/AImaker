@@ -637,10 +637,6 @@ type TradeDeliverablePayload = {
     readonly expertId: string;
     readonly description: string;
     readonly externalUrl?: string;
-    readonly fileUrl?: string;
-    readonly fileName?: string;
-    readonly fileSize?: number;
-    readonly fileSha256?: string;
 };
 
 type TradeWorkflowRequest =
@@ -688,10 +684,6 @@ const toTradeDeliverablePayload = (deliverable: Deliverable): TradeDeliverablePa
     expertId: deliverable.expertId,
     description: deliverable.description,
     ...(deliverable.externalUrl ? { externalUrl: deliverable.externalUrl } : {}),
-    ...(deliverable.filePath || deliverable.fileUrl ? { fileUrl: deliverable.filePath || deliverable.fileUrl } : {}),
-    ...(deliverable.fileName ? { fileName: deliverable.fileName } : {}),
-    ...(typeof deliverable.fileSize === 'number' ? { fileSize: deliverable.fileSize } : {}),
-    ...(deliverable.fileSha256 ? { fileSha256: deliverable.fileSha256 } : {}),
 });
 
 const isTradeWorkflowResponse = (value: unknown): value is TradeWorkflowResponse => {

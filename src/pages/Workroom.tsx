@@ -22,7 +22,6 @@ import {
 } from '../lib/storage'
 import { validateMarketplaceMessage } from '../lib/tradeSafety'
 import { SAFE_EXTERNAL_URL_MESSAGE, normalizeSafeExternalUrl } from '../lib/urlSafety'
-import { uploadDeliverableFile } from '../lib/deliverableUpload'
 import './Workroom.css'
 
 const mockWork: Work = {
@@ -198,7 +197,6 @@ export default function Workroom() {
     const [messageError, setMessageError] = useState('')
     const [messageSubmitting, setMessageSubmitting] = useState(false)
     const [deliverableLink, setDeliverableLink] = useState('')
-    const [deliverableFile, setDeliverableFile] = useState<File | null>(null)
     const [statusMessage, setStatusMessage] = useState('')
     const [isDisputeFormOpen, setIsDisputeFormOpen] = useState(false)
     const [disputeReason, setDisputeReason] = useState<NonNullable<Work['disputeReason']>>('scope_mismatch')
@@ -213,7 +211,7 @@ export default function Workroom() {
     const activeDeliverable = deliverables[0]
     const progressSteps = getWorkProgressSteps(work, deliverables)
     const isRevisionMode = work.status === 'revision_requested'
-    const deliverableFieldLabel = isRevisionMode ? '수정본 참고 링크 (선택)' : '제출물 참고 링크 (선택)'
+    const deliverableFieldLabel = isRevisionMode ? '수정본 링크' : '제출물 링크'
     const deliverableButtonLabel = isRevisionMode ? '수정본 제출하기' : '제출물 링크 등록'
     const workStatusLabel =
         work.status === 'completed' ? '완료' : work.status === 'revision_requested' ? '수정 요청됨' : '결과물 검토 중'
@@ -313,20 +311,10 @@ export default function Workroom() {
     }, [workId])
 
     const handleSubmitDeliverable = async () => {
-        if (!canSubmitDeliverable || !deliverableFile) {
-            setStatusMessage('공식 제출 파일을 선택해주세요.')
-            return
-        }
-        const safeDeliverableLink = deliverableLink.trim() ? normalizeSafeExternalUrl(deliverableLink) : ''
-        if (deliverableLink.trim() && !safeDeliverableLink) {
+        if (!canSubmitDeliverable || !deliverableLink.trim()) return
+        const safeDeliverableLink = normalizeSafeExternalUrl(deliverableLink)
+        if (!safeDeliverableLink) {
             setStatusMessage(SAFE_EXTERNAL_URL_MESSAGE)
-            return
-        }
-        let uploadedFile: Awaited<ReturnType<typeof uploadDeliverableFile>> | null = null
-        try {
-            if (deliverableFile) uploadedFile = await uploadDeliverableFile(work.id, work.expertId, deliverableFile)
-        } catch (error) {
-            setStatusMessage(error instanceof Error ? error.message : '공식 제출 파일을 업로드하지 못했습니다.')
             return
         }
         const newDeliverable: Deliverable = {
@@ -335,22 +323,14 @@ export default function Workroom() {
             stepId: steps[0]?.id || '',
             expertId: work.expertId,
             description: deliverableFieldLabel,
-            ...(safeDeliverableLink ? { externalUrl: safeDeliverableLink } : {}),
-            ...(uploadedFile ? {
-                filePath: uploadedFile.storagePath,
-                fileUrl: uploadedFile.signedUrl || uploadedFile.storagePath,
-                fileName: uploadedFile.fileName,
-                fileSize: uploadedFile.fileSize,
-                fileSha256: uploadedFile.fileSha256,
-            } : {}),
+            externalUrl: safeDeliverableLink,
             status: 'submitted',
             submittedAt: new Date().toISOString(),
         }
         const savedDeliverable = await saveDeliverable(newDeliverable)
         setDeliverables([savedDeliverable, ...deliverables])
         setDeliverableLink('')
-        setDeliverableFile(null)
-        setStatusMessage(isRevisionMode ? '수정본이 제출되었습니다. 의뢰자 확인을 기다립니다.' : '제출물이 등록되었습니다.')
+        setStatusMessage(isRevisionMode ? '수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.' : '제출물 링크가 등록되었습니다.')
         notifyActivityChanged()
     }
 
@@ -609,7 +589,7 @@ export default function Workroom() {
                         {canSubmitDeliverable ? (
                             <form className="deliverable-form">
                                 <label htmlFor="deliverable-link">{deliverableFieldLabel}</label>
-                                <p className="deliverable-version-notice">공식 제출 파일은 일픽에 새 버전으로 보관됩니다. 외부 링크는 참고용으로만 추가할 수 있습니다.</p>
+                                <p className="deliverable-version-notice">Google Drive, Dropbox 등에서 링크 공개 범위를 확인한 뒤 제출하세요. 수정본은 새 파일 또는 새 버전 링크로 제출해야 합니다.</p>
                                 <div>
                                     <input
                                         id="deliverable-link"
@@ -623,8 +603,6 @@ export default function Workroom() {
                                         {deliverableButtonLabel}
                                     </button>
                                 </div>
-                                <label htmlFor="deliverable-file">공식 제출 파일</label>
-                                <input id="deliverable-file" type="file" accept=".pdf,.zip,.jpg,.jpeg,.png,.webp,.mp4,.webm,.mp3,.wav,.txt,.csv" onChange={(event) => setDeliverableFile(event.target.files?.[0] || null)} />
                             </form>
                         ) : null}
                         {statusMessage && <p>{statusMessage}</p>}
