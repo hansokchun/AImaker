@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Workroom from './Workroom'
-import type { Deliverable, Work, WorkStep } from '../types'
+import type { Deliverable, Work, WorkDeadlineExtension, WorkStep } from '../types'
 
 let currentUserId = 'client-demo-01'
 
@@ -71,6 +71,13 @@ const approveWorkDeliverable = vi.fn(
 )
 const requestWorkRevision = vi.fn(async (_workId: string, _deliverableId: string, _stepId?: string) => undefined)
 const requestWorkDispute = vi.fn(async (_workId: string, _reason: string, _details: string) => undefined)
+const requestWorkDeadlineExtension = vi.fn(async (
+    workId: string, requesterId: string, currentDueAt: string, proposedDueAt: string, reason: string,
+): Promise<WorkDeadlineExtension> => ({
+    id: 'deadline-extension-01', workId, requesterId, previousDueAt: currentDueAt,
+    proposedDueAt, reason, status: 'pending', createdAt: '2026-07-21T00:00:00.000Z',
+}))
+const respondWorkDeadlineExtension = vi.fn(async (_extensionId: string, _responderId: string, _accepted: boolean) => undefined)
 const requestWorkCancellation = vi.fn(
     async (_workId: string, _requesterId: string, _reason?: 'before_start' | 'mutual_after_start') => undefined,
 )
@@ -101,10 +108,11 @@ const getUserDisplayProfile = vi.fn(async (userId: string) => ({
 }))
 const getStoredProfile = vi.fn(async (_userId: string) => null)
 const getWorkroomData = vi.fn(
-    async (_workId: string): Promise<{ work: Work | null; steps: WorkStep[]; deliverables: Deliverable[] }> => ({
+    async (_workId: string): Promise<{ work: Work | null; steps: WorkStep[]; deliverables: Deliverable[]; deadlineExtensions?: WorkDeadlineExtension[] }> => ({
         work,
         steps: [step],
         deliverables: [deliverable],
+        deadlineExtensions: [],
     }),
 )
 
@@ -135,6 +143,10 @@ vi.mock('../lib/storage', () => ({
     requestWorkRevision: (workId: string, deliverableId: string, stepId?: string) =>
         requestWorkRevision(workId, deliverableId, stepId),
     requestWorkDispute: (workId: string, reason: string, details: string) => requestWorkDispute(workId, reason, details),
+    requestWorkDeadlineExtension: (workId: string, requesterId: string, currentDueAt: string, proposedDueAt: string, reason: string) =>
+        requestWorkDeadlineExtension(workId, requesterId, currentDueAt, proposedDueAt, reason),
+    respondWorkDeadlineExtension: (extensionId: string, responderId: string, accepted: boolean) =>
+        respondWorkDeadlineExtension(extensionId, responderId, accepted),
     saveDeliverable: (deliverable: Deliverable) => saveDeliverable(deliverable),
     saveWorkMessage: (message: { workId: string; senderId: string; body: string }) => saveWorkMessage(message),
     getUserDisplayProfile: (userId: string) => getUserDisplayProfile(userId),
@@ -145,10 +157,12 @@ describe('Workroom', () => {
     beforeEach(() => {
         currentUserId = 'client-demo-01'
         getWorkroomData.mockReset()
-        getWorkroomData.mockResolvedValue({ work, steps: [step], deliverables: [deliverable] })
+        getWorkroomData.mockResolvedValue({ work, steps: [step], deliverables: [deliverable], deadlineExtensions: [] })
         approveWorkDeliverable.mockClear()
         requestWorkRevision.mockClear()
         requestWorkDispute.mockClear()
+        requestWorkDeadlineExtension.mockClear()
+        respondWorkDeadlineExtension.mockClear()
         saveDeliverable.mockClear()
         requestWorkCancellation.mockClear()
         acceptWorkCancellation.mockClear()
@@ -678,5 +692,55 @@ describe('Workroom', () => {
             ),
         )
         expect(screen.getByText('수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.')).toBeInTheDocument()
+    })
+
+    it('records a deadline extension request without changing the official deadline', async () => {
+        const workWithDeadline = { ...work, deliveryDueAt: '2026-08-01T09:00:00.000Z' }
+        getWorkroomData.mockResolvedValue({ work: workWithDeadline, steps: [step], deliverables: [deliverable], deadlineExtensions: [] })
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes><Route path="/workroom/:workId" element={<Workroom />} /></Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByLabelText('납기 연장 합의')).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('새 납기'), { target: { value: '2026-08-03T18:00' } })
+        fireEvent.change(screen.getByLabelText('연장 사유'), { target: { value: '추가 자료 전달이 늦어져 이틀 연장이 필요합니다.' } })
+        fireEvent.click(screen.getByRole('button', { name: '납기 연장 요청' }))
+
+        await waitFor(() => expect(requestWorkDeadlineExtension).toHaveBeenCalledWith(
+            work.id,
+            work.clientId,
+            workWithDeadline.deliveryDueAt,
+            new Date('2026-08-03T18:00').toISOString(),
+            '추가 자료 전달이 늦어져 이틀 연장이 필요합니다.',
+        ))
+        expect(screen.getByText('연장 요청 대기 중')).toBeInTheDocument()
+        expect(screen.getByText(/상대방이 수락해야 공식 납기가 변경됩니다/)).toBeInTheDocument()
+    })
+
+    it('lets only the counterpart accept a pending deadline extension', async () => {
+        const pendingExtension: WorkDeadlineExtension = {
+            id: 'deadline-extension-pending', workId: work.id, requesterId: work.expertId,
+            previousDueAt: '2026-08-01T09:00:00.000Z', proposedDueAt: '2026-08-03T09:00:00.000Z',
+            reason: '작업 범위가 추가되어 이틀 연장이 필요합니다.', status: 'pending', createdAt: '2026-07-21T00:00:00.000Z',
+        }
+        getWorkroomData.mockResolvedValue({
+            work: { ...work, deliveryDueAt: pendingExtension.previousDueAt },
+            steps: [step], deliverables: [deliverable], deadlineExtensions: [pendingExtension],
+        })
+        render(
+            <MemoryRouter initialEntries={['/workroom/work-demo-01']}>
+                <Routes><Route path="/workroom/:workId" element={<Workroom />} /></Routes>
+            </MemoryRouter>,
+        )
+
+        expect(await screen.findByRole('button', { name: '수락' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: '수락' }))
+        await waitFor(() => expect(respondWorkDeadlineExtension).toHaveBeenCalledWith(
+            pendingExtension.id, work.clientId, true,
+        ))
+        expect(screen.getByText('새 납기에 합의했습니다.')).toBeInTheDocument()
+        expect(screen.getByText('합의된 납기 연장 1회')).toBeInTheDocument()
     })
 })

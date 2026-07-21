@@ -8,7 +8,7 @@ import { isPaymentPolicyActive, paymentPolicyUnavailableResponse } from '../_sha
 async function fetchParticipantWork(client: ServiceClient, workId: string, userId: string): Promise<RowRecord | Response> {
     const { data, error } = await client
         .from('works')
-        .select('id, proposal_id, request_id, client_id, expert_id, status, revision_used, revision_limit, settlement_status, settlement_requested_at, settlement_hold_reason, dispute_status, cancellation_requested_by, cancellation_requested_at, expert_payout')
+        .select('id, proposal_id, request_id, client_id, expert_id, status, revision_used, revision_limit, settlement_status, settlement_requested_at, settlement_hold_reason, dispute_status, cancellation_requested_by, cancellation_requested_at, expert_payout, delivery_due_at, deadline_extension_count')
         .eq('id', workId)
         .maybeSingle()
     if (error || !isRecord(data)) return responseError('작업방을 찾을 수 없습니다.', 404)
@@ -134,6 +134,56 @@ export async function openWorkDispute(
         p_details: details.trim(),
     })
     return ok({ workId, operationId: result.operationId })
+}
+
+export async function requestDeadlineExtension(
+    client: ServiceClient,
+    userId: string,
+    workId: string,
+    proposedDueAt: string,
+    reason: string,
+): Promise<Response> {
+    const work = await fetchParticipantWork(client, workId, userId)
+    if (work instanceof Response) return work
+    const frozen = assertNotFrozen(work, '납기 연장을 요청')
+    if (frozen) return frozen
+    if (work.status === 'completed' || work.status === 'cancelled') return responseError('종료된 거래의 납기는 변경할 수 없습니다.', 409)
+    if (typeof work.delivery_due_at !== 'string') return responseError('기존 납기가 설정되지 않았습니다.', 409)
+    const proposedTime = Date.parse(proposedDueAt)
+    if (!Number.isFinite(proposedTime) || proposedTime <= Date.parse(work.delivery_due_at)) {
+        return responseError('새 납기는 현재 납기보다 뒤여야 합니다.', 400)
+    }
+    const { data, error } = await client.from('work_deadline_extensions').insert({
+        work_id: workId,
+        requester_id: userId,
+        previous_due_at: work.delivery_due_at,
+        proposed_due_at: new Date(proposedTime).toISOString(),
+        reason: reason.trim(),
+    }).select('id').single()
+    if (error || !isRecord(data) || typeof data.id !== 'string') return responseError('이미 응답 대기 중인 연장 요청이 있거나 요청을 저장하지 못했습니다.', 409)
+    return ok({ workId, extensionId: data.id })
+}
+
+export async function respondDeadlineExtension(
+    client: ServiceClient,
+    userId: string,
+    extensionId: string,
+    accepted: boolean,
+): Promise<Response> {
+    const { data: extension, error } = await client.from('work_deadline_extensions')
+        .select('id, work_id, requester_id, proposed_due_at, status').eq('id', extensionId).maybeSingle()
+    if (error || !isRecord(extension) || typeof extension.work_id !== 'string') return responseError('납기 연장 요청을 찾을 수 없습니다.', 404)
+    const work = await fetchParticipantWork(client, extension.work_id, userId)
+    if (work instanceof Response) return work
+    if (extension.requester_id === userId) return responseError('요청 상대방만 연장 요청에 응답할 수 있습니다.', 403)
+    if (extension.status !== 'pending') return responseError('이미 처리된 연장 요청입니다.', 409)
+    const { error: responseErrorResult } = await client.rpc('respond_work_deadline_extension', {
+        p_extension_id: extensionId,
+        p_responder_id: userId,
+        p_accepted: accepted,
+    })
+    if (responseErrorResult) return responseError('연장 요청 응답을 저장하지 못했습니다.', 500)
+    return ok({ workId: extension.work_id, extensionId })
 }
 
 export async function requestSettlement(

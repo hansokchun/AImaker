@@ -179,12 +179,28 @@ export interface Work {
     settlementSettledAt?: string;
     settlementHoldReason?: string;
     deliveryDueAt?: string;
+    initialDeliveryDueAt?: string;
+    deadlineExtensionCount?: number;
+    deliveryDelaySeconds?: number;
     firstSubmittedAt?: string;
     cancelledAt?: string;
     completedAt?: string;
     revisionLimit?: number;
     revisionUsed?: number;
     stepIds: string[];
+}
+
+export interface WorkDeadlineExtension {
+    id: string;
+    workId: string;
+    requesterId: string;
+    previousDueAt: string;
+    proposedDueAt: string;
+    reason: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    respondedBy?: string;
+    respondedAt?: string;
+    createdAt: string;
 }
 
 export interface ExpertPayoutAccount {

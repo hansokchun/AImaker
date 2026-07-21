@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../contexts/AuthContext'
 import { PageLoading } from '../components/PageLoading'
-import type { Deliverable, Work, WorkMessage, WorkStep } from '../types'
+import type { Deliverable, Work, WorkDeadlineExtension, WorkMessage, WorkStep } from '../types'
 import {
     acceptWorkCancellation,
     approveWorkDeliverable,
@@ -15,8 +15,10 @@ import {
     getWorkroomData,
     requestSettlementWithdrawal,
     requestWorkDispute,
+    requestWorkDeadlineExtension,
     requestWorkCancellation,
     requestWorkRevision,
+    respondWorkDeadlineExtension,
     saveDeliverable,
     saveWorkMessage,
 } from '../lib/storage'
@@ -194,6 +196,9 @@ export default function Workroom() {
     const [steps, setSteps] = useState<WorkStep[]>(mockSteps)
     const [deliverables, setDeliverables] = useState<Deliverable[]>(mockDeliverables)
     const [messages, setMessages] = useState<WorkMessage[]>([])
+    const [deadlineExtensions, setDeadlineExtensions] = useState<WorkDeadlineExtension[]>([])
+    const [proposedDueAt, setProposedDueAt] = useState('')
+    const [deadlineExtensionReason, setDeadlineExtensionReason] = useState('')
     const [messageBody, setMessageBody] = useState('')
     const [messageError, setMessageError] = useState('')
     const [messageSubmitting, setMessageSubmitting] = useState(false)
@@ -263,6 +268,7 @@ export default function Workroom() {
     const deliveryDueText = work.deliveryDueAt
         ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(work.deliveryDueAt))
         : '납기 미정'
+    const pendingDeadlineExtension = deadlineExtensions.find((item) => item.status === 'pending')
 
     useEffect(() => {
         setCurrentTime(Date.now())
@@ -289,6 +295,7 @@ export default function Workroom() {
             setWork(data.work)
             setSteps(data.steps)
             setDeliverables(data.deliverables)
+            setDeadlineExtensions(data.deadlineExtensions || [])
             setMessages(workMessages)
             setParticipants({
                 client: {
@@ -496,6 +503,44 @@ export default function Workroom() {
             setStatusMessage(error instanceof Error ? error.message : '분쟁 접수에 실패했습니다.')
         } finally {
             setIsDisputeSubmitting(false)
+        }
+    }
+
+    const handleRequestDeadlineExtension = async () => {
+        if (!user?.id || !work.deliveryDueAt || !proposedDueAt) return
+        try {
+            const extension = await requestWorkDeadlineExtension(
+                work.id,
+                user.id,
+                work.deliveryDueAt,
+                new Date(proposedDueAt).toISOString(),
+                deadlineExtensionReason,
+            )
+            setDeadlineExtensions((current) => [extension, ...current])
+            setProposedDueAt('')
+            setDeadlineExtensionReason('')
+            setStatusMessage('납기 연장 요청을 보냈습니다. 상대방이 수락해야 공식 납기가 변경됩니다.')
+        } catch (error) {
+            setStatusMessage(error instanceof Error ? error.message : '납기 연장을 요청하지 못했습니다.')
+        }
+    }
+
+    const handleRespondDeadlineExtension = async (accepted: boolean) => {
+        if (!user?.id || !pendingDeadlineExtension || pendingDeadlineExtension.requesterId === user.id) return
+        try {
+            await respondWorkDeadlineExtension(pendingDeadlineExtension.id, user.id, accepted)
+            const respondedAt = new Date().toISOString()
+            setDeadlineExtensions((current) => current.map((item) => item.id === pendingDeadlineExtension.id
+                ? { ...item, status: accepted ? 'accepted' : 'rejected', respondedBy: user.id, respondedAt }
+                : item))
+            if (accepted) setWork((current) => ({
+                ...current,
+                deliveryDueAt: pendingDeadlineExtension.proposedDueAt,
+                deadlineExtensionCount: (current.deadlineExtensionCount || 0) + 1,
+            }))
+            setStatusMessage(accepted ? '새 납기에 합의했습니다.' : '납기 연장 요청을 거절했습니다.')
+        } catch (error) {
+            setStatusMessage(error instanceof Error ? error.message : '납기 연장 요청에 응답하지 못했습니다.')
         }
     }
 
@@ -716,6 +761,40 @@ export default function Workroom() {
                         <span>일픽 수수료 {currency.format(work.platformFee || 0)}원</span>
                         <span>전문가 정산 예정 {currency.format(work.expertPayout || 0)}원</span>
                         <span className={isDeliveryLate ? 'workroom-late' : undefined}>공식 납기 {isDeliveryLate ? `지연 · ${deliveryDueText}` : deliveryDueText}</span>
+                        <span>합의된 납기 연장 {work.deadlineExtensionCount || 0}회</span>
+                        <section className="deadline-extension-panel" aria-label="납기 연장 합의">
+                            {pendingDeadlineExtension ? (
+                                <>
+                                    <strong>연장 요청 대기 중</strong>
+                                    <span>{new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(pendingDeadlineExtension.proposedDueAt))}</span>
+                                    <p>{pendingDeadlineExtension.reason}</p>
+                                    {pendingDeadlineExtension.requesterId !== user?.id && (
+                                        <div>
+                                            <button type="button" className="btn-primary" onClick={() => handleRespondDeadlineExtension(true)}>수락</button>
+                                            <button type="button" className="btn-secondary" onClick={() => handleRespondDeadlineExtension(false)}>거절</button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : !isClosedWork && !isFrozenWork && work.deliveryDueAt ? (
+                                <>
+                                    <label htmlFor="deadline-extension-at">새 납기</label>
+                                    <input id="deadline-extension-at" type="datetime-local" value={proposedDueAt} onChange={(event) => setProposedDueAt(event.target.value)} />
+                                    <label htmlFor="deadline-extension-reason">연장 사유</label>
+                                    <textarea id="deadline-extension-reason" value={deadlineExtensionReason} onChange={(event) => setDeadlineExtensionReason(event.target.value)} placeholder="연장이 필요한 이유를 10자 이상 입력하세요." />
+                                    <button type="button" className="btn-secondary" onClick={handleRequestDeadlineExtension}>납기 연장 요청</button>
+                                </>
+                            ) : null}
+                            {deadlineExtensions.length > 0 && (
+                                <details>
+                                    <summary>납기 변경 이력 {deadlineExtensions.length}건</summary>
+                                    <ol>
+                                        {deadlineExtensions.map((item) => (
+                                            <li key={item.id}>{item.status === 'accepted' ? '수락' : item.status === 'rejected' ? '거절' : '대기'} · {new Date(item.proposedDueAt).toLocaleString('ko-KR')}</li>
+                                        ))}
+                                    </ol>
+                                </details>
+                            )}
+                        </section>
                         <span>
                             {work.refundStatus
                                 ? refundStatusText[work.refundStatus]

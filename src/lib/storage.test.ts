@@ -2612,6 +2612,7 @@ describe('transaction storage', () => {
             ],
             error: null,
         })
+        const deadlineExtensionOrder = vi.fn().mockResolvedValue({ data: [], error: null })
         const invoke = vi.fn().mockResolvedValue({ data: {}, error: null })
         const from = vi.fn((table: string) => {
             if (table === 'works') return { select: vi.fn(() => ({ eq: workEq })), update: workUpdate }
@@ -2621,6 +2622,9 @@ describe('transaction storage', () => {
                     select: vi.fn(() => ({ eq: vi.fn(() => ({ order: deliverableOrder })) })),
                     insert: deliverableInsert,
                 }
+            }
+            if (table === 'work_deadline_extensions') {
+                return { select: vi.fn(() => ({ eq: vi.fn(() => ({ order: deadlineExtensionOrder })) })) }
             }
             return {}
         })
@@ -2638,6 +2642,7 @@ describe('transaction storage', () => {
             },
             steps: [step],
             deliverables: [{ ...deliverable, autoPurchaseConfirmAt: '2026-08-08T00:00:00.000Z' }],
+            deadlineExtensions: [],
         })
         await saveDeliverable(deliverable)
         expect(invoke).toHaveBeenCalledWith('trade-workflow', {

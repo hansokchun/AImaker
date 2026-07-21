@@ -422,6 +422,26 @@
 .submitted-deliverable small { display: block; margin-top: 0.45rem; color: var(--text-muted); font-size: 0.75rem; }
 .workroom-late { color: #b42318; }
 
+.deadline-extension-panel {
+    display: grid;
+    gap: 0.55rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.deadline-extension-panel input,
+.deadline-extension-panel textarea {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.65rem;
+    font: inherit;
+}
+
+.deadline-extension-panel textarea { min-height: 76px; resize: vertical; }
+.deadline-extension-panel > div { display: flex; gap: 0.5rem; }
+.deadline-extension-panel details ol { margin: 0.6rem 0 0; padding-left: 1.25rem; }
+
 .deliverable-version-notice {
     margin: 0.45rem 0 0;
     color: var(--text-secondary);

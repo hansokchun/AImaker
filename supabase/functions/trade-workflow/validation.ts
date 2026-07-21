@@ -91,6 +91,14 @@ export const isWorkflowRequest = (value: unknown): value is WorkflowRequest => {
             return typeof value.workId === 'string'
                 && ['scope_mismatch', 'missing_deliverable', 'quality_issue', 'late_delivery', 'other'].includes(String(value.reason))
                 && typeof value.details === 'string' && value.details.trim().length >= 10 && value.details.trim().length <= 1000
+        case 'request_deadline_extension':
+            return typeof value.workId === 'string'
+                && typeof value.proposedDueAt === 'string'
+                && Number.isFinite(Date.parse(value.proposedDueAt))
+                && typeof value.reason === 'string'
+                && value.reason.trim().length >= 10 && value.reason.trim().length <= 500
+        case 'respond_deadline_extension':
+            return typeof value.extensionId === 'string' && typeof value.accepted === 'boolean'
         case 'admin_moderation_action':
             return isAdminActionPayload(value.action)
         case 'complete_manual_settlement':

@@ -19,6 +19,7 @@ import type {
     ServiceRequestData,
     SettlementPayout,
     Work,
+    WorkDeadlineExtension,
     WorkMessage,
     WorkStep,
 } from '../types';
@@ -58,6 +59,7 @@ const STORAGE_KEYS = {
     CONSULTATIONS: 'ai_consultations',
     CONSULTATION_MESSAGES: 'ai_consultation_messages',
     WORK_MESSAGES: 'ai_work_messages',
+    WORK_DEADLINE_EXTENSIONS: 'ai_work_deadline_extensions',
     FAVORITE_PRODUCTS: 'ai_favorite_products',
     ADMIN_REPORTS: 'ai_admin_reports',
     EXPERT_PAYOUT_ACCOUNTS: 'ai_expert_payout_accounts',
@@ -509,12 +511,28 @@ const toWork = (item: any): Work => ({
     ...(item.settlement_settled_at ? { settlementSettledAt: item.settlement_settled_at } : {}),
     ...(item.settlement_hold_reason ? { settlementHoldReason: item.settlement_hold_reason } : {}),
     ...(item.delivery_due_at ? { deliveryDueAt: item.delivery_due_at } : {}),
+    ...(item.initial_delivery_due_at ? { initialDeliveryDueAt: item.initial_delivery_due_at } : {}),
+    ...(item.deadline_extension_count !== undefined ? { deadlineExtensionCount: item.deadline_extension_count } : {}),
+    ...(item.delivery_delay_seconds !== undefined ? { deliveryDelaySeconds: item.delivery_delay_seconds } : {}),
     ...(item.first_submitted_at ? { firstSubmittedAt: item.first_submitted_at } : {}),
     ...(item.cancelled_at ? { cancelledAt: item.cancelled_at } : {}),
     ...(item.completed_at ? { completedAt: item.completed_at } : {}),
     ...(item.revision_limit !== undefined && item.revision_limit !== null ? { revisionLimit: item.revision_limit } : {}),
     ...(item.revision_used !== undefined && item.revision_used !== null ? { revisionUsed: item.revision_used } : {}),
     stepIds: [],
+});
+
+const toWorkDeadlineExtension = (item: any): WorkDeadlineExtension => ({
+    id: item.id,
+    workId: item.work_id,
+    requesterId: item.requester_id,
+    previousDueAt: item.previous_due_at,
+    proposedDueAt: item.proposed_due_at,
+    reason: item.reason,
+    status: item.status,
+    ...(item.responded_by ? { respondedBy: item.responded_by } : {}),
+    ...(item.responded_at ? { respondedAt: item.responded_at } : {}),
+    createdAt: item.created_at,
 });
 
 const getProposalMoney = (proposal: Proposal) =>
@@ -653,12 +671,15 @@ type TradeWorkflowRequest =
     | { readonly type: 'submit_deliverable'; readonly deliverable: TradeDeliverablePayload }
     | { readonly type: 'approve_deliverable'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
     | { readonly type: 'request_work_revision'; readonly workId: string; readonly deliverableId: string; readonly stepId?: string }
-    | { readonly type: 'request_work_dispute'; readonly workId: string; readonly reason: NonNullable<Work['disputeReason']>; readonly details: string };
+    | { readonly type: 'request_work_dispute'; readonly workId: string; readonly reason: NonNullable<Work['disputeReason']>; readonly details: string }
+    | { readonly type: 'request_deadline_extension'; readonly workId: string; readonly proposedDueAt: string; readonly reason: string }
+    | { readonly type: 'respond_deadline_extension'; readonly extensionId: string; readonly accepted: boolean };
 
 type TradeWorkflowResponse = {
     readonly proposalId?: string;
     readonly workId?: string;
     readonly deliverableId?: string;
+    readonly extensionId?: string;
 };
 
 const toTradeProposalPayload = (proposal: Proposal): TradeProposalPayload => ({
@@ -694,7 +715,8 @@ const isTradeWorkflowResponse = (value: unknown): value is TradeWorkflowResponse
     const response = value as Partial<TradeWorkflowResponse>;
     return (response.proposalId === undefined || typeof response.proposalId === 'string')
         && (response.workId === undefined || typeof response.workId === 'string')
-        && (response.deliverableId === undefined || typeof response.deliverableId === 'string');
+        && (response.deliverableId === undefined || typeof response.deliverableId === 'string')
+        && (response.extensionId === undefined || typeof response.extensionId === 'string');
 };
 
 const invokeTradeWorkflow = async (body: TradeWorkflowRequest): Promise<TradeWorkflowResponse> => {
@@ -1961,11 +1983,13 @@ export async function getWorkroomData(workId: string): Promise<{
     work: Work | null;
     steps: WorkStep[];
     deliverables: Deliverable[];
+    deadlineExtensions?: WorkDeadlineExtension[];
 }> {
     const getLocalWorkroomData = () => {
         const works = readLocalArray<Work>(STORAGE_KEYS.WORKS);
         const steps = readLocalArray<WorkStep>(STORAGE_KEYS.WORK_STEPS);
         const deliverables = readLocalArray<Deliverable>(STORAGE_KEYS.DELIVERABLES);
+        const deadlineExtensions = readLocalArray<WorkDeadlineExtension>(STORAGE_KEYS.WORK_DEADLINE_EXTENSIONS);
         const workDeliverables = deliverables
             .filter((deliverable) => deliverable.workId === workId)
             .map((deliverable) => ({
@@ -1978,6 +2002,8 @@ export async function getWorkroomData(workId: string): Promise<{
             work: works.find((work) => work.id === workId) || null,
             steps: steps.filter((step) => step.workId === workId),
             deliverables: workDeliverables,
+            deadlineExtensions: deadlineExtensions.filter((item) => item.workId === workId)
+                .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
         };
     };
 
@@ -2019,7 +2045,7 @@ export async function getWorkroomData(workId: string): Promise<{
     if (workError || !workData) {
         return localWorkroom.work && isDemoAccountRecordId(localWorkroom.work.id)
             ? localWorkroom
-            : { work: null, steps: [], deliverables: [] };
+            : { work: null, steps: [], deliverables: [], deadlineExtensions: [] };
     }
 
     const { data: stepData } = await supabase
@@ -2034,6 +2060,12 @@ export async function getWorkroomData(workId: string): Promise<{
         .eq('work_id', workId)
         .order('submitted_at', { ascending: false });
 
+    const { data: extensionData } = await supabase
+        .from('work_deadline_extensions')
+        .select('*')
+        .eq('work_id', workId)
+        .order('created_at', { ascending: false });
+
     const steps = (stepData || []).map(toWorkStep);
     const work = toWork(workData);
     const deliverables = await Promise.all((deliverableData || []).map(toDeliverable));
@@ -2043,7 +2075,66 @@ export async function getWorkroomData(workId: string): Promise<{
         work: workWithSteps,
         steps,
         deliverables,
+        deadlineExtensions: (extensionData || []).map(toWorkDeadlineExtension),
     };
+}
+
+export async function requestWorkDeadlineExtension(
+    workId: string,
+    requesterId: string,
+    currentDueAt: string,
+    proposedDueAt: string,
+    reason: string,
+): Promise<WorkDeadlineExtension> {
+    const trimmedReason = reason.trim();
+    if (!trimmedReason || trimmedReason.length < 10) throw new Error('연장 사유를 10자 이상 입력해주세요.');
+    if (!currentDueAt) throw new Error('기존 납기가 설정되지 않았습니다.');
+    const proposedTime = Date.parse(proposedDueAt);
+    if (!Number.isFinite(proposedTime) || proposedTime <= Date.parse(currentDueAt)) throw new Error('새 납기는 현재 납기보다 뒤여야 합니다.');
+
+    const extension: WorkDeadlineExtension = {
+        id: `deadline-extension-${Date.now()}`,
+        workId,
+        requesterId,
+        previousDueAt: currentDueAt,
+        proposedDueAt: new Date(proposedTime).toISOString(),
+        reason: trimmedReason,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+    };
+    if (!supabase || hasLocalDemoWork(workId)) {
+        const existing = readLocalArray<WorkDeadlineExtension>(STORAGE_KEYS.WORK_DEADLINE_EXTENSIONS);
+        if (existing.some((item) => item.workId === workId && item.status === 'pending')) throw new Error('응답 대기 중인 연장 요청이 있습니다.');
+        writeLocalArray(STORAGE_KEYS.WORK_DEADLINE_EXTENSIONS, [...existing, extension]);
+        return extension;
+    }
+    const result = await invokeTradeWorkflow({ type: 'request_deadline_extension', workId, proposedDueAt: extension.proposedDueAt, reason: trimmedReason });
+    return { ...extension, id: result.extensionId || extension.id };
+}
+
+export async function respondWorkDeadlineExtension(
+    extensionId: string,
+    responderId: string,
+    accepted: boolean,
+): Promise<void> {
+    const existing = readLocalArray<WorkDeadlineExtension>(STORAGE_KEYS.WORK_DEADLINE_EXTENSIONS);
+    const extension = existing.find((item) => item.id === extensionId);
+    if (!supabase || (extension && hasLocalDemoWork(extension.workId))) {
+        if (!extension || extension.status !== 'pending') throw new Error('처리할 수 없는 연장 요청입니다.');
+        if (extension.requesterId === responderId) throw new Error('요청 상대방만 응답할 수 있습니다.');
+        const respondedAt = new Date().toISOString();
+        writeLocalArray(STORAGE_KEYS.WORK_DEADLINE_EXTENSIONS, existing.map((item) => item.id === extensionId
+            ? { ...item, status: accepted ? 'accepted' : 'rejected', respondedBy: responderId, respondedAt }
+            : item));
+        if (accepted) {
+            const works = readLocalArray<Work>(STORAGE_KEYS.WORKS);
+            writeLocalArray(STORAGE_KEYS.WORKS, works.map((work) => work.id === extension.workId
+                ? { ...work, deliveryDueAt: extension.proposedDueAt, deadlineExtensionCount: (work.deadlineExtensionCount || 0) + 1 }
+                : work));
+        }
+        return;
+    }
+    await invokeTradeWorkflow({ type: 'respond_deadline_extension', extensionId, accepted });
 }
 
 export async function getWorkByProposal(proposalId: string): Promise<Work | null> {
