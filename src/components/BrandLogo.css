@@ -14,6 +14,7 @@
     font-weight: 800;
     letter-spacing: 0;
     line-height: 0.96;
+    padding-top: 0.5em;
 }
 
 .brand-logo-k {
@@ -23,7 +24,7 @@
 
 .brand-logo-check {
     position: absolute;
-    top: -0.72em;
+    top: 0.06em;
     left: 0.02em;
     width: 1.02em;
     height: 0.64em;
