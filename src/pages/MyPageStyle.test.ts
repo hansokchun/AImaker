@@ -99,7 +99,7 @@ describe('MyPage work dashboard visual styles', () => {
 
         expect(menuButtonRule).toContain('display: flex')
         expect(menuButtonRule).toContain('border-left: 3px solid transparent')
-        expect(selectedMenuRule).toContain('border-left-color: #1479ff')
+        expect(selectedMenuRule).toContain('border-left-color: #0f70ed')
         expect(listCardRule).toContain('min-height: 92px')
         expect(listCardRule).toContain('padding: var(--space-4)')
         expect(listMetaRule).toContain('justify-content: space-between')

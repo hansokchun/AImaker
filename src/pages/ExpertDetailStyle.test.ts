@@ -14,7 +14,7 @@ describe('ExpertDetail gallery styles', () => {
     it('scopes the ilpick palette to the product detail preview', () => {
         const previewRule = getRule('.ilpick-product-detail')
 
-        expect(previewRule).toContain('--primary: #1479ff')
+        expect(previewRule).toContain('--primary: #0f70ed')
         expect(previewRule).toContain('--ilpick-navy: #071a3d')
         expect(previewRule).toContain('--ilpick-blue-soft: #e5f0ff')
     })

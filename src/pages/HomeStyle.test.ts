@@ -25,7 +25,7 @@ describe('home hero visual styles', () => {
   it('uses an S-shaped process path that matches the minimal site style', () => {
     expect(getRule('.home-minimal-process-list')).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))')
     expect(getRule('.home-minimal-process-list')).toContain('min-height: 240px')
-    expect(getRule('.home-minimal-process-list::before')).toContain('linear-gradient(90deg, transparent, #93c5fd, #1479ff, #93c5fd, transparent)')
+    expect(getRule('.home-minimal-process-list::before')).toContain('linear-gradient(90deg, transparent, #93c5fd, #0f70ed, #93c5fd, transparent)')
     expect(getRule('.home-minimal-process-list::before')).toContain("url(\"data:image/svg+xml")
     expect(getRule('.home-minimal-process-list::before')).toContain('stroke-width=\'4\'')
     expect(getRule('.home-minimal-process-list::after')).toContain('filter: blur(12px)')

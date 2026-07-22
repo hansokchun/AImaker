@@ -17,7 +17,7 @@
 }
 
 .settlement-panel-eyebrow {
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 0.78rem;
     font-weight: 900;
     letter-spacing: 0.04em;
@@ -123,7 +123,7 @@
     padding: 0 1rem;
     border: 0;
     border-radius: 0.5rem;
-    background: #1479ff;
+    background: #0f70ed;
     color: #fff;
     font: inherit;
     font-weight: 900;
@@ -192,7 +192,7 @@
 .settlement-request-button {
     border: 0;
     background: transparent;
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 0.86rem;
     font-weight: 900;
     font-family: inherit;
@@ -308,7 +308,7 @@
     inset: 0 auto 0 0;
     width: 50%;
     border-radius: 999px !important;
-    background: linear-gradient(180deg, #1479ff 0%, #075fd1 100%) !important;
+    background: linear-gradient(180deg, #0f70ed 0%, #075fd1 100%) !important;
     box-shadow: 0 12px 26px rgb(37 99 235 / 0.24);
     transform: translateX(0);
     transition: transform 180ms ease-out, box-shadow 180ms ease-out;
@@ -355,7 +355,7 @@
 }
 
 .work-role-toggle-button:hover {
-    color: #1479ff !important;
+    color: #0f70ed !important;
 }
 
 .work-role-toggle-button[aria-pressed="true"]:hover {
@@ -367,7 +367,7 @@
 }
 
 .work-role-toggle-button:focus-visible {
-    outline: 2px solid color-mix(in srgb, #1479ff 55%, transparent);
+    outline: 2px solid color-mix(in srgb, #0f70ed 55%, transparent);
     outline-offset: 2px;
 }
 
@@ -426,14 +426,14 @@
 }
 
 .work-dashboard-menu-button:hover {
-    background: color-mix(in srgb, #1479ff 5%, var(--surface)) !important;
-    color: #1479ff !important;
+    background: color-mix(in srgb, #0f70ed 5%, var(--surface)) !important;
+    color: #0f70ed !important;
 }
 
 .work-dashboard-menu-button.is-selected {
-    border-left-color: #1479ff !important;
+    border-left-color: #0f70ed !important;
     background: #edf3ff !important;
-    color: #1479ff !important;
+    color: #0f70ed !important;
     font-weight: 900 !important;
 }
 
@@ -517,11 +517,11 @@
 
 .work-transaction-tabs button:hover,
 .work-transaction-tabs button[aria-pressed="true"] {
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .work-transaction-tabs button[aria-pressed="true"]::after {
-    background: #1479ff;
+    background: #0f70ed;
 }
 
 .work-list-panel {
@@ -556,14 +556,14 @@
 
 .work-list-card:hover {
     transform: translateY(-1px);
-    border-color: color-mix(in srgb, #1479ff 28%, #e8edf5) !important;
+    border-color: color-mix(in srgb, #0f70ed 28%, #e8edf5) !important;
     box-shadow: 0 14px 30px rgb(15 23 42 / 0.055);
 }
 
 .work-list-card[aria-pressed="true"],
 .work-list-card.is-selected {
     border-color: #b9cce6 !important;
-    border-left-color: #1479ff !important;
+    border-left-color: #0f70ed !important;
     background: #edf3ff !important;
 }
 
@@ -579,7 +579,7 @@
     display: inline-flex;
     align-items: center;
     width: fit-content;
-    color: #1479ff !important;
+    color: #0f70ed !important;
     font-size: 0.78rem;
     font-weight: 850;
     line-height: 1.2;
@@ -625,7 +625,7 @@
     padding: 0.22rem 0.55rem;
     border-radius: 999px;
     background: #eef4ff;
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 0.74rem;
     font-weight: 850;
 }
@@ -703,7 +703,7 @@
 
 .consultation-list-card.is-selected,
 .consultation-list-card[aria-pressed="true"] {
-    border: 1.5px solid #1479ff;
+    border: 1.5px solid #0f70ed;
     background: #edf3ff;
     box-shadow: 0 14px 32px rgb(37 99 235 / 0.08);
 }
@@ -723,7 +723,7 @@
 
 .consultation-list-card.is-selected .consultation-list-icon,
 .consultation-list-card[aria-pressed="true"] .consultation-list-icon {
-    background: #1479ff;
+    background: #0f70ed;
     color: #ffffff;
 }
 
@@ -783,11 +783,11 @@
 }
 
 .consultation-status.is-active {
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .consultation-status.is-active span {
-    background: #1479ff;
+    background: #0f70ed;
 }
 
 .consultation-chat-detail {
@@ -862,7 +862,7 @@
 .consultation-more-button[aria-expanded='true'] {
     border-color: #b9cce6;
     background: #edf3ff;
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .consultation-more-button svg {
@@ -905,7 +905,7 @@
 
 .consultation-action-menu button:hover:not(:disabled) {
     background: #f4f7fc;
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .consultation-action-menu button:disabled {
@@ -966,7 +966,7 @@
 }
 
 .consultation-message-row.is-mine .consultation-message-bubble {
-    background: #1479ff;
+    background: #0f70ed;
     color: #ffffff;
 }
 
@@ -984,7 +984,7 @@
     padding: 0.5rem 0.75rem;
     border-radius: 999px;
     background: #ffffff;
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 0.82rem;
     font-weight: 900;
     text-decoration: none;
@@ -1039,7 +1039,7 @@
 }
 
 .consultation-textarea-wrap textarea:focus {
-    border-color: #1479ff;
+    border-color: #0f70ed;
     box-shadow: 0 0 0 4px rgb(37 99 235 / 0.12);
     outline: 0;
 }
@@ -1079,9 +1079,9 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    border: 1px solid #1479ff;
+    border: 1px solid #0f70ed;
     border-radius: 999px;
-    background: #1479ff;
+    background: #0f70ed;
     color: #ffffff;
     cursor: pointer;
     transition:
@@ -1099,7 +1099,7 @@
 .consultation-proposal-button {
     border: 1px solid #b9cce6;
     background: #edf3ff;
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .consultation-proposal-button:disabled {
@@ -1238,13 +1238,13 @@
 
 .work-progress-step.is-done .work-progress-marker,
 .work-progress-step.is-current .work-progress-marker {
-    border-color: #1479ff;
-    background: #1479ff;
+    border-color: #0f70ed;
+    background: #0f70ed;
     color: var(--surface);
 }
 
 .work-progress-step.is-done .work-progress-line {
-    background: #1479ff;
+    background: #0f70ed;
 }
 
 .work-progress-phase {
@@ -1264,7 +1264,7 @@
 
 .work-progress-step.is-current .work-progress-phase,
 .work-progress-step.is-current .work-progress-status {
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .work-progress-step.is-done .work-progress-status {
@@ -1288,7 +1288,7 @@
     width: 2.65rem;
     height: 2.65rem;
     border-radius: 999px;
-    background: #1479ff;
+    background: #0f70ed;
     color: var(--surface);
     font-size: 1rem;
     font-weight: 900;
@@ -1400,7 +1400,7 @@
 
 .work-timeline-item.is-done .work-timeline-dot,
 .work-timeline-item.is-current .work-timeline-dot {
-    background: #1479ff;
+    background: #0f70ed;
 }
 
 .work-timeline-head {
@@ -1644,7 +1644,7 @@
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     background: #eef4ff;
-    color: #1479ff;
+    color: #0f70ed;
     font-weight: 900;
 }
 
@@ -1673,7 +1673,7 @@
     padding: 0.36rem 0.72rem;
     border-radius: 8px;
     background: #eef4ff;
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 0.82rem;
     font-weight: 900;
     white-space: nowrap;
@@ -1736,7 +1736,7 @@
 }
 
 .work-transaction-open-button:hover {
-    color: #1479ff;
+    color: #0f70ed;
     background: #edf3ff;
 }
 
@@ -1777,7 +1777,7 @@
 }
 
 .work-transaction-pages button[aria-current="page"] {
-    background: #1479ff;
+    background: #0f70ed;
     color: var(--surface);
     box-shadow: 0 10px 20px rgb(37 99 235 / 0.2);
 }
@@ -1815,7 +1815,7 @@
 }
 
 .work-detail-back-button:hover {
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .work-detail-hero-main {
@@ -1835,7 +1835,7 @@
     border: 1px solid #e5e7eb;
     border-radius: 16px;
     background: #eef4ff;
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 2.5rem;
     font-weight: 900;
 }
@@ -1853,7 +1853,7 @@
 .work-detail-type-label {
     display: block;
     margin-bottom: var(--space-3);
-    color: #1479ff;
+    color: #0f70ed;
     font-size: 0.92rem;
     font-weight: 900;
 }
@@ -1922,7 +1922,7 @@
 }
 
 .project-list-breadcrumb a:hover {
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .project-list-header h2 {
@@ -1970,13 +1970,13 @@
 }
 
 .project-list-filter button:hover {
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .project-list-filter button[aria-pressed='true'] {
     border-color: #b9cce6;
     background: #ffffff;
-    color: #1479ff;
+    color: #0f70ed;
     box-shadow: 0 8px 18px rgb(37 99 235 / 0.08);
 }
 
@@ -2045,7 +2045,7 @@
 
 .project-list-placeholder.is-blue {
     background: #edf3ff;
-    color: #1479ff;
+    color: #0f70ed;
 }
 
 .project-list-placeholder.is-orange {
@@ -2109,7 +2109,7 @@
 }
 
 .project-list-status-dot.is-blue {
-    background: #1479ff;
+    background: #0f70ed;
 }
 
 .project-list-status-dot.is-orange {
@@ -2130,10 +2130,10 @@
     justify-content: center;
     min-height: 42px;
     padding: 0 var(--space-4);
-    border: 1px solid #1479ff;
+    border: 1px solid #0f70ed;
     border-radius: 12px;
     background: #ffffff;
-    color: #1479ff;
+    color: #0f70ed;
     font: inherit;
     font-size: 0.88rem;
     font-weight: 850;

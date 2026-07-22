@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0');
 
 :root {
-    --primary: #1479ff;
+    --primary: #0f70ed;
     --primary-hover: #075fd1;
     --secondary: #4a9cff;
     --danger: #e11d48;
@@ -15,7 +15,7 @@
     --text-muted: #7b8ba5;
     --border-color: #d8e1ef;
     --ilpick-navy: #071a3d;
-    --ilpick-blue: #1479ff;
+    --ilpick-blue: #0f70ed;
     --ilpick-navy-soft: #edf3ff;
     --ilpick-blue-soft: #e5f0ff;
     --star: #fbbf24;
@@ -1126,7 +1126,7 @@ section { padding: 8rem 0; }
     top: 50%;
     height: 150px;
     transform: translateY(-50%);
-    background: linear-gradient(90deg, transparent, #93c5fd, #1479ff, #93c5fd, transparent);
+    background: linear-gradient(90deg, transparent, #93c5fd, #0f70ed, #93c5fd, transparent);
     mask: url("data:image/svg+xml,%3Csvg width='1200' height='150' viewBox='0 0 1200 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 78 C190 22 338 34 482 88 S748 124 890 78 S1085 24 1176 74' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
     pointer-events: none;
     z-index: 0;
@@ -1139,7 +1139,7 @@ section { padding: 8rem 0; }
     top: 50%;
     height: 150px;
     transform: translateY(-50%);
-    background: linear-gradient(90deg, transparent, #93c5fd, #1479ff, #93c5fd, transparent);
+    background: linear-gradient(90deg, transparent, #93c5fd, #0f70ed, #93c5fd, transparent);
     mask: url("data:image/svg+xml,%3Csvg width='1200' height='150' viewBox='0 0 1200 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 78 C190 22 338 34 482 88 S748 124 890 78 S1085 24 1176 74' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
     pointer-events: none;
     opacity: 0.14;

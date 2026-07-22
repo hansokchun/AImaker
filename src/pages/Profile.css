@@ -6,7 +6,7 @@
 
 /* ===== 페이지 헤더 ===== */
 .profile-hero {
-    background: linear-gradient(135deg, #071a3d 0%, #1479ff 50%, #4a9cff 100%);
+    background: linear-gradient(135deg, #071a3d 0%, #0f70ed 50%, #4a9cff 100%);
     padding: 4rem 0 5rem;
     color: white;
 }
