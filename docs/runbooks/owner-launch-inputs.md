@@ -30,6 +30,8 @@
 - 최종 도메인: 미정
 - 구매처: 미정
 - `www` 사용 여부: 미정
+- 명칭 충돌 검토: [`gigon.ai`](https://www.gigon.ai/)가 AI 기반 온디맨드 서비스 플랫폼으로 운영 중이므로 후보에서 제외하고, 긱온/GigOn의 국내 상표·서비스 혼동 위험을 먼저 확인
+- 구매 후보: `gigon.kr`, `gigon.co.kr` (DNS 미설정만 확인됨. 실제 등록 가능 여부는 구매처에서 재확인)
 
 도메인 구매 후 Codex가 Cloudflare Custom Domain, Supabase Site URL/Redirect URL, Google OAuth 승인 주소, Toss 성공·실패 URL을 같은 주소로 맞춥니다.
 
@@ -53,4 +55,3 @@
 - 관리자 지급 완료 처리와 이체 확인번호 기록
 
 실제 돈이 움직이는 결제·환불·송금은 대표자 확인 후 진행합니다.
-
