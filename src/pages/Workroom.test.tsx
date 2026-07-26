@@ -198,6 +198,8 @@ describe('Workroom', () => {
             'https://example.com/deliverables/ai-shortform-draft',
         )
         expect(screen.getByLabelText('제출됨')).toBeInTheDocument()
+        expect(screen.getByText('1차 제출')).toBeInTheDocument()
+        expect(screen.getByText(/제출시각:/)).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '결제/정산' })).toBeInTheDocument()
         expect(screen.getByText('결제 완료')).toBeInTheDocument()
         expect(screen.getByText('70,000원')).toBeInTheDocument()
@@ -250,6 +252,7 @@ describe('Workroom', () => {
         fireEvent.click(screen.getByRole('button', { name: '제출물 링크 등록' }))
 
         await waitFor(() => expect(screen.getByText('https://example.com/new-deliverable')).toBeInTheDocument())
+        expect(screen.getByText('2차 제출')).toBeInTheDocument()
         expect(saveDeliverable).toHaveBeenCalledWith(expect.objectContaining({ id: expect.stringMatching(/^deliverable-/) }))
         expect(screen.getByText('https://example.com/new-deliverable').closest('a')).toHaveAttribute(
             'href',

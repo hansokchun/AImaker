@@ -347,7 +347,7 @@ export default function Workroom() {
             submittedAt: new Date().toISOString(),
         }
         const savedDeliverable = await saveDeliverable(newDeliverable)
-        setDeliverables([savedDeliverable, ...deliverables])
+        setDeliverables((current) => [savedDeliverable, ...current])
         setDeliverableLink('')
         setRetentionConfirmed(false)
         setStatusMessage(isRevisionMode ? '수정본 링크가 등록되었습니다. 의뢰자 확인을 기다립니다.' : '제출물 링크가 등록되었습니다.')
@@ -618,6 +618,13 @@ export default function Workroom() {
                         {activeDeliverable ? (
                             <div className="submitted-deliverable">
                                 <div>
+                                    <strong>{deliverables.length}차 제출</strong>
+                                    <small>
+                                        제출시각:{' '}
+                                        <time dateTime={activeDeliverable.submittedAt}>
+                                            {new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(activeDeliverable.submittedAt))}
+                                        </time>
+                                    </small>
                                     {activeDeliverableUrl && (
                                         <a href={activeDeliverableUrl} target="_blank" rel="noreferrer">
                                             {activeDeliverableUrl}
