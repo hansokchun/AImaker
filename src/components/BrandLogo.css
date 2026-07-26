@@ -6,22 +6,60 @@
 }
 
 .brand-logo-word {
-    position: relative;
     display: inline-flex;
-    align-items: baseline;
-    font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", var(--font-family);
-    font-size: 1.52rem;
-    font-weight: 800;
+    align-items: center;
+    isolation: isolate;
+    font-family: "Arial Rounded MT Bold", ui-rounded, "Trebuchet MS", var(--font-family);
+    font-size: 1.56rem;
+    font-weight: 900;
     letter-spacing: 0;
-    line-height: 0.96;
+    line-height: 1;
+}
+
+.brand-logo-primary,
+.brand-logo-link-letter,
+.brand-logo-accent {
+    display: inline-block;
+}
+
+.brand-logo-link-letter {
+    position: relative;
+    z-index: 1;
+    margin-left: -0.015em;
+}
+
+.brand-logo-link-letter::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: -0.31em;
+    width: 0.56em;
+    height: 0.3em;
+    border: 0.105em solid var(--ilpick-blue);
+    border-left-width: 0.13em;
+    border-radius: 999px;
+    background: var(--surface);
+    transform: translateY(-50%);
+}
+
+.brand-logo-accent {
+    position: relative;
+    z-index: 3;
+    margin-left: -0.035em;
+    color: var(--ilpick-blue);
 }
 
 .brand-logo--inverse {
     color: white;
 }
 
+.brand-logo--inverse .brand-logo-link-letter::after {
+    background: var(--ilpick-navy);
+}
+
 @media (max-width: 640px) {
     .brand-logo-word {
-        font-size: 1.4rem;
+        font-size: 1.43rem;
     }
 }
