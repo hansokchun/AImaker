@@ -1,69 +1,38 @@
 .brand-logo {
     display: inline-flex;
     align-items: center;
-    color: var(--gigon-navy);
     line-height: 1;
 }
 
-.brand-logo-word {
-    display: inline-flex;
-    align-items: center;
-    isolation: isolate;
-    font-family: "Arial Rounded MT Bold", "Trebuchet MS", ui-rounded, var(--font-family);
-    font-size: 1.6rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    line-height: 1;
-}
-
-.brand-logo-primary,
-.brand-logo-accent {
-    display: inline-block;
-}
-
-.brand-logo-link-mark {
-    position: relative;
-    display: inline-block;
-    flex: 0 0 auto;
-    width: 1.14em;
-    height: 0.72em;
-    margin: 0 -0.02em 0 0.025em;
-}
-
-.brand-logo-link-left,
-.brand-logo-link-right {
-    position: absolute;
-    top: 0;
-    width: 0.73em;
-    height: 0.72em;
-    border: 0.17em solid currentColor;
-}
-
-.brand-logo-link-left {
-    left: 0;
-    border-right: 0;
-    border-radius: 0.5em 0 0 0.5em;
-    color: inherit;
-}
-
-.brand-logo-link-right {
-    right: 0;
-    border-left: 0;
-    border-radius: 0 0.5em 0.5em 0;
-    color: var(--gigon-blue);
-}
-
-.brand-logo-accent {
-    margin-left: 0.035em;
-    color: var(--gigon-blue);
+.brand-logo-image {
+    display: block;
+    width: 158px;
+    height: auto;
+    object-fit: contain;
 }
 
 .brand-logo--inverse {
-    color: white;
+    padding: 0.42rem 0.6rem;
+    border-radius: 0.65rem;
+    background: white;
+}
+
+.login-logo .brand-logo-image,
+.onboarding-logo .brand-logo-image {
+    width: 220px;
+}
+
+.footer-logo .brand-logo-image {
+    width: 190px;
 }
 
 @media (max-width: 640px) {
-    .brand-logo-word {
-        font-size: 1.47rem;
+    .brand-logo-image {
+        width: 138px;
+    }
+
+    .login-logo .brand-logo-image,
+    .onboarding-logo .brand-logo-image {
+        width: 190px;
     }
 }
