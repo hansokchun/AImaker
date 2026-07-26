@@ -11,12 +11,12 @@ const getRule = (selector: string) => {
 }
 
 describe('ExpertDetail gallery styles', () => {
-    it('scopes the ilpick palette to the product detail preview', () => {
-        const previewRule = getRule('.ilpick-product-detail')
+    it('scopes the gigon palette to the product detail preview', () => {
+        const previewRule = getRule('.gigon-product-detail')
 
         expect(previewRule).toContain('--primary: #0f70ed')
-        expect(previewRule).toContain('--ilpick-navy: #071a3d')
-        expect(previewRule).toContain('--ilpick-blue-soft: #e5f0ff')
+        expect(previewRule).toContain('--gigon-navy: #071a3d')
+        expect(previewRule).toContain('--gigon-blue-soft: #e5f0ff')
     })
 
     it('keeps the gallery stage size fixed while media changes', () => {

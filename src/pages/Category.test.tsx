@@ -104,7 +104,7 @@ describe('Category', () => {
 
     expect(await screen.findByRole('heading', { name: mockExpertProducts[0].title })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: '현재 위치' })).toHaveTextContent('홈/AI 작업 찾기')
-    expect(screen.queryByText('일픽 마켓플레이스')).not.toBeInTheDocument()
+    expect(screen.queryByText('긱온 마켓플레이스')).not.toBeInTheDocument()
     expect(screen.queryByText('상품 검색')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'AI 작업을 카테고리별로 탐색하세요' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: `${AI_CATEGORIES[0].name} 카테고리 보기` })).not.toBeInTheDocument()

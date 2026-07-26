@@ -1,8 +1,8 @@
-# 일픽 Implementation Plan
+# 긱온 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 일픽를 AI 상품 탐색, 요구사항 작성, 거래 제안서, 작업 진행표까지 이어지는 초기 런칭 가능한 서비스로 개편한다.
+**Goal:** 긱온을 AI 상품 탐색, 요구사항 작성, 거래 제안서, 작업 진행표까지 이어지는 초기 런칭 가능한 서비스로 개편한다.
 
 **Architecture:** 기존 React + TypeScript + Vite 구조를 유지하고, 먼저 mock data로 전체 거래 흐름을 구현한다. 이후 Supabase 테이블과 RLS를 연결해 실제 저장 구조로 전환한다.
 

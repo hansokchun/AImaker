@@ -44,7 +44,7 @@ describe('MyPage work dashboard visual styles', () => {
         expect(detailRule).toContain('border-radius: 16px')
     })
 
-    it('uses the ilpick light marketplace backgrounds', () => {
+    it('uses the gigon light marketplace backgrounds', () => {
         expect(getRule(globalCss, ':root')).toContain('--background: #f4f7fc')
         expect(getRule(globalCss, 'body')).toContain('background-color: var(--background)')
         expect(getRule(myPageCss, '.mypage-page')).toContain('background: var(--background)')

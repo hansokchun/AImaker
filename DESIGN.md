@@ -1,8 +1,8 @@
-# 일픽 Design System
+# 긱온 Design System
 
 ## 1. Atmosphere & Identity
 
-일픽 feels like a clear, practical AI work marketplace: calm enough for first-time clients, structured enough for repeat work. The signature is a clean marketplace surface with trust metadata close to each decision point.
+긱온 feels like a clear, practical AI work marketplace: calm enough for first-time clients, structured enough for repeat work. The signature is a clean marketplace surface with trust metadata close to each decision point.
 
 ## 2. Color
 
@@ -16,9 +16,10 @@
 | Text/secondary | `--text-secondary` | `#475569` | `#cbd5e1` | Descriptions, metadata |
 | Text/muted | `--text-muted` | `#94a3b8` | `#64748b` | Empty states, subtle labels |
 | Border/default | `--border-color` | `#e2e8f0` | `#334155` | Dividers, card outlines |
-| Accent/primary | `--primary` | `#2563eb` | `#60a5fa` | Primary CTA, links, focus |
-| Accent/hover | `--primary-hover` | `#1d4ed8` | `#93c5fd` | CTA hover state |
-| Accent/secondary | `--secondary` | `#3b82f6` | `#38bdf8` | Secondary accents |
+| Brand/navy | `--gigon-navy` | `#071a3d` | `#ffffff` | Gig wordmark, search CTA, footer |
+| Accent/primary | `--primary`, `--gigon-blue` | `#0f70ed` | `#60a5fa` | On wordmark, primary CTA, links, focus |
+| Accent/hover | `--primary-hover` | `#075fd1` | `#93c5fd` | CTA hover state |
+| Accent/secondary | `--secondary` | `#4a9cff` | `#38bdf8` | Secondary accents |
 | Status/danger | `--danger` | `#e11d48` | `#fb7185` | Errors, destructive actions |
 | Status/danger strong | `--danger-strong` | `#991b1b` | `#fecdd3` | Destructive section headings |
 | Status/danger muted | `--danger-muted` | `#7f1d1d` | `#fecaca` | Destructive explanatory copy |
@@ -122,7 +123,7 @@ All spacing derives from a base of 4px.
 
 ### Strategy
 
-일픽 uses a mixed but restrained strategy: subtle borders define marketplace structure, and shadows are reserved for navigation or floating overlays.
+긱온 uses a mixed but restrained strategy: subtle borders define marketplace structure, and shadows are reserved for navigation or floating overlays.
 
 | Level | Value | Usage |
 |-------|-------|-------|

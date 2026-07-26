@@ -180,7 +180,7 @@ export default function Proposal() {
             <section className="proposal-hero">
                 <div className="container proposal-hero-inner">
                     <div>
-                        <span className="proposal-eyebrow">일픽 제안</span>
+                        <span className="proposal-eyebrow">긱온 제안</span>
                         <h1>거래 제안서</h1>
                         <p>{proposal.title}</p>
                     </div>
@@ -246,7 +246,7 @@ export default function Proposal() {
 
                     <p className="proposal-start-notice">토스페이먼츠 결제 승인 후 프로젝트가 자동으로 생성됩니다.</p>
                     <p className="proposal-start-notice">
-                        완료 승인 후 일픽 수수료 {percent.format(platformFeeRate)}를 제외한 금액이 전문가 정산 대기 상태가 됩니다.
+                        완료 승인 후 긱온 수수료 {percent.format(platformFeeRate)}를 제외한 금액이 전문가 정산 대기 상태가 됩니다.
                     </p>
                     <div className="proposal-payment-notice">
                         <strong>토스페이먼츠 안전결제</strong>

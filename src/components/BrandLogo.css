@@ -1,7 +1,7 @@
 .brand-logo {
     display: inline-flex;
     align-items: center;
-    color: var(--ilpick-navy);
+    color: var(--gigon-navy);
     line-height: 1;
 }
 
@@ -9,57 +9,61 @@
     display: inline-flex;
     align-items: center;
     isolation: isolate;
-    font-family: "Arial Rounded MT Bold", ui-rounded, "Trebuchet MS", var(--font-family);
-    font-size: 1.56rem;
+    font-family: "Arial Rounded MT Bold", "Trebuchet MS", ui-rounded, var(--font-family);
+    font-size: 1.6rem;
     font-weight: 900;
     letter-spacing: 0;
     line-height: 1;
 }
 
 .brand-logo-primary,
-.brand-logo-link-letter,
 .brand-logo-accent {
     display: inline-block;
 }
 
-.brand-logo-link-letter {
+.brand-logo-link-mark {
     position: relative;
-    z-index: 1;
-    margin-left: -0.015em;
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 1.14em;
+    height: 0.72em;
+    margin: 0 -0.02em 0 0.025em;
 }
 
-.brand-logo-link-letter::after {
-    content: "";
+.brand-logo-link-left,
+.brand-logo-link-right {
     position: absolute;
-    z-index: 2;
-    top: 50%;
-    right: -0.31em;
-    width: 0.56em;
-    height: 0.3em;
-    border: 0.105em solid var(--ilpick-blue);
-    border-left-width: 0.13em;
-    border-radius: 999px;
-    background: var(--surface);
-    transform: translateY(-50%);
+    top: 0;
+    width: 0.73em;
+    height: 0.72em;
+    border: 0.17em solid currentColor;
+}
+
+.brand-logo-link-left {
+    left: 0;
+    border-right: 0;
+    border-radius: 0.5em 0 0 0.5em;
+    color: inherit;
+}
+
+.brand-logo-link-right {
+    right: 0;
+    border-left: 0;
+    border-radius: 0 0.5em 0.5em 0;
+    color: var(--gigon-blue);
 }
 
 .brand-logo-accent {
-    position: relative;
-    z-index: 3;
-    margin-left: -0.035em;
-    color: var(--ilpick-blue);
+    margin-left: 0.035em;
+    color: var(--gigon-blue);
 }
 
 .brand-logo--inverse {
     color: white;
 }
 
-.brand-logo--inverse .brand-logo-link-letter::after {
-    background: var(--ilpick-navy);
-}
-
 @media (max-width: 640px) {
     .brand-logo-word {
-        font-size: 1.43rem;
+        font-size: 1.47rem;
     }
 }

@@ -120,7 +120,7 @@ export default function Navbar() {
     return (
         <header className="navbar" id="navbar">
             <div className="nav-container container">
-                <Link to={ROUTES.HOME} className="logo" aria-label="일픽">
+                <Link to={ROUTES.HOME} className="logo" aria-label="긱온">
                     <BrandLogo />
                 </Link>
 

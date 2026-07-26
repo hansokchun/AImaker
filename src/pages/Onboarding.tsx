@@ -138,7 +138,7 @@ export default function Onboarding() {
                         <BrandLogo />
                     </div>
                     <h1>환영합니다! 🎉</h1>
-                    <p>일픽 시작을 위해 몇 가지 정보를 알려주세요.</p>
+                    <p>긱온 시작을 위해 몇 가지 정보를 알려주세요.</p>
                 </div>
 
                 {error && (
@@ -271,7 +271,7 @@ export default function Onboarding() {
 
                     {/* 완료 버튼 */}
                     <button type="submit" className="btn-primary onboarding-submit" disabled={loading}>
-                        {loading ? '시작 준비 중...' : '일픽 시작하기 →'}
+                        {loading ? '시작 준비 중...' : '긱온 시작하기 →'}
                     </button>
                 </form>
             </div>

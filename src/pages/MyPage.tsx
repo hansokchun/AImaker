@@ -294,7 +294,7 @@ export default function MyPage({ mode = 'all' }: MyPageProps = {}) {
             getUserDisplayProfile(userId).catch(() => null),
             getStoredProfile(userId).catch(() => null),
         ])
-        const fallbackName = userEmail?.split('@')[0] || '일픽 사용자'
+        const fallbackName = userEmail?.split('@')[0] || '긱온 사용자'
         const nextName = displayProfile?.name || storedProfile?.name || fallbackName
         const nextIsExpert = Boolean(displayProfile?.isExpert || storedProfile?.aiTools?.length || storedProfile?.profession)
 

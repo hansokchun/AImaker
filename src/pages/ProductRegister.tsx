@@ -333,7 +333,7 @@ export default function ProductRegister() {
                         <span aria-hidden="true">/</span>
                         <span>AI 작업 등록</span>
                     </nav>
-                    <p className="product-register-eyebrow">일픽 마켓플레이스</p>
+                    <p className="product-register-eyebrow">긱온 마켓플레이스</p>
                     <h1>{pageTitle}</h1>
                     <p>
                         AI 작업 찾기와 상품 상세에서 바로 비교될 수 있도록 제목, 샘플, 가격, 납기를 명확하게 정리합니다.

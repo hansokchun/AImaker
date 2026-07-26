@@ -573,7 +573,7 @@ export default function Workroom() {
         <main className="workroom-page">
             <section className="workroom-hero">
                 <div className="container">
-                    <span className="workroom-eyebrow">일픽 작업</span>
+                    <span className="workroom-eyebrow">긱온 작업</span>
                     <h1>작업 진행방</h1>
                     <p>{work.title}</p>
                 </div>
@@ -758,7 +758,7 @@ export default function Workroom() {
                         <h2>결제/정산</h2>
                         <p>결제 완료</p>
                         <strong>{currency.format(work.totalPrice || 0)}원</strong>
-                        <span>일픽 수수료 {currency.format(work.platformFee || 0)}원</span>
+                        <span>긱온 수수료 {currency.format(work.platformFee || 0)}원</span>
                         <span>전문가 정산 예정 {currency.format(work.expertPayout || 0)}원</span>
                         <span className={isDeliveryLate ? 'workroom-late' : undefined}>공식 납기 {isDeliveryLate ? `지연 · ${deliveryDueText}` : deliveryDueText}</span>
                         <span>합의된 납기 연장 {work.deadlineExtensionCount || 0}회</span>

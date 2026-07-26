@@ -45,7 +45,7 @@ export default function Footer() {
                     <span>고객센터 이메일: 미정</span>
                     <span>고객센터 전화번호: 미정</span>
                 </div>
-                <p>&copy; 2026 ilpick. All rights reserved.</p>
+                <p>&copy; 2026 GigOn. All rights reserved.</p>
             </div>
         </footer>
     );

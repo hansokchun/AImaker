@@ -6,8 +6,8 @@
     padding: 3rem 0 5rem;
 }
 
-/* Temporary product-detail palette for the ilpick brand direction sample. */
-.ilpick-product-detail {
+/* Temporary product-detail palette for the gigon brand direction sample. */
+.gigon-product-detail {
     --primary: #0f70ed;
     --primary-hover: #075fd1;
     --secondary: #4a9cff;
@@ -17,58 +17,58 @@
     --text-secondary: #50627f;
     --text-muted: #7b8ba5;
     --border-color: #d8e1ef;
-    --ilpick-navy: #071a3d;
-    --ilpick-navy-soft: #edf3ff;
-    --ilpick-blue-soft: #e5f0ff;
+    --gigon-navy: #071a3d;
+    --gigon-navy-soft: #edf3ff;
+    --gigon-blue-soft: #e5f0ff;
 }
 
-.ilpick-product-detail .product-detail-hero {
+.gigon-product-detail .product-detail-hero {
     border-bottom-color: #cfdced;
 }
 
-.ilpick-product-detail .product-detail-meta span {
+.gigon-product-detail .product-detail-meta span {
     border: 1px solid #dbe5f3;
-    background: var(--ilpick-navy-soft);
-    color: var(--ilpick-navy);
+    background: var(--gigon-navy-soft);
+    color: var(--gigon-navy);
 }
 
-.ilpick-product-detail .detail-section h2 .material-symbols-outlined {
+.gigon-product-detail .detail-section h2 .material-symbols-outlined {
     color: var(--primary);
 }
 
-.ilpick-product-detail .price-comparison-head > div {
-    background: var(--ilpick-navy-soft);
-    color: var(--ilpick-navy);
+.gigon-product-detail .price-comparison-head > div {
+    background: var(--gigon-navy-soft);
+    color: var(--gigon-navy);
 }
 
-.ilpick-product-detail .package-card {
+.gigon-product-detail .package-card {
     border-color: #c7d6ea;
     box-shadow: 0 18px 42px rgba(7, 26, 61, 0.14);
 }
 
-.ilpick-product-detail .package-tab.active {
-    background: var(--ilpick-blue-soft);
+.gigon-product-detail .package-tab.active {
+    background: var(--gigon-blue-soft);
 }
 
-.ilpick-product-detail .package-price {
-    color: var(--ilpick-navy);
+.gigon-product-detail .package-price {
+    color: var(--gigon-navy);
 }
 
-.ilpick-product-detail .package-primary-cta,
-.ilpick-product-detail .seller-contact-button {
-    background: var(--ilpick-navy);
-    border-color: var(--ilpick-navy);
+.gigon-product-detail .package-primary-cta,
+.gigon-product-detail .seller-contact-button {
+    background: var(--gigon-navy);
+    border-color: var(--gigon-navy);
 }
 
-.ilpick-product-detail .package-primary-cta:hover,
-.ilpick-product-detail .seller-contact-button:hover:not(:disabled) {
+.gigon-product-detail .package-primary-cta:hover,
+.gigon-product-detail .seller-contact-button:hover:not(:disabled) {
     background: #102d60;
     border-color: #102d60;
 }
 
-.ilpick-product-detail .package-secondary-cta {
+.gigon-product-detail .package-secondary-cta {
     border-color: #b9cce6;
-    color: var(--ilpick-navy);
+    color: var(--gigon-navy);
 }
 
 .content-left {

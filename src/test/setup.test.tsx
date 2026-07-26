@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 describe('test environment', () => {
   it('renders React components with jest-dom matchers', () => {
-    render(<button type="button">일픽 테스트</button>)
+    render(<button type="button">긱온 테스트</button>)
 
-    expect(screen.getByRole('button', { name: '일픽 테스트' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '긱온 테스트' })).toBeInTheDocument()
   })
 })

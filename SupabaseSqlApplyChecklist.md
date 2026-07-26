@@ -21,7 +21,7 @@
 
 실행 전 확인할 것:
 
-- Supabase 프로젝트가 일픽 dev/production 중 어느 환경인지 확인한다.
+- Supabase 프로젝트가 긱온 dev/production 중 어느 환경인지 확인한다.
 - SQL Editor에 예전 쿼리 조각이 남아 있으면 입력창을 완전히 비운다.
 - 로컬 `database.sql` 최신본을 사용한다.
 - 별도로 `drop table`, `truncate`, `delete from` 같은 쿼리를 추가하지 않는다.
