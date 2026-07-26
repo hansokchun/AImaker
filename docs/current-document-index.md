@@ -1,4 +1,4 @@
-# 긱온 current document index
+# 기그온 current document index
 
 - Index version: `1.0.0-draft`
 - Effective status: `draft / closed beta only`

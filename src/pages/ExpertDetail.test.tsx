@@ -213,7 +213,7 @@ describe('ExpertDetail', () => {
         )
 
         expect(await screen.findByRole('heading', { name: 'AI 숏폼 영상 콘셉트와 1차 시안을 제작해드립니다' })).toBeInTheDocument()
-        expect(screen.getAllByText('긱온 AI 스튜디오').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getAllByText('기그온 AI 스튜디오').length).toBeGreaterThanOrEqual(1)
         expect(getExpertProducts).not.toHaveBeenCalled()
     })
 
@@ -324,7 +324,7 @@ describe('ExpertDetail', () => {
         expect(screen.getByRole('heading', { name: '등록한 상품' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: '받은 리뷰' })).toBeInTheDocument()
         expect(screen.getByRole('link', { name: supabaseProduct.title })).toHaveAttribute('href', `/expert/${supabaseProduct.id}`)
-        expect(screen.getByText('긱온 전문가')).toBeInTheDocument()
+        expect(screen.getByText('기그온 전문가')).toBeInTheDocument()
         expect(screen.getByText('평점 4.7 · 리뷰 3개')).toBeInTheDocument()
         expect(screen.getByText('결과물이 깔끔하고 소통이 빨랐습니다.')).toBeInTheDocument()
     })

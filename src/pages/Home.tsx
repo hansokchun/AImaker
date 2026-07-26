@@ -61,7 +61,7 @@ function ProductThumbnail({ product }: { product: ExpertProduct }) {
             aria-label={`${product.title} 썸네일`}
         >
             <span className="home-minimal-thumbnail-label" aria-hidden="true">
-                긱온
+                기그온
             </span>
             {showImage && (
                 <img

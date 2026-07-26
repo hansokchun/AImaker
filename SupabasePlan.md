@@ -1,4 +1,4 @@
-# 긱온 Supabase 상세 설계
+# 기그온 Supabase 상세 설계
 
 > 작성일: 2026-05-15
 > 목적: 초기 런칭에 필요한 Supabase 테이블, 상태값, RLS, Storage 정책을 정리한다.

@@ -66,7 +66,7 @@ const isVideoMedia = (src: string) =>
     /^data:video\//i.test(src) || /\.(mp4|webm|ogg)(\?|#|$)/i.test(src)
 
 const gigonPreviewSeller: SellerProfile = {
-    name: '긱온 AI 스튜디오',
+    name: '기그온 AI 스튜디오',
     imageUrl: '',
     isExpert: true,
     profession: 'AI 영상 제작 전문가',
@@ -241,7 +241,7 @@ export default function ExpertDetail() {
                     <div>
                         <div className="product-detail-category">판매자 프로필</div>
                         <h1>{sellerName}</h1>
-                        <p>{sellerProfile?.isExpert ? '긱온 전문가' : '상품 등록 전문가'}</p>
+                        <p>{sellerProfile?.isExpert ? '기그온 전문가' : '상품 등록 전문가'}</p>
                         {sellerProfile?.contactAvailableTime && (
                             <p>연락 가능 시간 {sellerProfile.contactAvailableTime}</p>
                         )}
@@ -336,7 +336,7 @@ export default function ExpertDetail() {
     const similarProducts = allProducts
         .filter((candidate) => candidate.id !== product.id && candidate.category === product.category)
         .slice(0, 4)
-    const sellerProfession = sellerProfile?.profession || (sellerProfile?.isExpert ? '긱온 판매자' : 'AI 작업 판매자')
+    const sellerProfession = sellerProfile?.profession || (sellerProfile?.isExpert ? '기그온 판매자' : 'AI 작업 판매자')
     const sellerContactAvailableTime = sellerProfile?.contactAvailableTime || '상담 후 안내'
     const sellerAverageResponseTime = sellerProfile?.averageResponseTime || '응답 정보 준비 중'
 

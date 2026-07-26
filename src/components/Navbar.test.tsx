@@ -49,7 +49,7 @@ describe('Navbar', () => {
 
         expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'AI 작업 찾기' })).not.toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '긱온' })).toHaveAttribute('href', '/')
+        expect(screen.getByRole('link', { name: '기그온' })).toHaveAttribute('href', '/')
         expect(screen.queryByText('handshake')).not.toBeInTheDocument()
         expect(screen.queryByRole('search', { name: 'AI 작업 검색' })).not.toBeInTheDocument()
         expect(screen.queryByRole('searchbox', { name: 'AI 작업 검색어' })).not.toBeInTheDocument()
