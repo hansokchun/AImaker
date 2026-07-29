@@ -3,7 +3,7 @@
   "mode": "static-preflight-only",
   "databaseSnapshot": {
     "path": "database.sql",
-    "sha256": "b00bf963f9b2c63cbfd1bcd5f99178d3c2d599e70b226961576aec8da2a9c018"
+    "sha256": "2cefa2187b993110f26167cdb273c54c0819aee61c200fd193250c5be0e1c1ab"
   },
   "baseline": {
     "strategy": "baseline-plus-preserved-history",
