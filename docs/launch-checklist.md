@@ -182,7 +182,9 @@
   - 담당: 사용자
   - 결정·구매 완료: 2026-07-29 가비아에서 `gigon.ai.kr` 구매
   - 대표 주소: `https://gigon.ai.kr`
-  - 현재: A/CNAME DNS 레코드가 없어 Cloudflare Pages 연결 전
+  - 진행 완료: 가비아 네임서버를 `jen.ns.cloudflare.com`, `jerome.ns.cloudflare.com`으로 변경
+  - 외부 확인: 2026-07-29 DNS 조회에서 두 Cloudflare 네임서버 전파 확인
+  - 현재: Cloudflare 내부 네임서버 활성화 판정 대기 중이며, 판정 완료 후 Pages Custom Domain 등록 필요
   - 완료 조건: 가비아 DNS 레코드 설정, Cloudflare Pages Custom Domain 활성화, HTTPS 응답 확인
 - [ ] `P0` HTTPS, Google 로그인, Toss 성공·실패 복귀 확인
   - 담당: 사용자와 Codex
