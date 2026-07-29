@@ -118,7 +118,10 @@
 - [ ] `P0` 실제 도메인을 Auth Redirect URL과 Google OAuth Redirect URL에 등록
   - 담당: 사용자, 도메인 확정 후 Codex가 값 검토
   - Supabase 완료: Site URL을 `https://gigon.ai.kr`로 변경하고 Redirect URLs 허용 목록에 같은 주소 추가
-  - 남음: Google Cloud OAuth 클라이언트의 승인된 JavaScript 원본·리디렉션 URI 확인 및 운영 로그인 회귀 테스트
+  - Google Cloud 완료: Supabase와 동일한 OAuth 클라이언트 확인, 승인된 JavaScript 원본에 `https://gigon.ai.kr` 추가, Supabase 콜백 URI 일치 확인
+  - 운영 수정: Cloudflare의 `VITE_SUPABASE_URL` 변수명 뒤에 숨은 탭 문자를 제거하고 정상 변수명으로 재등록한 뒤 `9859c44` 운영 재배포
+  - 검증: 실제 운영 로그인에서 Google 계정 선택 화면까지 정상 이동
+  - 남음: 사용자가 Google 계정을 선택해 `https://gigon.ai.kr`로 복귀하고 로그인 세션이 생성되는지 최종 확인
 
 ## 3. 토스 운영 결제 전환
 
