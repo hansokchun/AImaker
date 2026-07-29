@@ -180,8 +180,10 @@
   - 주의: 이 확인 전에는 도메인 장기 구매, Toss 운영 심사, 상표 출원 비용을 집행하지 않음
 - [ ] `P0` 실제 도메인 결정·구매·Cloudflare 연결
   - 담당: 사용자
-  - 현재: `gigon.ai`는 타 서비스가 사용 중이며 후보에서 제외
-  - 후보: `gigon.kr`, `gigon.co.kr`은 DNS 레코드가 없지만 등록 가능 여부는 등록기관에서 최종 확인 필요
+  - 결정·구매 완료: 2026-07-29 가비아에서 `gigon.ai.kr` 구매
+  - 대표 주소: `https://gigon.ai.kr`
+  - 현재: A/CNAME DNS 레코드가 없어 Cloudflare Pages 연결 전
+  - 완료 조건: 가비아 DNS 레코드 설정, Cloudflare Pages Custom Domain 활성화, HTTPS 응답 확인
 - [ ] `P0` HTTPS, Google 로그인, Toss 성공·실패 복귀 확인
   - 담당: 사용자와 Codex
 - [ ] `P1` 운영 도메인 기준 Content Security Policy 적용·결제 회귀 테스트
