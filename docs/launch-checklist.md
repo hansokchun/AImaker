@@ -117,6 +117,8 @@
   - 현재 제약: 사용 중인 Free 플랜에서는 유출 비밀번호 차단이 제공되지 않아 Pro 전환 전까지 보류. 대신 최소 비밀번호 길이·Captcha·로그인 제한을 우선 점검
 - [ ] `P0` 실제 도메인을 Auth Redirect URL과 Google OAuth Redirect URL에 등록
   - 담당: 사용자, 도메인 확정 후 Codex가 값 검토
+  - Supabase 완료: Site URL을 `https://gigon.ai.kr`로 변경하고 Redirect URLs 허용 목록에 같은 주소 추가
+  - 남음: Google Cloud OAuth 클라이언트의 승인된 JavaScript 원본·리디렉션 URI 확인 및 운영 로그인 회귀 테스트
 
 ## 3. 토스 운영 결제 전환
 
