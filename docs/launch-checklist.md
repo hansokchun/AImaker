@@ -8,15 +8,16 @@
 
 ## 한눈에 보는 현재 상태
 
-- 전체 76개: **완료 44개 / 남음 32개**
-- 남은 배포 필수 `P0`: **23개**
+- 전체 76개: **완료 45개 / 남음 31개**
+- 남은 배포 필수 `P0`: **22개**
 - 남은 공개 전 권장 `P1`: **4개**
 - 출시 후 계획: **5개**
-- 최신 검증 대상 앱 커밋: `ecba524` (`codex/laptop-handoff-2026-07-18`)
-- 최신 Cloudflare Preview: `https://4eff2a57.aimaker-e7x.pages.dev` (`fad7274`, 정상 배포)
-- 현재 진행 위치: 2단계 운영 보안·데이터 점검과 최신 Preview QA
-- Codex 현재 진행: 최신 기그온 배포 공개 경로 검증 완료, 역할별 작업방 실제 화면 QA 대기
-- 사용자 확인 대기: Supabase Pro 전환 여부, Preview 전문가·의뢰자 로그인, 고객센터·정산·도메인 정보 확정
+- 최신 검증 대상 앱 커밋: `2e760a5` (`main`, 운영 배포)
+- 최신 Cloudflare Production: `https://ce12c3a7.aimaker-e7x.pages.dev` (`2e760a5`, 정상 배포)
+- 운영 대표 주소: `https://gigon.ai.kr` (HTTPS `200`, 기그온 제목·보안 헤더 확인)
+- 현재 진행 위치: 운영 도메인 기준 Auth·OAuth·Toss 리디렉션 통일
+- Codex 현재 진행: 기그온 운영 배포와 실제 도메인 연결 완료, 인증·결제 복귀 QA 준비
+- 사용자 확인 대기: Supabase Pro 전환 여부, 고객센터·정산 정보 확정, Google OAuth·Toss 운영 콘솔 설정
 
 ## 현재 실행 순서
 
@@ -178,14 +179,14 @@
   - 권장: 비용 부담 시 공익변리사 무료상담으로 제35류·제42류 지정서비스 범위 확인
   - 판단: 국내 정확 일치 결과가 없다는 사실만으로 해외 동일 명칭·유사 업종의 혼동 위험이 해소되지는 않으므로 전문가 확인 전까지 미완료
   - 주의: 이 확인 전에는 도메인 장기 구매, Toss 운영 심사, 상표 출원 비용을 집행하지 않음
-- [ ] `P0` 실제 도메인 결정·구매·Cloudflare 연결
+- [x] `P0` 실제 도메인 결정·구매·Cloudflare 연결
   - 담당: 사용자
   - 결정·구매 완료: 2026-07-29 가비아에서 `gigon.ai.kr` 구매
   - 대표 주소: `https://gigon.ai.kr`
   - 진행 완료: 가비아 네임서버를 `jen.ns.cloudflare.com`, `jerome.ns.cloudflare.com`으로 변경
   - 외부 확인: 2026-07-29 DNS 조회에서 두 Cloudflare 네임서버 전파 확인
-  - 현재: Cloudflare 내부 네임서버 활성화 판정 대기 중이며, 판정 완료 후 Pages Custom Domain 등록 필요
-  - 완료 조건: 가비아 DNS 레코드 설정, Cloudflare Pages Custom Domain 활성화, HTTPS 응답 확인
+  - Cloudflare Pages: `aimaker` 프로젝트 Custom Domain 활성화
+  - 검증: 2026-07-29 `https://gigon.ai.kr` HTTPS `200`, 기그온 페이지 제목, HTTP→HTTPS 이동, 보안 헤더 확인
 - [ ] `P0` HTTPS, Google 로그인, Toss 성공·실패 복귀 확인
   - 담당: 사용자와 Codex
 - [ ] `P1` 운영 도메인 기준 Content Security Policy 적용·결제 회귀 테스트

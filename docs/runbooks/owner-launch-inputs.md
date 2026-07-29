@@ -34,7 +34,7 @@
 - `www` 사용 여부: `www.gigon.ai.kr` 접속 시 대표 주소로 이동하도록 설정 예정
 - 명칭 결정: 2026-07-26 영문 `GigOn`, 한글 `기그온`으로 확정
 - 명칭 충돌 검토: 기존 `긱온` 간이검색과 별개로 `기그온`은 출원 전 재검색 필요. [`gigon.ai`](https://www.gigon.ai/)와 [`gigon.io`](https://gigon.io/)가 동일 영문명·유사 중개 서비스를 운영 중이라는 위험을 확인하고도 해당 명칭으로 진행하기로 결정
-- DNS 상태: 2026-07-29 가비아 네임서버를 Cloudflare로 변경했고 외부 DNS 조회에서 전파 확인. Cloudflare 내부 활성화 판정과 Pages Custom Domain 등록 대기 중
+- DNS 상태: 2026-07-29 Cloudflare 네임서버 전파 및 Pages Custom Domain 연결 완료. `https://gigon.ai.kr` HTTPS `200` 확인
 
 도메인 구매 후 Codex가 Cloudflare Custom Domain, Supabase Site URL/Redirect URL, Google OAuth 승인 주소, Toss 성공·실패 URL을 같은 주소로 맞춥니다.
 
