@@ -80,7 +80,8 @@
     { "version": "20260721150446", "file": "20260721150446_disable_deliverable_file_uploads.sql", "sha256": "82a0b0940a6ce4026193382bb77eefb42fecfe2d1f6ad1647c4dc25533bfab16" },
     { "version": "20260721155618", "file": "20260721155618_require_deliverable_retention_confirmation.sql", "sha256": "465ced4932abab4faa3139cb767c9c52df9bc570d2b513b4b08456a2af38bd87" },
     { "version": "20260721170217", "file": "20260721170217_add_works_dispute_opened_by_index.sql", "sha256": "5cb7f6e62dd7b8963bd0926106c27020ecea5271685f61e9886eeb67ab4d2769" },
-    { "version": "20260721211746", "file": "20260721211746_add_work_deadline_extension_records.sql", "sha256": "8da08e6496f08480492a1bac7fd3a1726f63fbae34668cca7e62f64fca4b2bb6" }
+    { "version": "20260721211746", "file": "20260721211746_add_work_deadline_extension_records.sql", "sha256": "8da08e6496f08480492a1bac7fd3a1726f63fbae34668cca7e62f64fca4b2bb6" },
+    { "version": "20260730004746", "file": "20260730004746_require_verified_payout_account.sql", "sha256": "1b3bb8eb596ced6696d894cdb260a37292e9fd87224b79261361e74be47953a9" }
   ],
   "fixtures": {
     "manifest": "supabase/roles.fixture.json",

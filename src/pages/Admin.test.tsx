@@ -305,6 +305,7 @@ describe('Admin', () => {
                 bankName: '토스뱅크',
                 accountNumber: '1000-0000-0000',
                 accountHolder: '하루스튜디오',
+                verifiedAt: '2026-07-11T09:20:00.000Z',
                 updatedAt: '2026-07-11T09:10:00.000Z',
             }],
             settlementPayouts: [{

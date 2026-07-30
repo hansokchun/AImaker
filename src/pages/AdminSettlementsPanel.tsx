@@ -34,7 +34,7 @@ export default function AdminSettlementsPanel({ snapshot, onCompleteManualSettle
                         const account = payout?.payoutAccountId
                             ? snapshot.payoutAccounts.find((item) => item.id === payout.payoutAccountId)
                             : snapshot.payoutAccounts.find((item) => item.expertId === work.expertId);
-                        const settlementCheck = getSettlementCheck(work, account);
+                        const settlementCheck = getSettlementCheck(work, payout, account);
                         const clientName = getProfileLabel(snapshot, work.clientId);
                         const expertName = getProfileLabel(snapshot, work.expertId);
                         const amount = payout?.amount || work.expertPayout || 0;
@@ -159,7 +159,11 @@ function copySettlementText(value: string): void {
     void navigator.clipboard?.writeText(value);
 }
 
-function getSettlementCheck(work: AdminSnapshot['works'][number], account: AdminSnapshot['payoutAccounts'][number] | undefined) {
+function getSettlementCheck(
+    work: AdminSnapshot['works'][number],
+    payout: AdminSnapshot['settlementPayouts'][number] | undefined,
+    account: AdminSnapshot['payoutAccounts'][number] | undefined,
+) {
     const messages: string[] = [];
     if (work.status === 'completed') messages.push('작업 완료 확인');
     else messages.push(`작업 상태 확인 필요: ${work.status}`);
@@ -167,8 +171,12 @@ function getSettlementCheck(work: AdminSnapshot['works'][number], account: Admin
     if (work.settlementRequestedAt) messages.push('전문가 정산 신청 완료');
     else messages.push('전문가 정산 신청 기록 없음');
 
-    if (account) messages.push('정산 계좌 등록 완료');
+    if (account?.verifiedAt) messages.push('정산 계좌 검증 완료');
+    else if (account) messages.push('정산 계좌 검증 필요');
     else messages.push('정산 계좌 등록 필요');
+
+    if (payout) messages.push('지급 대기열 생성 완료');
+    else messages.push('지급 대기열 없음: 전문가가 정산을 다시 신청해야 함');
 
     if (work.refundStatus) messages.push(`환불 상태 확인 필요: ${work.refundStatus}`);
     else messages.push('환불 대기 없음');
@@ -177,9 +185,10 @@ function getSettlementCheck(work: AdminSnapshot['works'][number], account: Admin
     else messages.push('진행 중 분쟁 없음');
 
     return {
-        status: work.refundStatus || work.disputeStatus === 'open' || !account || work.status !== 'completed' ? 'pending' : 'paid',
+        status: work.refundStatus || work.disputeStatus === 'open' || !payout || !account?.verifiedAt || work.status !== 'completed' ? 'pending' : 'paid',
         canPay: work.status === 'completed'
-            && Boolean(account)
+            && Boolean(payout)
+            && Boolean(account?.verifiedAt)
             && work.refundStatus !== 'fee_excluded_refund_pending'
             && work.refundStatus !== 'refunded'
             && work.disputeStatus !== 'open',

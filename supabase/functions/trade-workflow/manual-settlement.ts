@@ -70,6 +70,12 @@ const createManualSettlementGateway = (client: ServiceClient): ManualSettlementG
         const { data: payout, error: payoutError } = await client
             .from('settlement_payouts').select('id, expert_id, payout_account_id, amount').eq('work_id', workId).maybeSingle()
         if (payoutError) throw payoutError
+        if (!isRecord(payout) || !nonEmptyString(payout.payout_account_id)) return null
+        const { data: account, error: accountError } = await client
+            .from('expert_payout_accounts').select('id, verified_at')
+            .eq('id', payout.payout_account_id).not('verified_at', 'is', null).maybeSingle()
+        if (accountError) throw accountError
+        if (!isRecord(account)) return null
         const { data: operation, error: operationError } = await client
             .from('financial_operations').select('id').eq('work_id', workId).eq('operation_type', 'settlement_request').maybeSingle()
         if (operationError) throw operationError
