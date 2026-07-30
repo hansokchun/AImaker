@@ -36,16 +36,51 @@ export default function Footer() {
                 </div>
             </div>
             <div className="container footer-bottom">
-                <div className="footer-business-info" aria-label="사업자 정보">
-                    <span>상호: 원코리아</span>
-                    <span>대표자: 태영호</span>
-                    <span>사업자등록번호: 107-39-44459</span>
-                    <span>통신판매업 신고번호: 신고 전</span>
-                    <span>사업장 주소: 서울특별시 영등포구 영중로 61, 7층 2호(영등포동6가, 극동빌딩)</span>
-                    <span>고객센터 이메일: <a href="mailto:gigon.help@gmail.com">gigon.help@gmail.com</a></span>
-                    <span>고객센터 전화번호: <a href="tel:+821098189827">010-9818-9827</a></span>
-                    <span>고객센터 운영시간: 평일 10:00~17:00 (주말·공휴일 제외)</span>
-                </div>
+                <details className="footer-business-details">
+                    <summary>
+                        <span>기그온</span>
+                        <span aria-hidden="true">|</span>
+                        <span>원코리아</span>
+                        <span aria-hidden="true">|</span>
+                        <span>책임운영자 한석준</span>
+                        <span aria-hidden="true">|</span>
+                        <span className="footer-business-trigger">사업자정보 확인</span>
+                    </summary>
+                    <dl className="footer-business-info" aria-label="법정 사업자 정보">
+                        <div>
+                            <dt>상호</dt>
+                            <dd>원코리아</dd>
+                        </div>
+                        <div>
+                            <dt>대표자</dt>
+                            <dd>태영호</dd>
+                        </div>
+                        <div>
+                            <dt>사업자등록번호</dt>
+                            <dd>107-39-44459</dd>
+                        </div>
+                        <div>
+                            <dt>통신판매업 신고번호</dt>
+                            <dd>신고 전</dd>
+                        </div>
+                        <div className="footer-business-wide">
+                            <dt>사업장 주소</dt>
+                            <dd>서울특별시 영등포구 영중로 61, 7층 2호(영등포동6가, 극동빌딩)</dd>
+                        </div>
+                        <div>
+                            <dt>고객센터</dt>
+                            <dd>
+                                <a href="mailto:gigon.help@gmail.com">gigon.help@gmail.com</a>
+                                <span aria-hidden="true"> · </span>
+                                <a href="tel:+821098189827">010-9818-9827</a>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>운영시간</dt>
+                            <dd>평일 10:00~17:00 (주말·공휴일 제외)</dd>
+                        </div>
+                    </dl>
+                </details>
                 <p>&copy; 2026 Gig On. All rights reserved.</p>
             </div>
         </footer>
