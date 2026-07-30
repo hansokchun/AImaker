@@ -42,8 +42,9 @@ export default function Footer() {
                     <span>사업자등록번호: 107-39-44459</span>
                     <span>통신판매업 신고번호: 신고 전</span>
                     <span>사업장 주소: 서울특별시 영등포구 영중로 61, 7층 2호(영등포동6가, 극동빌딩)</span>
-                    <span>고객센터 이메일: 미정</span>
-                    <span>고객센터 전화번호: 미정</span>
+                    <span>고객센터 이메일: <a href="mailto:gigon.help@gmail.com">gigon.help@gmail.com</a></span>
+                    <span>고객센터 전화번호: <a href="tel:+821098189827">010-9818-9827</a></span>
+                    <span>고객센터 운영시간: 평일 10:00~17:00 (주말·공휴일 제외)</span>
                 </div>
                 <p>&copy; 2026 Gig On. All rights reserved.</p>
             </div>
