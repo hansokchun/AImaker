@@ -196,11 +196,16 @@
   - 검증: 2026-07-29 `https://gigon.ai.kr` HTTPS `200`, 기그온 페이지 제목, HTTP→HTTPS 이동, 보안 헤더 확인
 - [ ] `P0` HTTPS, Google 로그인, Toss 성공·실패 복귀 확인
   - 담당: 사용자와 Codex
+  - 완료: HTTP→HTTPS 301, 운영 HTTPS 200·보안 헤더, Google 실계정 로그인·보호 경로 진입 확인
+  - 완료: `https://gigon.ai.kr/payment/success`, `/payment/fail` 공개 경로 200 및 결제 요청의 현재 origin 기반 복귀 주소 생성 확인
+  - 남음: Toss 운영 키 발급 후 실제 결제창에서 성공 1건·실패 1건 복귀 실행
 - [ ] `P1` 운영 도메인 기준 Content Security Policy 적용·결제 회귀 테스트
   - 담당: Codex
   - 현재: 기본 보안 헤더는 적용됨. Supabase·Toss·외부 이미지·폰트 출처를 운영 도메인과 운영 키 확정 후 허용 목록으로 고정하고 결제 성공·실패 복귀까지 확인
 - [ ] `P0` 도메인 확정 후 Cloudflare, Google OAuth, Toss Payments의 노출 서비스명·리디렉션 주소를 기그온 기준으로 통일
   - 담당: 사용자와 Codex
+  - 완료: Cloudflare 대표 도메인·기그온 메타 정보, Supabase Site URL, Google 승인 원본·OAuth 콜백 통일
+  - 남음: Toss 운영 계약 후 상점 노출명 `기그온`과 운영 성공·실패 주소 최종 확인
 
 ## 6. 출시 운영 준비
 
