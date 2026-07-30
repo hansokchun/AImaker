@@ -128,7 +128,7 @@ Deno.serve(async (request) => {
         return jsonResponse({ message: 'Only POST requests are supported.' }, { status: 405 })
     }
 
-    let userId = ''
+    let userId: string
     try {
         const user = await requireUser(request)
         userId = user.id

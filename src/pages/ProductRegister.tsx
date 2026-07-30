@@ -231,18 +231,18 @@ export default function ProductRegister() {
     const saveProductWithStatus = async (status: ProductSaveStatus) => {
         if (!user) return
 
-        let standardPackage: ProductPackage
-        let deluxePackage: ProductPackage | null = null
-        let premiumPackage: ProductPackage | null = null
+        let productPackages: {
+            standardPackage: ProductPackage
+            deluxePackage: ProductPackage | null
+            premiumPackage: ProductPackage | null
+        }
         try {
-            const nextPackages = getProductPackages(status)
-            standardPackage = nextPackages.standardPackage
-            deluxePackage = nextPackages.deluxePackage
-            premiumPackage = nextPackages.premiumPackage
+            productPackages = getProductPackages(status)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : '가격 정보를 확인해 주세요.')
             return
         }
+        const { standardPackage, deluxePackage, premiumPackage } = productPackages
 
         setSubmitting(true)
         setErrorMessage('')
