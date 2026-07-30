@@ -2,14 +2,14 @@
 
 이 문서는 기그온의 공개 출시 기준입니다. 완료한 항목만 `[ ]`에서 `[x]`로 변경합니다.
 
-현재 상태: 2026-07-26 기준
+현재 상태: 2026-07-30 기준
 
 표기: `P0`는 실제 결제를 열기 전 필수, `P1`은 공개 전 권장, `사용자`는 대표자가 직접 확정하거나 서비스 관리자 화면에서 처리할 일입니다.
 
 ## 한눈에 보는 현재 상태
 
-- 전체 76개: **완료 45개 / 남음 31개**
-- 남은 배포 필수 `P0`: **22개**
+- 전체 76개: **완료 46개 / 남음 30개**
+- 남은 배포 필수 `P0`: **21개**
 - 남은 공개 전 권장 `P1`: **4개**
 - 출시 후 계획: **5개**
 - 최신 검증 대상 앱 커밋: `2e760a5` (`main`, 운영 배포)
@@ -115,13 +115,12 @@
   - 담당: 사용자
   - 위치: Supabase Dashboard → Authentication → Attack Protection
   - 현재 제약: 사용 중인 Free 플랜에서는 유출 비밀번호 차단이 제공되지 않아 Pro 전환 전까지 보류. 대신 최소 비밀번호 길이·Captcha·로그인 제한을 우선 점검
-- [ ] `P0` 실제 도메인을 Auth Redirect URL과 Google OAuth Redirect URL에 등록
+- [x] `P0` 실제 도메인을 Auth Redirect URL과 Google OAuth Redirect URL에 등록
   - 담당: 사용자, 도메인 확정 후 Codex가 값 검토
   - Supabase 완료: Site URL을 `https://gigon.ai.kr`로 변경하고 Redirect URLs 허용 목록에 같은 주소 추가
   - Google Cloud 완료: Supabase와 동일한 OAuth 클라이언트 확인, 승인된 JavaScript 원본에 `https://gigon.ai.kr` 추가, Supabase 콜백 URI 일치 확인
   - 운영 수정: Cloudflare의 `VITE_SUPABASE_URL` 변수명 뒤에 숨은 탭 문자를 제거하고 정상 변수명으로 재등록한 뒤 `9859c44` 운영 재배포
-  - 검증: 실제 운영 로그인에서 Google 계정 선택 화면까지 정상 이동
-  - 남음: 사용자가 Google 계정을 선택해 `https://gigon.ai.kr`로 복귀하고 로그인 세션이 생성되는지 최종 확인
+  - 검증 완료: Google 계정 선택 → `https://gigon.ai.kr` 복귀 → 로그인 헤더 노출 → 보호 경로 `/my-work`와 실제 거래 목록 조회 확인
 
 ## 3. 토스 운영 결제 전환
 
